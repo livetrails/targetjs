@@ -1,8 +1,11 @@
-# TargetJS: A Novel JavaScript UI Framework for Simplified Development and Enhanced User Experience
+# TargetJS: A Powerful Alternative to Reactive Model Frameworks (React, Vue, Angular, Svelte)
 
-**[targetjs.io](https://targetjs.io)** [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/livetrails/targetjs/blob/main/License) [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
+**[targetjs.io](https://targetjs.io)** 
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/livetrails/targetjs/blob/main/License) 
+[![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
+[![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework designed to streamline front-end development by introducing a unique computational paradigm centered around **Targets**.  It offers a unified approach to UI rendering, animations, API interactions, state management, and event handling, leading to cleaner, more maintainable, and highly performant web applications.
+TargetJS is a modern JavaScript UI framework designed to simplify front-end development by introducing a unique computational paradigm centered around **Targets**.  It offers a unified approach to UI rendering, animations, API interactions, state management, and event handling, leading to cleaner, more maintainable, and highly performant web applications.
 
 ## What Problems Does TargetJS Solve?
 
@@ -11,7 +14,7 @@ TargetJS addresses several common pain points in front-end development:
 1.  **Complexity of Asynchronous Operations:**  Traditional JavaScript often involves complex handling of asynchronous operations (Promises, callbacks, `async/await`). TargetJS addresses this by providing a structured, synchronous, and predictable execution flow, allowing developers to avoid asynchronous operations altogether.
 2.  **Scattered State Management:** Many frameworks require separate libraries or complex patterns for state management. In TargetJS, state management is inherently handled through its core concept of Targets, eliminating the need for direct state management.
 3.  **Boilerplate and Verbosity:** TargetJS aims to reduce boilerplate code. The code is compact and follows a predictable execution flow.
-4.  **Rigid Static Layer of HTML:** Many frameworks use HTML as the primary medium for generating the user interface. TargetJS minimizes reliance on traditional HTML and CSS, allowing JavaScript to drive the user interface, resulting in a better and more dynamic user experience.
+4.  **Rigid Static Layer of HTML:** Many frameworks use HTML as the primary medium for generating the user interface. TargetJS minimizes reliance on traditional HTML and CSS, allowing JavaScript to be the primary player, resulting in a better and more dynamic user experience.
 5.  **Disjointed Development Workflow:**  Developers often juggle multiple tools and concepts (UI libraries, animation libraries, state managers, event handlers). TargetJS provides a *unified* solution, simplifying the learning curve and development process.
 6.  **Difficult Animation Control:**  TargetJS makes animations first-class citizens. Targets can iterate step-by-step towards new values and manage execution flow by time.  This provides fine-grained control over animations without external libraries.
 7.  **Complicated execution flow**: other frameworks are based on reactive model which often lead to unpredictable execution flow while TargetJS execution is based on the order targets are written.
@@ -31,7 +34,7 @@ TargetJS addresses several common pain points in front-end development:
 10. More Examples:
     - [Simple Example](#simple-example)
     - [Declarative and Imperative Targets Example](#declarative-and-imperative-targets-example)
-    - [Simple Single Page App Example](#simple-single-page-app-example)
+    - [Simple SPA Example](#simple-spa-example)
     - [Using TargetJS as a Library Example](#using-targetjs-as-a-library-example) 
 11. [Special Target Names](#special-target-names)
 12. [How to Debug in TargetJS](#how-to-debug-in-targetjs)
@@ -40,9 +43,9 @@ TargetJS addresses several common pain points in front-end development:
 15. [Contact](#contact)
 16. [Call to Action](#call-to-action)
 
-## Installation
+## **📦 Installation**
 
-To install TargetJS, run the following command (note that there is no 's' at the end):
+Install TargetJS via npm (note that there is no 's' at the end):
 
 ```bash
 npm install targetj
@@ -68,16 +71,14 @@ npm install targetj
 
 ## Examples
 
-### Quick example
+### 🔥 Quick Example: A Growing & Shrinking Box
 
-This example shows a purple div that grows and shrinks, with proportional height adjustments and scaling.
-
-- width: Animates from 100 to 250, then back to 100, in 50 steps with 10ms pauses.
-- height:  Calculates height proportionally based on width. The `_` prefix indicates that it is inactive by default and must be activated externally to execute. The `$` postfix means it is activated each time the width executes. this.prevTargetValue refers to the previous target's value, which in this case is the width.
-- scale: Calculates scale based on height.
+💡 What's happening here?
+- width animates from 100 → 250 → 100px, in 50 steps with 10ms pauses.
+- height scales dynamically with width. The `_` prefix indicates that the target is inactive. The `$` postfix means it is activated each time the width executes. this.prevTargetValue refers to the previous target's value, which in this case is the width.
+- scale adjusts based on height
 - onSwipe: Updates the div position based on swipe gestures.
-
-Notice the absence of external CSS and minimal HTML involvement.
+- All logic is in JavaScript—no external CSS required and minimal HTML involvement!
 
 ![first example](https://targetjs.io/img/quickExample8.gif)
 
@@ -99,8 +100,8 @@ App(new TModel('quickExample', {
 
 In this example, we load two separate users and display two purple div elements, each containing a user's name, based on the previous example.
 
-- Children: Since the target name ends with `$`, it executes each time an API call returns a result. TargetJS ensures that API results are ordered in the same sequence as the API execution. For example, if the user1 API result arrives before user0, the children target will not execute. It will only run once the result for user0 has been received. If the target name ends with `$$`, the children target will execute only after both API calls have completed. The results will be returned as an array, with user0 as the first element and user1 as the second, ordered according to the API call execution.
-- Html: Sets the text content of the div with the user's name. prevTargetValue refers to the result of the API call.
+- children: Since the target name ends with `$`, it executes each time an API call returns a result. TargetJS ensures that API results are ordered in the same sequence as the API execution. For example, if the user1 API result arrives before user0, the children target will not execute. It will only run once the result for user0 has been received.
+- html: Sets the text content of the div with the user's name. prevTargetValue refers to the result of the API call.
   
 The execution pipeline then continues as in the previous example.
 
@@ -134,9 +135,9 @@ App(new TModel("quickLoad", {
 
 We expand on the previous example to demonstrate a simple infinite scrolling application where each item dynamically triggers an API call to fetch and display its details.
 
-- Children: Items are dynamically added to the container's children. The `onVisibleChildrenChange` event function detects changes in the visible children and activates the `children` target to generate new items that fill the gaps.  
-- Load: Since the target name ends with `$`, it executes for every batch of 20 newly created children. TargetJS ensures that results are processed in the same order in which the APIs are called, rather than the order in which their responses are received. 
-- Populate: Since the target name ends with `$$`, it executes only after all API calls have completed. It updates the content of each scrollable item with the name returned by the API.
+- children: Items are dynamically added to the container's children. The `onVisibleChildrenChange` event function detects changes in the visible children and activates the `children` target to generate new items that fill the gaps.  
+- load: Since the target name ends with `$`, it executes for every batch of 20 newly created children. TargetJS ensures that results are processed in the same order in which the APIs are called, rather than the order in which their responses are received. 
+- populate: Since the target name ends with `$$`, it executes only after all API calls have completed. It updates the content of each scrollable item with the name returned by the API.
 
 TargetJS employs a tree-like structure to track visible branches, optimizing the scroller performance.
 
@@ -405,7 +406,7 @@ App(new TModel("declarative", {
 }));
 ```
 
-## Simple Single Page App Example
+## Simple SPA Example
 
 Below is a simple single-page application that demonstrates how to build a fully-featured app using TargetJS. Each page is represented by a textarea. You’ll notice that when you type something, switch to another page, and then return to the same page, your input remains preserved. This also applies to the page's scroll position—when you return, the page will open at the same scroll position where you left it, rather than defaulting to the top.
 
@@ -606,16 +607,20 @@ Here are all the event targets:
 18. **onChildrenChange**: Triggered when the children count changes.
 19. **onVisibleChildrenChange**: Triggered when the count of visible children changes.
 20. **onDomEvent**: It accepts an array of targets and activates them when their associated object acquires a DOM element.
-21. 
 
-## How to debug in TargetJS
-1. TargetJS.tApp.stop(): Stops the application.
-2. TargetJS.tApp.start(): Restarts the application
-3. TargetJS.tApp.throttle: Slows down the application. This represents the pause in milliseconds before starting another TargetJS task cycle. It is zero by default.
-4. TargetJS.tApp.debugLevel: Logs information about the TargetJS task cycle when set to 1. It is zero by default.
-5. Use `t()` in the browser console to find an object by its oid, which corresponds to the ID of the HTML element..
-6. Use `t(oid).bug()` to inspect all the vital properities of an object.
-7. Use `t(oid).logTree()` to inspect the internal children structure including brackets of a container.
+## Debugging in TargetJS
+
+TargetJS provides built-in debugging tools:
+
+```bash
+TargetJS.tApp.stop(); //Stops the application.
+TargetJS.tApp.start(); //Restarts the application
+TargetJS.tApp.throttle; //Slows down execution (in ms)
+TargetJS.tApp.debugLevel = 1; // Logs cycle execution
+```
+- Use `t()` in the browser console to find an object by its oid.
+- Use `t(oid).bug()` to inspect all the vital properities.
+- Use `t(oid).logTree()` to inspect the UI structure.
 
 ## Documentation
 Explore the potential of TargetJS and dive into our interactive documentation at www.targetjs.io.
@@ -626,6 +631,7 @@ Distributed under the MIT License. See LICENSE for more information.
 ## Contact
 Ahmad Wasfi - wasfi2@gmail.com
 
-## Call to Action
-⭐ We appreciate your star on GitHub! It helps us grow and reach more developers.
-Give TargetJS a try and let us know what you think!
+## 💖 Support TargetJS
+- ⭐ Star this repo on GitHub to show your support!
+- 🐛 Report issues & suggest features.
+- 📢 Share TargetJS with your network.
