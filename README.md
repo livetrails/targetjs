@@ -42,6 +42,8 @@ TargetJS addresses several common pain points in front-end development:
 
 ## Installation
 
+To install TargetJS, run the following command (note that there is no 's' at the end):
+
 ```bash
 npm install targetj
 ```
