@@ -88,8 +88,8 @@ import { App, TModel, getEvents } from "targetj";
 App(new TModel('quickExample', {
     background: '#B388FF',
     width: [ { list: [ 100, 250, 100 ] }, 50, 10 ], // Target values, steps, interval
-    _height$() { return this.prevTargetValue / 2; }, // activated when the preceding target executes
-    _scale$() { return this.prevTargetValue / 50; }, // activated when the preceding target executes
+    _height$() { return this.prevTargetValue / 2; }, // activated when width executes
+    _scale$() { return this.prevTargetValue / 50; }, // activated when height executes
     onSwipe() { 
       this.setTarget({ x: getEvents().swipeX(this), y: getEvents().swipeY(this) });
     }   
