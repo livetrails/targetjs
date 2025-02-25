@@ -17,7 +17,7 @@ TargetJS addresses several common pain points in front-end development:
 4.  **Rigid Static Layer of HTML:** Many frameworks use HTML as the primary medium for generating the user interface. TargetJS minimizes reliance on traditional HTML and CSS, allowing JavaScript to be the primary player, resulting in a better and more dynamic user experience.
 5.  **Disjointed Development Workflow:**  Developers often juggle multiple tools and concepts (UI libraries, animation libraries, state managers, event handlers). TargetJS provides a *unified* solution, simplifying the learning curve and development process.
 6.  **Difficult Animation Control:**  TargetJS makes animations first-class citizens. Targets can iterate step-by-step towards new values and manage execution flow by time.  This provides fine-grained control over animations without external libraries.
-7.  **Complicated execution flow**: other frameworks are based on reactive model which often lead to unpredictable execution flow while TargetJS execution is based on the order targets are written.
+7.  **Complicated execution flow:** other frameworks are based on reactive model which often lead to unpredictable execution flow while TargetJS execution is based on the order targets are written.
 8.  **Performance Bottlenecks with Large Lists:** TargetJS optimizes rendering for large lists by using a tree structure that renders only the visible branches.
 
 ## Table of Contents
