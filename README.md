@@ -1,4 +1,4 @@
-# TargetJS: A Powerful Alternative to Javascript Reactive Model Frameworks
+# TargetJS: A Novel JavaScript UI Framework for Simplified Development and Enhanced User Experience
 
 **[targetjs.io](https://targetjs.io)** 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/livetrails/targetjs/blob/main/License) 
