@@ -227,7 +227,7 @@ Each target consists of the following:
 All methods and properties are optional, but they play integral roles in making targets useful for animation, API loading, event handling, and more:
 
 1. **value**
-If defined, value is the primary target method that will be executed. The target value will be calculated based on the result of value().
+If defined, value is the primary target method that will be executed. The target value will be calculated based on the result of this method.
 
 2. **Prefix `_` to the target name**
 It indicates that the target is in an inactive state and must be activated by an event, other targets, or a preceding target if postfixed with `$` or `$$`.
