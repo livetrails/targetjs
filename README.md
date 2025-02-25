@@ -339,6 +339,8 @@ App(new TModel({
 It can also be written using the imperative target approach (see the next example):
 
 ```bash
+import { App, TModel } from "targetj";
+
     animate() {
       this.setTarget('background', '#fff');
       this.setTarget('width',[250, 30, 50]);
