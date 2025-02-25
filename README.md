@@ -131,7 +131,7 @@ App(new TModel("quickLoad", {
 }));
 ```
 
-### Infinite Loading and Scrolling Example
+### 🔥 Infinite Loading and Scrolling Example
 
 We expand on the previous example to demonstrate a simple infinite scrolling application where each item dynamically triggers an API call to fetch and display its details.
 
