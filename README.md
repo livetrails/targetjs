@@ -71,7 +71,7 @@ npm install targetj
 
 ## Examples
 
-### 🔥 Quick Example: A Growing & Shrinking Box
+### Quick Example: A Growing & Shrinking Box
 
 💡 What's happening here?
 - width animates from 100 → 250 → 100px, in 50 steps with 10ms pauses.
@@ -96,7 +96,7 @@ App(new TModel('quickExample', {
 }));
 ```
 
-### Simple Loading API Example
+### 🔥 Simple Loading API Example
 
 In this example, we load two separate users and display two purple div elements, each containing a user's name, based on the previous example.
 
