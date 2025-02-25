@@ -371,8 +371,8 @@ By combining imperative and declarative targets with their functional pipeline, 
 
 The following example demonstrates both declarative and imperative approaches. In the `animateLeftToRight` target, two imperative targets move a square across the screen 
 from left to right. Once both `x` and `y` targets are completed, `animateLeftToRight` is considered complete. The `animateRightToLeft` target executes next because 
-it is postfixed with `$$`, forming a pipeline that starts when the preceding target finishes. Similarly, the `repeat` target executes when `animateLeftToRight` 
-completes, reactivating the animation pipeline and allowing the animation to continue indefinitely.
+it is postfixed with `$$`, forming a pipeline that starts when the preceding target finishes. Similarly, the `waitOneSecond` target executes when `animateLeftToRight` completes,
+introducing a 1-second pause. After that, `repeat` is executed, reactivating the animation pipeline and allowing the animation to continue indefinitely.
 
 ![declarative example](https://targetjs.io/img/declarative3.gif)
 
@@ -398,6 +398,9 @@ App(new TModel("declarative", {
             const width = this.getWidth();
             const parentWidth = this.getParentValue("width");
             this.setTarget("x", { list: [parentWidth + width, -width] }, Math.floor(30 + parentWidth * Math.random()));
+          },
+          _waitOneSecond$$() {
+            this.setTarget('1second', 1, 1, 1000); //name, value, steps, interval 
           },
           _repeat$$() {
             this.activateTarget('animateLeftToRight');
