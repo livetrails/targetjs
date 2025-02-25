@@ -53,7 +53,7 @@ npm install targetj
 
 ## Key Features and Concepts
 
-*   **Targets:** The fundamental building blocks of TargetJS. Targets are like enhanced variables and methods with built-in lifecycles. They can:
+*   **Targets:** The fundamental building blocks of TargetJS. Targets provide a unified interface for variables and methods with built-in lifecycles. They can:
     *   Iterate towards values (useful for animations and transitions).
     *   Execute conditionally.
     *   Self-activate and operate autonomously.
