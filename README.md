@@ -100,6 +100,7 @@ App(new TModel('quickExample', {
 
 In this example, we load two separate users and display two purple div elements, each containing a user's name, based on the previous example.
 
+- loadUsers: Calls two fetch APIs to retrieve details for two users.
 - children: Since the target name ends with `$`, it executes each time an API call returns a result. TargetJS ensures that API results are ordered in the same sequence as the API execution. For example, if the user1 API result arrives before user0, the children target will not execute. It will only run once the result for user0 has been received.
 - html: Sets the text content of the div with the user's name. prevTargetValue refers to the result of the API call.
   
