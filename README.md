@@ -178,7 +178,7 @@ Each target consists of the following:
 4. Target Methods: All methods are optional. They are used to control the lifecycle of targets or serve as callbacks to reflect changes. The controlling methods are: enabledOn, loop, steps, cycles. The callbacks are: onValueChange, onStepsEnd, onImperativeStep, onImperativeEnd. More details in the method section.
 
 
-## Target methods
+## Target Methods
 
 All methods and properties are optional, but they play integral roles in making targets useful for animation, API loading, event handling, and more:
 
@@ -245,7 +245,7 @@ An optional callback for targets that make API calls. It will be invoked for eac
 19. **onError**
 Similar to the `onSuccess` but it will be invoked on every error.
     
-## More examples
+## More Examples
 
 Below are examples of various TargetJS use cases:
 
@@ -565,7 +565,7 @@ App(new TModel("rows", {
 }));
 ```
 
-## Special target names
+## Special Target Names
 
 All HTML style names and attributes are treated as special target names. The most commonly used style names and attributes have already been added to the framework, with the possibility of adding more in the future.
 
