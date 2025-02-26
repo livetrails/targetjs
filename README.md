@@ -160,8 +160,8 @@ App(new TModel("loadUsers", {
 | **CSS Handling**                       | CSS is optional; styles can be incorporated directly as Targets. | External stylesheets, CSS-in-JS, or utility-first CSS (e.g., Tailwind). Styles are often separate from logic. |
 | **API Calls**                          | Can be chained in a pipeline; the bottom target activates only when each call is completed in the order invoked or when all calls are complete. | Usually handled with Promises, async/await, or reactive effects; less structured execution. |
 | **Large List Performance**             | Optimized with an internal tree structure; monitors only the visible branch. | Can require careful optimization for very large lists (e.g., virtualization).
-| **Workflow development**               | Targets offer a unified solution for UI , animation, event handling, API calls, and state management | Multiple technologies, commands, and approaches.
-| **Execution control by time**          | TargetJS enables easy sequencing and parallelization for complex UI behaviors. | Not easily accomplished
+| **Workflow development**               | Targets offer a unified solution for UI , animation, event handling, API calls, and state management. | Multiple technologies, commands, and approaches.
+| **Execution control by time**          | TargetJS enables easy sequencing and parallelization for complex UI behaviors. | Not easily accomplished.
 
 
 ## Anatomy of a Target
