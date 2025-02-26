@@ -25,15 +25,16 @@ TargetJS addresses several common pain points in front-end development:
 1. [Installation](#installation)
 2. [Key Features and Concepts](#key-features-and-concepts)
 5. Examples:
-   - [Quick Example](#quick-example)   
+   - [Quick Example: Growing and Shrinking Box](#quick-example-growing-and-shrinking-box)   
    - [Simple Loading API Example](#simple-loading-api-example)
-   - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
+   - [Loading Two Users Example](#loading-two-users-example)
 6. [Comparison with Other UI Frameworks](#comparison-with-other-ui-frameworks)
 7. [Anatomy of a Target](#anatomy-of-a-target)
 9. [Target Methods](#target-methods)
 10. More Examples:
-    - [Simple Example](#simple-example)
+    - [Basic Example](#basic-example)
     - [Declarative and Imperative Targets Example](#declarative-and-imperative-targets-example)
+    - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
     - [Simple SPA Example](#simple-spa-example)
     - [Using TargetJS as a Library Example](#using-targetjs-as-a-library-example) 
 11. [Special Target Names](#special-target-names)
@@ -64,129 +65,82 @@ npm install targetj
 
 *  **Unique computational paradigm:** TargetJS introduces a novel computational model by integrating multiple paradigms: Turing Completeness, the Von Neumann Execution Model, and Functional Programming. This results in:
 
-   * Deterministic Execution Flow: Targets execute based on their activation order, initially following their order in the code.  
+   * Deterministic Execution Flow: Targets execute based on their activation order, initially following their order in the code. Targets cannot be called directly.
    * Powerful Functional Pipeline: Targets can be structured as a functional pipeline with enhanced capabilities.
 
 *   **Easy Integration:** Can be used as a library within existing projects.
 
 ## Examples
 
-### Quick Example: A Growing & Shrinking Box
+### Quick Example: Growing and Shrinking Box
 
 💡 What's happening here?
-- width animates from 100 → 250 → 100px, in 50 steps with 10ms pauses.
-- height scales dynamically with width. The `_` prefix indicates that the target is inactive. The `$` postfix means it is activated each time the width executes. this.prevTargetValue refers to the previous target's value, which in this case is the width.
-- scale adjusts based on height
-- onSwipe: Updates the div position based on swipe gestures.
-- All logic is in JavaScript—no external CSS required and minimal HTML involvement!
+- `width` animates from 100 → 250 → 100px, in 50 steps with 10ms pauses.
+- `height` scales dynamically with width. The `_` prefix indicates that the target is inactive by default. The `$` postfix means it is activated each time the width executes. this.prevTargetValue refers to the previous target's value, which in this case is the width.
 
-![first example](https://targetjs.io/img/quickExample8.gif)
+![first example](https://targetjs.io/img/quick1_3.gif)
 
 ```bash
-import { App, TModel, getEvents } from "targetj";
+import { App, TModel } from "targetj";
 
-App(new TModel('quickExample', {
-    background: '#B388FF',
-    width: [ { list: [ 100, 250, 100 ] }, 50, 10 ], // Target values, steps, interval
-    _height$() { return this.prevTargetValue / 2; }, // activated when width executes
-    _scale$() { return this.prevTargetValue / 50; }, // activated when height executes
-    onSwipe() { 
-      this.setTarget({ x: getEvents().swipeX(this), y: getEvents().swipeY(this) });
-    }   
+App(new TModel("box", {
+    background: "mediumpurple",
+    width: [{ list: [100, 250, 100] }, 50, 10], // Target values, steps, interval
+    _height$() { // activated when width executes
+      return this.prevTargetValue / 2;
+    } 
 }));
 ```
 
-### 🔥 Simple Loading API Example
+### Simple Loading API Example
 
-In this example, we load two separate users and display two purple div elements, each containing a user's name, based on the previous example.
+In this example, we load one user and display its name
 
-- loadUsers: Calls two fetch APIs to retrieve details for two users.
-- children: Since the target name ends with `$`, it executes each time an API call returns a result. TargetJS ensures that API results are ordered in the same sequence as the API execution. For example, if the user1 API result arrives before user0, the children target will not execute. It will only run once the result for user0 has been received.
-- html: Sets the text content of the div with the user's name. prevTargetValue refers to the result of the API call.
-  
-The execution pipeline then continues as in the previous example.
+- `loadUser` calls the fetch API to retrieve user details.
+- `html` sets the text content of the div to the user's name. Since the target name is prefixed with `_` and ends with `$`, it executes only when an API call returns a result. `prevTargetValue` refers to the result of the API call.
 
-![first example](https://targetjs.io/img/quickExample10.gif)
+![first example](https://targetjs.io/img/quick2_4.gif)
 
 ```bash
 import { App, TModel, getLoader } from "targetj";
 
-App(new TModel("quickLoad", {
-    loadUsers() {
-        getLoader().fetch(this, "https://targetjs.io/api/randomUser", {id: "user0"});
-        getLoader().fetch(this, "https://targetjs.io/api/randomUser", {id: "user1"});
+App(new TModel("loadUser", {
+    loadUsers) {
+      getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: "user0" });
     },
-    _children$() {
-        return new TModel("user", {
-            html: this.prevTargetValue.name,
-            background: "#B388FF",
-            width$: [{list: [100, 250, 100]}, 50, 10],
-            height$() {
-                return this.prevTargetValue / 2;
-            },
-            onSwipe() {
-                this.setTarget({x: getEvents().swipeX(this), y: getEvents().swipeY(this)});
-            }
-        });
+    _html$() {
+      return this.prevTargetValue.name;
     }
 }));
 ```
 
-### 🔥 Infinite Loading and Scrolling Example
+### Loading two Users Example
 
-We expand on the previous example to demonstrate a simple infinite scrolling application where each item dynamically triggers an API call to fetch and display its details.
+In this example, we load two separate users and display two purple boxes, each containing a user's name, based on our first example.
 
-- children: Items are dynamically added to the container's children. The `onVisibleChildrenChange` event function detects changes in the visible children and activates the `children` target to generate new items that fill the gaps.  
-- load: Since the target name ends with `$`, it executes for every batch of 20 newly created children. TargetJS ensures that results are processed in the same order in which the APIs are called, rather than the order in which their responses are received. 
-- populate: Since the target name ends with `$$`, it executes only after all API calls have completed. It updates the content of each scrollable item with the name returned by the API.
-
-TargetJS employs a tree-like structure to track visible branches, optimizing the scroller performance.
-
-If you inspect the HTML elements in the browser's developer tools, you'll notice that the scroller’s elements are not nested inside the container. This is because nesting itself is a dynamic target that determines how elements are structured. This enables efficient reuse of HTML elements and unlocks new user experiences.
-
-![Single page app](https://targetjs.io/img/infiniteScrolling11.gif)
+- `loadUsers` calls two fetch APIs to retrieve details for two users.
+- `children` is a special target that adds new items to the parent each time it executes. Since the target name is prefixed with _, it is inactive by default. Because it ends with $, it executes every time an API call returns a result.
+TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, the children target will not execute until the result for user0 has been received.
+  
+![first example](https://targetjs.io/img/quick3_1.gif)
 
 ```bash
-import { App, TModel, getEvents, getLoader, getScreenWidth, getScreenHeight } from "targetj";
+import { App, TModel, getLoader } from "targetj";
 
-App(new TModel("scroller", {
-    containerOverflowMode: "always",
-    children() {
-        const childrenCount = this.getChildren().length;
-        return Array.from({ length: 20 }, (_, i) =>
-            new TModel("scrollItem", {
-                width: [{list: [100, 250]}, 15],
-                background: [{list: ["#FCE961", "#B388FF"]}, 15, 15],
-                height: 48,
-                color: "#C2FC61",
-                textAlign: "center",
-                lineHeight: 48,
-                bottomMargin: 2,
-                x() { return this.getCenterX(); },
-                validateVisibilityInParent: true,
-                html: childrenCount + i
-            })
-        );
+App(new TModel("loadUsers", {
+    loadUsers() {
+      getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: "user0" });
+      getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: "user1" });
     },
-    _load$() {
-        this.prevTargetValue.forEach(data =>
-            getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: data.oid }));
-    },
-    _populate$$() {
-        this.prevTargetValue.forEach((data) => this.getChildByOid(data.id).setTarget("html", data.name));
-    },
-    onScroll() {
-        this.setTarget("scrollTop", Math.max(0, this.getScrollTop() + getEvents().deltaY()));
-    },
-    onVisibleChildrenChange() {
-        if (getEvents().dir() === "down" && this.visibleChildren.length * 50 < this.getHeight()) {
-            this.activateTarget("children");
-        }
-    },
-    width: getScreenWidth,
-    height: getScreenHeight    
+    _children$() {
+      return new TModel("user", {
+        background: "mediumpurple",
+        html: this.prevTargetValue.name,
+        width: [{ list: [100, 250, 100] }, 50, 10],
+        _height$() { return this.prevTargetValue / 2; },
+      });
+    }
 }));
-
 ```
 
 ## Comparison with Other UI Frameworks  
@@ -294,7 +248,7 @@ Similar to the `onSuccess` but it will be invoked on every error.
 
 Below are examples of various TargetJS use cases:
 
-## Simple example
+## Basic Example
 
 In the example below, we incrementally increase the values of width, height, and opacity in 30 steps, with a 50-millisecond pause between each step. You can view a live example here: https://targetjs.io/examples/overview.html.
 
@@ -409,6 +363,62 @@ App(new TModel("declarative", {
     },
     width: getScreenWidth,
     height: getScreenHeight
+}));
+```
+
+### Infinite Loading and Scrolling Example
+
+In this example, we demonstrate a simple infinite scrolling application where each item dynamically triggers an API call to fetch and display its details.
+
+- children: `children` is a special target that adds items to the container's children each time it is executed. The `onVisibleChildrenChange` event function detects changes in the visible children and activates the `children` target to add new items that fill the gaps.  
+- load: Since the target name ends with `$`, it executes for every batch of 20 newly created children and fetches their details. The result will be an array containing the 20 fetched users. TargetJS ensures that the array maintains the order in which the API calls were made, rather than the order in which their responses were received.
+- populate: Since the target name ends with `$$`, it executes only after all API calls have completed. It updates the content of each scrollable item with the name returned by the API.
+
+TargetJS employs a tree-like structure to track visible branches, optimizing the scroller performance.
+
+If you inspect the HTML elements in the browser's developer tools, you'll notice that the scroller’s elements are not nested inside the container. This is because nesting itself is a dynamic target that determines how elements are structured. This enables efficient reuse of HTML elements and unlocks new user experiences.
+
+![Single page app](https://targetjs.io/img/infiniteScrolling11.gif)
+
+```bash
+import { App, TModel, getEvents, getLoader, getScreenWidth, getScreenHeight } from "targetj";
+
+App(new TModel("scroller", {
+    containerOverflowMode: "always",
+    children() {
+        const childrenCount = this.getChildren().length;
+        return Array.from({ length: 20 }, (_, i) =>
+            new TModel("scrollItem", {
+                width: [{list: [100, 250]}, 15],
+                background: [{list: ["#FCE961", "#B388FF"]}, 15, 15],
+                height: 48,
+                color: "#C2FC61",
+                textAlign: "center",
+                lineHeight: 48,
+                bottomMargin: 2,
+                x() { return this.getCenterX(); },
+                validateVisibilityInParent: true,
+                html: childrenCount + i
+            })
+        );
+    },
+    _load$() {
+        this.prevTargetValue.forEach(data =>
+            getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: data.oid }));
+    },
+    _populate$$() {
+        this.prevTargetValue.forEach((data) => this.getChildByOid(data.id).setTarget("html", data.name));
+    },
+    onScroll() {
+        this.setTarget("scrollTop", Math.max(0, this.getScrollTop() + getEvents().deltaY()));
+    },
+    onVisibleChildrenChange() {
+        if (getEvents().dir() === "down" && this.visibleChildren.length * 50 < this.getHeight()) {
+            this.activateTarget("children");
+        }
+    },
+    width: getScreenWidth,
+    height: getScreenHeight    
 }));
 ```
 
