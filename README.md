@@ -262,7 +262,7 @@ You can view a live example here: https://targetjs.io/examples/overview.html.
 import { App, TModel } from "targetj";
 
 App(new TModel({
-    background: '#fff',
+    background: 'mediumpurple',
     width: {
         value: 250,        
         steps: 30,
@@ -286,7 +286,7 @@ App(new TModel({
 import { App, TModel } from "targetj";
 
 App(new TModel({
-    background: '#fff',
+    background: 'mediumpurple',
     width: [ 250, 30, 50], 
     height: [ 250, 30, 50],
     opacity: [ 0.15, 30, 50]
@@ -298,7 +298,7 @@ App(new TModel({
 import { App, TModel } from "targetj";
 
     animate() {
-      this.setTarget('background', '#fff');
+      this.setTarget('background', 'mediumpurple');
       this.setTarget('width',[250, 30, 50]);
       this.setTarget('height', [250, 30, 50]);
       this.setTarget('opacity', [0.15, 30, 50]);
@@ -312,7 +312,7 @@ import { App, TModel } from "targetj";
 App(new TModel({
     animate() {
       this.setTarget({
-         background: '#fff',
+         background: 'mediumpurple',
          width: [ 250, 30, 50],
          height: [ 250, 30, 50],
          opacity: [ 0.15, 30, 50]
