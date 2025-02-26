@@ -75,8 +75,9 @@ npm install targetj
 ### Quick Example: Growing and Shrinking Box
 
 💡 What's happening here?
+- Targets run initially in the order they appear in the code, so `width` runs first. The `_` prefix indicates that a target is inactive by default, meaning `height` does not run initially.
 - `width` animates from 100 → 250 → 100px, in 50 steps with 10ms pauses.
-- `height` scales dynamically with width. The `_` prefix indicates that the target is inactive by default. The `$` postfix means it is activated each time the width executes. this.prevTargetValue refers to the previous target's value, which in this case is the width.
+- `height` follows `width` and scales dynamically with its value. The `$` postfix means it is activated each time `width` executes. this.prevTargetValue refers to the previous target's value, which in this case is `width`.
 
 ![first example](https://targetjs.io/img/quick1_3.gif)
 
