@@ -351,13 +351,13 @@ App(new TModel("declarative", {
           animateLeftToRight() {
               const width = this.getWidth();
               const parentWidth = this.getParentValue("width");
-              this.setTarget("x", { list: [-width, parentWidth + width] }, Math.floor(30 + parentWidth * Math.random()));
+              this.setTarget("x", { list: [-width, parentWidth + width] }, 300);
               this.setTarget("y", Math.floor(Math.random() * (this.getParentValue("height") - this.getHeight())), 30);
           },
           _animateRightToLeft$$() {
             const width = this.getWidth();
             const parentWidth = this.getParentValue("width");
-            this.setTarget("x", { list: [parentWidth + width, -width] }, Math.floor(30 + parentWidth * Math.random()));
+            this.setTarget("x", { list: [parentWidth + width, -width] }, 300);
           },
           _waitOneSecond$$() {
             this.setTarget('1second', 1, 1, 1000); //name, value, steps, interval 
