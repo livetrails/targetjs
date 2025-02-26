@@ -311,7 +311,12 @@ import { App, TModel } from "targetj";
 
 App(new TModel({
     animate() {
-      this.setTarget({ 'background': '#fff', width: [ 250, 30, 50], height: [ 250, 30, 50], opacity: [ 0.15, 30, 50] });
+      this.setTarget({
+         background: '#fff',
+         width: [ 250, 30, 50],
+         height: [ 250, 30, 50],
+         opacity: [ 0.15, 30, 50]
+      });
     }
  }));
 ```
