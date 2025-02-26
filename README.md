@@ -115,7 +115,7 @@ App(new TModel("loadUser", {
 }));
 ```
 
-### Loading two Users Example
+### Loading Two Users Example
 
 In this example, we load two separate users and display two purple boxes, each containing a user's name, based on our first example.
 
