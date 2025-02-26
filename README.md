@@ -65,7 +65,7 @@ npm install targetj
 
 *  **Unique computational paradigm:** TargetJS introduces a novel computational model by integrating multiple paradigms: Turing Completeness, the Von Neumann Execution Model, and Functional Programming. This results in:
 
-   * Deterministic Execution Flow: Targets execute based on their activation order, initially following their order in the code. Targets cannot be called directly.
+   * Deterministic Execution Flow: Targets execute based on their activation order, initially following their order in the code. They run in sequence as part of the task processing cycle. Everything in TargetJS is synchronous, and targets cannot be called directly.
    * Powerful Functional Pipeline: Targets can be structured as a functional pipeline with enhanced capabilities.
 
 *   **Easy Integration:** Can be used as a library within existing projects.
