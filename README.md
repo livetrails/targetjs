@@ -251,10 +251,12 @@ Below are examples of various TargetJS use cases:
 
 ## Basic Example
 
-In the example below, we incrementally increase the values of width, height, and opacity in 30 steps, with a 50-millisecond pause between each step. You can view a live example here: https://targetjs.io/examples/overview.html.
+The examples below demonstrate different formats for writing target constructs. In each example, the values of `width`, `height`, and `opacity` are incrementally increased over 30 steps, with a 50ms pause between each step. 
+You can view a live example here: https://targetjs.io/examples/overview.html.
 
-![first example](https://targetjs.io/img/firstExample.gif)
+![first example](https://targetjs.io/img/basic1_3.gif)
 
+**Object**
 
 ```bash
 import { App, TModel } from "targetj";
@@ -278,21 +280,19 @@ App(new TModel({
     }
  }));
 ```
-
-It can also be written in a more compact form using arrays (view a live example at https://targetjs.io/examples/overview2.html):
+**Array**
 
 ```bash
 import { App, TModel } from "targetj";
 
 App(new TModel({
     background: '#fff',
-    width: [ 250, 30, 50],
+    width: [ 250, 30, 50], 
     height: [ 250, 30, 50],
     opacity: [ 0.15, 30, 50]
  }));
 ```
-
-It can also be written using the imperative target approach (see the next example):
+**Imperative** (more in the next example)
 
 ```bash
 import { App, TModel } from "targetj";
@@ -304,7 +304,7 @@ import { App, TModel } from "targetj";
       this.setTarget('opacity', [0.15, 30, 50]);
     },
 ```
-Or in a more compact format:
+**Imperative Multi-Targets**
 
 ```bash
 import { App, TModel } from "targetj";
