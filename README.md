@@ -105,7 +105,7 @@ In this example, we load one user and display its name
 import { App, TModel, getLoader } from "targetj";
 
 App(new TModel("loadUser", {
-    loadUsers) {
+    loadUse() {
       getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: "user0" });
     },
     _html$() {
