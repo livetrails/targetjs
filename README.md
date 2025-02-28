@@ -193,7 +193,7 @@ If defined, value is the primary target method that will be executed. The target
 It indicates that the target is in an inactive state and must be activated by an event or ther targets.
 
 3. **active**
-This is the only property. It indicates whether the target is ready for execution. When set to false, it behaves similarly to a `_ `prefix. By default, all targets are active, so setting it to true is unnecessary.
+This is only a property. It indicates whether the target is ready for execution. When set to false, it behaves similarly to a `_ `prefix. By default, all targets are active, so setting it to true is unnecessary.
 
 15. **Postfix `$` to the target name**
 A target name ending with $ indicates that it will be activated when the preceding target is executed. If the preceding target involves API calls, it will be activated
