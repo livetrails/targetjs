@@ -204,7 +204,7 @@ then the second, and so on.
 A target name ending with `$$` indicates indicates that it will be activated only after the preceding target has completed, along with all its imperative targets,
 and after all API results have been received without error.
 
-2. **onEnabled**
+2. **enabledOn**
 Determines whether the target is eligible for execution. If enabledOn() returns false, the target remains active until it is enabled and gets executed.
 
 3. **loop**
