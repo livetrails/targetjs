@@ -97,7 +97,7 @@ App(new TModel("box", {
 
 ### Simple Loading API Example
 
-In this example, we load one user and display its name
+In this example, we load one user and display its name.
 
 - `loadUser` calls the fetch API to retrieve user details.
 - `html` sets the text content of the div to the user's name. Since the target name is prefixed with `_` and ends with `$`, it executes only when an API call returns a result. `prevTargetValue` refers to the result of the API call.
@@ -107,7 +107,7 @@ In this example, we load one user and display its name
 ```bash
 import { App, TModel, getLoader } from "targetj";
 
-App(new TModel("loadUser", {
+App(new TModel({
     loadUser() {
       getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: "user0" });
     },
@@ -130,7 +130,7 @@ TargetJS ensures that API results are processed in the same sequence as the API 
 ```bash
 import { App, TModel, getLoader } from "targetj";
 
-App(new TModel("loadUsers", {
+App(new TModel({
     loadUsers() {
       getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: "user0" });
       getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: "user1" });
