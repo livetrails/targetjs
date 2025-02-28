@@ -28,7 +28,8 @@ TargetJS addresses several common pain points in front-end development:
    - [Simple Loading API Example](#simple-loading-api-example)
    - [Loading Two Users Example](#loading-two-users-example)
 6. [Comparison with Other UI Frameworks](#comparison-with-other-ui-frameworks)
-7. [Anatomy of a Target](#anatomy-of-a-target)
+7. [The Core of TargetJS](#the-core-of-targetjs)
+8. [Anatomy of a Target](#anatomy-of-a-target)
 9. [Target Methods](#target-methods)
 10. [Target Variables](#target-variables)
 11. More Examples:
@@ -167,6 +168,10 @@ App(new TModel({
 | **Workflow development**               | Targets offer a unified solution for UI , animation, event handling, API calls, and state management. | Multiple technologies, commands, and approaches.
 | **Execution control by time**          | TargetJS enables easy sequencing and parallelization for complex UI behaviors. | Not easily accomplished.
 
+## The Core of TargetJS
+
+TargetJS utilizes literal JavaScript objects for target definitions, providing a compact and readable format. Targets offer a unified interface that encompasses both properties and functions. 
+TargetJS leverages ES2015's guaranteed property order to ensure that target execution follows the order in which the code is written.
 
 ## Anatomy of a Target
 
