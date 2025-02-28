@@ -244,7 +244,7 @@ An optional callback for targets that make API calls. It will be invoked for eac
 19. **onError**
 Similar to the `onSuccess` but it will be invoked on every error.
 
-## Target variables
+## Target Variables
 In all the target methods above, you can access the following variables:
 
 1. **this.prevTargetValue**  
