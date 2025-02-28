@@ -30,18 +30,19 @@ TargetJS addresses several common pain points in front-end development:
 6. [Comparison with Other UI Frameworks](#comparison-with-other-ui-frameworks)
 7. [Anatomy of a Target](#anatomy-of-a-target)
 9. [Target Methods](#target-methods)
-10. More Examples:
+10. [Target Variables](#target-variables)
+11. More Examples:
     - [Basic Example](#basic-example)
     - [Declarative and Imperative Targets Example](#declarative-and-imperative-targets-example)
     - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
     - [Simple SPA Example](#simple-spa-example)
     - [Using TargetJS as a Library Example](#using-targetjs-as-a-library-example) 
-11. [Special Target Names](#special-target-names)
-12. [How to Debug in TargetJS](#how-to-debug-in-targetjs)
-13. [Documentation](#documentation)
-14. [License](#license)
-15. [Contact](#contact)
-16. [Call to Action](#call-to-action)
+12. [Special Target Names](#special-target-names)
+13. [How to Debug in TargetJS](#how-to-debug-in-targetjs)
+14. [Documentation](#documentation)
+15. [License](#license)
+16. [Contact](#contact)
+17. [Call to Action](#call-to-action)
 
 ## **📦 Installation**
 
@@ -55,9 +56,10 @@ npm install targetj
 
 *   **Targets:** The fundamental building blocks of TargetJS. Targets provide a unified interface for variables and methods with built-in lifecycles. They can:
     *   Iterate towards values (useful for animations and transitions).
-    *   Execute conditionally.
-    *   Self-activate and operate autonomously.
-    *   Form synchronous execution pipelines.
+    *   Execute conditionally (minimizing the need for if statements)
+    *   Manage repeated executions and the intervals between them (minimizing the need for loop statements).
+    *   Form synchronous execution pipelines (similar to assembling Lego).
+    *   Track the execution progress of other targets.
     *   Manage their own state.
 
 *   **Unified Approach:**  Targets handle UI updates, API calls, animations, state, and events, reducing the need to learn and integrate multiple libraries.
@@ -186,7 +188,10 @@ All methods and properties are optional, but they play integral roles in making 
 If defined, value is the primary target method that will be executed. The target value will be calculated based on the result of this method.
 
 2. **Prefix `_` to the target name**
-It indicates that the target is in an inactive state and must be activated by an event, other targets, or a preceding target if postfixed with `$` or `$$`.
+It indicates that the target is in an inactive state and must be activated by an event or ther targets.
+
+3. **active**
+This is the only property. It indicates whether the target is ready for execution. When set to false, it behaves similarly to a `_ `prefix. By default, all targets are active, so setting it to true is unnecessary.
 
 15. **Postfix `$` to the target name**
 A target name ending with $ indicates that it will be activated when the preceding target is executed. If the preceding target involves API calls, it will be activated
@@ -196,14 +201,6 @@ then the second, and so on.
 17. **Postfix `$$` to the target name**
 A target name ending with `$$` indicates indicates that it will be activated only after the preceding target has completed, along with all its imperative targets,
 and after all API results have been received without error.
-
-17. **this.prevTargetValue**  
-It holds the value of the preceding target. If the preceding target involves API calls, a single $ postfix means it will hold one API result at a time, as the target is
-activated with each API response. If the target is postfixed with $$, it will have the results as an array, ordered by the sequence of API calls rather than the order in
-which the responses are received.
-
-19. **this.isPrevTargetUpdated()**
-It returns `true` if the previous target has been updated. This method is useful when a target is activated externally, such as by a user event, rather than by the preceding target.  
 
 2. **onEnabled**
 Determines whether the target is eligible for execution. If enabledOn() returns false, the target remains active until it is enabled and gets executed.
@@ -244,6 +241,20 @@ An optional callback for targets that make API calls. It will be invoked for eac
 
 19. **onError**
 Similar to the `onSuccess` but it will be invoked on every error.
+
+## Target variables
+In all the target methods above, you can access the following variables:
+
+1. **this.prevTargetValue**  
+It holds the value of the preceding target. If the preceding target involves API calls, a single $ postfix means it will hold one API result at a time, as the target is
+activated with each API response. If the target is postfixed with $$, it will have the results as an array, ordered by the sequence of API calls rather than the order in
+which the responses are received.
+
+2. **this.isPrevTargetUpdated()**
+It returns `true` if the previous target has been updated. This method is useful when a target is activated externally, such as by a user event, rather than by the preceding target.
+
+3. **this.key**
+Represents the name of the current target.
     
 ## More Examples
 
