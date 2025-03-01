@@ -59,7 +59,7 @@ npm install targetj
     *   Iterate towards values (useful for animations and transitions).
     *   Execute conditionally.
     *   Manage repeated executions.
-    *   Control execution timing (useful for UI UI operations and advanced animations).
+    *   Control execution timing (useful for UI operations and advanced animations).
     *   Form synchronous execution pipelines (similar to assembling Lego).
     *   Track the execution progress of other targets.
     *   Declarative execution (execution follows the way the code is written).
