@@ -57,8 +57,9 @@ npm install targetj
 
 *   **Targets:** The fundamental building blocks of TargetJS. Targets provide a unified interface for variables and methods with built-in lifecycles. They can:
     *   Iterate towards values (useful for animations and transitions).
-    *   Execute conditionally (minimizing the need for if statements)
-    *   Manage repeated executions and the intervals between them (minimizing the need for loop statements).
+    *   Execute conditionally (simplifying logic)
+    *   Manage repeated executions (reducing loop complexity).
+    *   Control execution timing (useful for advanced animations).
     *   Form synchronous execution pipelines (similar to assembling Lego).
     *   Track the execution progress of other targets.
     *   Manage their own state.
