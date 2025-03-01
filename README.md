@@ -62,6 +62,8 @@ npm install targetj
     *   Control execution timing (useful for advanced animations).
     *   Form synchronous execution pipelines (similar to assembling Lego).
     *   Track the execution progress of other targets.
+    *   Declarative execution (execution follows the way the code is written).
+    *   Compact code (No unnecessary function calls, minimal if statements and loops).
     *   Manage their own state.
 
 *   **Unified Approach:**  Targets handle UI updates, API calls, animations, state, and events, reducing the need to learn and integrate multiple libraries.
