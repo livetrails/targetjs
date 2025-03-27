@@ -16,7 +16,7 @@ class LocationManager {
         this.hasLocationMap = {};
         
         this.visibleChildrenLengthMap = {};
-        this.childrenLengthMap = {};
+        this.updatedContainerMap = {};
 
         this.locationListStats = [];
         
@@ -26,7 +26,7 @@ class LocationManager {
     
     clear() {
         this.visibleChildrenLengthMap = {};
-        this.childrenLengthMap = {}; 
+        this.updatedContainerMap = {}; 
         this.activatedList = [];
         this.activatedMap = {};        
     }
@@ -42,17 +42,17 @@ class LocationManager {
         
         Object.keys(this.visibleChildrenLengthMap).forEach(key => {
             const { tmodel, length } = this.visibleChildrenLengthMap[key];
-            if ((length !== tmodel.visibleChildren.length || tmodel.visibleChildren.length === 0)) {
+            if (tmodel.isVisible() && (length !== tmodel.visibleChildren.length || tmodel.visibleChildren.length === 0)) {
                 this.runEventTargets(tmodel, 'onVisibleChildrenChange');
-                delete this.visibleChildrenLengthMap[key];                
+                this.visibleChildrenLengthMap[key].length = tmodel.visibleChildren.length;           
             }
         });
         
-        Object.keys(this.childrenLengthMap).forEach(key => {
-            const { tmodel, length } = this.childrenLengthMap[key];            
-            if ((length !== tmodel.getChildren().length)) {
-                    this.runEventTargets(tmodel, 'onChildrenChange');
-                delete this.childrenLengthMap[key];                
+        Object.keys(this.updatedContainerMap).forEach(key => {
+            const tmodel = this.updatedContainerMap[key];
+            if (tmodel.isVisible()) {
+                this.runEventTargets(tmodel, 'onChildrenChange');
+                delete this.updatedContainerMap[key];                                
             }
         }); 
     }
@@ -102,7 +102,14 @@ class LocationManager {
     
     calculateContainer(container, shouldCalculateChildTargets = true) {
         const allChildrenList = this.getChildren(container);
-        const viewport = container.createViewport();                        
+        const viewport = container.createViewport();
+        if (container.childrenUpdateFlag) {
+            container.childrenUpdateFlag = false;
+            if (container.targets['onChildrenChange']) {
+                this.updatedContainerMap[container.oid] = container;
+            }
+        }
+        
         container.visibleChildren.length = 0;                
         
         for (const child of allChildrenList) {
@@ -129,9 +136,6 @@ class LocationManager {
             if (child.isIncluded()) {  
                 if (child.targets['onVisibleChildrenChange'] && !this.visibleChildrenLengthMap[child.oid]) {
                     this.visibleChildrenLengthMap[child.oid] = { tmodel: child, length: child.visibleChildren.length };
-                }
-                if (child.targets['onChildrenChange'] && !this.childrenLengthMap[child.oid]) {
-                    this.childrenLengthMap[child.oid] = { tmodel: child, length: child.getChildren().length };
                 }
                 
                 this.addToLocationList(child);
@@ -163,13 +167,23 @@ class LocationManager {
                 ? TargetExecutor.executeDeclarativeTarget(child, 'isVisible') 
                 : child.calcVisibility();
                 
-            child.isNowVisible = isVisible === false && child.isVisible();
+            child.isNowVisible = !isVisible && child.isVisible();
             
             child.addToParentVisibleChildren();
 
             if (child.shouldCalculateChildren()) {
                 this.calculateContainer(child, shouldCalculateChildTargets && container.shouldCalculateChildTargets() !== false);
             }
+            
+            if (!child.excludeDefaultStyling() && !TUtil.isDefined(child.targetValues.height) && !TUtil.isDefined(child.targets.heightFromDom) && child.getContentHeight() > 0) {
+                child.val('height', child.getContentHeight());
+                child.addToStyleTargetList('height');
+            }
+
+            if (!child.excludeDefaultStyling() && !TUtil.isDefined(child.targetValues.width) && !TUtil.isDefined(child.targets.widthFromDom) && child.getContentWidth() > 0) {
+                child.val('width', child.getContentWidth());
+                child.addToStyleTargetList('width');
+            }               
             
             if (child.isInFlow()) {
                 if (TUtil.isNumber(child.val('appendNewLine'))) {
@@ -180,16 +194,6 @@ class LocationManager {
                     viewport.nextLocation();
                 }  
             }
-           
-            if (!child.excludeDefaultStyling() && !TUtil.isDefined(child.targetValues.height) && !TUtil.isDefined(child.targets.heightFromDom) && child.getContentHeight() > 0) {
-                child.val('height', child.getContentHeight());
-                child.addToStyleTargetList('height');
-            }
-
-            if (!child.excludeDefaultStyling() && !TUtil.isDefined(child.targetValues.width) && !TUtil.isDefined(child.targets.widthFromDom) && child.getContentWidth() > 0) {
-                child.val('width', child.getContentWidth());
-                child.addToStyleTargetList('width');
-            }            
         }
         
         container.calcContentWidthHeight();     
@@ -265,6 +269,8 @@ class LocationManager {
                 } else {
                     TargetUtil.activateSingleTarget(tmodel, target.value);
                 }
+                
+                TargetUtil.shouldActivateNextTarget(tmodel, targetName);
             }
         });
     }

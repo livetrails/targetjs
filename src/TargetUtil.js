@@ -1,4 +1,3 @@
-import { TModel } from "./TModel.js";
 import { TargetData } from "./TargetData.js";
 import { getRunScheduler, getManager, getLoader } from "./App.js";
 import { TUtil } from "./TUtil.js";
@@ -135,7 +134,7 @@ class TargetUtil {
         const isEndTrigger = targetName?.endsWith('$');
         const fetchAction = target?.fetchAction;
         const childAction = target?.childAction;
-
+             
         if (fetchAction) {
             if (fetchAction === 'onEnd' && TargetUtil.hasTargetEnded(tmodel, key)) {
                     TargetUtil.activateNextTarget(tmodel, cleanTargetName);
@@ -164,7 +163,7 @@ class TargetUtil {
             }
             return;
         }
-        
+
         if (target && cleanTargetName && !tmodel.isTargetImperative(key)) {
             if ((isEndTrigger && TargetUtil.hasTargetEnded(tmodel, key)) || !isEndTrigger) {
                 TargetUtil.activateNextTarget(tmodel, cleanTargetName);
@@ -178,15 +177,15 @@ class TargetUtil {
         }             
     }
 
-    static hasTargetEnded(tmodel, key) {
+    static hasTargetEnded(tmodel, key) {        
         const isComplete = (tmodel.isTargetComplete(key) || tmodel.isTargetDone(key)) && !tmodel.hasUpdatingTargets(key);
         if (!isComplete) {
             return false;
         }
-        
+                
         const target = tmodel.targets[key];
         if (target) {
-            if ((target.childAction && (tmodel.hasUpdatingChildren() || tmodel.hasActiveChildren()))) {
+            if (target.childAction && (tmodel.hasUpdatingChildren() || tmodel.hasActiveChildren())) {
                 return false;
             }
             if (target.fetchAction && !getLoader().isLoadingSuccessful(tmodel, key)) {
@@ -260,7 +259,7 @@ class TargetUtil {
     }
     
     static isChildrenTarget(key, value) {
-        return key === 'children' && (Array.isArray(value) || value instanceof TModel);
+        return key === 'children' && typeof value === 'object';
     }
 
     static getValueStepsCycles(tmodel, _target, key, cycle = tmodel.getTargetCycle(key)) {
@@ -425,7 +424,7 @@ class TargetUtil {
             rerender = true;
         }     
  
-        if (rerender || (parent && timestamp <= parent.getDimLastUpdate()) || (domParent && timestamp <= domParent.getDimLastUpdate())) {
+        if (rerender || (parent && timestamp <= parent.getDimLastUpdate()) || (domParent && timestamp <= domParent.getDimLastUpdate())) {         
             child.$dom.height('auto');
             const height = child.$dom.height();
             child.domHeightTimestamp = TUtil.now();
@@ -435,7 +434,7 @@ class TargetUtil {
             if (height > 0 || (height === 0 && child.lastVal('height') > 0)) {
                 child.addToStyleTargetList('height');
             }
-
+            
             getRunScheduler().schedule(15, 'resize');
         }
     }

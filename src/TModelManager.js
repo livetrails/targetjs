@@ -65,11 +65,11 @@ class TModelManager {
                 continue;
             }
             
-            const visible = tmodel.isVisible();
+            const visible = tmodel.isVisible();      
 
             if (visible) {
                 lastVisibleMap[tmodel.oid] = null;
-
+                
                 if (tmodel.hasDom() && !tmodel.canHaveDom() && !this.lists.invisibleDom.includes(tmodel)) {
                     this.lists.invisibleDom.push(tmodel);
                 }
@@ -106,6 +106,7 @@ class TModelManager {
 
                 if (Object.keys(tmodel.targetMethodMap).length > 0) {
                     this.targetMethodMap[tmodel.oid] = { ...tmodel.targetMethodMap };
+                    tmodel.targetMethodMap = {};
                 }
                 
                 tmodel.deactivate();
@@ -120,7 +121,7 @@ class TModelManager {
         
         const lastVisible = Object.values(lastVisibleMap)
             .filter(tmodel => tmodel !== null && tmodel.hasDom() && (tmodel.canDeleteDom() || !tmodel.getParent()?.allChildrenMap[tmodel.oid]));
-
+    
         this.lists.invisibleDom.push(...lastVisible);
         
         return this.lists.noDom.length > 0 ? 0 : 
@@ -236,8 +237,8 @@ class TModelManager {
             const key = target.key;
             if (tmodel.isTargetDone(key)) {
                 tmodel.setTargetComplete(key);
-                tmodel.removeFromActiveTargets(tmodel);
-                tmodel.removeFromUpdatingTargets(tmodel);
+                tmodel.removeFromActiveTargets(key);
+                tmodel.removeFromUpdatingTargets(key);
             }
         });
     }

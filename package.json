@@ -1,6 +1,6 @@
 {
   "name": "targetj",
-  "version": "1.0.151",
+  "version": "1.0.152",
   "keywords": [
     "targetjs"
   ],
@@ -22,7 +22,7 @@
     "dev": "webpack --mode development",
     "build": "babel src --out-dir build"
   },
-  "homepage": "http://targetj.io",
+  "homepage": "http://targetjs.io",
   "devDependencies": {
     "@babel/cli": "^7.25.6",
     "@babel/core": "^7.25.2",

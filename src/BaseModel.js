@@ -92,6 +92,7 @@ class BaseModel {
     
     processNewTarget(key, targetNames) {
         let target = this.targets[key];        
+        const cleanKey = TargetUtil.getTargetName(key);
 
         if (!TUtil.isDefined(target)) {
             this.delVal('key');
@@ -107,7 +108,14 @@ class BaseModel {
             TargetUtil.bindTarget(this, key, targetNames);
         }
 
-        const cleanKey = TargetUtil.getTargetName(key);
+        if (TargetData.allEventMap[cleanKey] || TargetData.internalEventMap[cleanKey]) {
+            if (!this.eventTargetMap[cleanKey]) {
+                this.eventTargetList.push(cleanKey);
+                this.eventTargetMap[cleanKey] = true;
+                target.active = false;
+            }
+        }
+
         const isInactiveKey = key.startsWith('_');
 
         if (cleanKey !== key) {
@@ -117,14 +125,6 @@ class BaseModel {
             }
             delete this.targets[key];
             key = cleanKey;
-        }
-
-        if (TargetData.allEventMap[key] || TargetData.internalEventMap[key]) {
-            if (!this.eventTargetMap[key]) {
-                this.eventTargetList.push(key);
-                this.eventTargetMap[key] = true;
-            }
-            return;
         }
 
         if (TargetData.bypassInitialProcessingTargetMap[key]) {
@@ -158,7 +158,6 @@ class BaseModel {
         this.currentStatus = 'active';
         if (targetName && this.isTargetEnabled(targetName) && this.activatedTargets.indexOf(targetName) === -1) {
             this.activatedTargets.push(targetName);
-            this.removeFromActiveTargets(targetName);
         }
     }
 
@@ -386,8 +385,13 @@ class BaseModel {
         if (!TUtil.isDefined(target)) {
             return false;
         }
-
-        return typeof target.enabledOn === 'function' ? target.enabledOn.call(this) : true;
+        
+        if (typeof target.enabledOn === 'function') {  
+            this.setTargetMethodName(key, 'enabledOn');
+            return target.enabledOn.call(this);
+        } else {
+            return true;
+        }
     }
 
     isTargetInLoop(key) {
@@ -503,12 +507,7 @@ class BaseModel {
 
     getTargetInterval(key) {
         const targetValue = this.targetValues[key];
-
-        if (this.isStyleTarget(key) || this.useWindowFrame(key)) {
-            return targetValue ? targetValue.interval : 0;
-        }
-
-        return TUtil.isDefined(this.targets['interval']) ? this.targets['interval'] : targetValue?.interval || 0;
+        return targetValue?.interval || 0;
     }
 
     getTargetEventFunctions(key) {
@@ -725,6 +724,10 @@ class BaseModel {
     }
         
     setTargetMethodName(targetName, methodName) {
+        if (TargetData.ignoreTargetMethodNameMap[targetName] && !this.isTargetUpdating(targetName) && !this.isTargetImperative(targetName)) {
+            return;
+        }
+
         if (!this.targetMethodMap[targetName]) {
             this.targetMethodMap[targetName] = [];
         }

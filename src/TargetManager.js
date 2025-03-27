@@ -9,7 +9,6 @@ import { SearchUtil } from "./SearchUtil.js";
  */
 class TargetManager {
     applyTargetValues(tmodel, activeList = tmodel.activeTargetList.slice(0)) {
-        tmodel.targetMethodMap = {};
 
         for (const key of activeList) {
             if (!tmodel.isTargetImperative(key)) {
@@ -25,19 +24,11 @@ class TargetManager {
             tmodel.removeFromActiveTargets(key);
             return;
         }
-
-        if (typeof target.enabledOn === 'function') {
-            tmodel.setTargetMethodName(key, 'enabledOn');
-        }
-
-        if (!tmodel.isTargetEnabled(key)) {
-            return;
-        }
-
+        
         if (tmodel.isExecuted(key) && tmodel.hasUpdatingTargets(key)) {
             return;
-        }
-
+        }    
+        
         if (tmodel.isExecuted(key) && tmodel.getTargetStep(key) === tmodel.getTargetSteps(key)) {
             if (tmodel.isScheduledPending(key) && getRunScheduler().nextRuns.length > 0) {
                 return;
@@ -47,6 +38,13 @@ class TargetManager {
                 getRunScheduler().schedule(schedulePeriod, `targetSchedule__${tmodel.oid}__${key}_${schedulePeriod}`);
                 return;
             }
+        }
+       
+        if (!tmodel.isTargetEnabled(key)) {
+            if (target.needsReactivation) {
+                tmodel.removeFromActiveTargets(key);
+            }
+            return;
         }
 
         tmodel.resetScheduleTimeStamp(key);
@@ -155,6 +153,8 @@ class TargetManager {
             tmodel.addToStyleTargetList(key);
 
             tmodel.setActualValueLastUpdate(key);
+            
+            tmodel.setTargetMethodName(key, 'value');        
 
             if (tmodel.isTargetImperative(key)) {
                 originalTargetName = targetValue.originalTargetName;
@@ -181,9 +181,9 @@ class TargetManager {
 
             tmodel.updateTargetStatus(key);
             
-            TargetUtil.shouldActivateNextTarget(tmodel, key);
                      
-            if (tmodel.getTargetStep(key) < steps) {              
+            if (tmodel.getTargetStep(key) < steps) {   
+                TargetUtil.shouldActivateNextTarget(tmodel, key);
                 getRunScheduler().schedule(interval, `${tmodel.oid}---${key}-${step}/${steps}-${cycle}-${interval}`);
                 return;
             }
@@ -251,7 +251,7 @@ class TargetManager {
         tmodel.updateTargetStatus(key);
         
         if (TargetUtil.hasTargetEnded(tmodel, key)) {     
-            TargetUtil.shouldActivateNextTarget(tmodel, key);            
+            TargetUtil.shouldActivateNextTarget(tmodel, key); 
         }
 
         getRunScheduler().schedule(scheduleTime, `${tmodel.oid}---${key}-${step}/${steps}-${cycle}-${scheduleTime}`);

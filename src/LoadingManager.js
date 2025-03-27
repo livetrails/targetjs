@@ -269,6 +269,7 @@ class LoadingManager {
         const onSuccess = tmodel.targets[targetName]?.onSuccess;
          if (onSuccess) {
              if (typeof onSuccess === 'function') {
+                tmodel.setTargetMethodName(targetName, 'onSuccess');        
                  onSuccess.call(tmodel, res);
              } else if (Array.isArray(onSuccess)) {
                  onSuccess.forEach(t => TargetUtil.activateSingleTarget(tmodel, t));
@@ -282,6 +283,7 @@ class LoadingManager {
         const onError = tmodel.targets[targetName]?.onError;
         if (onError) {
             if (typeof onError === 'function') {
+                tmodel.setTargetMethodName(targetName, 'onError');                        
                 onError.call(tmodel, tmodel.val(targetName));
             } else if (Array.isArray(onError)) {
                 onError.forEach(t => TargetUtil.activateSingleTarget(tmodel, t));

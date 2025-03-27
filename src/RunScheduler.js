@@ -104,7 +104,7 @@ class RunScheduler {
         }
                 
         if (tApp.debugLevel === 1) {
-            TUtil.log(true)(`Request from: ${runId} dly: ${delay} step:${runningStep} dom:${this.domProcessing} runs:${this.nextRuns.length} D:${this.delayProcess?.delay}`);
+            TUtil.log(true)(`Request from: ${runId} delay: ${delay} runningStep:${runningStep} dom:${this.domProcessing} runs:${this.nextRuns.length} D:${this.delayProcess?.delay}`);
         }
                 
         if (this.domProcessing === 0) {
@@ -126,7 +126,7 @@ class RunScheduler {
                     this.schedule(15, `getManager-needsRerun-updatingTModels`);                     
                 } else if (getManager().lists.activeTModels.length > 0) {
                     const activeTModel = getManager().lists.activeTModels.find(tmodel => {
-                        return (tmodel.targetExecutionCount === 0 || tmodel.activeTargetList.some(target => tmodel.isTargetEnabled(target) && tmodel.shouldScheduleRun(target)));
+                        return (tmodel.targetExecutionCount === 0 || tmodel.activeTargetList.some(target => tmodel.shouldScheduleRun(target)));
                     });
                     if (activeTModel) {
                         const delay = !this.activeStartTime || TUtil.now() - this.activeStartTime > 15 ? 1 : 15;
@@ -137,7 +137,7 @@ class RunScheduler {
             } else if (newDelay < 0 && newDelay >= -15) {
                 this.executeNextRun();            
             }
-        }       
+        }
     }
 
     domOperations(runningStep) {

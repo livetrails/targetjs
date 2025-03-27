@@ -155,7 +155,7 @@ const AppFn = (firstChild) => {
     return my;
 };
 
-const App = (tmodel) => {
+const App = tmodel => {
     tApp = AppFn(tmodel);
     tApp.init().start();
 };
@@ -168,7 +168,7 @@ App.getOid = function(type) {
     }
 
     const num = oids[type]++;
-    return { oid: num > 0 ? `${type}${num}` : type, num };
+    return { oid: num > 0 || type.endsWith('_') ? `${type}${num}` : type, num };
 };
 
 const isRunning = () => tApp ? tApp.runningFlag : false;

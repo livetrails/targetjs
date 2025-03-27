@@ -16,8 +16,11 @@ class TUtil {
         const maxWidth = TUtil.isDefined(child.getWidth()) ? scale * child.getWidth() : 0;
         const maxHeight = TUtil.isDefined(child.getHeight()) ? scale * child.getHeight() : 0;
 
+        if (!child.visibilityStatus) {
+            child.visibilityStatus = {};
+        }
+        
         const status = child.visibilityStatus;
-
 
         const parentX = child.validateVisibilityInParent() ? Math.max(domParent.absX, parent.absX) : 0;
         const parentY = child.validateVisibilityInParent() ? Math.max(domParent.absY, parent.absY) : 0;
@@ -27,13 +30,13 @@ class TUtil {
         status.right = x <= parentX + parentWidth;
         status.left = x + maxWidth >= parentX;
         status.bottom = y - child.getTopMargin() <= parentY + parentHeight;
-        status.top = y + maxHeight + child.getBottomMargin() >= parentY;
+        status.top = y + maxHeight >= parentY;
         status.parentX = parentX;
         status.parentY = parentY;
         status.parentWidth = parentWidth;
-        status.parentHeight = parentHeight;
+        status.parentHeight = parentHeight;  
         
-        child.val('isVisible', status.left && status.right && status.top && status.bottom);    
+        child.val('isVisible', status.left && status.right && status.top && status.bottom);       
        
         return child.val('isVisible');
     }

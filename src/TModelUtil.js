@@ -140,7 +140,7 @@ class TModelUtil {
 
                 if (tmodel.$dom.getStyleValue('height') !== height) {
                     tmodel.styleMap['height'] = height; 
-                    tmodel.$dom.height(height); 
+                    tmodel.$dom.height(height);                  
                 }                                      
             } else if (TargetData.styleWithUnitMap[key]) {
                 if (TUtil.isDefined(tmodel.val(key)) && tmodel.styleMap[key] !== tmodel.val(key)) {

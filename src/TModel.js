@@ -19,6 +19,7 @@ class TModel extends BaseModel {
         this.lastChildrenUpdate = { additions: [], deletions: [] };
         this.allChildrenList = [];
         this.allChildrenMap = {};
+        this.childrenUpdateFlag = false;
 
         this.$dom = null;
 
@@ -38,7 +39,7 @@ class TModel extends BaseModel {
         this.styleMap = {};
         this.transformMap = {};
         
-        this.visibilityStatus = { top: false, right: false, bottom: false, left: false };
+        this.visibilityStatus = undefined;
         this.isNowInvisible = false;
                 
         this.visibleChildren = [];                  
@@ -98,23 +99,42 @@ class TModel extends BaseModel {
     
     addChild(child, index = this.addedChildren.length + this.allChildrenList.length) {
         TargetUtil.markTargetAction(this, 'childAction');
+        
+        if (typeof child === 'object') {
+            this.childrenUpdateFlag = true;
+            if (!(child instanceof TModel)) {   
+                
 
-        this.addedChildren.push({ index, child });
-        child.parent = this;
-        if (child.updatingTargetList.length > 0) {
-            this.addToUpdatingChildren(child);
+                const foundKey = Object.keys(this.actualValues).find(key => this.actualValues[key] === child);
+
+                if (foundKey) {
+                    child = new TModel(child.id || foundKey , child);
+                    this.actualValues[foundKey] = child;
+                } else if (child.id) {                    
+                    child = new TModel(child.id , child);                    
+                } else {
+                    child = new TModel(`${this.oid}_`, child);                    
+                }
+                
+            }
+            this.addedChildren.push({ index, child });
+            child.parent = this;
+            if (child.updatingTargetList.length > 0) {
+                this.addToUpdatingChildren(child);
+            }
+            if (child.activeTargetList.length > 0) {
+                this.addToActiveChildren(child);
+            }
+            child.activate();
         }
-        if (child.activeTargetList.length > 0) {
-            this.addToActiveChildren(child);
-        }
-        child.activate();
         return this;
     }
   
     removeChild(child) {
         this.deletedChildren.push(child);   
-        this.removeFromUpdatingChildren(child);
-
+        this.removeFromUpdatingChildren(child);           
+        this.childrenUpdateFlag = true;
+           
         getRunScheduler().schedule(1, 'removeChild-' + this.oid + "-" + child.oid);
 
         return this;
@@ -128,6 +148,8 @@ class TModel extends BaseModel {
             child.activate();
         }
          
+        this.childrenUpdateFlag = true;
+
         getRunScheduler().schedule(1, 'moveChild-' + this.oid + "-" + child.oid);
                            
         return this;
@@ -247,50 +269,50 @@ class TModel extends BaseModel {
         }
         const result = this.isIncluded() && 
                 (this.isVisible() || this.currentStatus === 'new')  && 
-                (this.hasChildren() || this.addedChildren.length > 0 || this.getContentHeight() > 0);
+                (this.hasChildren() || this.childrenUpdateFlag || this.getContentHeight() > 0);
 
         this.currentStatus = undefined;
         return result;
     }
          
     getFirstChild() {
-        return this.allChildrenList[0];
+        return this.getChildren()[0];
     }
     
     hasChildren() {
-        return this.allChildrenList.length > 0;
+        return this.getChildren().length > 0;
     }
     
     findChildren(type) {
-        return this.allChildrenList.filter(child => child.type === type);
+        return this.getChildren().filter(child => child.type === type);
     }
 
     getLastChild() {
-        return this.allChildrenList[this.allChildrenList.length - 1];
+        return this.getChildren()[this.allChildrenList.length - 1];
     }
     
     getChild(index) {
-        return this.allChildrenList[index];
+        return this.getChildren()[index];
+    }
+    
+    getChildIndex(child) {
+        return this.getChildren().indexOf(child);
+    }
+
+    getChildrenOids() {
+        return this.getChildren().map(o => o.oid).join(" ");
+    }
+
+    findChild(type) {
+        return this.getChildren().find(child => child.type === type);
+    }
+
+    findLastChild(type) {
+        return this.getChildren().findLast(child => child.type === type);
     }
     
     getChildByOid(oid) {
         return this.allChildrenMap[oid];
-    }
-
-    getChildIndex(child) {
-        return this.allChildrenList.indexOf(child);
-    }
-
-    getChildrenOids() {
-        return this.allChildrenList.map(o => o.oid).join(" ");
-    }
-
-    findChild(type) {
-        return this.allChildrenList.find(child => child.type === type);
-    }
-
-    findLastChild(type) {
-        return this.allChildrenList.findLast(child => child.type === type);
     }
 
     getParentValue(targetName) {
@@ -375,9 +397,6 @@ class TModel extends BaseModel {
     }
     
     isVisible() {
-        if (this.targets['isVisible']) {
-            return typeof this.targets['isVisible'].value === 'function' ? this.targets['isVisible'].value.call(this) : this.targets['isVisible'].value;
-        }
         return this.val('isVisible');
     }
     
@@ -513,7 +532,7 @@ class TModel extends BaseModel {
     
     canHaveDom() {
         if (this.targets['$dom'] && !this.val('$dom')) {
-            return;
+            return false;
         }
         return this.val('canHaveDom');
     }

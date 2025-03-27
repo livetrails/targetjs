@@ -141,6 +141,11 @@ class TargetData {
         x: true, 
         y: true 
     };
+    
+    static ignoreTargetMethodNameMap = {
+        ...TargetData.coreTargetMap,
+        isVisible: true
+    };
 
     static cssFunctionMap = {
         skew: { x: 0, y: 0 },
@@ -152,8 +157,7 @@ class TargetData {
     static bypassInitialProcessingTargetMap = {
         onChildrenChange: true, 
         onVisibleChildrenChange: true, 
-        onPageClose: true, 
-        onVisible: true
+        onPageClose: true
     };
     
     static controlTargetMap = {

@@ -13,7 +13,7 @@ class TargetExecutor {
         TargetExecutor.resolveTargetValue(tmodel, key, cycle);
         TargetExecutor.updateTarget(tmodel, tmodel.targetValues[key], key);
 
-        TargetUtil.shouldActivateNextTarget(tmodel, key);
+        TargetUtil.shouldActivateNextTarget(tmodel, key);     
     }
 
     static executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel) {
