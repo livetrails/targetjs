@@ -581,7 +581,7 @@ App({
 });
 ```
 
-## Special Target Names
+## Special Target Namescan
 
 All HTML style names and attributes are treated as special target names. The most commonly used style names and attributes have already been added to the framework, with the possibility of adding more in the future.
 
@@ -593,21 +593,24 @@ Examples:
 In addition to styles and attribute names, we have the following special names:
 
 1. **html**: Sets the content of the object, interpreted as text by default.
-2. **style**: An object to set the HTML style of the object, especially for style names that aren’t built-in.
-3. **css**: A string that sets the CSS of the object.
-4. **baseElement**: Sets the HTML tag of the object, defaulting to `div`.
-5. **x** and **y**: Sets the location of the object.
-6. **scrollLeft** and **scrollTop**: Control the scrolling position of the object.
-7. **leftMargin**, **rightMargin**, **topMargin**, **bottomMargin**: Set margins between objects.
-8. **children**: Sets the `TModel` children of the object.
-9. **domHolder**: When specified, it designates the parent or any ancestor as the DOM holder for its descendants.
-10. **domParent**: Set by the container or children to control which DOM container they are embedded in.
-11. **isVisible**: An optional target to explicitly control the visibility of the object, bypassing TargetJS’s automatic calculation.
-12. **canHaveDom**: A boolean flag that determines if the object can have a DOM element on the page.
-13. **canHandleEvents**: An optional target that directly specifies the events the object can handle. If not specified, it will specified by event targets defined in the object (see below).
-14. **widthFromDom** and **heightFromDom**: Boolean flags to explicilty control if the width and height should be derived from the DOM element.
-15. **textOnly**: A boolean flag that specifies the content type as either text or HTML. The default value is false, indicating text.
-16. **isInFlow**: A boolean flag that determines if the object will contribute to the content height and width of its parent.
+2. **children**: Adds new items to the parent each time it executes. Items can be either plain objects or instances of TModel for greater control.
+4. **css**: A string that sets the CSS of the object.
+5. **baseElement**: Sets the HTML tag of the object, defaulting to `div`.
+6. **shouldBeBracketed**: A boolean flag that, when set to true (the default), enables the creation of an optimization tree for a container with more items than the `bracketThreshold` (another target with a default value of 10). This optimization ensures only the visible branch receives updates and get executed.
+7. **x** and **y**: Sets the location of the object.
+8. **scrollLeft** and **scrollTop**: Control the scrolling position of the object.
+9. **leftMargin**, **rightMargin**, **topMargin**, **bottomMargin**: Set margins between objects.
+10. **domHolder**: When set to true, indicates that the current object serves as the DOM holder for all of its descendant objects. It can also return a DOM element, in which case the current object and all descendants will be contained within that DOM element.
+11. **domParent**: Set by the container or children to control which DOM container they are embedded in.
+12. **isVisible**: An optional target to explicitly control the visibility of the object, bypassing TargetJS’s automatic calculation.
+13. **canHaveDom**: A boolean flag that determines if the object can have a DOM element on the page.
+14. **canDeleteDom**:  When set to true (the default), indicates that the object's DOM element will be removed when the object becomes invisible.
+15. **canHandleEvents**: An optional target that directly specifies the events the object can handle. If not specified, it will specified by event targets defined in the object (see below).
+16. **widthFromDom** and **heightFromDom**: Boolean flags to explicilty control if the width and height should be derived from the DOM element.
+17. **textOnly**: A boolean flag that specifies the content type as either text or HTML. The default value is false, indicating text.
+18. **isInFlow**: A boolean flag that determines if the object will contribute to the content height and width of its parent.
+19. **style**: An object to set the HTML style of the object, especially for style names that aren’t built-in.
+
 
 Lastly, we have the event targets which their values can be an array of targets to activate on specific events or may implement the event handler directly.
 
