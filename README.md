@@ -90,15 +90,15 @@ The 'box' specifies the 'id' of the div element. If a div with the same id exist
 ![first example](https://targetjs.io/img/quick1_3.gif)
 
 ```bash
-import { App, TModel } from "targetj";
+import { App } from "targetj";
 
-App(new TModel("box", {
+App({
     background: "mediumpurple",
     width: [{ list: [100, 250, 100] }, 50, 10], // Target values, steps, interval
     _height$() { // activated when width executes
       return this.prevTargetValue / 2;
     } 
-}));
+});
 ```
 
 ### Simple Loading API Example
@@ -111,16 +111,16 @@ In this example, we load one user and display its name.
 ![first example](https://targetjs.io/img/quick2_4.gif)
 
 ```bash
-import { App, TModel, getLoader } from "targetj";
+import { App, getLoader } from "targetj";
 
-App(new TModel({
+App({
     loadUser() {
       getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: "user0" });
     },
     _html$() {
       return this.prevTargetValue.name;
     }
-}));
+});
 ```
 
 ### Loading Two Users Example
@@ -134,22 +134,22 @@ TargetJS ensures that API results are processed in the same sequence as the API 
 ![first example](https://targetjs.io/img/quick3_1.gif)
 
 ```bash
-import { App, TModel, getLoader } from "targetj";
+import { App, getLoader } from "targetj";
 
-App(new TModel({
+App({
     loadUsers() {
       getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: "user0" });
       getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: "user1" });
     },
     _children$() {
-      return new TModel("user", {
+      return {
         background: "mediumpurple",
         html: this.prevTargetValue.name,
         width: [{ list: [100, 250, 100] }, 50, 10],
         _height$() { return this.prevTargetValue / 2; },
-      });
+      };
     }
-}));
+});
 ```
 
 ## Comparison with Other UI Frameworks  
@@ -280,9 +280,9 @@ You can view a live example here: https://targetjs.io/examples/overview.html.
 **Object**
 
 ```bash
-import { App, TModel } from "targetj";
+import { App } from "targetj";
 
-App(new TModel({
+App({
     background: 'mediumpurple',
     width: {
         value: 250,        
@@ -299,38 +299,40 @@ App(new TModel({
         steps: 30,
         stepInterval: 50
     }
- }));
+ });
 ```
 **Array**
 
 ```bash
-import { App, TModel } from "targetj";
+import { App } from "targetj";
 
-App(new TModel({
+App({
     background: 'mediumpurple',
     width: [ 250, 30, 50], 
     height: [ 250, 30, 50],
     opacity: [ 0.15, 30, 50]
- }));
+ });
 ```
 **Imperative** (more in the next example)
 
 ```bash
-import { App, TModel } from "targetj";
+import { App } from "targetj";
 
+App({
     animate() {
       this.setTarget('background', 'mediumpurple');
       this.setTarget('width',[250, 30, 50]);
       this.setTarget('height', [250, 30, 50]);
       this.setTarget('opacity', [0.15, 30, 50]);
-    },
+    }
+});
 ```
 **Imperative Multi-Targets**
 
 ```bash
-import { App, TModel } from "targetj";
+import { App } from "targetj";
 
-App(new TModel({
+App({
     animate() {
       this.setTarget({
          background: 'mediumpurple',
@@ -339,7 +341,7 @@ App(new TModel({
          opacity: [ 0.15, 30, 50]
       });
     }
- }));
+ });
 ```
 
 ## Declarative and Imperative Targets Example
@@ -358,14 +360,13 @@ introducing a 1-second pause. After that, `repeat` is executed, reactivating the
 ![declarative example](https://targetjs.io/img/declarative3.gif)
 
 ```bash
-import { App, TModel, getScreenWidth, getScreenHeight } from "targetj";
+import { App, getScreenWidth, getScreenHeight } from "targetj";
 
-App(new TModel("declarative", {
+App({
     children: {
       loop() { return this.getChildren().length < 10; },
       interval: 500,
-      value: () =>
-        new TModel("square", {
+      value: () => ({
           width: 50,
           height: 50,
           background: "brown",
@@ -390,7 +391,7 @@ App(new TModel("declarative", {
     },
     width: getScreenWidth,
     height: getScreenHeight
-}));
+});
 ```
 
 ### Infinite Loading and Scrolling Example
@@ -458,45 +459,43 @@ You can now assemble your app by incorporating code segments from the examples o
 ![Single page app](https://targetjs.io/img/singlePage2.gif)
 
 ```bash
-import { App, TModel, getScreenHeight, getScreenWidth, getEvents, getPager } from "targetj";
+import { App, getScreenHeight, getScreenWidth, getEvents, getPager } from "targetj";
 
-App(new TModel("simpleApp", {
+App({
     width() { return getScreenWidth(); },
     height() { return getScreenHeight(); },
     menubar() {
-        return new TModel("menubar", {
+        return {
             children() {
-                return ["home", "page1", "page2"].map(menu => {
-                    return new TModel("toolItem", {
-                        canHandleEvents: "touch",
-                        background: "#fce961",
-                        width: 100,
-                        height: 50,
-                        lineHeight: 50,
-                        itemOverflowMode: 'never',
-                        opacity: 0.5,
-                        cursor: "pointer",
-                        html: menu,
-                        onEnter() {
-                          this.setTarget("opacity", 1, 20);
-                        },
-                        onLeave() {
-                          this.setTarget("opacity", 0.5, 20);
-                        },
-                        onClick() {
-                          this.setTarget("opacity", 0.5);
-                          getPager().openLink(menu);
-                        }
-                    });
-                });
+                return ["home", "page1", "page2"].map(menu => ({
+                     canHandleEvents: "touch",
+                     background: "#fce961",
+                     width: 100,
+                     height: 50,
+                     lineHeight: 50,
+                     itemOverflowMode: 'never',
+                     opacity: 0.5,
+                     cursor: "pointer",
+                     html: menu,
+                     onEnter() {
+                       this.setTarget("opacity", 1, 20);
+                     },
+                     onLeave() {
+                       this.setTarget("opacity", 0.5, 20);
+                     },
+                     onClick() {
+                       this.setTarget("opacity", 0.5);
+                       getPager().openLink(menu);
+                     }
+                 }));
             },
             height: 50,
             width() { return getScreenWidth(); },
             onResize: ["width"]
-        }); 
+        }; 
     },
     page() {
-        return new TModel({
+        return {
             width() { return getScreenWidth(); },
             height() { return getScreenHeight() - 50; },
             baseElement: 'textarea',
@@ -505,28 +504,28 @@ App(new TModel("simpleApp", {
             html: "main page",
             onKey() { this.setTarget('html', this.$dom.value()); },
             onResize: [ "width", "height" ]
-        });        
+        };        
     },
     mainPage() {
-        return new TModel({
-            ...this.val('page').targets,
+        return {
+            ...this.val('page'),
             background: "#e6f6fb",
             html: 'main page'
-        });
+        };
     },
     page1() {
-        return new TModel({
-            ...this.val('page').targets,
+        return {
+            ...this.val('page'),
             background: "#C2FC61",
             html: 'page1'
-        });        
+        };        
     },
     page2() {
-        return new TModel({
+        return {
             ...this.val('page').targets,
             background: "#B388FF",
             html: 'page2'
-        });         
+        };         
     },    
     children() {
         const pageName = window.location.pathname.split("/").pop();
@@ -540,7 +539,7 @@ App(new TModel("simpleApp", {
         }
     },
     onResize: ["width", "height"]
-}));
+});
 ```
 
 ## Using TargetJS as a Library Example
@@ -552,9 +551,9 @@ The `rectTop`, `absY`, and `onWindowScroll` targets are used to track the visibl
 ![animation api example](https://targetjs.io/img/targetjsAsLibrary.gif) 
 
 ```bash
-import { App, TModel, $Dom } from "targetj";
+import { App, $Dom } from "targetj";
 
-App(new TModel("rows", {
+App({
     isVisible: true,
     containerOverflowMode: "always",
     rectTop() { return this.$dom.getBoundingClientRect().top + $Dom.getWindowScrollTop(); },
@@ -569,21 +568,19 @@ App(new TModel("rows", {
       value() {
         const childrenLength = this.getChildren().length;
         Array.from({ length: 100 }, (_, i) => {
-          this.addChild(
-            new TModel("row", {
-              defaultStyling: false,
-              keepEventDefault: true,
-              height: 36,
-              width: [{ list: [100, 500, 200] }, 30],
-              background: "#b388ff",
-              canDeleteDom: false,
-              html: `row ${i + childrenLength}`,
-            })
-          );
-        });
+             this.addChild({
+                 defaultStyling: false,
+                 keepEventDefault: true,
+                 height: 36,
+                 width: [{ list: [100, 500, 200] }, 30],
+                 background: "#b388ff",
+                 canDeleteDom: false,
+                 html: `row ${i + childrenLength}`,
+            });
+         })
       }
     }
-}));
+});
 ```
 
 ## Special Target Names
