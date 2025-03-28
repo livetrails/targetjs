@@ -407,26 +407,25 @@ If you inspect the HTML elements in the browser's developer tools, you'll notice
 ![Single page app](https://targetjs.io/img/infiniteScrolling11.gif)
 
 ```bash
-import { App, TModel, getEvents, getLoader, getScreenWidth, getScreenHeight } from "targetj";
+import { App, getEvents, getLoader, getScreenWidth, getScreenHeight } from "targetj";
 
 App({
     containerOverflowMode: "always",
     children() {
         const childrenCount = this.getChildren().length;
-        return Array.from({ length: 20 }, (_, i) =>
-            new TModel("scrollItem", {
-                width: [{list: [100, 250]}, 15],
-                background: [{list: ["#FCE961", "#B388FF"]}, 15, 15],
-                height: 48,
-                color: "#C2FC61",
-                textAlign: "center",
-                lineHeight: 48,
-                bottomMargin: 2,
-                x() { return this.getCenterX(); },
-                validateVisibilityInParent: true,
-                html: childrenCount + i
-            })
-        );
+        return Array.from({ length: 20 }, (_, i) => ({
+             id: 'scrollItem',
+             width: [{list: [100, 250]}, 15],
+             background: [{list: ["#FCE961", "#B388FF"]}, 15, 15],
+             height: 48,
+             color: "#C2FC61",
+             textAlign: "center",
+             lineHeight: 48,
+             bottomMargin: 2,
+             x() { return this.getCenterX(); },
+             validateVisibilityInParent: true,
+             html: childrenCount + i
+         }));
     },
     _load$() {
         this.prevTargetValue.forEach(data =>
