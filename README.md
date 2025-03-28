@@ -85,20 +85,18 @@ npm install targetj
 - `width` animates from 100 → 250 → 100px, in 50 steps with 10ms pauses.
 - `height` follows `width` and scales dynamically with its value. The `$` postfix means it is activated each time the proceding target executes. `prevTargetValue` refers to the previous target's value, which in this case is `width`.
 
-The 'box' specifies the 'id' of the div element. If a div with the same id exists, it will be used instead of creating a new one. If no id is specified, the framework will generate a unique one.
-
 ![first example](https://targetjs.io/img/quick1_3.gif)
 
 ```bash
-import { App, TModel } from "targetj";
+import { App } from "targetj";
 
-App(new TModel("box", {
+App({
     background: "mediumpurple",
     width: [{ list: [100, 250, 100] }, 50, 10], // Target values, steps, interval
     _height$() { // activated when width executes
       return this.prevTargetValue / 2;
     } 
-}));
+});
 ```
 
 ### Simple Loading API Example
@@ -106,21 +104,21 @@ App(new TModel("box", {
 In this example, we load one user and display its name.
 
 - `loadUser` calls the fetch API to retrieve user details.
-- `html` sets the text content of the div to the user's name. Since the target name is prefixed with `_` and ends with `$`, it executes only when an API call returns a result. `prevTargetValue` refers to the result of the API call.
+- `html` sets the text content of the div to the user's name. Since the target name is prefixed with `_` and ends with `$`, it executes only when an API call returns a result. `prevTargetValue` refers to the result of the previous target, which, in this case, is the result of the API call.
 
 ![first example](https://targetjs.io/img/quick2_4.gif)
 
 ```bash
-import { App, TModel, getLoader } from "targetj";
+import { App, getLoader } from "targetj";
 
-App(new TModel({
+App({
     loadUser() {
       getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: "user0" });
     },
     _html$() {
       return this.prevTargetValue.name;
     }
-}));
+});
 ```
 
 ### Loading Two Users Example
@@ -134,22 +132,22 @@ TargetJS ensures that API results are processed in the same sequence as the API 
 ![first example](https://targetjs.io/img/quick3_1.gif)
 
 ```bash
-import { App, TModel, getLoader } from "targetj";
+import { App, getLoader } from "targetj";
 
-App(new TModel({
+App({
     loadUsers() {
       getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: "user0" });
       getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: "user1" });
     },
     _children$() {
-      return new TModel("user", {
+      return {
         background: "mediumpurple",
         html: this.prevTargetValue.name,
         width: [{ list: [100, 250, 100] }, 50, 10],
         _height$() { return this.prevTargetValue / 2; },
-      });
+      };
     }
-}));
+});
 ```
 
 ## Comparison with Other UI Frameworks  
@@ -280,9 +278,9 @@ You can view a live example here: https://targetjs.io/examples/overview.html.
 **Object**
 
 ```bash
-import { App, TModel } from "targetj";
+import { App } from "targetj";
 
-App(new TModel({
+App({
     background: 'mediumpurple',
     width: {
         value: 250,        
@@ -299,38 +297,40 @@ App(new TModel({
         steps: 30,
         stepInterval: 50
     }
- }));
+ });
 ```
 **Array**
 
 ```bash
-import { App, TModel } from "targetj";
+import { App } from "targetj";
 
-App(new TModel({
+App({
     background: 'mediumpurple',
     width: [ 250, 30, 50], 
     height: [ 250, 30, 50],
     opacity: [ 0.15, 30, 50]
- }));
+ });
 ```
 **Imperative** (more in the next example)
 
 ```bash
-import { App, TModel } from "targetj";
+import { App } from "targetj";
 
+App({
     animate() {
       this.setTarget('background', 'mediumpurple');
       this.setTarget('width',[250, 30, 50]);
       this.setTarget('height', [250, 30, 50]);
       this.setTarget('opacity', [0.15, 30, 50]);
-    },
+    }
+});
 ```
 **Imperative Multi-Targets**
 
 ```bash
-import { App, TModel } from "targetj";
+import { App } from "targetj";
 
-App(new TModel({
+App({
     animate() {
       this.setTarget({
          background: 'mediumpurple',
@@ -339,7 +339,7 @@ App(new TModel({
          opacity: [ 0.15, 30, 50]
       });
     }
- }));
+ });
 ```
 
 ## Declarative and Imperative Targets Example
@@ -358,14 +358,13 @@ introducing a 1-second pause. After that, `repeat` is executed, reactivating the
 ![declarative example](https://targetjs.io/img/declarative3.gif)
 
 ```bash
-import { App, TModel, getScreenWidth, getScreenHeight } from "targetj";
+import { App, getScreenWidth, getScreenHeight } from "targetj";
 
-App(new TModel("declarative", {
+App({
     children: {
       loop() { return this.getChildren().length < 10; },
       interval: 500,
-      value: () =>
-        new TModel("square", {
+      value: () => ({
           width: 50,
           height: 50,
           background: "brown",
@@ -390,7 +389,7 @@ App(new TModel("declarative", {
     },
     width: getScreenWidth,
     height: getScreenHeight
-}));
+});
 ```
 
 ### Infinite Loading and Scrolling Example
@@ -410,7 +409,7 @@ If you inspect the HTML elements in the browser's developer tools, you'll notice
 ```bash
 import { App, TModel, getEvents, getLoader, getScreenWidth, getScreenHeight } from "targetj";
 
-App(new TModel("scroller", {
+App({
     containerOverflowMode: "always",
     children() {
         const childrenCount = this.getChildren().length;
@@ -446,7 +445,7 @@ App(new TModel("scroller", {
     },
     width: getScreenWidth,
     height: getScreenHeight    
-}));
+});
 ```
 
 ## Simple SPA Example
@@ -458,45 +457,43 @@ You can now assemble your app by incorporating code segments from the examples o
 ![Single page app](https://targetjs.io/img/singlePage2.gif)
 
 ```bash
-import { App, TModel, getScreenHeight, getScreenWidth, getEvents, getPager } from "targetj";
+import { App, getScreenHeight, getScreenWidth, getEvents, getPager } from "targetj";
 
-App(new TModel("simpleApp", {
+App({
     width() { return getScreenWidth(); },
     height() { return getScreenHeight(); },
     menubar() {
-        return new TModel("menubar", {
+        return {
             children() {
-                return ["home", "page1", "page2"].map(menu => {
-                    return new TModel("toolItem", {
-                        canHandleEvents: "touch",
-                        background: "#fce961",
-                        width: 100,
-                        height: 50,
-                        lineHeight: 50,
-                        itemOverflowMode: 'never',
-                        opacity: 0.5,
-                        cursor: "pointer",
-                        html: menu,
-                        onEnter() {
-                          this.setTarget("opacity", 1, 20);
-                        },
-                        onLeave() {
-                          this.setTarget("opacity", 0.5, 20);
-                        },
-                        onClick() {
-                          this.setTarget("opacity", 0.5);
-                          getPager().openLink(menu);
-                        }
-                    });
-                });
+                return ["home", "page1", "page2"].map(menu => ({
+                     canHandleEvents: "touch",
+                     background: "#fce961",
+                     width: 100,
+                     height: 50,
+                     lineHeight: 50,
+                     itemOverflowMode: 'never',
+                     opacity: 0.5,
+                     cursor: "pointer",
+                     html: menu,
+                     onEnter() {
+                       this.setTarget("opacity", 1, 20);
+                     },
+                     onLeave() {
+                       this.setTarget("opacity", 0.5, 20);
+                     },
+                     onClick() {
+                       this.setTarget("opacity", 0.5);
+                       getPager().openLink(menu);
+                     }
+                 }));
             },
             height: 50,
             width() { return getScreenWidth(); },
             onResize: ["width"]
-        }); 
+        }; 
     },
     page() {
-        return new TModel({
+        return {
             width() { return getScreenWidth(); },
             height() { return getScreenHeight() - 50; },
             baseElement: 'textarea',
@@ -505,28 +502,28 @@ App(new TModel("simpleApp", {
             html: "main page",
             onKey() { this.setTarget('html', this.$dom.value()); },
             onResize: [ "width", "height" ]
-        });        
+        };        
     },
     mainPage() {
-        return new TModel({
-            ...this.val('page').targets,
+        return {
+            ...this.val('page'),
             background: "#e6f6fb",
             html: 'main page'
-        });
+        };
     },
     page1() {
-        return new TModel({
-            ...this.val('page').targets,
+        return {
+            ...this.val('page'),
             background: "#C2FC61",
             html: 'page1'
-        });        
+        };        
     },
     page2() {
-        return new TModel({
+        return {
             ...this.val('page').targets,
             background: "#B388FF",
             html: 'page2'
-        });         
+        };         
     },    
     children() {
         const pageName = window.location.pathname.split("/").pop();
@@ -540,7 +537,7 @@ App(new TModel("simpleApp", {
         }
     },
     onResize: ["width", "height"]
-}));
+});
 ```
 
 ## Using TargetJS as a Library Example
@@ -552,9 +549,9 @@ The `rectTop`, `absY`, and `onWindowScroll` targets are used to track the visibl
 ![animation api example](https://targetjs.io/img/targetjsAsLibrary.gif) 
 
 ```bash
-import { App, TModel, $Dom } from "targetj";
+import { App, $Dom } from "targetj";
 
-App(new TModel("rows", {
+App({
     isVisible: true,
     containerOverflowMode: "always",
     rectTop() { return this.$dom.getBoundingClientRect().top + $Dom.getWindowScrollTop(); },
@@ -569,24 +566,22 @@ App(new TModel("rows", {
       value() {
         const childrenLength = this.getChildren().length;
         Array.from({ length: 100 }, (_, i) => {
-          this.addChild(
-            new TModel("row", {
-              defaultStyling: false,
-              keepEventDefault: true,
-              height: 36,
-              width: [{ list: [100, 500, 200] }, 30],
-              background: "#b388ff",
-              canDeleteDom: false,
-              html: `row ${i + childrenLength}`,
-            })
-          );
-        });
+             this.addChild({
+                 defaultStyling: false,
+                 keepEventDefault: true,
+                 height: 36,
+                 width: [{ list: [100, 500, 200] }, 30],
+                 background: "#b388ff",
+                 canDeleteDom: false,
+                 html: `row ${i + childrenLength}`,
+            });
+         })
       }
     }
-}));
+});
 ```
 
-## Special Target Names
+## Special Target Namescan
 
 All HTML style names and attributes are treated as special target names. The most commonly used style names and attributes have already been added to the framework, with the possibility of adding more in the future.
 
@@ -598,21 +593,24 @@ Examples:
 In addition to styles and attribute names, we have the following special names:
 
 1. **html**: Sets the content of the object, interpreted as text by default.
-2. **style**: An object to set the HTML style of the object, especially for style names that aren’t built-in.
-3. **css**: A string that sets the CSS of the object.
-4. **baseElement**: Sets the HTML tag of the object, defaulting to `div`.
-5. **x** and **y**: Sets the location of the object.
-6. **scrollLeft** and **scrollTop**: Control the scrolling position of the object.
-7. **leftMargin**, **rightMargin**, **topMargin**, **bottomMargin**: Set margins between objects.
-8. **children**: Sets the `TModel` children of the object.
-9. **domHolder**: When specified, it designates the parent or any ancestor as the DOM holder for its descendants.
-10. **domParent**: Set by the container or children to control which DOM container they are embedded in.
-11. **isVisible**: An optional target to explicitly control the visibility of the object, bypassing TargetJS’s automatic calculation.
-12. **canHaveDom**: A boolean flag that determines if the object can have a DOM element on the page.
-13. **canHandleEvents**: An optional target that directly specifies the events the object can handle. If not specified, it will specified by event targets defined in the object (see below).
-14. **widthFromDom** and **heightFromDom**: Boolean flags to explicilty control if the width and height should be derived from the DOM element.
-15. **textOnly**: A boolean flag that specifies the content type as either text or HTML. The default value is false, indicating text.
-16. **isInFlow**: A boolean flag that determines if the object will contribute to the content height and width of its parent.
+2. **children**: Adds new items to the parent each time it executes. Items can be either plain objects or instances of TModel for greater control.
+4. **css**: A string that sets the CSS of the object.
+5. **baseElement**: Sets the HTML tag of the object, defaulting to `div`.
+6. **shouldBeBracketed**: A boolean flag that, when set to true (the default), enables the creation of an optimization tree for a container with more items than the `bracketThreshold` (another target with a default value of 10). This optimization ensures only the visible branch receives updates and get executed.
+7. **x** and **y**: Sets the location of the object.
+8. **scrollLeft** and **scrollTop**: Control the scrolling position of the object.
+9. **leftMargin**, **rightMargin**, **topMargin**, **bottomMargin**: Set margins between objects.
+10. **domHolder**: When set to true, indicates that the current object serves as the DOM holder for all of its descendant objects. It can also return a DOM element, in which case the current object and all descendants will be contained within that DOM element.
+11. **domParent**: Set by the container or children to control which DOM container they are embedded in.
+12. **isVisible**: An optional target to explicitly control the visibility of the object, bypassing TargetJS’s automatic calculation.
+13. **canHaveDom**: A boolean flag that determines if the object can have a DOM element on the page.
+14. **canDeleteDom**:  When set to true (the default), indicates that the object's DOM element will be removed when the object becomes invisible.
+15. **canHandleEvents**: An optional target that directly specifies the events the object can handle. If not specified, it will specified by event targets defined in the object (see below).
+16. **widthFromDom** and **heightFromDom**: Boolean flags to explicilty control if the width and height should be derived from the DOM element.
+17. **textOnly**: A boolean flag that specifies the content type as either text or HTML. The default value is false, indicating text.
+18. **isInFlow**: A boolean flag that determines if the object will contribute to the content height and width of its parent.
+19. **style**: An object to set the HTML style of the object, especially for style names that aren’t built-in.
+
 
 Lastly, we have the event targets which their values can be an array of targets to activate on specific events or may implement the event handler directly.
 
