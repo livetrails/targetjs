@@ -85,8 +85,6 @@ npm install targetj
 - `width` animates from 100 → 250 → 100px, in 50 steps with 10ms pauses.
 - `height` follows `width` and scales dynamically with its value. The `$` postfix means it is activated each time the proceding target executes. `prevTargetValue` refers to the previous target's value, which in this case is `width`.
 
-The 'box' specifies the 'id' of the div element. If a div with the same id exists, it will be used instead of creating a new one. If no id is specified, the framework will generate a unique one.
-
 ![first example](https://targetjs.io/img/quick1_3.gif)
 
 ```bash
