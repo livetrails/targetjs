@@ -409,7 +409,7 @@ If you inspect the HTML elements in the browser's developer tools, you'll notice
 ```bash
 import { App, TModel, getEvents, getLoader, getScreenWidth, getScreenHeight } from "targetj";
 
-App(new TModel("scroller", {
+App({
     containerOverflowMode: "always",
     children() {
         const childrenCount = this.getChildren().length;
@@ -445,7 +445,7 @@ App(new TModel("scroller", {
     },
     width: getScreenWidth,
     height: getScreenHeight    
-}));
+});
 ```
 
 ## Simple SPA Example
