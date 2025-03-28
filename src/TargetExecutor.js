@@ -141,13 +141,22 @@ class TargetExecutor {
         const easing = TUtil.isDefined(tmodel.targets[key].easing) ? tmodel.targets[key].easing : undefined;
         
         if (TargetUtil.isChildrenTarget(key, newValue)) {
-            if (Array.isArray(newValue)) {
-                newValue.forEach((child) => tmodel.addChild(child));                      
-            } else {
-                tmodel.addChild(newValue);
-            }
-            TargetExecutor.assignSingleTarget(targetValue, newValue, undefined, 0, newCycles, newInterval);
+            
+            const values = Array.isArray(newValue) ? newValue : [newValue];
 
+            const tmodelChildren = values.map(child => {
+                tmodel.addChild(child);
+                return tmodel.addedChildren.at(-1).child;
+            });
+
+            TargetExecutor.assignSingleTarget(
+                targetValue, 
+                Array.isArray(newValue) ? tmodelChildren : tmodelChildren[0], 
+                undefined, 
+                0, 
+                newCycles, 
+                newInterval
+            );
         } else if (TargetUtil.isListTarget(newValue)) {
             TargetExecutor.assignListTarget(targetValue, newValue.list, newValue.list[0], newSteps, newInterval, easing);
         } else {

@@ -108,7 +108,7 @@ class TModel extends BaseModel {
                 const foundKey = Object.keys(this.actualValues).find(key => this.actualValues[key] === child);
 
                 if (foundKey) {
-                    child = new TModel(child.id || foundKey , child);
+                    child = new TModel(child.id || foundKey, child);
                     this.actualValues[foundKey] = child;
                 } else if (child.id) {                    
                     child = new TModel(child.id , child);                    
