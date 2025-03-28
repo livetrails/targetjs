@@ -104,7 +104,7 @@ App({
 In this example, we load one user and display its name.
 
 - `loadUser` calls the fetch API to retrieve user details.
-- `html` sets the text content of the div to the user's name. Since the target name is prefixed with `_` and ends with `$`, it executes only when an API call returns a result. `prevTargetValue` refers to the result of the API call.
+- `html` sets the text content of the div to the user's name. Since the target name is prefixed with `_` and ends with `$`, it executes only when an API call returns a result. `prevTargetValue` refers to the result of the previous target, which, in this case, is the result of the API call.
 
 ![first example](https://targetjs.io/img/quick2_4.gif)
 
