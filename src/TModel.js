@@ -104,7 +104,6 @@ class TModel extends BaseModel {
             this.childrenUpdateFlag = true;
             if (!(child instanceof TModel)) {   
                 
-
                 const foundKey = Object.keys(this.actualValues).find(key => this.actualValues[key] === child);
 
                 if (foundKey) {

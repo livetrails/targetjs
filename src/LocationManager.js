@@ -261,7 +261,12 @@ class LocationManager {
             
             if (tmodel.isTargetEnabled(targetName)) {
                 if (typeof target.value === 'function') {
-                    target.value.call(tmodel, originalEventTarget);
+                    const result = target.value.call(tmodel, originalEventTarget);
+                    if (Array.isArray(result)) {
+                        result.forEach(t => TargetUtil.activateSingleTarget(tmodel, t));
+                    } else if (typeof result === 'string') {
+                        TargetUtil.activateSingleTarget(tmodel, result);
+                    }
                 } else if (Array.isArray(target.value)) {
                     target.value.forEach(t => TargetUtil.activateSingleTarget(tmodel, t));
                 } else if (Array.isArray(target)) {

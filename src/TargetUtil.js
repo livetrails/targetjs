@@ -102,6 +102,8 @@ class TargetUtil {
         target.originalTargetName = TargetUtil.currentTargetName;
         target.originalTModel = TargetUtil.currentTModel;
         
+        const cleanKey = TargetUtil.getTargetName(key);
+        
         if (doesNextTargetUsePrevValue) {
             target.activateNextTarget = nextKey.slice(0, -1);
         }  
@@ -111,18 +113,30 @@ class TargetUtil {
         const methods = ['value', 'enabledOn', 'onStepsEnd', 'onValueChange', 'loop', 'onImperativeEnd', 'onImperativeStep', 'onSuccess', 'onError'];
 
         Object.keys(target).forEach(method => {
-            if (typeof target[method] === 'function' && (methods.includes(method) || stepPattern.test(method) || endPattern.test(method))) {
+            if (method === 'value') {
                 const originalMethod = target[method];
                 target[method] = function() {
-                    TargetUtil.currentTargetName = TargetUtil.getTargetName(key);
+                    TargetUtil.currentTargetName = cleanKey;
                     TargetUtil.currentTModel = tmodel;
-                    this.key = TargetUtil.getTargetName(key);
+                    this.key = cleanKey;
                     this.prevTargetValue = getPrevValue();         
                     this.isPrevTargetUpdated = isPrevTargetUpdated;
-                    const result = originalMethod.apply(this, arguments);
+                    const result = typeof originalMethod === 'function' ? originalMethod.apply(this, arguments) : originalMethod;
                     lastPrevUpdateTime = getPrevUpdateTime() ?? lastPrevUpdateTime;
                     return result;
                 };
+            } else if (typeof target[method] === 'function' && (methods.includes(method) || stepPattern.test(method) || endPattern.test(method))) {
+                const originalMethod = target[method];
+                target[method] = function() {
+                    TargetUtil.currentTargetName = cleanKey;
+                    TargetUtil.currentTModel = tmodel;
+                    this.key = cleanKey;
+                    this.prevTargetValue = getPrevValue();         
+                    this.isPrevTargetUpdated = isPrevTargetUpdated;
+                    const result = typeof originalMethod === 'function' ? originalMethod.apply(this, arguments) : originalMethod;
+                    lastPrevUpdateTime = getPrevUpdateTime() ?? lastPrevUpdateTime;
+                    return result;
+                };                
             }
         });
     }
@@ -183,7 +197,7 @@ class TargetUtil {
             return false;
         }
                 
-        const target = tmodel.targets[key];
+        const target = tmodel.targets[key];     
         if (target) {
             if (target.childAction && (tmodel.hasUpdatingChildren() || tmodel.hasActiveChildren())) {
                 return false;
@@ -219,7 +233,7 @@ class TargetUtil {
         }
         
         const target = tmodel.targets[TargetUtil.currentTargetName];
-        
+
         if (typeof target === 'object') {
             const targetName = target.activateNextTarget;
             if (targetName?.endsWith('$')) {

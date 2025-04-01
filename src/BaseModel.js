@@ -104,7 +104,7 @@ class BaseModel {
                 this.targets[key] = { value: target };
                 target = this.targets[key];
             }
-                    
+                 
             TargetUtil.bindTarget(this, key, targetNames);
         }
 
