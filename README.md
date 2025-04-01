@@ -519,7 +519,7 @@ App({
     },
     page2() {
         return {
-            ...this.val('page').targets,
+            ...this.val('page'),
             background: "#B388FF",
             html: 'page2'
         };         
