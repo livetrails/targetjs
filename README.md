@@ -171,8 +171,14 @@ App({
 
 ## The Core of TargetJS
 
-TargetJS utilizes literal JavaScript objects for target definitions, providing a compact and readable format. Targets offer a unified interface that encompasses both properties and functions. 
-TargetJS leverages ES2015's guaranteed property order to ensure that target execution follows the order in which the code is written.
+TargetJS utilizes literal JavaScript objects for target definitions, providing a compact and readable format. The core principles are:
+
+- Provide an internal wrapper (called "targets") for both properties and methods of the literal object.
+- Execute targets sequentially, in the order they are written leveraging ES2015's guaranteed property order.
+- Enable functional pipelines between adjacent targets.
+- Add lifecycles, looping, and timing to targets, enabling them to execute or re-execute based on conditions or time.
+
+Learn more about the framework's origins [here](https://dev.to/ahmad_wasfi_f88513699c56d/targetjs-rethinking-ui-with-declarative-synchronous-pipelines-5bbi).
 
 ## Anatomy of a Target
 
