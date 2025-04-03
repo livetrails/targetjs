@@ -407,7 +407,7 @@ If you inspect the HTML elements in the browser's developer tools, you'll notice
 ![Single page app](https://targetjs.io/img/infiniteScrolling11.gif)
 
 ```bash
-import { App, getEvents, getScreenWidth, getScreenHeight } from "targetj";
+import { App, getEvents, fetch, getScreenWidth, getScreenHeight } from "targetj";
 
 App({
     containerOverflowMode: "always",
