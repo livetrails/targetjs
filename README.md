@@ -70,7 +70,7 @@ npm install targetj
 
 *  **Unique computational paradigm:** TargetJS introduces a novel computational model by integrating multiple paradigms: Turing Completeness, the Von Neumann Execution Model, and Functional Programming. This results in:
 
-   * Deterministic Execution Flow: Targets execute based on their activation order, initially following their order in the code. They run in sequence as part of the task processing cycle. Everything in TargetJS is synchronous, and targets cannot be called directly.
+   * Deterministic Execution Flow: Targets execute based on their activation order, initially following their order in the code. They run in sequence as part of the framework execution cycle. Everything in TargetJS is synchronous, and targets cannot be called directly.
    * Powerful Functional Pipeline: Targets can be structured as a functional pipeline with enhanced capabilities.
 
 *   **Easy Integration:** Can be used as a library within existing projects.
@@ -156,7 +156,7 @@ App({
 |--------------------------------------|-----------------------------------------------------------------|------------------------------------------------------|
 | **Component Basic Structure**     | Components consist of Targets, providing a unified interface for methods and properties. | Components consist of methods and variables.
 | **Execution Order**                   | Targets are executed based on their activation order, which initially follows their appearance in the code. They run in a sequential and predictable manner | Primarily data-driven, less predictable. |
-| **Function Calls**                    | Targets cannot be called directly. Execution is part of a task cycle. | Functions execute reactively or are called imperatively. |
+| **Function Calls**                    | Targets cannot be called directly. Execution is part of a framework execution cycle. | Functions execute reactively or are called imperatively. |
 | **Autonomous Execution**              | Targets can self-activate and operate autonomously. | Functions do not execute autonomously. |
 | **Execution Pipeline**                | Targets can form controlled pipelines; a target can activate when the preceding target executes or completes. | Functions are called whenever dependencies update. Execution order is not based on code appearance. |
 | **Event Handling**                    | Primarily by activating Targets, making event handling consistent with the core execution model. | Events are handled through event listeners, subscriptions, or reactive bindings. |
