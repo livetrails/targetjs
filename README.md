@@ -109,11 +109,11 @@ In this example, we load one user and display its name.
 ![first example](https://targetjs.io/img/quick2_4.gif)
 
 ```bash
-import { App, getLoader } from "targetj";
+import { App, fetch } from "targetj";
 
 App({
     loadUser() {
-      getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: "user0" });
+      fetch(this, "https://targetjs.io/api/randomUser", { id: "user0" });
     },
     _html$() {
       return this.prevTargetValue.name;
@@ -132,12 +132,12 @@ TargetJS ensures that API results are processed in the same sequence as the API 
 ![first example](https://targetjs.io/img/quick3_1.gif)
 
 ```bash
-import { App, getLoader } from "targetj";
+import { App, fetch } from "targetj";
 
 App({
     loadUsers() {
-      getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: "user0" });
-      getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: "user1" });
+      fetch(this, "https://targetjs.io/api/randomUser", { id: "user0" });
+      fetch(this, "https://targetjs.io/api/randomUser", { id: "user1" });
     },
     _children$() {
       return {
@@ -407,7 +407,7 @@ If you inspect the HTML elements in the browser's developer tools, you'll notice
 ![Single page app](https://targetjs.io/img/infiniteScrolling11.gif)
 
 ```bash
-import { App, getEvents, getLoader, getScreenWidth, getScreenHeight } from "targetj";
+import { App, getEvents, getScreenWidth, getScreenHeight } from "targetj";
 
 App({
     containerOverflowMode: "always",
@@ -429,7 +429,7 @@ App({
     },
     _load$() {
         this.prevTargetValue.forEach(data =>
-            getLoader().fetch(this, "https://targetjs.io/api/randomUser", { id: data.oid }));
+            fetch(this, "https://targetjs.io/api/randomUser", { id: data.oid }));
     },
     _populate$$() {
         this.prevTargetValue.forEach((data) => this.getChildByOid(data.id).setTarget("html", data.name));
