@@ -5,7 +5,7 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework designed to simplify front-end development by introducing a unique paradigm centered around Targets, which function as **enhanced variables and methods** with **lifecycles**.  This approach provides a unified solution for UI rendering, animations, API interactions, state management, and event handling, leading to more compact code and a stronger focus on user experience. TargetJS is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
+TargetJS is a modern JavaScript UI framework designed to simplify front-end development by introducing a unique paradigm based on literal objects and extending their properties and methods with lifecycles and functional pipelines.  The framework provides a unified solution for UI rendering, animations, API interactions, state management, and event handling, leading to more compact code and a stronger focus on user experience. TargetJS is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 ## What Problems Does TargetJS Solve?
 
 TargetJS addresses several common pain points in front-end development:
@@ -55,7 +55,7 @@ npm install targetj
 
 ## Key Features and Concepts
 
-*   **Targets:** The fundamental building blocks of TargetJS. Targets provide a unified interface for variables and methods with built-in lifecycles. They can:
+*   **Targets:** The fundamental building blocks of TargetJS. Targets provide a unified interface for properties and methods with built-in lifecycles. They can:
     *   Iterate towards values (useful for animations and transitions).
     *   Execute conditionally.
     *   Manage repeated executions.
@@ -70,7 +70,7 @@ npm install targetj
 
 *  **Unique computational paradigm:** TargetJS introduces a novel computational model by integrating multiple paradigms: Turing Completeness, the Von Neumann Execution Model, and Functional Programming. This results in:
 
-   * Deterministic Execution Flow: Targets execute based on their activation order, initially following their order in the code. They run in sequence as part of the task processing cycle. Everything in TargetJS is synchronous, and targets cannot be called directly.
+   * Deterministic Execution Flow: Targets execute based on their activation order, initially following their order in the code. They run in sequence as part of the framework execution cycle. Everything in TargetJS is synchronous, and targets cannot be called directly.
    * Powerful Functional Pipeline: Targets can be structured as a functional pipeline with enhanced capabilities.
 
 *   **Easy Integration:** Can be used as a library within existing projects.
@@ -154,9 +154,9 @@ App({
 
 | Feature                               | TargetJS                        | Reactive Model Frameworks             |
 |--------------------------------------|-----------------------------------------------------------------|------------------------------------------------------|
-| **Component Basic Structure**     | Components consist of Targets, providing a unified interface for methods and variables. | Components consist of methods and variables.
-| **Execution Order**                   | Components consist of Targets, providing a unified interface for methods and variables. | Primarily data-driven, less predictable. |
-| **Function Calls**                    | Targets cannot be called directly. Execution is part of a task cycle. | Functions execute reactively or are called imperatively. |
+| **Component Basic Structure**     | Components consist of Targets, providing a unified interface for methods and properties. | Components consist of methods and variables.
+| **Execution Order**                   | Targets are executed based on their activation order, which initially follows their appearance in the code. They run in a sequential and predictable manner | Primarily data-driven, less predictable. |
+| **Function Calls**                    | Targets cannot be called directly. Execution is part of a framework execution cycle. | Functions execute reactively or are called imperatively. |
 | **Autonomous Execution**              | Targets can self-activate and operate autonomously. | Functions do not execute autonomously. |
 | **Execution Pipeline**                | Targets can form controlled pipelines; a target can activate when the preceding target executes or completes. | Functions are called whenever dependencies update. Execution order is not based on code appearance. |
 | **Event Handling**                    | Primarily by activating Targets, making event handling consistent with the core execution model. | Events are handled through event listeners, subscriptions, or reactive bindings. |
@@ -177,7 +177,7 @@ TargetJS leverages ES2015's guaranteed property order to ensure that target exec
 ## Anatomy of a Target
 
 Each target consists of the following:
-1. Target Value and Actual Value. The target value refers to the value assigned to a variable or the output produced by the `value()` method associated with the target defined in your program. The actual value is the value used by the rest of the application. When the target value differs from the actual value, TargetJS iteratively updates the actual value until it matches the target value. This process is managed by two additional variables: `step`, which dictates the number of iterations, and `interval`, which specifies the duration (in milliseconds) the system waits before executing the next iteration.
+1. Target Value and Actual Value. The target value refers to the value assigned to a property or the output produced by the `value()` method associated with the target defined in your program. The actual value is the value used by the rest of the application. When the target value differs from the actual value, TargetJS iteratively updates the actual value until it matches the target value. This process is managed by two additional variables: `step`, which dictates the number of iterations, and `interval`, which specifies the duration (in milliseconds) the system waits before executing the next iteration.
 
 2. State: Targets have four states that control their lifecycles: `active`, `inactive`, `updating`, and `complete`.
    - `active`: This is the default state for all targets. It indicates that the target is ready to be executed, and the target value needs to be initialized from the variable it represents or its `value()` method needs to be executed to calculate its output.
@@ -519,7 +519,7 @@ App({
     },
     page2() {
         return {
-            ...this.val('page').targets,
+            ...this.val('page'),
             background: "#B388FF",
             html: 'page2'
         };         
