@@ -55,7 +55,7 @@ npm install targetj
 
 ## Key Features and Concepts
 
-*   **Targets:** The fundamental building blocks of TargetJS. Targets provide a unified interface for variables and methods with built-in lifecycles. They can:
+*   **Targets:** The fundamental building blocks of TargetJS. Targets provide a unified interface for properties and methods with built-in lifecycles. They can:
     *   Iterate towards values (useful for animations and transitions).
     *   Execute conditionally.
     *   Manage repeated executions.
@@ -154,8 +154,8 @@ App({
 
 | Feature                               | TargetJS                        | Reactive Model Frameworks             |
 |--------------------------------------|-----------------------------------------------------------------|------------------------------------------------------|
-| **Component Basic Structure**     | Components consist of Targets, providing a unified interface for methods and variables. | Components consist of methods and variables.
-| **Execution Order**                   | Components consist of Targets, providing a unified interface for methods and variables. | Primarily data-driven, less predictable. |
+| **Component Basic Structure**     | Components consist of Targets, providing a unified interface for methods and properties. | Components consist of methods and variables.
+| **Execution Order**                   | Targets are executed based on their activation order, which initially follows their appearance in the code. They run in a sequential and predictable manner | Primarily data-driven, less predictable. |
 | **Function Calls**                    | Targets cannot be called directly. Execution is part of a task cycle. | Functions execute reactively or are called imperatively. |
 | **Autonomous Execution**              | Targets can self-activate and operate autonomously. | Functions do not execute autonomously. |
 | **Execution Pipeline**                | Targets can form controlled pipelines; a target can activate when the preceding target executes or completes. | Functions are called whenever dependencies update. Execution order is not based on code appearance. |
@@ -177,7 +177,7 @@ TargetJS leverages ES2015's guaranteed property order to ensure that target exec
 ## Anatomy of a Target
 
 Each target consists of the following:
-1. Target Value and Actual Value. The target value refers to the value assigned to a variable or the output produced by the `value()` method associated with the target defined in your program. The actual value is the value used by the rest of the application. When the target value differs from the actual value, TargetJS iteratively updates the actual value until it matches the target value. This process is managed by two additional variables: `step`, which dictates the number of iterations, and `interval`, which specifies the duration (in milliseconds) the system waits before executing the next iteration.
+1. Target Value and Actual Value. The target value refers to the value assigned to a property or the output produced by the `value()` method associated with the target defined in your program. The actual value is the value used by the rest of the application. When the target value differs from the actual value, TargetJS iteratively updates the actual value until it matches the target value. This process is managed by two additional variables: `step`, which dictates the number of iterations, and `interval`, which specifies the duration (in milliseconds) the system waits before executing the next iteration.
 
 2. State: Targets have four states that control their lifecycles: `active`, `inactive`, `updating`, and `complete`.
    - `active`: This is the default state for all targets. It indicates that the target is ready to be executed, and the target value needs to be initialized from the variable it represents or its `value()` method needs to be executed to calculate its output.
