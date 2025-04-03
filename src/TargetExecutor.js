@@ -74,7 +74,6 @@ class TargetExecutor {
         tmodel.setTargetMethodName(key, 'value');        
 
         tmodel.updateTargetStatus(key);
-        
     }
 
     static assignListTarget(targetValue, valueList, initialValue, steps, interval, easing) {

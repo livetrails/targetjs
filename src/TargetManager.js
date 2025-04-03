@@ -2,6 +2,7 @@ import { TargetExecutor } from "./TargetExecutor.js";
 import { getRunScheduler, getVisibles } from "./App.js";
 import { TUtil } from "./TUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
+import { TModelUtil } from "./TModelUtil.js";
 import { SearchUtil } from "./SearchUtil.js";
 
 /**
@@ -149,7 +150,7 @@ class TargetManager {
                 tmodel.setTargetInitialValue(key, initialValue);
             }
 
-            tmodel.val(key, TargetUtil.morph(tmodel, key, initialValue, theValue, step, steps));
+            tmodel.val(key, TModelUtil.morph(tmodel, key, initialValue, theValue, step, steps));
             tmodel.addToStyleTargetList(key);
 
             tmodel.setActualValueLastUpdate(key);

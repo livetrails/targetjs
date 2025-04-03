@@ -176,6 +176,8 @@ const tRoot = () => tApp?.tRoot;
 const getEvents = () => tApp?.events;
 const getPager = () => tApp?.pager;
 const getLoader = () => tApp?.loader;
+const fetch = (tmodel, url, query, cacheId) => tApp?.loader?.fetch(tmodel, url, query, cacheId);
+const fetchImage = (tmodel, src) => tApp?.loader?.fetchImage(tmodel, src);
 const getManager = () => tApp?.manager;
 const getRunScheduler = () => tApp?.runScheduler;
 const getLocationManager = () => tApp?.locationManager;
@@ -195,6 +197,8 @@ export {
     getEvents,
     getPager,
     getLoader,
+    fetch,
+    fetchImage,
     getManager,
     getRunScheduler,
     getLocationManager,

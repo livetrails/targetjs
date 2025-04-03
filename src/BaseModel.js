@@ -153,7 +153,7 @@ class BaseModel {
         }
     }
     
-    activate(targetName) {   
+    activate(targetName) {
         getLocationManager().addToActivatedList(this);
         this.currentStatus = 'active';
         if (targetName && this.isTargetEnabled(targetName) && this.activatedTargets.indexOf(targetName) === -1) {
@@ -167,7 +167,6 @@ class BaseModel {
     
     deactivate() {
         this.currentStatus = undefined;
-        this.activatedTargets.length = 0;       
     }
    
     shouldExecuteCyclesInParallel(key) {
@@ -536,7 +535,7 @@ class BaseModel {
     }
 
     addToActiveTargets(key) {
-        if (!this.activeTargetMap[key] && this.canTargetBeActivated(key)) {
+        if (!this.activeTargetMap[key] && this.canTargetBeActivated(key)) {      
             this.activeTargetMap[key] = true;
 
             const priorityOrder = ['y', 'x', 'height', 'width', 'start'];
@@ -686,7 +685,7 @@ class BaseModel {
             if (TUtil.isDefined('value')) {
                 this.val(`__${key}`, value);
             }
-            
+
             const targetValue = this.targetValues[key];
 
             if (targetValue) {

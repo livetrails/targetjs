@@ -76,6 +76,8 @@ class LocationManager {
             if (!this.hasLocationMap[child.oid]) {
                 this.addToLocationList(child);
             }
+            
+           child.activatedTargets.length = 0;
         }
         
         this.activatedList.length = 0;
@@ -210,13 +212,13 @@ class LocationManager {
 
         if (tmodel.hasDom()) {
             if (TModelUtil.shouldMeasureWidthFromDom(tmodel)) {
-                TargetUtil.setWidthFromDom(tmodel);
+                TModelUtil.setWidthFromDom(tmodel);
             }
         }
         
         if (tmodel.hasDom()) {
             if (TModelUtil.shouldMeasureHeightFromDom(tmodel)) {
-                TargetUtil.setHeightFromDom(tmodel);
+                TModelUtil.setHeightFromDom(tmodel);
             }           
         }        
         

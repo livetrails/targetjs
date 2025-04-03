@@ -1,6 +1,8 @@
 import { TUtil } from "./TUtil.js";
 import { TargetData } from "./TargetData.js";
+import { getRunScheduler, getManager } from "./App.js";
 import { $Dom } from "./$Dom.js";
+import { ColorUtil } from "./ColorUtil.js";
 
 /**
  * It provides helper functions for TModel.
@@ -161,8 +163,80 @@ class TModelUtil {
         
         tmodel.styleTargetMap = {};
         tmodel.styleTargetList.length = 0;
-    }    
+    }
+    
+    static setWidthFromDom(child) {
+        const timestamp = child.domWidthTimestamp;
+        const parent = child.getParent();
+        const domParent = child.getDomParent();
+        
+        let rerender = false;
+        if (getManager().needsRerender(child)) {
+            child.isTextOnly() ? child.$dom.text(child.getHtml()) : child.$dom.html(child.getHtml());
+            rerender = true;
+        }
 
+        if (rerender || (parent && timestamp <= parent.getDimLastUpdate()) || (domParent && timestamp <= domParent.getDimLastUpdate())) {
+            child.$dom.width('auto');
+            const width = child.$dom.width();
+            child.domWidthTimestamp = TUtil.now();
+            
+            child.val('width', width);  
+  
+            if (width > 0 || (width === 0 && child.lastVal('width') > 0)) {
+                child.addToStyleTargetList('width');              
+            }
+            getRunScheduler().schedule(15, 'resize');           
+        }
+    }
+    
+    static setHeightFromDom(child) {
+        const timestamp = child.domHeightTimestamp;
+        const parent = child.getParent();
+        const domParent = child.getDomParent();
+        
+        let rerender = false;
+        if (getManager().needsRerender(child)) {
+            child.isTextOnly() ? child.$dom.text(child.getHtml()) : child.$dom.html(child.getHtml());
+            rerender = true;
+        }     
+ 
+        if (rerender || (parent && timestamp <= parent.getDimLastUpdate()) || (domParent && timestamp <= domParent.getDimLastUpdate())) {         
+            child.$dom.height('auto');
+            const height = child.$dom.height();
+            child.domHeightTimestamp = TUtil.now();
+
+            child.val('height', height);
+            
+            if (height > 0 || (height === 0 && child.lastVal('height') > 0)) {
+                child.addToStyleTargetList('height');
+            }
+            
+            getRunScheduler().schedule(15, 'resize');
+        }
+    }
+    
+    static morph(tmodel, key, fromValue, toValue, step) {
+        const easing = tmodel.getTargetEasing(key);
+        const easingStep = easing ? easing(tmodel.getTargetStepPercent(key, step)) : tmodel.getTargetStepPercent(key, step);
+
+        if (TargetData.colorMap[key]) {
+            const targetColors = ColorUtil.color2Integers(toValue);
+            const lastColors = fromValue ? ColorUtil.color2Integers(fromValue) : ColorUtil.color2Integers('#fff');
+
+            if (targetColors && lastColors) {
+                const red = Math.floor(targetColors[0] * easingStep + lastColors[0] * (1 - easingStep));
+                const green = Math.floor(targetColors[1] * easingStep + lastColors[1] * (1 - easingStep));
+                const blue = Math.floor(targetColors[2] * easingStep + lastColors[2] * (1 - easingStep));
+
+                return `rgb(${red},${green},${blue})`;
+            } else {
+                return toValue;
+            }
+        } else {
+            return typeof toValue === 'number' ? toValue * easingStep + fromValue * (1 - easingStep) : toValue;
+        }
+    }    
     
     static fixAsyncStyle(tmodel) {
         tmodel.asyncStyleTargetList.forEach(key => { 
