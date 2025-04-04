@@ -152,22 +152,23 @@ App({
 
 ## Comparison with Other UI Frameworks  
 
-| Feature                               | TargetJS                        | Reactive Model Frameworks             |
-|--------------------------------------|-----------------------------------------------------------------|------------------------------------------------------|
-| **Component Basic Structure**     | Components consist of Targets, providing a unified interface for methods and properties. | Components consist of methods and variables.
-| **Execution Order**                   | Targets are executed based on their activation order, which initially follows their appearance in the code. They run in a sequential and predictable manner | Primarily data-driven, less predictable. |
-| **Function Calls**                    | Targets cannot be called directly. Execution is part of a framework execution cycle. | Functions execute reactively or are called imperatively. |
-| **Autonomous Execution**              | Targets can self-activate and operate autonomously. | Functions do not execute autonomously. |
-| **Execution Pipeline**                | Targets can form controlled pipelines; a target can activate when the preceding target executes or completes. | Functions are called whenever dependencies update. Execution order is not based on code appearance. |
-| **Event Handling**                    | Primarily by activating Targets, making event handling consistent with the core execution model. | Events are handled through event listeners, subscriptions, or reactive bindings. |
-| **State Management**                  | Unified within Targets; no external state libraries needed. | State is often managed through reactive stores. |
-| **UI Organization and Animation**      | UI controlled by Targets; styles incorporated directly. Animations handled directly by Targets, with step-by-step updates. | Component-based rendering and reactivity. Animations via CSS transitions, JavaScript, or external libraries. |
-| **HTML and Nesting**                   | Minimal HTML reliance; code is the primary driver. Dynamic nesting. | HTML structure is an integral part of UI frameworks. Components and templates define static layouts; JSX or templates are used.|
-| **CSS Handling**                       | CSS is optional; styles can be incorporated directly as Targets. | External stylesheets, CSS-in-JS, or utility-first CSS (e.g., Tailwind). Styles are often separate from logic. |
-| **API Calls**                          | Can be chained in a pipeline; the bottom target activates only when each call is completed in the order invoked or when all calls are complete. | Usually handled with Promises, async/await, or reactive effects; less structured execution. |
-| **Large List Performance**             | Optimized with an internal tree structure; monitors only the visible branch. | Can require careful optimization for very large lists (e.g., virtualization).
-| **Workflow development**               | Targets offer a unified solution for UI , animation, event handling, API calls, and state management. | Multiple technologies, commands, and approaches.
-| **Execution control by time**          | TargetJS enables easy sequencing and parallelization for complex UI behaviors. | Not easily accomplished.
+| Feature                               | TargetJS                                                              | Reactive Model Frameworks                                         |
+|--------------------------------------|------------------------------------------------------------------------|-------------------------------------------------------------------|
+| **Component Basic Structure**        | Provides a unified interface where methods and properties are treated identically.       | Methods and variables are distinct.                               |
+| **Execution Order**                  | Targets are executed based on their activation order, which initially follows their appearance in the code. They run in a sequential and predictable manner. | Less predictable.                                                |
+| **Function Calls**                   | Targets cannot be called directly. Execution is part of a framework execution cycle, ensuring synchronization. | Functions can be called directly and are less synchronous.        |
+| **Autonomous Execution**             | Targets can self-activate and operate autonomously, and have the ability to schedule their execution by time. | Functions do not execute autonomously. Control flow with time is difficult.                          |
+| **Execution Pipeline**               | Targets can form controlled pipelines; a target can activate when the preceding target executes or completes. | Function pipelines are limited.                                   |
+| **Event Handling**                   | By activating targets, event handling becomes synchronous and consistent with the core execution model. | Events are handled asynchronously.                                |
+| **State Management**                 | Unified within targets; no external state libraries needed.            | State management is often an issue.                               |
+| **Animations**                       | Animations are handled directly by targets and are consistent with the rest of the program. | CSS transitions or external libraries.                            |
+| **HTML and Nesting**                 | Built to enhance HTML elements with any logic and is less reliant on HTML blocks. | HTML structure is an integral part of UI frameworks.              |
+| **CSS Handling**                     | CSS is optional; styles can be incorporated directly as targets.       | Styles are often separate from logic.                             |
+| **API Calls**                        | API results are synchronous and can be chained in a pipeline.          | Usually handled with Promises, async/await, less structured execution. |
+| **Large List Performance**           | Optimized with an internal tree structure; monitors only the visible branch. | Can require careful optimization.                                 |
+| **Workflow Development**             | Targets offer a unified solution for UI, animation, event handling, API calls, and state management. | Multiple technologies and approaches.                             |
+| **Execution Control by Time**        | TargetJS enables easy sequencing and parallelization for complex UI behaviors. | Not easily accomplished.                                          |
+
 
 ## The Core of TargetJS
 
