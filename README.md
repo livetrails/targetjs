@@ -179,7 +179,7 @@ TargetJS utilizes literal JavaScript objects for target definitions, providing a
 - Enable functional pipelines between adjacent targets.
 - Add lifecycles, looping, and timing to targets, enabling them to execute or re-execute based on conditions or time.
 
-Learn more about the framework's origins [here](https://dev.to/ahmad_wasfi_f88513699c56d/targetjs-rethinking-ui-with-declarative-synchronous-pipelines-5bbi).
+That's the basic idea. Learn more [here](https://dev.to/ahmad_wasfi_f88513699c56d/targetjs-rethinking-ui-with-declarative-synchronous-pipelines-5bbi).
 
 ## Anatomy of a Target
 
