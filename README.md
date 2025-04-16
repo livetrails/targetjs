@@ -236,7 +236,7 @@ By default, the actual value is updated immediately after the target value. The 
 An easing function that operates when steps are defined. It controls how the actual value is updated in relation to the steps.
 
 9. **onValueChange**
-This callbak is triggered whenever there is a change returned by the target method, which is called value().
+This callback is triggered whenever there is a change returned by the target method, which is called value().
 
 10. **onStepsEnd**
 This method is invoked only after the final step of updating the actual value is completed, assuming the target has a defined steps value.
