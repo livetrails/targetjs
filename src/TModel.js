@@ -482,20 +482,12 @@ class TModel extends BaseModel {
         return TUtil.isDefined(this.val('isInFlow')) ? this.val('isInFlow') : true;
     }
 
-    canHandleEvents(eventName) {
-        const events = this.val('canHandleEvents');
-        if (TUtil.isDefined(events)) {
-            return events === eventName || (Array.isArray(events) && events.includes(eventName));
-        } else {
-            if (!TUtil.isDefined(this.val('autoHandleEvents'))) {
-                this.val('autoHandleEvents', TargetUtil.getAutoHandleEvents(this));
-            }
-            return this.val('autoHandleEvents').includes(eventName);
-        }
+    canHandleEvent(eventName) {
+        return this.getExternalEventMap()[eventName];
     }
 
-    keepEventDefault() {
-        return TUtil.isDefined(this.val('keepEventDefault')) ? this.val('keepEventDefault') : this.reuseDomDefinition() ? true : undefined;
+    preventDefault() {
+        return TUtil.isDefined(this.val('preventDefault')) ? this.val('preventDefault') : this.getParentValue('preventDefault') || false;
     }
     
     canDeleteDom() {

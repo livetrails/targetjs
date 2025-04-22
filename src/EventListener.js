@@ -2,6 +2,7 @@ import { $Dom } from "./$Dom.js";
 import { SearchUtil } from "./SearchUtil.js";
 import { TUtil } from "./TUtil.js";
 import { TargetData } from "./TargetData.js";
+import { TargetExecutor } from "./TargetExecutor.js";
 import { tApp, getRunScheduler, tRoot } from "./App.js";
 
 /**
@@ -30,7 +31,6 @@ class EventListener {
         this.lastEvent = undefined;
 
         this.touchTimeStamp = 0;
-        this.ignoreStartEvents = true;
 
         this.cursor = { x: 0, y: 0 };
         this.start0 = undefined;
@@ -52,132 +52,97 @@ class EventListener {
             scrollTop: null,
             swipe: null,
             pinch: null,
-            enterEvent: null,
-            leaveEvent: null,
             focus: null,
             justFocused: null,
-            blur: null
+            blur: null,
+            leave: null,
+            enter: null,
+            start: null,
+            end: null,
+            hover: null
         };
         
         this.eventQueue = [];
         
         this.attachedEventMap = {};
         this.eventTargetMap = {};
-               
-        this.startEvents = {
-            pointerdown: { eventName: 'mousedown', inputType: 'pointer', eventType: 'start', order: 2, windowEvent: false, queue: true, rateLimit: 0 },
-            mousedown: { eventName: 'mousedown', inputType: 'mouse', eventType: 'start', order: 3, windowEvent: false, queue: true, rateLimit: 0 },
-        };
+              
+        this.allEvents = {};
         
-        this.endEvents = {
-            pointerup: { eventName: 'mouseup', inputType: 'pointer', eventType: 'end', order: 2, windowEvent: false, queue: true, rateLimit: 0 },
-            mouseup: { eventName: 'mouseup', inputType: 'mouse', eventType: 'end', order: 3, windowEvent: false, queue: true, rateLimit: 0 },
-        }; 
-        
-        this.clickEvents = {           
-            click: { eventName: 'click', inputType: 'mouse', eventType: 'click', order: 1, windowEvent: false, queue: false, rateLimit: 0 }
-        }; 
-        
-        this.touchStart = {
-            touchstart: { eventName: 'touchstart', inputType: 'touch', eventType: 'start', order: 1, windowEvent: false, queue: true, rateLimit: 0 }
-        };
-        
-        this.touchEnd = {
-            touchend: { eventName: 'touchend', inputType: 'touch', eventType: 'end', order: 1, windowEvent: false, queue: true, rateLimit: 0 } 
-        };
-        
-        this.cancelEvents = {
-            touchcancel: { eventName: 'touchend', inputType: 'touch', eventType: 'cancel', order: 1, windowEvent: false, queue: true, rateLimit: 0 },       
-            pointercancel: { eventName: 'mousecancel', inputType: 'pointer', eventType: 'cancel', order: 2, windowEvent: false, queue: true, rateLimit: 0 },
-            mousecancel: { eventName: 'mouseup', inputType: 'mouse', eventType: 'cancel', order: 3, windowEvent: false, queue: true, rateLimit: 0 },
-        };
-                
-        this.windowEvents = {
-            keyup: { eventName: 'key', inputType: '', eventType: 'key', order: 1, windowEvent: true, queue: true, rateLimit: 50 },
-            keydown: { eventName: 'key', inputType: '', eventType: 'key', order: 1, windowEvent: true, queue: true, rateLimit: 50 },
-            blur: { eventName: 'blur', inputType: 'mouse', eventType: 'cancel', order: 2, windowEvent: true, queue: true, rateLimit: 0 },
-            resize: { eventName: 'resize', inputType: '', eventType: 'resize', order: 1, windowEvent: true, queue: true, rateLimit: 50 },
-            orientationchange: { eventName: 'resize', inputType: '', eventType: 'resize', order: 1, windowEvent: true, queue: true, rateLimit: 50 },
-        };
-        
-        this.windowScrollEvents = {
-            scroll: { eventName: 'scroll', inputType: '', eventType: 'windowScroll', order: 1, windowEvent: true, queue: true, rateLimit: 50 }            
-        };
-        
-        this.leaveEvents = {
-            mouseleave: { eventName: 'mouseleave', inputType: 'mouse', eventType: 'cancel', order: 3, windowEvent: false, queue: true, rateLimit: 0 },
-        };        
-        
-        this.moveEvents = {
-            touchmove: { eventName: 'touchmove', inputType: 'touch', eventType: 'move', order: 1, windowEvent: false, queue: true, rateLimit: 50 },            
-            pointermove: { eventName: 'mousemove', inputType: 'pointer', eventType: 'move', order: 2, windowEvent: false, queue: true, rateLimit: 50 },                   
-            mousemove: { eventName: 'mousemove', inputType: 'mouse', eventType: 'move', order: 3, windowEvent: false, queue: true, rateLimit: 50  }
-        };
-        
-        this.wheelEvents = {
-            wheel: { eventName: 'wheel', inputType: '', eventType: 'wheel', order: 1, windowEvent: false, queue: true, rateLimit: 50 },
-            mousewheel: { eventName: 'wheel', inputType: '', eventType: 'wheel', order: 1, windowEvent: false, queue: true, rateLimit: 50 },                
-        };
-        
-        this.allEvents = {
-            ...this.touchStart,
-            ...this.touchEnd,            
-            ...this.startEvents,
-            ...this.endEvents,
-            ...this.clickEvents,
-            ...this.cancelEvents,
-            ...this.leaveEvents,            
-            ...this.moveEvents,
-            ...this.wheelEvents,
-            ...this.windowEvents,
-            ...this.windowScrollEvents            
-        };        
+        Object.values(TargetData.events).forEach(group => {
+            Object.assign(this.allEvents, group);
+        });     
 
-        this.bindedHandleEvent = this.bindedHandleEvent || this.handleEvent.bind(this);
+        this.bindedHandleEvent = this.handleEvent.bind(this);
+        this.bindedParentHandleEvent = this.handleDocEvent.bind(this);
     }
 
-    attachEvents($dom, eventMap) {
-        Object.keys(eventMap).forEach(key => {
-            $dom.addEvent(key, this.bindedHandleEvent);
-        });
-    }
-    
     detachWindowEvents() {
-        Object.keys(this.windowEvents).forEach(key => {
+        Object.keys(TargetData.events.windowEvents).forEach(key => {
             tApp.$window.detachEvent(key, this.bindedHandleEvent);
         });
     }
     
     attachWindowEvents() {
-        this.attachEvents(tApp.$window, this.windowEvents);
+        Object.keys(TargetData.events.windowEvents).forEach(key => {
+            tApp.$window.addEvent(key, this.bindedHandleEvent);
+        });        
     }
     
-    attachTargetEvents(targetName) {
-        if (this.eventTargetMap[targetName]) {
+    detachDocumentEvents() {         
+        Object.keys(TargetData.events.documentEvents).forEach(key => {
+            this.$document.detachEvent(key, this.bindedParentHandleEvent);
+        });        
+    }
+    
+    attachDocumentEvents() {
+        Object.keys(TargetData.events.documentEvents).forEach(key => {
+            this.$document.addEvent(key, this.bindedParentHandleEvent);
+        });         
+    }
+    
+    attachEvents(tmodels) {
+        for (const tmodel of tmodels) {
+            tmodel.getExternalEventList().forEach(targetName => {
+                this.attachTargetEvents(tmodel, targetName);
+            });                
+        }          
+    }
+    
+    attachTargetEvents(tmodel, targetName) {
+        const targetKey = `${tmodel.oid} ${targetName}`;
+        
+        if (!tmodel.hasDom() || (this.eventTargetMap[targetKey] && this.eventTargetMap[targetKey] === tmodel.$dom)) {
             return;
         }
-        this.eventTargetMap[targetName] = true;
+        this.eventTargetMap[targetKey] = tmodel.$dom;
+        
         const events = TargetData.targetToEventsMapping[targetName];
         events.forEach(event => {
-            if (targetName === 'onTouchStart') {
-                this.ignoreStartEvents = false;
-            }
-            if (!this.attachedEventMap[event]) {
-                this.attachedEventMap[event] = this.$document;
-                this.attachEvents(this.attachedEventMap[event], this[event]);
-            }
+            
+            const eventMap = TargetData.events[event];
+
+            Object.keys(eventMap).forEach(key => {
+                const eventKey = `${tmodel.oid} ${key}`;
+                const eventItem = eventMap[key];
+                const $dom = eventItem.windowEvent ? tApp.$window : tmodel.$dom;
+                $dom.detachEvent(key, this.bindedHandleEvent);
+                $dom.addEvent(key, this.bindedHandleEvent);
+                this.attachedEventMap[eventKey] = { $dom, event: key };
+            }); 
         });
     }
     
     detachAll() {
-        const events = Object.keys(this.attachedEventMap);
-        events.forEach(event => {
-            const $dom = this.attachedEventMap[event];
-            const eventMap = this[event];
-            Object.keys(eventMap).forEach(key => {
-                $dom.detachEvent(key, this.bindedHandleEvent);
-            });
-        });   
+        const eventKeys = Object.keys(this.attachedEventMap);
+        eventKeys.forEach(eventKey => {
+            const { $dom, event } = this.attachedEventMap[eventKey];
+            if ($dom.exists()) {
+                $dom.detachEvent(event, this.bindedHandleEvent);
+            }
+        });
+        this.attachedEventMap = {};
+        this.eventTargetMap = {};
     }
     
     resetEventsOnTimeout() {
@@ -202,8 +167,7 @@ class EventListener {
     
                 if (this.currentTouch.deltaX === 0 && this.currentTouch.deltaY === 0 && this.currentTouch.pinchDelta === 0) { 
                     this.touchTimeStamp = 0;
-                }
-                                
+                }                
             }
             
             if (diff <= 0 || this.touchTimeStamp === 0) {
@@ -219,45 +183,47 @@ class EventListener {
     
     findEventHandlers({ tmodel, eventType }) {
         
-        let touchHandler, swipeHandler, scrollLeftHandler, scrollTopHandler, pinchHandler, focusHandler;
+        let clickHandler, swipeHandler, scrollLeftHandler, scrollTopHandler, pinchHandler, focusHandler, enterHandler, leaveHandler;
         
         if (tmodel) {
-            touchHandler = SearchUtil.findFirstTouchHandler(tmodel);
+            clickHandler = SearchUtil.findFirstClickHandler(tmodel);
             swipeHandler = SearchUtil.findFirstSwipeHandler(tmodel);
+            enterHandler = SearchUtil.findFirstEnterHandler(tmodel);
+            leaveHandler = SearchUtil.findFirstLeaveHandler(tmodel);
             scrollLeftHandler = SearchUtil.findFirstScrollLeftHandler(tmodel, eventType);
             scrollTopHandler = SearchUtil.findFirstScrollTopHandler(tmodel, eventType);
             pinchHandler = SearchUtil.findFirstPinchHandler(tmodel);
             focusHandler = $Dom.hasFocus(tmodel) ? tmodel : this.currentHandlers.focus;
         }
-                        
+                       
         if (this.currentHandlers.scrollLeft !== scrollLeftHandler || this.currentHandlers.scrollTop !== scrollTopHandler) {
             this.clearTouch();
         }
 
-        if (this.currentHandlers.touch !== touchHandler) {
-            this.currentHandlers.enterEvent = touchHandler;
-            this.currentHandlers.leaveEvent = this.currentHandlers.touch;
-        }
-        
         if (this.currentHandlers.focus !== focusHandler) {
             this.currentHandlers.justFocused = focusHandler;
             this.currentHandlers.blur = this.currentHandlers.focus;
         }
        
-        this.currentHandlers.touch = touchHandler;
+        this.currentHandlers.start = tmodel?.canHandleEvent('onStart') ? tmodel : undefined;
+        this.currentHandlers.end = tmodel?.canHandleEvent('onEnd') ? tmodel : undefined;  
+        this.currentHandlers.hover = tmodel?.canHandleEvent('onHover') ? tmodel : undefined;
+        this.currentHandlers.click = clickHandler;
         this.currentHandlers.swipe = swipeHandler;
         this.currentHandlers.scrollLeft = scrollLeftHandler;
         this.currentHandlers.scrollTop = scrollTopHandler;
         this.currentHandlers.pinch = pinchHandler;
         this.currentHandlers.focus = focusHandler;
+        this.currentHandlers.enter = enterHandler;
+        this.currentHandlers.leave = leaveHandler;
     }
 
     captureEvents() {
         this.currentTouch.prevDeltaX = 0;
         this.currentTouch.prevDeltaY = 0;
-        
-        this.currentHandlers.enterEvent = undefined;
-        this.currentHandlers.leaveEvent = undefined;
+
+        this.currentHandlers.enter = undefined;
+        this.currentHandlers.leave = undefined;
         this.currentHandlers.justFocused = undefined;
         this.currentHandlers.blur = undefined;
         
@@ -270,7 +236,7 @@ class EventListener {
         }
         
         const lastEvent = this.eventQueue.shift();
-                                        
+                   
         if (this.canFindHandlers) {
             this.findEventHandlers(lastEvent);
         }
@@ -284,26 +250,32 @@ class EventListener {
         this.currentEventTarget = lastEvent.eventTarget;
         this.currentKey = this.currentTouch.key;
         this.currentTouch.key = "";      
-    }    
+    }
+    
+    handleDocEvent(event) {
+        this.handleEvent(event, true);
+    }
 
-    handleEvent(event) {
+    handleEvent(event, isDocEvent) {
         if (!event) {
             return;
         }
 
-        const { type: originalName, target: eventTarget } = event;
+        const { type: originalName, target: eventTarget } = event; 
         const eventItem = this.allEvents[originalName];
-                                        
+                                 
         if (!eventItem) {
             return;
         }
-                
+                        
         let { eventName, inputType, eventType, order: eventOrder, queue, rateLimit } = eventItem;
         
         const now = TUtil.now();
                 
         const tmodel = this.getTModelFromEvent(event);
         
+        //console.log("originalName: " + originalName + ", " + eventItem + ", " + tmodel?.oid);
+                        
         const newEvent = { eventName, eventItem, eventType, originalName, tmodel, eventTarget, timeStamp: now };
 
         if (this.lastEvent?.eventItem) {
@@ -328,13 +300,15 @@ class EventListener {
                 }
             }
         }
-              
+                      
         this.lastEvent = newEvent;
                                 
         if (queue) {
             this.eventQueue.push(this.lastEvent);
         }
-                       
+
+        let touch; 
+                               
         switch (eventName) {
             case 'mousedown':
             case 'touchstart':
@@ -342,9 +316,9 @@ class EventListener {
                 this.clearEnd();
                 this.clearTouch();
 
-                this.touchCount = this.countTouches(event);
-                this.canFindHandlers = false;
-                if (this.preventDefault(tmodel, eventName)) {
+                this.touchCount = this.countTouches(event) || 1;
+
+                if (this.preventDefault(tmodel, eventName) && event.cancelable) {
                     event.preventDefault();
                 }
                 
@@ -354,22 +328,23 @@ class EventListener {
                 this.cursor.x = this.start0.x;
                 this.cursor.y = this.start0.y;
                 
-                this.findEventHandlers(this.lastEvent); 
-                
+                this.findEventHandlers(newEvent); 
+                this.canFindHandlers = false;
+
                 this.swipeStartX = this.start0.x - this.currentHandlers.swipe?.getX();
                 this.swipeStartY = this.start0.y - this.currentHandlers.swipe?.getY();
                 
                 event.stopPropagation();
                 
-                if (this.ignoreStartEvents) {
-                    return;
-                } else {
-                    break;
-                }
+                this.detachDocumentEvents();
+                this.attachDocumentEvents(tmodel.getDomParent());
+                
+                return;
 
             case 'mousemove':
             case 'touchmove': {
-                const touch = this.getTouch(event);
+                touch = this.getTouch(event);
+
                 this.cursor.x = touch.x;
                 this.cursor.y = touch.y;
                 if (this.preventDefault(tmodel, eventName)) {
@@ -386,25 +361,18 @@ class EventListener {
                 break;
             }
             case 'mouseup':
-            case 'touchend':    
+            case 'touchend':
+                
+                this.detachDocumentEvents();
                 if (this.preventDefault(tmodel, eventName)) {
                     event.preventDefault();
                 }
+                                
+                touch = this.getTouch(event);
+                this.cursor.x = touch.x;
+                this.cursor.y = touch.y;
                 
                 this.end(event);
-
-                if (this.start0 && eventName === 'touchend') {
-                    const deltaX = this.end0 ? Math.abs(this.end0.originalX - this.start0.originalX) : 0;
-                    const deltaY = this.end0 ? Math.abs(this.end0.originalY - this.start0.originalY) : 0;
-                    const period = this.end0 ? Math.abs(this.end0.timeStamp - this.start0.timeStamp) : 300;
-
-                    if (deltaX <= 1 && deltaY <= 1 && period <= 300) {
-                        this.eventQueue.length = 0; //remove the end event as it is not a swipe and all the others
-                        eventName = 'click';
-                        eventType = 'click';
-                        this.eventQueue.push({ eventName, eventItem, eventType, originalName, tmodel, eventTarget, timeStamp: now });
-                    }
-                }
 
                 this.clearEnd();
                 this.touchCount = 0; 
@@ -420,9 +388,9 @@ class EventListener {
                 this.end0 = this.getTouch(event);
                                 
                 if (this.start0) {
-                    const touchHandler = SearchUtil.findFirstTouchHandler(tmodel);
-                    
-                    if (touchHandler && touchHandler === this.currentHandlers.touch) {
+                    const clickHandler = SearchUtil.findFirstClickHandler(tmodel);
+                                        
+                    if (clickHandler && clickHandler === this.currentHandlers.click) {
                         this.eventQueue.length = 0;
                         this.eventQueue.push({ eventName, eventItem, eventType, originalName, tmodel, eventTarget, timeStamp: now });
                     }
@@ -442,6 +410,25 @@ class EventListener {
                 this.wheel(event);
                 break;
 
+            case 'mouseleave':
+                if (isDocEvent && this.touchCount > 0) {
+                    this.detachDocumentEvents();
+
+                    touch = this.getTouch(event);
+                    this.cursor.x = touch.x;
+                    this.cursor.y = touch.y;
+
+                    this.end(event);
+
+                    this.clearEnd();
+                    this.touchCount = 0; 
+
+                    event.stopPropagation(); 
+                }
+                              
+                break;
+                
+
             case 'key':
                 this.currentTouch.key = event.which || event.keyCode;
                 break;
@@ -455,17 +442,15 @@ class EventListener {
     }
     
     resizeRoot() {
-        tRoot().val('width', tRoot().targets.width.value());
-        tRoot().val('height', tRoot().targets.height.value());
-        tRoot().setActualValueLastUpdate('width');
-        tRoot().setActualValueLastUpdate('height');
+        TargetExecutor.executeDeclarativeTarget(tRoot(), 'width');
+        TargetExecutor.executeDeclarativeTarget(tRoot(), 'height');
     }
 
     preventDefault(tmodel, eventName) {
-        if (tmodel && (tmodel.keepEventDefault() === true || (Array.isArray(tmodel.keepEventDefault()) && tmodel.keepEventDefault().includes(eventName)))) {
-            return false;
+        if (tmodel && (tmodel.preventDefault() === true || (Array.isArray(tmodel.preventDefault()) && tmodel.preventDefault().includes(eventName)))) {
+            return true;
         }
-        return true;
+        return false;
     }
 
     getTModelFromEvent(event) {
@@ -514,7 +499,6 @@ class EventListener {
         this.lastEvent = undefined;
         this.attachedEventMap = {};
         this.eventTargetMap = {};
-        this.ignoreStartEvents = true;
         this.swipeStartX = 0;
         this.swipeStartY = 0;
     }
@@ -563,16 +547,8 @@ class EventListener {
         return this.currentHandlers.pinch;
     }
 
-    getTouchHandler() {
-        return this.currentHandlers.touch;
-    }
-
-    getTouchHandlerType() {
-        return this.currentHandlers.touch ? this.currentHandlers.touch.type : null;
-    }
-
-    getTouchHandlerOid() {
-        return this.currentHandlers.touch ? this.currentHandlers.touch.oid : null;
+    getClickHandler() {
+        return this.currentHandlers.click;
     }
     
     getTouchCount() {
@@ -581,6 +557,10 @@ class EventListener {
 
     isClickEvent() {
         return this.getEventType() === 'click';
+    }
+    
+    isMoveEvent() {
+        return this.getEventType() === 'move';
     }
     
     isResizeEvent() {
@@ -619,24 +599,32 @@ class EventListener {
     }  
     
     isClickHandler(handler) {
-        return this.getTouchHandler() === handler && this.isClickEvent();
+        return this.getClickHandler() === handler && this.isClickEvent();
     }
 
-    isClickHandlerType(type) {
-        return this.getTouchHandlerType() === type && this.isClickEvent();
+    isEnterHandler(handler) {
+        return handler === this.currentHandlers.enter && this.getEventName() === 'mouseenter';
     }
     
-    isTouchHandler(handler) {
-        return this.getTouchHandler() === handler && handler.canHandleEvents('touch');
+    isLeaveHandler(handler) {
+        return handler === this.currentHandlers.leave && this.getEventName() === 'mouseleave';
     }
     
-    isEnterEventHandler(handler) {
-        return TUtil.contains(handler, this.currentHandlers.enterEvent) && !TUtil.contains(handler, this.currentHandlers.leaveEvent);
+    isHoverHandler(handler) {
+        return handler === this.currentHandlers.hover;
+    }    
+        
+    isSwipeHandler(handler) {
+        return handler === this.currentHandlers.swipe;
     }
     
-    isLeaveEventHandler(handler) {
-        return TUtil.contains(handler, this.currentHandlers.leaveEvent) && !TUtil.contains(handler, this.currentHandlers.enterEvent);
+    isStartHandler(handler) {
+        return handler === this.currentHandlers.start;
     }
+    
+    isEndHandler(handler) {
+        return handler === this.currentHandlers.end;
+    } 
     
     onFocus(handler) {
         return this.currentHandlers.justFocused === handler;        
@@ -648,10 +636,6 @@ class EventListener {
     
     hasFocus(handler) {
         return this.currentHandlers.focus === handler;
-    }
-    
-    isTouchHandlerType(type) {
-        return this.getTouchHandlerType() === type;
     }
 
     isScrollLeftHandler(handler) {
@@ -673,34 +657,9 @@ class EventListener {
     getOrientation() {
         return this.currentTouch.orientation;
     }
-    
-    isTouchHandlerOrAncestor(target) {
-        const handler = this.getTouchHandler();
-
-        while (target) {
-            if (target === handler) {
-                return true;
-            }
-            target = target.getParent();
-        }
-
-        return false;
-    }
-    
-    isTouchHandlerOrParent(target) {
-        const handler = this.getTouchHandler();
-
-        return target === handler || target.getParent() === handler;
-    }   
-    
-    containsTouchHandler(tmodel) {
-        return TUtil.contains(tmodel, this.getTouchHandler());      
-    }
 
     countTouches(event) {
-        return event.touches?.length ||
-            event.originalEvent?.touches?.length ||
-            1;
+        return event.touches?.length || event.originalEvent?.touches?.length;
     }
 
     getTouch(event, index = 0) {

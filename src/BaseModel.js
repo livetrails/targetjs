@@ -17,7 +17,7 @@ class BaseModel {
         }        
         this.type = type || 'blank';
         this.targets = Object.assign({}, targets);
-                
+                        
         const uniqueId = App.getOid(this.type);
         this.oid = uniqueId.oid;
         this.oidNum = uniqueId.num;
@@ -38,8 +38,11 @@ class BaseModel {
         this.activeChildrenList = [];
         this.activeChildrenMap = {};        
         
-        this.eventTargetList = [];
-        this.eventTargetMap = {};
+        this.externalEventList = [];
+        this.externalEventMap = {};
+        
+        this.internalEventList = [];
+        this.internalEventMap = {};        
         
         this.coreTargets = [];
         
@@ -71,26 +74,29 @@ class BaseModel {
         this.activeTargetMap = {};
         this.activeTargetList = [];
           
-        const targetNames = Object.keys(this.targets);
+        this.originalTargetNames = Object.keys(this.targets);
         
         const domExists = $Dom.query(`#${this.oid}`);
                 
         if (!domExists && !this.excludeDefaultStyling()) {
-            Object.entries(TModelUtil.defaultTargetStyles()).forEach(([key, value]) => {
+            Object.entries(TargetData.defaultTargetStyles).forEach(([key, value]) => {
                 if (!(key in this.targets)) {
                     this.targets[key] = value;
                 }
             });
         } else if (domExists && !TUtil.isDefined(this.targets['reuseDomDefinition'])) {
             this.targets['reuseDomDefinition'] = true;
+            this.targets['excludeX'] = true;
+            this.targets['excludeY'] = true;
+            this.targets['position'] = 'relative';
         }
         
         Object.keys(this.targets).forEach(key => {
-            this.processNewTarget(key, targetNames);
+            this.processNewTarget(key);
         });
     }    
     
-    processNewTarget(key, targetNames) {
+    processNewTarget(key) {
         let target = this.targets[key];        
         const cleanKey = TargetUtil.getTargetName(key);
 
@@ -105,16 +111,24 @@ class BaseModel {
                 target = this.targets[key];
             }
                  
-            TargetUtil.bindTarget(this, key, targetNames);
+            TargetUtil.bindTarget(this, key, this.originalTargetNames);
         }
 
-        if (TargetData.allEventMap[cleanKey] || TargetData.internalEventMap[cleanKey]) {
-            if (!this.eventTargetMap[cleanKey]) {
-                this.eventTargetList.push(cleanKey);
-                this.eventTargetMap[cleanKey] = true;
+        if (TargetData.allEventMap[cleanKey]) {
+            if (!this.externalEventMap[cleanKey]) {
+                this.externalEventList.push(cleanKey);
+                this.externalEventMap[cleanKey] = true;
                 target.active = false;
             }
         }
+        
+        if (TargetData.internalEventMap[cleanKey]) {
+            if (!this.internalEventMap[cleanKey]) {
+                this.internalEventList.push(cleanKey);
+                this.internalEventMap[cleanKey] = true;
+                target.active = false;
+            }
+        }        
 
         const isInactiveKey = key.startsWith('_');
 
@@ -135,9 +149,7 @@ class BaseModel {
             this.val(key, target.initialValue);
         }
 
-        if (!isInactiveKey) {
-            this.addToStyleTargetList(key);
-        }
+        this.addToStyleTargetList(key);
 
         if (TargetData.coreTargetMap[key] && !this.coreTargets.includes(key)) {
             this.coreTargets.push(key);
@@ -453,11 +465,20 @@ class BaseModel {
         return this.targetValues[key] ? this.targetValues[key].creationTime : undefined;
     }
 
-    incrementTargetStep(key) {
-        if (this.targetValues[key]) {
-            this.targetValues[key].step++;
+    incrementTargetStep(key, now, lastUpdate, interval, steps) {
+        const targetValue = this.targetValues[key];
+        if (!targetValue) {
+            return;
         }
-        return this.targetValues[key].step;
+
+        const stepInterval = interval || 8;
+        
+        const elapsed = now - lastUpdate;
+        const stepIncrement = Math.max(1, Math.floor(elapsed / stepInterval));
+
+        targetValue.step = Math.min(steps, targetValue.step + stepIncrement);
+
+        return targetValue.step;        
     }
 
     getTargetCycles(key) {
@@ -507,10 +528,6 @@ class BaseModel {
     getTargetInterval(key) {
         const targetValue = this.targetValues[key];
         return targetValue?.interval || 0;
-    }
-
-    getTargetEventFunctions(key) {
-        return this.targetValues[key] ? this.targetValues[key].events : undefined;
     }
 
     setTarget(key, value, steps, interval, easing) {       
@@ -699,7 +716,6 @@ class BaseModel {
             } else {
                 this.addToActiveTargets(key);
             }            
-            
             this.activate(key);            
         }
 
@@ -720,6 +736,22 @@ class BaseModel {
     
     getCoreTargets() {
         return TUtil.isDefined(this.val('coreTargets')) ? this.val('coreTargets') : this.coreTargets;
+    }
+    
+    getExternalEventList() {
+        return this.externalEventList;
+    }
+    
+    getInternalEventList() {
+        return this.internalEventList;
+    }
+    
+    hasExternalEvents() {
+        return this.getExternalEventList().length > 0;
+    }
+    
+    getExternalEventMap() {
+        return this.externalEventMap;
     }
         
     setTargetMethodName(targetName, methodName) {

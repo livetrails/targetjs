@@ -1,4 +1,3 @@
-import { TargetData } from "./TargetData.js";
 import { getLoader } from "./App.js";
 import { TUtil } from "./TUtil.js";
 
@@ -27,34 +26,7 @@ class TargetUtil {
             creationTime: TUtil.now()
         };
     }
-        
-    static getAutoHandleEvents(tmodel) {
-        const autoHandleEvents = [];
-        const touchEvents = Object.keys(TargetData.touchEventMap);
-
-        if (touchEvents.some(event => tmodel.eventTargetMap[event])) {
-            autoHandleEvents.push('touch');
-        }
-
-        if (tmodel.eventTargetMap['onScrollEvent'] || tmodel.eventTargetMap['onScroll']) {
-            autoHandleEvents.push('scrollTop', 'scrollLeft');
-        }
-
-        if (tmodel.eventTargetMap['onScrollTop'] && autoHandleEvents.indexOf('scrollTop') === -1) {
-            autoHandleEvents.push('scrollTop');
-        }
-        
-        if (tmodel.eventTargetMap['onScrollLeft'] && autoHandleEvents.indexOf('scrollLeft') === -1) {
-            autoHandleEvents.push('scrollLeft');
-        }        
-        
-        if (tmodel.eventTargetMap['onSwipeEvent'] || tmodel.eventTargetMap['onSwipe']) {
-            autoHandleEvents.push('swipe');
-        }
-
-        return autoHandleEvents;
-    }
-    
+            
     static getTargetName(key) {
         if (!key) {
             return key;
@@ -80,7 +52,7 @@ class TargetUtil {
                 }
             }
         };
-
+        
         let lastPrevUpdateTime = prevKey !== undefined ? tmodel.getActualValueLastUpdate(prevKey) : undefined;
 
         const getPrevUpdateTime = () => prevKey !== undefined ? tmodel.getActualValueLastUpdate(prevKey) : undefined;
@@ -102,6 +74,7 @@ class TargetUtil {
         target.originalTModel = TargetUtil.currentTModel;
         
         const cleanKey = TargetUtil.getTargetName(key);
+        const targetValue = () => tmodel.val(cleanKey);
         
         if (doesNextTargetUsePrevValue && !target.activateNextTarget) {
             target.activateNextTarget = nextKey.slice(0, -1);
@@ -117,7 +90,8 @@ class TargetUtil {
                 target[method] = function() {
                     TargetUtil.currentTargetName = cleanKey;
                     TargetUtil.currentTModel = tmodel;
-                    this.key = cleanKey;
+                    this.key = cleanKey;      
+                    this.value = targetValue();
                     this.prevTargetValue = getPrevValue();         
                     this.isPrevTargetUpdated = isPrevTargetUpdated;
                     const result = typeof originalMethod === 'function' ? originalMethod.apply(this, arguments) : originalMethod;
@@ -130,6 +104,7 @@ class TargetUtil {
                     TargetUtil.currentTargetName = cleanKey;
                     TargetUtil.currentTModel = tmodel;
                     this.key = cleanKey;
+                    this.value = targetValue();
                     this.prevTargetValue = getPrevValue();         
                     this.isPrevTargetUpdated = isPrevTargetUpdated;
                     const result = typeof originalMethod === 'function' ? originalMethod.apply(this, arguments) : originalMethod;
@@ -190,8 +165,8 @@ class TargetUtil {
         }             
     }
 
-    static hasTargetEnded(tmodel, key) {        
-        const isComplete = (tmodel.isTargetComplete(key) || tmodel.isTargetDone(key)) && !tmodel.hasUpdatingTargets(key);
+    static hasTargetEnded(tmodel, key) {
+        const isComplete = (tmodel.isTargetComplete(key) || tmodel.isTargetDone(key) || tmodel.isActivated()) && !tmodel.hasUpdatingTargets(key);
         if (!isComplete) {
             return false;
         }
@@ -213,7 +188,9 @@ class TargetUtil {
         if (tmodel.targetValues[activateNextTarget]) {
             tmodel.targetValues[activateNextTarget].isImperative = false;
         }
-        tmodel.activate(activateNextTarget);   
+        if (!tmodel.activeTargetMap[activateNextTarget]) {
+            tmodel.activate(activateNextTarget); 
+        }
     }
     
     static activateSingleTarget(tmodel, targetName) {

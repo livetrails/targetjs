@@ -143,6 +143,8 @@ class TargetManager {
         let initialValue = tmodel.getTargetInitialValue(key);
         let originalTargetName, originalTarget, originalTModel;
         const capKey = TUtil.capitalizeFirstLetter(key);
+        const lastUpdateTime = tmodel.getActualValueLastUpdate(key);
+        const now = TUtil.now();
         
         if (step <= steps) {
             if (!TUtil.isDefined(initialValue)) {
@@ -178,7 +180,7 @@ class TargetManager {
                 TargetUtil.handleValueChange(tmodel, key, tmodel.val(key), oldValue, oldStep, oldCycle);
             }
 
-            tmodel.incrementTargetStep(key);
+            tmodel.incrementTargetStep(key, now, lastUpdateTime, interval, steps);
 
             tmodel.updateTargetStatus(key);
             

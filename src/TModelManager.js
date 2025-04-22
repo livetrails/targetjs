@@ -1,6 +1,6 @@
 import { $Dom } from "./$Dom.js";
 import { TUtil } from "./TUtil.js";
-import { getLocationManager } from "./App.js";
+import { getLocationManager, getEvents } from "./App.js";
 import { TModelUtil } from "./TModelUtil.js";
 
 /**
@@ -64,7 +64,6 @@ class TModelManager {
                 }  
                 continue;
             }
-            
             const visible = tmodel.isVisible();      
 
             if (visible) {
@@ -88,7 +87,7 @@ class TModelManager {
                 this.needsRerender(tmodel);
                 this.needsRestyle(tmodel);
                 this.needsReattach(tmodel);
-                this.needsRelocation(tmodel);
+                this.needsRelocation(tmodel);                
 
                 if (tmodel.updatingTargetList.length > 0) {
                     this.lists.updatingTModels.push(tmodel);
@@ -260,6 +259,7 @@ class TModelManager {
                 $dom = new $Dom(`#${tmodel.oid}`);
                 tmodel.$dom = $dom;
                 tmodel.hasDomNow = true;
+                this.needsRestyle(tmodel);
             } else {                
                 needsDom.push(tmodel);
             }
@@ -278,6 +278,8 @@ class TModelManager {
                 tmodel.hasDomNow = true;  
             }
         }
+        
+        getEvents().attachEvents(this.lists.noDom);
     }        
 }
 

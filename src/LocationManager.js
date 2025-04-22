@@ -163,13 +163,22 @@ class LocationManager {
                 child.addToStyleTargetList('y'); 
             }            
             
+            const vstatus = child.visibilityStatus;
+            const isVisibleByStatus = vstatus ? vstatus.left && vstatus.right && vstatus.top && vstatus.bottom : false;
+            
             const isVisible = child.isVisible();
             
-            TUtil.isDefined(child.targets.isVisible) 
-                ? TargetExecutor.executeDeclarativeTarget(child, 'isVisible') 
-                : child.calcVisibility();
+            let newVStatus = false;
+            
+            if (!TUtil.isDefined(child.targets.isVisible) || TUtil.isDefined(child.targets.onVisible)) {
+                newVStatus = child.calcVisibility();
+            }
+            
+            if (TUtil.isDefined(child.targets.isVisible)) {
+                TargetExecutor.executeDeclarativeTarget(child, 'isVisible');
+            }  
                 
-            child.isNowVisible = !isVisible && child.isVisible();
+            child.isNowVisible = (!isVisibleByStatus && newVStatus) || (!isVisible && child.isVisible());
             
             child.addToParentVisibleChildren();
 
@@ -177,12 +186,12 @@ class LocationManager {
                 this.calculateContainer(child, shouldCalculateChildTargets && container.shouldCalculateChildTargets() !== false);
             }
             
-            if (!child.excludeDefaultStyling() && !TUtil.isDefined(child.targetValues.height) && !TUtil.isDefined(child.targets.heightFromDom) && child.getContentHeight() > 0) {
+            if (!child.isTargetImperative('height') && !TUtil.isDefined(child.targets.height) && !TUtil.isDefined(child.targets.heightFromDom) && child.getContentHeight() > 0) {
                 child.val('height', child.getContentHeight());
                 child.addToStyleTargetList('height');
             }
 
-            if (!child.excludeDefaultStyling() && !TUtil.isDefined(child.targetValues.width) && !TUtil.isDefined(child.targets.widthFromDom) && child.getContentWidth() > 0) {
+            if (!child.isTargetImperative('width') && !TUtil.isDefined(child.targets.width) && !TUtil.isDefined(child.targets.widthFromDom) && child.getContentWidth() > 0) {
                 child.val('width', child.getContentWidth());
                 child.addToStyleTargetList('width');
             }               
@@ -198,15 +207,15 @@ class LocationManager {
             }
         }
         
-        container.calcContentWidthHeight();     
+        container.calcContentWidthHeight();
 
         for (const child of allChildrenList) {
-            this.checkEventTargets(child);
+            this.checkExternalEvents(child);
         }
     }
 
     calculateTargets(tmodel) {
-        this.checkInternalEventTargets(tmodel);
+        this.checkInternalEvents(tmodel);
         tApp.targetManager.applyTargetValues(tmodel);        
         tApp.targetManager.setActualValues(tmodel);
 
@@ -227,35 +236,37 @@ class LocationManager {
         tmodel.targetExecutionCount++;
     }
     
-    checkEventTargetsByType(tmodel, eventMap, attachEvents = false) {
+    checkExternalEvents(tmodel) {
         const eventTargets = [];
+        const eventMap = TargetData.allEventMap;
 
-        tmodel.eventTargetList.forEach(targetName => {
-            if (eventMap[targetName] && eventMap[targetName](tmodel)) {
+        tmodel.getExternalEventList().forEach(targetName => {
+            if (eventMap[targetName](tmodel)) {
                 eventTargets.push(targetName);
             }
-
-            if (attachEvents && TargetData.targetToEventsMapping[targetName]) {
-                getEvents().attachTargetEvents(targetName);
-            }
         });
-
+        
         this.runEventTargets(tmodel, eventTargets);
     }
 
-    checkInternalEventTargets(tmodel) {
-        this.checkEventTargetsByType(tmodel, TargetData.internalEventMap);
-    }
+    checkInternalEvents(tmodel) {
+        const eventTargets = [];
+        const eventMap = TargetData.internalEventMap;
 
-    checkEventTargets(tmodel) {
-        this.checkEventTargetsByType(tmodel, TargetData.allEventMap, true);
+        tmodel.getInternalEventList().forEach(targetName => {
+            if (eventMap[targetName](tmodel)) {
+                eventTargets.push(targetName);
+            }
+        });
+
+        this.runEventTargets(tmodel, eventTargets);        
     }
 
     runEventTargets(tmodel, eventTargets) {
         if (!Array.isArray(eventTargets)) {
             eventTargets = [eventTargets];
         }
-               
+    
         const originalEventTarget = getEvents().getEventTarget();
 
         eventTargets.forEach(targetName => {

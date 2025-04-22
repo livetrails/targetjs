@@ -63,7 +63,7 @@ class LoadingManager {
     }    
     
     getTModelKey(tmodel, targetName) {
-        return `${tmodel.oid} ${targetName}`;
+        return `${document.URL} ${tmodel.oid} ${targetName}`;
     }
     
     getLoadTargetName(targetName) {
@@ -73,7 +73,7 @@ class LoadingManager {
     addToTModelKeyMap(tmodel, targetName, fetchId, cacheId) {
         const key = this.getTModelKey(tmodel, targetName);
         const loadTargetName = this.getLoadTargetName(targetName);
-                
+                 
         if (!this.tmodelKeyMap[key]) {
             this.tmodelKeyMap[key] = { fetchMap: {}, entryCount: 0, resultCount: 0, errorCount: 0, activeIndex: 0, accessIndex: 0 };
             tmodel.val(loadTargetName, []);
@@ -151,14 +151,16 @@ class LoadingManager {
         const targetValue = tmodel.val(loadTargetName);
         let result;
         
-        if (target.fetchAction === 'onEnd') {
-            result = targetValue.slice(modelEntry.accessIndex);
-            modelEntry.accessIndex += result.length;
-        } else {
-            result = targetValue[modelEntry.accessIndex];   
-            modelEntry.accessIndex++;            
+        if (targetValue) {
+            if (target.fetchAction === 'onEnd') {
+                result = targetValue.slice(modelEntry.accessIndex);
+                modelEntry.accessIndex += result.length;
+            } else {
+                result = targetValue[modelEntry.accessIndex];   
+                modelEntry.accessIndex++;            
+            }
         }
-        
+
         return result;
     }
 
@@ -181,7 +183,6 @@ class LoadingManager {
     handleSuccess(fetchStatus, result) {
         const fetchTime = TUtil.now();
         const { fetchId, cacheId, startTime, targets, fetchMap } = fetchStatus;
-
         const res = {
             fetchingPeriod: fetchTime - startTime,
             success: true,
@@ -201,10 +202,12 @@ class LoadingManager {
             this.callOnSuccessHandler(tmodel, targetName, { ...res, order: fetchEntry.order });
 
             let targetResults = tmodel.val(loadTargetName);
+                        
+            if (targetResults) {
+                targetResults[fetchEntry.order] = res.result;
+            }
             
-            targetResults[fetchEntry.order] = res.result;
-            
-            tmodel.val(targetName, targetResults.length === 1 ? targetResults[0] : targetResults);
+            tmodel.val(targetName, targetResults?.length === 1 ? targetResults[0] : targetResults);
             
             tmodelEntry.resultCount++;
             
@@ -214,7 +217,7 @@ class LoadingManager {
         });
         
         delete fetchMap[fetchId];
-        
+                
         if (cacheId) {
             this.cacheMap[cacheId] = res;
         }
@@ -283,7 +286,7 @@ class LoadingManager {
         const onError = tmodel.targets[targetName]?.onError;
         if (onError) {
             if (typeof onError === 'function') {
-                tmodel.setTargetMethodName(targetName, 'onError');                        
+                tmodel.setTargetMethodName(targetName, 'onSuccess');                        
                 onError.call(tmodel, tmodel.val(targetName));
             } else if (Array.isArray(onError)) {
                 onError.forEach(t => TargetUtil.activateSingleTarget(tmodel, t));
@@ -300,6 +303,16 @@ class LoadingManager {
             success: dataList => this.handleSuccess(fetchStatus, dataList),
             error: textStatus => this.handleError(fetchStatus, textStatus)
         };
+        
+        if (query?.dataType) {
+            defaultQuery.dataType = query.dataType;
+            delete query.dataType;
+        }
+
+        if (query?.requestType) {
+            defaultQuery.type = query.requestType;
+            delete query.requestType;
+        }        
 
         $Dom.ajax({ ...defaultQuery, url, ...{ data: query } });
     }

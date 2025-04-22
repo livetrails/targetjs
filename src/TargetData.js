@@ -2,6 +2,13 @@ import { getEvents, getResizeLastUpdate } from "./App.js";
 
 class TargetData {
     
+    static defaultTargetStyles = {
+        position: 'absolute', 
+        left: 0, 
+        top: 0,
+        zIndex: 1
+    };
+    
     static transformMap = {
         x: true,
         y: true,
@@ -80,9 +87,12 @@ class TargetData {
         cursor: true, 
         fontFamily: true, 
         overflow: true,
+        overflowX: true,
+        overflowY: true,
         textDecoration: true, 
         boxShadow: true, 
-        fontWeight: true
+        fontWeight: true,
+        willChange: true
     };
 
     static scaleMap = { 
@@ -132,7 +142,6 @@ class TargetData {
     static mustExecuteTargets = {
         width: true, 
         height: true, 
-        canHandleEvents: true, 
         heightFromDom: true, 
         widthFromDom: true
     };
@@ -171,51 +180,112 @@ class TargetData {
         onDomEvent: true,
         canHaveDom: true
     };
+    
+    static events = {
+        mouseStart: {
+            pointerdown: { eventName: 'mousedown', inputType: 'pointer', eventType: 'start', order: 2, windowEvent: false, queue: true, rateLimit: 0 },
+            mousedown: { eventName: 'mousedown', inputType: 'mouse', eventType: 'start', order: 3, windowEvent: false, queue: true, rateLimit: 0 }
+        },
 
+        mouseEnd: {
+            pointerup: { eventName: 'mouseup', inputType: 'pointer', eventType: 'end', order: 2, windowEvent: false, queue: true, rateLimit: 0 },
+            mouseup: { eventName: 'mouseup', inputType: 'mouse', eventType: 'end', order: 3, windowEvent: false, queue: true, rateLimit: 0 }
+        },
+
+        clickEvents: {
+            click: { eventName: 'click', inputType: 'mouse', eventType: 'click', order: 1, windowEvent: false, queue: false, rateLimit: 0 }
+        },
+
+        touchStart: {
+            touchstart: { eventName: 'touchstart', inputType: 'touch', eventType: 'start', order: 1, windowEvent: false, queue: true, rateLimit: 0 }
+        },
+
+        touchEnd: {
+            touchend: { eventName: 'touchend', inputType: 'touch', eventType: 'end', order: 1, windowEvent: false, queue: true, rateLimit: 0 }
+        },
+
+        cancelEvents: {
+            touchcancel: { eventName: 'touchend', inputType: 'touch', eventType: 'cancel', order: 1, windowEvent: false, queue: true, rateLimit: 0 },
+            pointercancel: { eventName: 'mousecancel', inputType: 'pointer', eventType: 'cancel', order: 2, windowEvent: false, queue: true, rateLimit: 0 },
+            mousecancel: { eventName: 'mouseup', inputType: 'mouse', eventType: 'cancel', order: 3, windowEvent: false, queue: true, rateLimit: 0 }
+        },
+
+        windowEvents: {
+            keyup: { eventName: 'key', inputType: '', eventType: 'key', order: 1, windowEvent: true, queue: true, rateLimit: 50 },
+            keydown: { eventName: 'key', inputType: '', eventType: 'key', order: 1, windowEvent: true, queue: true, rateLimit: 50 },
+            blur: { eventName: 'blur', inputType: 'mouse', eventType: 'cancel', order: 2, windowEvent: true, queue: true, rateLimit: 0 },
+            resize: { eventName: 'resize', inputType: '', eventType: 'resize', order: 1, windowEvent: true, queue: true, rateLimit: 50 },
+            orientationchange: { eventName: 'resize', inputType: '', eventType: 'resize', order: 1, windowEvent: true, queue: true, rateLimit: 50 }
+        },
+
+        windowScroll: {
+            scroll: { eventName: 'scroll', inputType: '', eventType: 'windowScroll', order: 1, windowEvent: true, queue: true, rateLimit: 50 }
+        },
+
+        leaveEvents: {
+            pointerleave: { eventName: 'mouseleave', inputType: 'pointer', eventType: 'leave', order: 2, windowEvent: false, queue: true, rateLimit: 0 },
+            mouseleave: { eventName: 'mouseleave', inputType: 'mouse', eventType: 'leave', order: 3, windowEvent: false, queue: true, rateLimit: 0 }
+        },
+
+        enterEvents: {
+            pointerenter: { eventName: 'mouseenter', inputType: 'pointer', eventType: 'enter', order: 2, windowEvent: false, queue: true, rateLimit: 0 },
+            mouseenter: { eventName: 'mouseenter', inputType: 'mouse', eventType: 'enter', order: 3, windowEvent: false, queue: true, rateLimit: 0 }
+        },
+
+        moveEvents: {
+            touchmove: { eventName: 'touchmove', inputType: 'touch', eventType: 'move', order: 1, windowEvent: false, queue: true, rateLimit: 50 },
+            pointermove: { eventName: 'mousemove', inputType: 'pointer', eventType: 'move', order: 2, windowEvent: false, queue: true, rateLimit: 50 },
+            mousemove: { eventName: 'mousemove', inputType: 'mouse', eventType: 'move', order: 3, windowEvent: false, queue: true, rateLimit: 50 }
+        },
+
+        documentEvents: {
+            touchmove: { eventName: 'touchmove', inputType: 'touch', eventType: 'move', order: 1, windowEvent: false, queue: true, rateLimit: 50 },
+            pointermove: { eventName: 'mousemove', inputType: 'pointer', eventType: 'move', order: 2, windowEvent: false, queue: true, rateLimit: 50 },
+            mousemove: { eventName: 'mousemove', inputType: 'mouse', eventType: 'move', order: 3, windowEvent: false, queue: true, rateLimit: 50 },
+            mouseleave: { eventName: 'mouseleave', inputType: 'mouse', eventType: 'leave', order: 3, windowEvent: false, queue: true, rateLimit: 50 },
+            pointerup: { eventName: 'mouseup', inputType: 'pointer', eventType: 'end', order: 2, windowEvent: false, queue: true, rateLimit: 0 },
+            mouseup: { eventName: 'mouseup', inputType: 'mouse', eventType: 'end', order: 3, windowEvent: false, queue: true, rateLimit: 0 },
+            touchend: { eventName: 'touchend', inputType: 'touch', eventType: 'end', order: 1, windowEvent: false, queue: true, rateLimit: 0 }
+        },
+
+        wheelEvents: {
+            wheel: { eventName: 'wheel', inputType: '', eventType: 'wheel', order: 1, windowEvent: false, queue: true, rateLimit: 50 },
+            mousewheel: { eventName: 'wheel', inputType: '', eventType: 'wheel', order: 1, windowEvent: false, queue: true, rateLimit: 50 }
+        }
+    }; 
+    
     static targetToEventsMapping = {
-        onClickEvent: [ 'clickEvents', 'touchStart', 'touchEnd', 'startEvents' ],
-        onTouchStart: [ 'touchStart', 'startEvents' ],
-        onTouchEnd: [ 'touchEnd', 'endEvents' ],
-        onSwipeEvent: [ 'touchStart', 'startEvents', 'touchEnd', 'endEvents', 'cancelEvents', 'moveEvents' ],
-        onAnySwipeEvent: [ 'touchStart', 'startEvents', 'touchEnd', 'endEvents', 'cancelEvents', 'moveEvents' ],
-        onTouchEvent: [ 'touchStart', 'startEvents', 'touchEnd', 'endEvents', 'cancelEvents' ],
-        onEnterEvent: [ 'moveEvents', 'leaveEvents' ],
-        onLeaveEvent: [ 'moveEvents', 'leaveEvents' ],
-        onScrollEvent: [ 'touchStart', 'startEvents', 'touchEnd', 'endEvents', 'cancelEvents', 'moveEvents', 'wheelEvents' ],
-        onWindowScrollEvent: [ 'windowScrollEvents' ],
-
-        onClick: [ 'clickEvents', 'touchStart', 'touchEnd', 'startEvents' ],
-        onSwipe: [ 'touchStart', 'startEvents', 'touchEnd', 'endEvents', 'cancelEvents', 'moveEvents' ],
-        onAnySwipe: [ 'touchStart', 'startEvents', 'touchEnd', 'endEvents', 'cancelEvents', 'moveEvents' ],
-        onTouch: [ 'touchStart', 'startEvents', 'touchEnd', 'endEvents', 'cancelEvents' ],
-        onEnter: [ 'moveEvents', 'leaveEvents' ],
-        onLeave: [ 'moveEvents', 'leaveEvents' ],
-        onScroll: [ 'touchStart', 'startEvents', 'touchEnd', 'endEvents', 'cancelEvents', 'moveEvents', 'wheelEvents' ],
-        onScrollLeft: [ 'touchStart', 'startEvents', 'touchEnd', 'endEvents', 'cancelEvents', 'moveEvents', 'wheelEvents' ],
-        onScrollTop: [ 'touchStart', 'startEvents', 'touchEnd', 'endEvents', 'cancelEvents', 'moveEvents', 'wheelEvents' ],        
-        onWindowScroll: [ 'windowScrollEvents' ]
+        onStart: [ 'touchStart', 'mouseStart' ],
+        onEnd: [ ],
+        onKey: [ ],
+        onClick: [ 'clickEvents', 'touchStart', 'mouseStart' ],
+        onAnyClick: [ 'clickEvents', 'touchStart', 'mouseStart' ],
+        onHover: [ 'moveEvents' ],
+        onSwipe: [ 'touchStart', 'mouseStart' ],
+        onAnySwipe: [ 'touchStart', 'mouseStart' ],        
+        onPinch: [ 'touchStart' ],
+        onEnter: [ 'enterEvents' ],
+        onLeave: [ 'leaveEvents' ],
+        onScroll: [ 'touchStart', 'mouseStart', 'wheelEvents' ],
+        onScrollLeft: [ 'touchStart', 'mouseStart', 'wheelEvents' ],
+        onScrollTop: [ 'touchStart', 'mouseStart', 'wheelEvents' ],        
+        onWindowScroll: [ 'windowScroll' ]
     };
 
     static touchEventMap = {
-        onClickEvent: tmodel => getEvents().getEventType() === 'click' && getEvents().isClickHandler(tmodel),
-        onTouchStart: tmodel => getEvents().isStartEvent() && getEvents().containsTouchHandler(tmodel),
-        onTouchEnd: tmodel => getEvents().isEndEvent() && getEvents().containsTouchHandler(tmodel),
-        onEnterEvent: tmodel => getEvents().isEnterEventHandler(tmodel),
-        onLeaveEvent: tmodel => getEvents().isLeaveEventHandler(tmodel),        
-        onSwipeEvent: tmodel => getEvents().containsTouchHandler(tmodel) && getEvents().isSwipeEvent(),        
-        onAnySwipeEvent: () => getEvents().isSwipeEvent(),
-        onTouchEvent: tmodel => getEvents().isTouchHandler(tmodel),
-
-        onClick: tmodel => getEvents().getEventType() === 'click' && getEvents().isClickHandler(tmodel),
-        onEnter: tmodel => getEvents().isEnterEventHandler(tmodel),
-        onLeave: tmodel => getEvents().isLeaveEventHandler(tmodel),        
-        onSwipe: tmodel => getEvents().containsTouchHandler(tmodel) && getEvents().isSwipeEvent(),        
+        onStart: tmodel => getEvents().isStartEvent() && getEvents().isStartHandler(tmodel),
+        onEnd: tmodel => getEvents().isEndEvent() && getEvents().isEndHandler(tmodel),
         onAnySwipe: () => getEvents().isSwipeEvent(),
-        onTouch: tmodel => getEvents().isTouchHandler(tmodel)
+        onHover: tmodel => getEvents().isMoveEvent() && getEvents().isHoverHandler(tmodel),
+
+        onClick: tmodel => getEvents().isClickEvent() && getEvents().isClickHandler(tmodel),
+        onAnyClick: () => getEvents().isClickEvent(),
+        onEnter: tmodel => getEvents().isEnterHandler(tmodel),
+        onLeave: tmodel => getEvents().isLeaveHandler(tmodel),        
+        onSwipe: tmodel => getEvents().isSwipeHandler(tmodel) && getEvents().isSwipeEvent(),        
     };
 
     static internalEventMap = {
-        onVisibleEvent: tmodel => tmodel.isNowVisible,
         onDomEvent: tmodel => tmodel.hasDomNow,
         onVisible: tmodel => tmodel.isNowVisible,
         onResize: tmodel => {            
@@ -228,18 +298,12 @@ class TargetData {
 
     static allEventMap = {
         ...TargetData.touchEventMap,
-        onFocusEvent: tmodel => getEvents().onFocus(tmodel),
-        onBlurEvent: tmodel => getEvents().onBlur(tmodel),
-        onKeyEvent: () => getEvents().getEventType() === 'key' && getEvents().currentKey, 
-        onScrollEvent: tmodel => (getEvents().isScrollLeftHandler(tmodel) && getEvents().deltaX()) || 
-              (getEvents().isScrollTopHandler(tmodel) && getEvents().deltaY()),    
-        onWindowScrollEvent: () => getEvents().getEventType() === 'windowScroll',
-
+      
         onFocus: tmodel => getEvents().onFocus(tmodel),
         onBlur: tmodel => getEvents().onBlur(tmodel),
+        onPinch: tmodel => getEvents().isPinchHandler(tmodel),
         onKey: () => getEvents().getEventType() === 'key' && getEvents().currentKey, 
-        onScroll: tmodel => (getEvents().isScrollLeftHandler(tmodel) && getEvents().deltaX()) || 
-              (getEvents().isScrollTopHandler(tmodel) && getEvents().deltaY()),
+        onScroll: tmodel => (getEvents().isScrollLeftHandler(tmodel) && getEvents().deltaX()) || (getEvents().isScrollTopHandler(tmodel) && getEvents().deltaY()),
         onScrollTop: tmodel => getEvents().getOrientation() !== 'horizontal' && getEvents().isScrollTopHandler(tmodel) && getEvents().deltaY(), 
         onScrollLeft: tmodel => getEvents().getOrientation() !== 'vertical' && getEvents().isScrollLeftHandler(tmodel) && getEvents().deltaX(),
         onWindowScroll: () => getEvents().getEventType() === 'windowScroll'        

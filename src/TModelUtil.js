@@ -58,20 +58,11 @@ class TModelUtil {
             isIncluded: true,
             bracketThreshold: 10,
             bracketSize: 5,
-            keepEventDefault: undefined,            
+            preventDefault: undefined,            
             canDeleteDom: undefined
         };
     }
-    
-    static defaultTargetStyles() {
-        return { 
-            position: 'absolute', 
-            left: 0, 
-            top: 0,
-            zIndex: 1
-        };
-    }
-    
+   
     static shouldMeasureHeightFromDom(tmodel) {
         return (!tmodel.excludeDefaultStyling() && !TUtil.isDefined(tmodel.targetValues.height) && !TUtil.isDefined(tmodel.targets.height) && !tmodel.hasChildren()) 
             || !!tmodel.getTargetValue('heightFromDom');   

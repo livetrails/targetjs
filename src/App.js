@@ -8,18 +8,20 @@ import { PageManager } from "./PageManager.js";
 import { TModelManager } from "./TModelManager.js";
 import { RunScheduler } from "./RunScheduler.js";
 import { TargetManager } from "./TargetManager.js";
+import { TargetExecutor } from "./TargetExecutor.js";
 import { TUtil } from "./TUtil.js";
 import { SearchUtil } from "./SearchUtil.js";
 
 let tApp;
 
-const AppFn = (firstChild) => {
+const AppFn = firstChild => {
     const my = {};
 
     my.throttle = 0;
     my.debugLevel = 0;
     my.runningFlag = false;
     my.resizeLastUpdate = 0;
+    my.pageIsEmpty = false;
 
     my.init = function() {
         my.browser = new Browser();
@@ -43,15 +45,15 @@ const AppFn = (firstChild) => {
         my.tRootFactory = () => {
             const tmodel = new TModel('tRoot', {
                 start() {
-                    if (!$Dom.query('#tj-root')) {
+                    if (!$Dom.query('#tgjs-root')) {
                         this.$dom = new $Dom();
                         this.$dom.create('div');
-                        this.$dom.setSelector('#tj-root');
-                        this.$dom.setId('#tj-root');
+                        this.$dom.setSelector('#tgjs-root');
+                        this.$dom.setId('#tgjs-root');
                         this.$dom.attr("tabindex", "0");
                         new $Dom('body').insertFirst$Dom(this.$dom);
                     } else {
-                        this.$dom = new $Dom('#tj-root');
+                        this.$dom = new $Dom('#tgjs-root');
                     }
                 },
                 styling: false,
@@ -103,12 +105,16 @@ const AppFn = (firstChild) => {
 
     my.start = async function() {
         my.runningFlag = false;
-             
+        
+        TargetExecutor.executeDeclarativeTarget(my.tRoot, 'width');
+        TargetExecutor.executeDeclarativeTarget(my.tRoot, 'height');
+        
         my.events.detachAll();        
         my.events.detachWindowEvents();
         my.events.attachWindowEvents();
         my.events.clearAll();
-
+        my.events.attachEvents(my.manager.lists.visible);
+        
         await my.runScheduler.resetRuns();
 
         my.runningFlag = true;
@@ -162,7 +168,7 @@ const App = tmodel => {
 
 App.oids = {};
 App.getOid = function(type) {
-    const oids = type === 'Bracket' ? App.oids : App?.tRoot?.oids || App.oids;
+    const oids = App.oids;
     if (!TUtil.isDefined(oids[type])) {
         oids[type] = 0;
     }
@@ -177,7 +183,7 @@ const getEvents = () => tApp?.events;
 const getPager = () => tApp?.pager;
 const getLoader = () => tApp?.loader;
 const fetch = (tmodel, url, query, cacheId) => tApp?.loader?.fetch(tmodel, url, query, cacheId);
-const fetchImage = (tmodel, src) => tApp?.loader?.fetchImage(tmodel, src);
+const fetchImage = (tmodel, src, cacheId) => tApp?.loader?.fetchImage(tmodel, src, cacheId);
 const getManager = () => tApp?.manager;
 const getRunScheduler = () => tApp?.runScheduler;
 const getLocationManager = () => tApp?.locationManager;

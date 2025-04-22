@@ -277,6 +277,10 @@ class $Dom {
     outerHTML(html) {
         this.element.outerHTML = html;
     }
+    
+    isEmpty() {
+        return this.element.innerHTML === '';
+    }
 
     innerHTML(html) {
         if (TUtil.isDefined(html)) {
@@ -351,11 +355,11 @@ class $Dom {
     }
 
     stamp() {
-        this.attr('data-tgt', 'true');
+        this.attr('data-tgjs', 'true');
     }
     
     static getAllStamped() {
-        return document.querySelectorAll('[data-tgt="true"]');
+        return document.querySelectorAll('[data-tgjs="true"]');
     }
 
     static query(selector) {
@@ -429,7 +433,7 @@ class $Dom {
 
     static ajax(query) {
         const xhr = new XMLHttpRequest();
-
+        
         let params = "";
         if (query.data) {
             params = Object.keys(query.data).map(key => `${key}=${encodeURIComponent(query.data[key])}`).join('&');
