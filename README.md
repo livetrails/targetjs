@@ -417,6 +417,8 @@ If you inspect the HTML elements in the browser's developer tools, you'll notice
 import { App, getEvents, fetch, getScreenWidth, getScreenHeight } from "targetj";
 
 App({
+    domHolder: true,
+    preventDefault: true,
     containerOverflowMode: "always",
     children() {
         const childrenCount = this.getChildren().length;
