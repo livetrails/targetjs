@@ -112,7 +112,7 @@ class TModelUtil {
         return value;
     }
 
-    static fixStyle(tmodel) {
+    static fixStyle(tmodel) {        
         let transformUpdate = false;
         tmodel.styleTargetList.forEach(key => {          
             if (TargetData.transformMap[key]) {
@@ -151,9 +151,9 @@ class TModelUtil {
         if (transformUpdate) {
             tmodel.$dom.transform(TModelUtil.getTransformString(tmodel));
         }
-        
-        tmodel.styleTargetMap = {};
-        tmodel.styleTargetList.length = 0;
+
+        tmodel.state().styleTargetMap = {};
+        tmodel.state().styleTargetList = [];
     }
     
     static setWidthFromDom(child) {
@@ -259,9 +259,9 @@ class TModelUtil {
                 }                    
             }
         });
-                
-        tmodel.asyncStyleTargetMap = {};
-        tmodel.asyncStyleTargetList.length = 0;
+
+        tmodel.state().asyncStyleTargetMap = {};
+        tmodel.state().asyncStyleTargetList = [];
     }    
     
     static getTransformString(tmodel) {

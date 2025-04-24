@@ -103,10 +103,13 @@ class EventListener {
     
     attachEvents(tmodels) {
         for (const tmodel of tmodels) {
-            tmodel.getExternalEventList().forEach(targetName => {
-                this.attachTargetEvents(tmodel, targetName);
-            });                
-        }          
+            const externalList = tmodel.state().externalEventList;
+            if (externalList?.length > 0) {
+                for (const targetName of externalList) {
+                    this.attachTargetEvents(tmodel, targetName);
+                }
+            }
+        }
     }
     
     attachTargetEvents(tmodel, targetName) {

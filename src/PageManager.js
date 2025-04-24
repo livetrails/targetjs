@@ -72,7 +72,7 @@ class PageManager {
             tApp.tRoot.$dom = new $Dom('#tgjs-root');
             const html = tApp.tRoot.$dom.innerHTML();
             
-            this.onPageClose();
+            this.onPageClose();        
                                                 
             this.pageCache[this.lastLink] = {
                 link: this.lastLink,
@@ -96,10 +96,10 @@ class PageManager {
         const currentState = window.history.state;
         
         if (!currentState.browserUrl) {
-            tApp.tRoot.$dom = new $Dom('#tgjs-root');            
+            tApp.tRoot.$dom = new $Dom('#tgjs-root');
             this.pageCache[document.URL] = {
                 link: document.URL,
-                htms: tApp.tRoot.$dom.innerHTML(),
+                html: tApp.tRoot.$dom.innerHTML(),
                 oids: { ...App.oids },
                 visibleList: [...tApp.manager.lists.visible],
                 tRoot: tApp.tRoot

@@ -13,10 +13,6 @@ class TModel extends BaseModel {
     constructor(type, targets) {
         super(type, targets);
         
-        this.addedChildren = [];
-        this.deletedChildren = [];
-        this.movedChildren = [];
-        this.lastChildrenUpdate = { additions: [], deletions: [] };
         this.allChildrenList = [];
         this.allChildrenMap = {};
         this.childrenUpdateFlag = false;
@@ -41,9 +37,7 @@ class TModel extends BaseModel {
         
         this.visibilityStatus = undefined;
         this.isNowInvisible = false;
-                
-        this.visibleChildren = [];                  
-      
+                      
         this.hasDomNow = false;
         this.isNowVisible = false;
         this.currentStatus = 'new';
@@ -155,7 +149,9 @@ class TModel extends BaseModel {
     }
     
     getChildren() { 
-        if (this.deletedChildren.length > 0) {            
+        const state = this.state();
+
+        if (state.deletedChildren?.length > 0) {
             this.deletedChildren.forEach(child => {                
                 if (this.allChildrenMap[child.oid]) {
                     const index = this.allChildrenList.indexOf(child);
@@ -168,7 +164,7 @@ class TModel extends BaseModel {
             this.deletedChildren.length = 0;
         } 
         
-        if (this.addedChildren.length > 0) {
+        if (state.addedChildren?.length > 0) {
             this.addedChildren.sort((a, b) => a.index - b.index);
 
             this.addedChildren.forEach(({ index, child }) => {
@@ -195,7 +191,7 @@ class TModel extends BaseModel {
             this.addedChildren.length = 0;
         }
         
-        if (this.movedChildren.length > 0) {
+        if (state.movedChildren?.length > 0) {
             this.movedChildren.sort((a, b) => a.index - b.index);
             
             const deletionMap = {};
@@ -242,12 +238,12 @@ class TModel extends BaseModel {
         return this.allChildrenList;
     }
 
-    removeAll() {
+    removeAll() {  
         this.allChildrenList = [];
         this.allChildrenMap = {};
 
-        this.updatingChildrenList.length = 0;
-        this.updatingChildrenMap = {};
+        this.state().updatingChildrenList = [];
+        this.state().updatingChildrenMap = {};
         
         if (this.hasDom()) {
             this.$dom.deleteAll();
@@ -483,7 +479,7 @@ class TModel extends BaseModel {
     }
 
     canHandleEvent(eventName) {
-        return this.getExternalEventMap()[eventName];
+        return this.state().externalEventMap?.[eventName] ?? false;
     }
 
     preventDefault() {

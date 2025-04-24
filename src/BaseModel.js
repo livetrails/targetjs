@@ -14,55 +14,57 @@ class BaseModel {
         if (typeof type === 'object' && typeof targets === 'undefined') {
             targets = type;
             type = "";
-        }        
+        }
         this.type = type || 'blank';
         this.targets = Object.assign({}, targets);
-                        
+
         const uniqueId = App.getOid(this.type);
         this.oid = uniqueId.oid;
         this.oidNum = uniqueId.num;
-
-        this.targetValues = {};
-        this.actualValues = {};
-        this.lastActualValues = {};
-
-        this.activeTargetList = [];
-        this.activeTargetMap = {};
         
-        this.updatingTargetList = [];
-        this.updatingTargetMap = {};
-
-        this.updatingChildrenList = [];
-        this.updatingChildrenMap = {};
-        
-        this.activeChildrenList = [];
-        this.activeChildrenMap = {};        
-        
-        this.externalEventList = [];
-        this.externalEventMap = {};
-        
-        this.internalEventList = [];
-        this.internalEventMap = {};        
-        
-        this.coreTargets = [];
-        
-        this.allStyleTargetList = [];
-        this.allStyleTargetMap = {};
-        
-        this.styleTargetList = [];
-        this.styleTargetMap = {};
-        
-        this.asyncStyleTargetList = [];
-        this.asyncStyleTargetMap = {};
-        
-        this.activatedTargets = [];
-                
-        this.targetExecutionCount = 0;
-      
-        this.parent = null;
-        
-        this.targetMethodMap = {};
+        this._state = {};
     }
+
+    state() {
+        return this._state;
+    }
+
+    get targetValues() { return this.state().targetValues ??= {}; }
+    get actualValues() { return this.state().actualValues ??= {}; }
+    get lastActualValues() { return this.state().lastActualValues ??= {}; }
+    get activeTargetList() { return this.state().activeTargetList ??= []; }
+    get activeTargetMap() { return this.state().activeTargetMap ??= {}; }
+    get updatingTargetList() { return this.state().updatingTargetList ??= []; }
+    get updatingTargetMap() { return this.state().updatingTargetMap ??= {}; }
+    get updatingChildrenList() { return this.state().updatingChildrenList ??= []; }
+    get updatingChildrenMap() { return this.state().updatingChildrenMap ??= {}; }
+    get activeChildrenList() { return this.state().activeChildrenList ??= []; }
+    get activeChildrenMap() { return this.state().activeChildrenMap ??= {}; }
+    get externalEventList() { return this.state().externalEventList ??= []; }
+    get externalEventMap() { return this.state().externalEventMap ??= {}; }
+    get internalEventList() { return this.state().internalEventList ??= []; }
+    get internalEventMap() { return this.state().internalEventMap ??= {}; }
+    get coreTargets() { return this.state().coreTargets ??= []; }
+    get allStyleTargetList() { return this.state().allStyleTargetList ??= []; }
+    get allStyleTargetMap() { return this.state().allStyleTargetMap ??= {}; }
+    get styleTargetList() { return this.state().styleTargetList ??= []; }
+    get styleTargetMap() { return this.state().styleTargetMap ??= {}; }
+    get asyncStyleTargetList() { return this.state().asyncStyleTargetList ??= []; }
+    get asyncStyleTargetMap() { return this.state().asyncStyleTargetMap ??= {}; }
+    get activatedTargets() { return this.state().activatedTargets ??= []; }
+    get targetMethodMap() { return this.state().targetMethodMap ??= []; }
+    get targetExecutionCount() { return this.state().targetExecutionCount ??= 0; }
+    set targetExecutionCount(val) { this.state().targetExecutionCount = val; }
+    get addedChildren() { return this.state().addedChildren ??= []; }
+    get deletedChildren() { return this.state().deletedChildren ??= []; }
+    get movedChildren() { return this.state().movedChildren ??= []; }
+    get lastChildrenUpdate() { return this.state().lastChildrenUpdate ??= { additions: [], deletions: [] }; }
+    get visibleChildren() { return this.state().visibleChildren ??= []; }
+        
+    set targetValues(val) { this.state().targetValues = val; }
+    set actualValues(val) { this.state().actualValues = val; }
+    set activeTargetMap(val) { this.state().activeTargetMap = val; }
+    set activeTargetList(val) { this.state().activeTargetList = val; }
 
     getParent() {
         return this.parent;
@@ -73,11 +75,11 @@ class BaseModel {
         this.targetValues = {};
         this.activeTargetMap = {};
         this.activeTargetList = [];
-          
+
         this.originalTargetNames = Object.keys(this.targets);
-        
+
         const domExists = $Dom.query(`#${this.oid}`);
-                
+
         if (!domExists && !this.excludeDefaultStyling()) {
             Object.entries(TargetData.defaultTargetStyles).forEach(([key, value]) => {
                 if (!(key in this.targets)) {
@@ -90,11 +92,11 @@ class BaseModel {
             this.targets['excludeY'] = true;
             this.targets['position'] = 'relative';
         }
-        
+
         Object.keys(this.targets).forEach(key => {
             this.processNewTarget(key);
         });
-    }    
+    }
     
     processNewTarget(key) {
         let target = this.targets[key];        
@@ -154,7 +156,7 @@ class BaseModel {
         if (TargetData.coreTargetMap[key] && !this.coreTargets.includes(key)) {
             this.coreTargets.push(key);
         }
-
+        
         if (!TargetData.mustExecuteTargets[key] && TUtil.isStringBooleanOrNumber(target)) {          
             this.val(key, target);
             return;
@@ -732,28 +734,17 @@ class BaseModel {
     
     shouldCalculateChildTargets() {
         return this.val('shouldCalculateChildTargets');
-    }  
+    }
     
     getCoreTargets() {
-        return TUtil.isDefined(this.val('coreTargets')) ? this.val('coreTargets') : this.coreTargets;
+        const explicit = this.val('coreTargets');
+        if (TUtil.isDefined(explicit)) {
+            return explicit;
+        }
+
+        return this.state().coreTargets;
     }
-    
-    getExternalEventList() {
-        return this.externalEventList;
-    }
-    
-    getInternalEventList() {
-        return this.internalEventList;
-    }
-    
-    hasExternalEvents() {
-        return this.getExternalEventList().length > 0;
-    }
-    
-    getExternalEventMap() {
-        return this.externalEventMap;
-    }
-        
+
     setTargetMethodName(targetName, methodName) {
         if (TargetData.ignoreTargetMethodNameMap[targetName] && !this.isTargetUpdating(targetName) && !this.isTargetImperative(targetName)) {
             return;

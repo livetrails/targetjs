@@ -143,11 +143,14 @@ class LocationManager {
                 this.addToLocationList(child);
             }
 
-            child.getCoreTargets().forEach(target => {
-                if (child.isTargetEnabled(target) && !child.isTargetUpdating(target) && !child.isTargetImperative(target)) {
-                    TargetExecutor.executeDeclarativeTarget(child, target, child.getTargetCycle(target)); 
-                };
-            });
+            const coreTargets = child.getCoreTargets();
+            if (coreTargets) {
+                coreTargets.forEach(target => {
+                    if (child.isTargetEnabled(target) && !child.isTargetUpdating(target) && !child.isTargetImperative(target)) {
+                        TargetExecutor.executeDeclarativeTarget(child, target, child.getTargetCycle(target));
+                    }
+                });
+            }
             
             if ((!child.isTargetImperative('x') && !child.targets['x']) || !TUtil.isDefined(child.targetValues.x)) {
                 child.val('x', child.x);
@@ -240,12 +243,15 @@ class LocationManager {
         const eventTargets = [];
         const eventMap = TargetData.allEventMap;
 
-        tmodel.getExternalEventList().forEach(targetName => {
-            if (eventMap[targetName](tmodel)) {
-                eventTargets.push(targetName);
+        const externalList = tmodel.state().externalEventList;
+        if (externalList?.length > 0) {
+            for (const targetName of externalList) {
+                if (eventMap[targetName](tmodel)) {
+                    eventTargets.push(targetName);
+                }
             }
-        });
-        
+        }
+
         this.runEventTargets(tmodel, eventTargets);
     }
 
@@ -253,11 +259,14 @@ class LocationManager {
         const eventTargets = [];
         const eventMap = TargetData.internalEventMap;
 
-        tmodel.getInternalEventList().forEach(targetName => {
-            if (eventMap[targetName](tmodel)) {
-                eventTargets.push(targetName);
+        const internalList = tmodel.state().internalEventList;
+        if (internalList?.length > 0) {
+            for (const targetName of internalList) {
+                if (eventMap[targetName](tmodel)) {
+                    eventTargets.push(targetName);
+                }
             }
-        });
+        }
 
         this.runEventTargets(tmodel, eventTargets);        
     }

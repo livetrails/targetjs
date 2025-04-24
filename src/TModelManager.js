@@ -58,17 +58,19 @@ class TModelManager {
         this.clear();
 
         for (const tmodel of getLocationManager().hasLocationList) {
-            if (tmodel.getParent() && !tmodel.getParent().allChildrenMap[tmodel.oid]) {
+            const parent = tmodel.getParent();
+
+            if (parent && !parent.allChildrenMap[tmodel.oid]) {
                 if (tmodel.hasDom() && !this.lists.invisibleDom.includes(tmodel)) {
                     this.lists.invisibleDom.push(tmodel);
-                }  
+                }
                 continue;
             }
-            const visible = tmodel.isVisible();      
+            const visible = tmodel.isVisible();
 
             if (visible) {
                 lastVisibleMap[tmodel.oid] = null;
-                
+
                 if (tmodel.hasDom() && !tmodel.canHaveDom() && !this.lists.invisibleDom.includes(tmodel)) {
                     this.lists.invisibleDom.push(tmodel);
                 }
@@ -80,56 +82,60 @@ class TModelManager {
                     this.visibleTypeMap[tmodel.type] = [];
                 }
                 
-                this.visibleTypeMap[tmodel.type].push(tmodel);                
-            }   
-            
+                this.visibleTypeMap[tmodel.type].push(tmodel);
+            }
+
             if (visible || tmodel.isActivated()) {
                 this.needsRerender(tmodel);
                 this.needsRestyle(tmodel);
                 this.needsReattach(tmodel);
-                this.needsRelocation(tmodel);                
+                this.needsRelocation(tmodel);
 
-                if (tmodel.updatingTargetList.length > 0) {
+                const state = tmodel.state();
+
+                if (state.updatingTargetList?.length > 0) {
                     this.lists.updatingTModels.push(tmodel);
-                    this.lists.updatingTargets = [...this.lists.updatingTargets, ...tmodel.updatingTargetList];
+                    this.lists.updatingTargets = [...this.lists.updatingTargets, ...state.updatingTargetList];
                 }
 
-                if (tmodel.activeTargetList.length > 0) {
+                if (state.activeTargetList?.length > 0) {
                     this.lists.activeTModels.push(tmodel);
-                    this.lists.activeTargets = [...this.lists.activeTargets, ...tmodel.activeTargetList];
-                }
-                
-                if (tmodel.activeChildrenList.length > 0) {
-                    this.lists.activeTModels = [...this.lists.activeTModels, ...tmodel.activeChildrenList];
+                    this.lists.activeTargets = [...this.lists.activeTargets, ...state.activeTargetList];
                 }
 
-                if (Object.keys(tmodel.targetMethodMap).length > 0) {
-                    this.targetMethodMap[tmodel.oid] = { ...tmodel.targetMethodMap };
-                    tmodel.targetMethodMap = {};
+                if (state.activeChildrenList?.length > 0) {
+                    this.lists.activeTModels = [...this.lists.activeTModels, ...state.activeChildrenList];
                 }
-                
+
+                if (state.targetMethodMap && Object.keys(state.targetMethodMap).length > 0) {
+                    this.targetMethodMap[tmodel.oid] = { ...state.targetMethodMap };
+                    state.targetMethodMap = {};
+                }
+
                 tmodel.deactivate();
             }
-            
-            if ((visible || !tmodel.canDeleteDom()) && 
-                    (tmodel.canHaveDom() && !tmodel.hasDom() && !this.noDomMap[tmodel.oid])) {
+
+            if ((visible || !tmodel.canDeleteDom()) &&
+                (tmodel.canHaveDom() && !tmodel.hasDom() && !this.noDomMap[tmodel.oid])) {
                 this.lists.noDom.push(tmodel);
                 this.noDomMap[tmodel.oid] = true;
             }
         }
-        
+
         const lastVisible = Object.values(lastVisibleMap)
-            .filter(tmodel => tmodel !== null && tmodel.hasDom() && (tmodel.canDeleteDom() || !tmodel.getParent()?.allChildrenMap[tmodel.oid]));
-    
+            .filter(tmodel => tmodel !== null &&
+                tmodel.hasDom() &&
+                (tmodel.canDeleteDom() || !tmodel.getParent()?.allChildrenMap[tmodel.oid]));
+
         this.lists.invisibleDom.push(...lastVisible);
-        
-        return this.lists.noDom.length > 0 ? 0 : 
-            this.lists.reattach.length > 0 ? 1 : 
-            this.lists.relocation.length > 0 ? 2 :                        
-            this.lists.rerender.length > 0 ? 3 : 
-            this.lists.reasyncStyle.length > 0 ? 4 :
-            this.lists.invisibleDom.length > 0 ? 5 :
-            this.lists.restyle.length > 0 ? 10 : -1;    
+
+        return this.lists.noDom.length > 0 ? 0 :
+               this.lists.reattach.length > 0 ? 1 :
+               this.lists.relocation.length > 0 ? 2 :
+               this.lists.rerender.length > 0 ? 3 :
+               this.lists.reasyncStyle.length > 0 ? 4 :
+               this.lists.invisibleDom.length > 0 ? 5 :
+               this.lists.restyle.length > 0 ? 10 : -1;
     }
     
     needsRelocation(tmodel) {
