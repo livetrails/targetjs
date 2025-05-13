@@ -2,7 +2,7 @@ const path = require('path');
 const ESLintPlugin = require('eslint-webpack-plugin');
 
 module.exports = {
-    entry: './src/index.js',
+    entry: './GlobalExport.js',
     output: {
         library: {
             name: 'TargetJS',
@@ -26,7 +26,7 @@ module.exports = {
     },
     plugins: [
         new ESLintPlugin({
-            exclude: 'node_modules',
+            exclude: ['node_modules', 'build'],
             overrideConfig: {
                 env: {
                     browser: true,
