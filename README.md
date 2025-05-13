@@ -99,11 +99,21 @@ App({
 });
 ```
 
+Or in HTML (no JavaScript required), using tg- attributes that mirror object literal keys:
+   
+```html 
+<div
+   tg-background="mediumpurple"
+   tg-width="[{ list: [100, 250, 100] }, 50, 10]"
+   tg-height$="return this.prevTargetValue / 2;">
+</div>
+``` 
+
 ### Simple Loading API Example
 
 In this example, we load one user and display its name.
 
-- `loadUser` calls the fetch API to retrieve user details.
+- `fetch` is a special target that performs a data fetch when given a URL string. For more complex API requests, you can use the framework’s built-in `fetch()` function. See examples below.
 - `html` sets the text content of the div to the user's name. Since the target name is prefixed with `_` and ends with `$`, it executes only when an API call returns a result. `prevTargetValue` refers to the result of the previous target, which, in this case, is the result of the API call.
 
 ![first example](https://targetjs.io/img/quick2_4.gif)
@@ -112,14 +122,21 @@ In this example, we load one user and display its name.
 import { App, fetch } from "targetj";
 
 App({
-    loadUser() {
-      fetch(this, "https://targetjs.io/api/randomUser", { id: "user0" });
-    },
-    _html$() {
-      return this.prevTargetValue.name;
-    }
+  fetch: "https://targetjs.io/api/randomUser?id=user0",
+  _html$() {
+    return this.prevTargetValue.name;
+  }
 });
 ```
+
+Or in HTML:
+
+```html 
+<div
+   tg-fetch="https://targetjs.io/api/randomUser?id=user0"
+   tg-html$="return this.prevTargetValue?.name;">
+</div>
+``` 
 
 ### Loading Two Users Example
 
