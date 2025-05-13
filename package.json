@@ -1,10 +1,9 @@
 {
   "name": "targetj",
-  "version": "1.0.160",
+  "version": "1.0.165",
   "description": "TargetJS is a JavaScript framework designed for creating animated and efficient web user interfaces.",
   "keywords": ["targetjs"],
   "main": "Export.js",
-  "browser": "dist/targetjs.js",
   "homepage": "https://targetjs.io",
   "license": "MIT",
   "repository": {
@@ -22,13 +21,11 @@
   "scripts": {
     "prod": "webpack --mode production",
     "dev": "webpack --mode development",
-    "build": "babel src --out-dir build",
-    "publish": "npm run build && npm run prod && npm publish"
+    "build": "babel src --out-dir build"
   },
   "files": [
-    "Export.js",
+    "Export.js",        
     "build/",
-    "dist/",
     "README.md",
     "LICENSE"
   ],

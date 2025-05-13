@@ -2,7 +2,7 @@ const path = require('path');
 const ESLintPlugin = require('eslint-webpack-plugin');
 
 module.exports = {
-    entry: './GlobalExport.js',
+    entry: './src/index.js',
     output: {
         library: {
             name: 'TargetJS',
