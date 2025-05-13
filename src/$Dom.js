@@ -354,14 +354,6 @@ class $Dom {
         return $Dom.findFirstByTag(tagName, this.element);
     }
 
-    stamp() {
-        this.attr('data-tgjs', 'true');
-    }
-    
-    static getAllStamped() {
-        return document.querySelectorAll('[data-tgjs="true"]');
-    }
-
     static query(selector) {
         return selector[0] === '#' ? $Dom.findById(selector) : selector[0] === '.' ? $Dom.findFirstByClass(selector) : $Dom.findFirstByTag(selector);
     }

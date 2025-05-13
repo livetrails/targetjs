@@ -270,15 +270,13 @@ class EventListener {
         if (!eventItem) {
             return;
         }
-                        
+                                
         let { eventName, inputType, eventType, order: eventOrder, queue, rateLimit } = eventItem;
         
         const now = TUtil.now();
                 
         const tmodel = this.getTModelFromEvent(event);
-        
-        //console.log("originalName: " + originalName + ", " + eventItem + ", " + tmodel?.oid);
-                        
+                                
         const newEvent = { eventName, eventItem, eventType, originalName, tmodel, eventTarget, timeStamp: now };
 
         if (this.lastEvent?.eventItem) {
@@ -340,7 +338,7 @@ class EventListener {
                 event.stopPropagation();
                 
                 this.detachDocumentEvents();
-                this.attachDocumentEvents(tmodel.getDomParent());
+                this.attachDocumentEvents();
                 
                 return;
 
@@ -350,7 +348,7 @@ class EventListener {
 
                 this.cursor.x = touch.x;
                 this.cursor.y = touch.y;
-                if (this.preventDefault(tmodel, eventName)) {
+                if (this.preventDefault(tmodel, eventName) && event.cancelable) {
                     event.preventDefault();
                 }
                 if (this.touchCount > 0) {
@@ -367,7 +365,7 @@ class EventListener {
             case 'touchend':
                 
                 this.detachDocumentEvents();
-                if (this.preventDefault(tmodel, eventName)) {
+                if (this.preventDefault(tmodel, eventName) && event.cancelable) {
                     event.preventDefault();
                 }
                                 
@@ -393,7 +391,7 @@ class EventListener {
                 if (this.start0) {
                     const clickHandler = SearchUtil.findFirstClickHandler(tmodel);
                                         
-                    if (clickHandler && clickHandler === this.currentHandlers.click) {
+                    if (clickHandler && clickHandler === this.currentHandlers.click && (clickHandler !== this.currentHandlers.swipe || this.getSwipeDistance() < 5)) {
                         this.eventQueue.length = 0;
                         this.eventQueue.push({ eventName, eventItem, eventType, originalName, tmodel, eventTarget, timeStamp: now });
                     }
@@ -528,6 +526,14 @@ class EventListener {
 
     swipeY() {
         return this.cursor.y - this.swipeStartY;
+    }
+    
+    getSwipeDistance() {
+        if (this.start0 && this.end0) {
+            return TUtil.distance(this.start0.originalX, this.start0.originalY, this.end0.x, this.end0.y);
+        }
+        
+        return 0;
     }
     
     pinchDelta() {

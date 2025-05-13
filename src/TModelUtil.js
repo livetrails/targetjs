@@ -78,7 +78,7 @@ class TModelUtil {
         tmodel.$dom.create(tmodel.getBaseElement());
         tmodel.$dom.setSelector(`#${tmodel.oid}`);
         tmodel.$dom.setId(tmodel.oid);
-        tmodel.$dom.stamp();
+        tmodel.$dom.attr('tg', 'true');
         tmodel.isTextOnly() ? tmodel.$dom.text(tmodel.getHtml()) : tmodel.$dom.html(tmodel.getHtml());
         tmodel.setActualValueLastUpdate('html');
         tmodel.domHeightTimestamp = 0;

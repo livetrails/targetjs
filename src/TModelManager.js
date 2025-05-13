@@ -139,7 +139,7 @@ class TModelManager {
     }
     
     needsRelocation(tmodel) {
-        if (tmodel.hasDom() && TUtil.isDefined(tmodel.domOrderIndex)) {
+        if (tmodel.hasDom() && TUtil.isDefined(tmodel.domOrderIndex)) {            
             this.lists.relocation.push(tmodel);  
             return true;
         }
@@ -278,10 +278,9 @@ class TModelManager {
                 } else {
                     tmodel.$dom = new $Dom();
                     TModelUtil.createDom(tmodel);
+                    tmodel.getDomHolder(tmodel).appendTModel$Dom(tmodel);
+                    tmodel.hasDomNow = true;                      
                 } 
-                
-                tmodel.getDomHolder(tmodel).appendTModel$Dom(tmodel);
-                tmodel.hasDomNow = true;  
             }
         }
         

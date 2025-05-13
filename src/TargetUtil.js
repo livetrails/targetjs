@@ -45,7 +45,7 @@ class TargetUtil {
         
         const getPrevValue = () => {
             if (prevKey) { 
-                if (getLoader().isLoading(tmodel, prevKey)) {
+                if (getLoader && getLoader().isLoading(tmodel, prevKey)) {
                     return getLoader().getLoadingItemValue(tmodel, prevKey);
                 } else {
                     return tmodel.val(prevKey);
@@ -238,6 +238,10 @@ class TargetUtil {
 
     static isListTarget(value) {
         return typeof value === 'object' && value !== null && Array.isArray(value.list);
+    }
+    
+    static isFetchTarget(key, value) {
+        return key === 'fetch' && typeof value === 'string';
     }
     
     static isObjectTarget(key, value) {

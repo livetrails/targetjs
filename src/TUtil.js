@@ -1,5 +1,6 @@
 import { $Dom } from "./$Dom.js";
-import { getLocationManager, tRoot, getScreenHeight, getScreenWidth } from "./App.js";
+import { getLocationManager, tRoot, getScreenHeight, getScreenWidth, App } from "./App.js";
+import { TargetData } from "./TargetData.js";
 
 /**
  * 
@@ -11,7 +12,7 @@ class TUtil {
         const y = child.absY;
         const domParent = child.getDomParent();
         const parent = child.getRealParent();
-        
+
         const scale = (domParent.getMeasuringScale() || 1) * child.getMeasuringScale();
         const maxWidth = TUtil.isDefined(child.getWidth()) ? scale * child.getWidth() : 0;
         const maxHeight = TUtil.isDefined(child.getHeight()) ? scale * child.getHeight() : 0;
@@ -19,14 +20,14 @@ class TUtil {
         if (!child.visibilityStatus) {
             child.visibilityStatus = {};
         }
-        
+
         const status = child.visibilityStatus;
 
         const parentX = child.validateVisibilityInParent() ? Math.max(domParent.absX, parent.absX) : 0;
         const parentY = child.validateVisibilityInParent() ? Math.max(domParent.absY, parent.absY) : 0;
         const parentWidth = child.validateVisibilityInParent() ? Math.min(domParent.getWidth(), parent.getWidth()) : getScreenWidth();
         const parentHeight = child.validateVisibilityInParent() ? Math.min(domParent.getHeight(), parent.getHeight()) : getScreenHeight();
-        
+
         status.right = x <= parentX + parentWidth;
         status.left = x + maxWidth >= parentX;
         status.bottom = y - child.getTopMargin() <= parentY + parentHeight;
@@ -34,16 +35,18 @@ class TUtil {
         status.parentX = parentX;
         status.parentY = parentY;
         status.parentWidth = parentWidth;
-        status.parentHeight = parentHeight;  
-        
-        child.val('isVisible', status.left && status.right && status.top && status.bottom);       
-       
+        status.parentHeight = parentHeight;
+        status.x = x;
+        status.y = y;
+
+        child.val('isVisible', status.left && status.right && status.top && status.bottom);
+
         return child.val('isVisible');
     }
 
-    static initDoms(visibleList) {
-        const elements = $Dom.getAllStamped();
-        
+    static initCacheDoms(visibleList) {
+        const elements = tRoot().$dom.queryAll('[tg]');
+
         visibleList.forEach(tmodel => {
             tmodel.$dom = null;
         });
@@ -54,20 +57,136 @@ class TUtil {
             const id = element.getAttribute("id");
             const tmodel = visibleMap[id];
 
-            if (tmodel) {                
+            if (tmodel) {
                 tmodel.$dom = new $Dom(`#${id}`);
             } else {
                 $Dom.detach(element);
             }
         }
     }
-              
+
+    static initPageDoms($dom) {
+        const elementToModel = new Map();
+
+        const elements = $dom.queryAll('*');
+
+        for (let element of elements) {
+            let newModel;
+            const attrs = Array.from(element.attributes);
+            
+            const isTargetElement = attrs.some(attr => attr.name === 'tg' || attr.name.startsWith('tg-'));
+
+    
+            const attributeSet = {};
+
+            if (isTargetElement) {
+                for (let attr of attrs) {
+                    if (attr.name.startsWith("tg-")) {
+                        const rawKey = attr.name.slice(3);
+                        const key = TargetData.attributesToTargets[rawKey] || rawKey;
+                        
+                        const rawValue = attr.value.trim();
+                        
+                        let value = TUtil.parseString(rawValue);
+                        
+                        attributeSet[key] = value;                                           
+                    }
+                }
+            }
+            
+            const parentEl = element.parentElement;
+            const parentModel = elementToModel.get(parentEl);            
+
+            let id;
+            
+            if (Object.keys(attributeSet).length > 0) {
+                id = element.getAttribute('id');
+                
+                if (!id && !parentModel) {
+                    id = App.getOid('blank').oid;
+                    element.setAttribute('id', id);
+                }
+
+                if (!element.getAttribute('tg')) {
+                    element.setAttribute('tg', true);
+                }
+                 
+               newModel = {
+                    id,
+                    $dom: new $Dom(element),
+                    ...attributeSet
+                }; 
+            }            
+
+            if (parentModel) {
+                if (!newModel) {
+                    newModel = {
+                        textOnly: false,
+                        html: element.outerHTML,
+                        $dom: new $Dom(element)
+                    };
+                }
+                
+                newModel.shouldBeBracketed = false;
+                newModel.otype = newModel.id || (parentModel.id || App.getOid('blank').oid)  + "_";
+                newModel.$dom.detach();
+                delete newModel.$dom; 
+                delete newModel.id;
+                newModel.isVisible = function() { return this.getParent().isVisible(); };
+                newModel.domParent = function() { return this.getParent(); };
+
+                if (parentModel.children) {
+                    if (Array.isArray(parentModel.children.value)) {
+                        parentModel.children.value.push(newModel);
+                    } else {
+                        parentModel.children.value = [ newModel ];                        
+                    }
+                } else {
+                    parentModel.children = {
+                        value: [ newModel ]
+                    };
+                }
+
+                elementToModel.set(element, newModel);
+
+            } else if (newModel) {
+                newModel.isVisible = true;
+                tRoot().addChild(newModel);
+                            
+                elementToModel.set(element, newModel);
+
+            }
+        }
+    }
+    
+    static parseString(rawValue) {
+        
+        try {
+            return eval(`(${rawValue})`);  
+        } catch {
+        }
+
+        if (typeof rawValue === 'string' && (rawValue.includes('return') || rawValue.includes('setTarget'))) {
+            try {
+                return new Function(rawValue);
+            } catch {}
+        }
+
+        try {
+            return JSON.parse(rawValue);
+        } catch {
+        }
+
+        return rawValue;
+    }
+
+    
     static contains(container, tmodel) {
         if (!container || !tmodel) {
             return false;
         }
-        
-        if (container === tmodel 
+
+        if (container === tmodel
                 || tmodel.getDomParent() === container
                 || tmodel.getDomParent()?.getDomParent() === container) {
             return true;
@@ -108,9 +227,9 @@ class TUtil {
 
     static momentum(past, current, time = 1, deceleration = 0.002, maxDistance = 100) {
         const distance = current - past;
-        
-        const speed = time < 10 ? Math.abs(distance) / 10 :  Math.abs(distance) / time;
-        
+
+        const speed = time < 10 ? Math.abs(distance) / 10 : Math.abs(distance) / time;
+
         const duration = speed / deceleration;
         let momentumDistance = (speed ** 2) / (2 * deceleration);
 
@@ -122,9 +241,9 @@ class TUtil {
 
         return {
             distance: Math.round(adjustedDistance) / 5,
-            duration: Math.round(duration),     
-            momentumDistance 
-        };     
+            duration: Math.round(duration),
+            momentumDistance
+        };
     }
 
     static isDefined(obj) {
@@ -142,7 +261,7 @@ class TUtil {
 
         return num;
     }
-    
+
     static capitalizeFirstLetter(val) {
         return val.charAt(0).toUpperCase() + val.slice(1);
     }
@@ -154,11 +273,11 @@ class TUtil {
         const n = parseFloat(num.toString());
         return n.toFixed(precision);
     }
-    
+
     static now() {
-            return Date.now();
+        return Date.now();
     }
-    
+
     static log(condition) {
         return condition === true ? console.log : () => {};
     }
@@ -178,20 +297,19 @@ class TUtil {
             const base = `${protocol}${window.location.hostname}`;
             link = link.startsWith("/") ? base + link : `${base}/${link}`;
         }
-        
+
         return link.endsWith('/') ? link.slice(0, -1) : link;
     }
-    
+
     static isStringBooleanOrNumber(input) {
         const inputType = typeof input;
         return inputType === 'string' || inputType === 'boolean' || inputType === 'number';
-    }   
-  
+    }
+
     static logTree(tmodel = tRoot(), tab = '') {
         const list = getLocationManager().getChildren(tmodel);
         for (const g of list) {
-            const gtab = g.isVisible() ? tab + '|  ': tab + 'x  ';
-
+            const gtab = g.isVisible() ? tab + '|  ' : tab + 'x  ';
             if (g.type === 'BI') {
                 console.log(`${gtab}${g.oid} v:${g.isVisible()} x:${Math.floor(g.getX())} y:${Math.floor(g.getY())}, absY:${Math.floor(g.absY)} yy:${Math.floor(g.absY + g.getDomParent().absY)} w:${Math.floor(g.getWidth())} h:${Math.floor(g.getHeight())} hc:${Math.floor(g.getContentHeight())}`);
             } else {
@@ -201,7 +319,7 @@ class TUtil {
             if (g.hasChildren()) {
                 TUtil.logTree(g, gtab);
             }
-        }
+    }
     }
 
 }

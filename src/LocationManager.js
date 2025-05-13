@@ -122,14 +122,16 @@ class LocationManager {
             this.locationListStats.push(child.oid);
             
             viewport.setCurrentChild(child);
-            viewport.setLocation(); 
+
+            if (!child.targets['excludeXYCalc']) {
+                viewport.setLocation(); 
+            }
             
             if (child.isIncluded() && container.manageChildTargetExecution(child, shouldCalculateChildTargets)) {
                 this.calculateTargets(child);
             }
-
+            
             if (container.getContainerOverflowMode() === 'always' 
-                    || child.getItemOverflowMode() === 'always' 
                     || (container.getContainerOverflowMode() === 'auto' && child.getItemOverflowMode() === 'auto' && viewport.isOverflow())) {
                 viewport.overflow();
                 viewport.setLocation();  
@@ -202,6 +204,10 @@ class LocationManager {
             if (child.isInFlow()) {
                 if (TUtil.isNumber(child.val('appendNewLine'))) {
                     viewport.appendNewLine();
+                    container.calcContentWidthHeight();
+                } else if  (child.getItemOverflowMode() === 'always') {
+                    viewport.nextLocation();
+                    viewport.overflow();
                     container.calcContentWidthHeight();
                 } else {
                     container.calcContentWidthHeight();

@@ -1,4 +1,5 @@
 import { getEvents, getResizeLastUpdate } from "./App.js";
+import { TUtil } from "./TUtil.js";
 
 class TargetData {
     
@@ -252,7 +253,63 @@ class TargetData {
             wheel: { eventName: 'wheel', inputType: '', eventType: 'wheel', order: 1, windowEvent: false, queue: true, rateLimit: 50 },
             mousewheel: { eventName: 'wheel', inputType: '', eventType: 'wheel', order: 1, windowEvent: false, queue: true, rateLimit: 50 }
         }
-    }; 
+    };
+    
+    static attributesToTargets = {
+        onstart: 'onStart',
+        onend: 'onEnd',
+        onKkey: 'onKey',
+        onclick: 'onClick',
+        onanyclick: 'onAnyClick',
+        onhover: 'onHover',
+        onswipe: 'onSwipe',
+        onanyswipe: 'onAnySwipe',        
+        onpinch: 'onPinch',
+        onenter: 'onEnter',
+        onleave: 'onLeave',
+        onscroll: 'onScroll',
+        onscrollleft: 'onScrollLeft',
+        onscrolltop: 'onScrollTop',        
+        onwindowscroll: 'onWindowScroll',
+        onvisible: 'onVisible',
+        onresize: 'onResize',
+        textalign: 'textAlign',
+        preventdefault: 'preventDefault',
+        translatex: 'translateX',
+        translatey: 'translateY',
+        translatez: 'translateZ',
+        rotate3dx: 'rotate3DX',
+        rotate3dy: 'rotate3DY',
+        rotate3dz: 'rotate3DZ',
+        rotate3dangle: 'rotate3DAngle',
+        scale3dx: 'scale3DX',
+        scale3dy: 'scale3DY',
+        scale3dz: 'scale3DZ',
+        skewx: 'skewX',
+        skewy: 'skewY',
+        fontsize: 'fontSize',
+        borderradius: 'borderRadius',
+        letterspacing: 'letterSpacing',
+        backgroundcolor: 'backgroundColor',
+        bordertop: 'borderTop',
+        borderleft: 'borderLeft',
+        borderright: 'borderRight',
+        borderbottom: 'borderBottom',
+        boxsizing: 'boxSizing',
+        transformstyle: 'transformStyle', 
+        transformorigin: 'transformOrigin', 
+        justifycontent: 'justifyContent',
+        alignitems: 'alignItems', 
+        fontfamily: 'fontFamily', 
+        overflowx: 'overflowX',
+        overflowy: 'overflowY',
+        textdecoration: 'textDecoration', 
+        boxshadow: 'boxShadow', 
+        fontweight: 'fontWeight',
+        willchange: 'willChange'        
+        
+        
+    }
     
     static targetToEventsMapping = {
         onStart: [ 'touchStart', 'mouseStart' ],
@@ -275,14 +332,14 @@ class TargetData {
     static touchEventMap = {
         onStart: tmodel => getEvents().isStartEvent() && getEvents().isStartHandler(tmodel),
         onEnd: tmodel => getEvents().isEndEvent() && getEvents().isEndHandler(tmodel),
-        onAnySwipe: () => getEvents().isSwipeEvent(),
+        onAnySwipe: () => getEvents().isSwipeEvent() && TUtil.isDefined(getEvents().swipeStartX),
         onHover: tmodel => getEvents().isMoveEvent() && getEvents().isHoverHandler(tmodel),
 
         onClick: tmodel => getEvents().isClickEvent() && getEvents().isClickHandler(tmodel),
         onAnyClick: () => getEvents().isClickEvent(),
         onEnter: tmodel => getEvents().isEnterHandler(tmodel),
         onLeave: tmodel => getEvents().isLeaveHandler(tmodel),        
-        onSwipe: tmodel => getEvents().isSwipeHandler(tmodel) && getEvents().isSwipeEvent(),        
+        onSwipe: tmodel => getEvents().isSwipeHandler(tmodel) && getEvents().isSwipeEvent() && TUtil.isDefined(getEvents().swipeStartX) 
     };
 
     static internalEventMap = {

@@ -141,23 +141,23 @@ class LoadingManager {
     getLoadingItemValue(tmodel, targetName) {
         const target = tmodel.targets[targetName];
         const key = this.getTModelKey(tmodel, targetName);
-        const modelEntry = this.tmodelKeyMap[key];
-        
-        if (!modelEntry || !target) {
+        const tmodelEntry = this.tmodelKeyMap[key];
+                
+        if (!tmodelEntry || !target || tmodelEntry.accessIndex >= tmodelEntry.resultCount) {
             return undefined;
         }
                 
         const loadTargetName = this.getLoadTargetName(targetName);
         const targetValue = tmodel.val(loadTargetName);
         let result;
-        
+
         if (targetValue) {
             if (target.fetchAction === 'onEnd') {
-                result = targetValue.slice(modelEntry.accessIndex);
-                modelEntry.accessIndex += result.length;
+                result = targetValue.slice(tmodelEntry.accessIndex);
+                tmodelEntry.accessIndex += result.length;
             } else {
-                result = targetValue[modelEntry.accessIndex];   
-                modelEntry.accessIndex++;            
+                result = targetValue[tmodelEntry.accessIndex];   
+                tmodelEntry.accessIndex++;            
             }
         }
 

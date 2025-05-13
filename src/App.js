@@ -14,7 +14,7 @@ import { SearchUtil } from "./SearchUtil.js";
 
 let tApp;
 
-const AppFn = firstChild => {
+const AppFn = () => {
     const my = {};
 
     my.throttle = 0;
@@ -41,25 +41,11 @@ const AppFn = firstChild => {
         my.targetManager = new TargetManager();
         my.manager = new TModelManager();
         my.runScheduler = new RunScheduler();
-
+        
         my.tRootFactory = () => {
             const tmodel = new TModel('tRoot', {
-                start() {
-                    if (!$Dom.query('#tgjs-root')) {
-                        this.$dom = new $Dom();
-                        this.$dom.create('div');
-                        this.$dom.setSelector('#tgjs-root');
-                        this.$dom.setId('#tgjs-root');
-                        this.$dom.attr("tabindex", "0");
-                        new $Dom('body').insertFirst$Dom(this.$dom);
-                    } else {
-                        this.$dom = new $Dom('#tgjs-root');
-                    }
-                },
                 styling: false,
-                domHolder() {
-                    return this.$dom;
-                },
+                domHolder: true,
                 isVisible: true,
                 width() {
                     const width = $Dom.getScreenWidth();
@@ -74,10 +60,13 @@ const AppFn = firstChild => {
                         my.resizeLastUpdate = TUtil.now();     
                     }
                     return height;
+                },
+                initPageDom() {
+                    TUtil.initPageDoms(this.$dom);                    
                 }
             });
             
-            tmodel.oids = {};
+            tmodel.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
 
             tmodel.val('width', $Dom.getScreenWidth());                
             tmodel.val('height', $Dom.getScreenHeight());            
@@ -94,10 +83,6 @@ const AppFn = firstChild => {
 
         my.tRoot = my.tRootFactory();
 
-        if (firstChild) {
-            my.tRoot.addChild(firstChild);
-        }
-
         window.history.pushState({ link: document.URL }, "", document.URL);
 
         return my;
@@ -105,7 +90,7 @@ const AppFn = firstChild => {
 
     my.start = async function() {
         my.runningFlag = false;
-        
+                
         TargetExecutor.executeDeclarativeTarget(my.tRoot, 'width');
         TargetExecutor.executeDeclarativeTarget(my.tRoot, 'height');
         
@@ -161,13 +146,20 @@ const AppFn = firstChild => {
     return my;
 };
 
-const App = tmodel => {
-    tApp = AppFn(tmodel);
-    tApp.init().start();
+const App = firstChild => {
+    if (tApp) {
+        if (firstChild) {
+            tApp.tRoot.addChild(firstChild);
+            tApp.runScheduler.schedule(0, "appStart");
+        }
+    } else {
+        tApp = AppFn();
+        tApp.init().start();
+    }
 };
 
 App.oids = {};
-App.getOid = function(type) {
+App.getOid = type => {
     const oids = App.oids;
     if (!TUtil.isDefined(oids[type])) {
         oids[type] = 0;
@@ -176,6 +168,8 @@ App.getOid = function(type) {
     const num = oids[type]++;
     return { oid: num > 0 || type.endsWith('_') ? `${type}${num}` : type, num };
 };
+
+App();
 
 const isRunning = () => tApp ? tApp.runningFlag : false;
 const tRoot = () => tApp?.tRoot;

@@ -10,7 +10,7 @@ import { $Dom } from "./$Dom.js";
  * It provides the target state and associated logic to the TModel.
  */
 class BaseModel {
-    constructor(type, targets) {
+    constructor(type, targets, oid) {
         if (typeof type === 'object' && typeof targets === 'undefined') {
             targets = type;
             type = "";
@@ -18,9 +18,14 @@ class BaseModel {
         this.type = type || 'blank';
         this.targets = Object.assign({}, targets);
 
-        const uniqueId = App.getOid(this.type);
-        this.oid = uniqueId.oid;
-        this.oidNum = uniqueId.num;
+        if (!oid) {
+            const uniqueId = App.getOid(this.type);
+            this.oid = uniqueId.oid;
+            this.oidNum = uniqueId.num;
+        } else {
+            this.oid = oid;
+            this.oidNum = 0;
+        }
         
         this._state = {};
     }
@@ -78,7 +83,7 @@ class BaseModel {
 
         this.originalTargetNames = Object.keys(this.targets);
 
-        const domExists = $Dom.query(`#${this.oid}`);
+        const domExists = $Dom.query(`#${this.oid}`) || this.originalTargetNames.indexOf('$dom') >= 0;
 
         if (!domExists && !this.excludeDefaultStyling()) {
             Object.entries(TargetData.defaultTargetStyles).forEach(([key, value]) => {
@@ -88,6 +93,7 @@ class BaseModel {
             });
         } else if (domExists && !TUtil.isDefined(this.targets['reuseDomDefinition'])) {
             this.targets['reuseDomDefinition'] = true;
+            this.targets['excludeXYCalc'] = true;
             this.targets['excludeX'] = true;
             this.targets['excludeY'] = true;
             this.targets['position'] = 'relative';
@@ -191,8 +197,8 @@ class BaseModel {
         return (Array.isArray(this.targets['onDomEvent']) && this.targets['onDomEvent'].includes(key) && !this.hasDom()) ? false : true;
     }
     
-    addToStyleTargetList(key) {
-        if (this.excludeStyling() || this.targets[`exclude${TUtil.capitalizeFirstLetter(key)}`]) {
+    addToStyleTargetList(key, enforce) {
+        if (!enforce && (this.excludeStyling() || this.targets[`exclude${TUtil.capitalizeFirstLetter(key)}`])) {
             return;
         }
         

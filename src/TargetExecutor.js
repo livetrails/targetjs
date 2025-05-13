@@ -2,7 +2,7 @@ import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
 import { TUtil } from "./TUtil.js";
 import { Easing } from "./Easing.js";
-import { getEvents } from "./App.js";
+import { getEvents, getLoader } from "./App.js";
 
 /**
  * It is responsible for executing both declarative and imperative targets.
@@ -11,7 +11,7 @@ class TargetExecutor {
     
     static executeDeclarativeTarget(tmodel, key, cycle) { 
         TargetExecutor.resolveTargetValue(tmodel, key, cycle);
-        TargetExecutor.updateTarget(tmodel, tmodel.targetValues[key], key);
+        TargetExecutor.updateTarget(tmodel, tmodel.targetValues[key], key, false);
 
         TargetUtil.shouldActivateNextTarget(tmodel, key);     
     }
@@ -57,10 +57,10 @@ class TargetExecutor {
             }
         }
 
-        TargetExecutor.updateTarget(tmodel, targetValue, key);
+        TargetExecutor.updateTarget(tmodel, targetValue, key, true);
     }
 
-    static updateTarget(tmodel, targetValue, key) {
+    static updateTarget(tmodel, targetValue, key, enforce) {
         targetValue.executionCount++;
         targetValue.executionFlag = true;
                 
@@ -70,7 +70,7 @@ class TargetExecutor {
             TargetExecutor.snapActualToTarget(tmodel, key);
         }
         
-        tmodel.addToStyleTargetList(key);
+        tmodel.addToStyleTargetList(key, enforce);
         tmodel.setTargetMethodName(key, 'value');        
 
         tmodel.updateTargetStatus(key);
@@ -140,7 +140,7 @@ class TargetExecutor {
         const easing = TUtil.isDefined(tmodel.targets[key].easing) ? tmodel.targets[key].easing : undefined;
         
         if (TargetUtil.isChildrenTarget(key, newValue)) {
-            
+                        
             const values = Array.isArray(newValue) ? newValue : [newValue];
 
             const tmodelChildren = values.map(child => {
@@ -151,6 +151,17 @@ class TargetExecutor {
             TargetExecutor.assignSingleTarget(
                 targetValue, 
                 Array.isArray(newValue) ? tmodelChildren : tmodelChildren[0], 
+                undefined, 
+                0, 
+                newCycles, 
+                newInterval
+            );
+        } else if (TargetUtil.isFetchTarget(key, newValue)) {
+            getLoader().fetch(tmodel, newValue);
+            
+            TargetExecutor.assignSingleTarget(
+                targetValue, 
+                newValue, 
                 undefined, 
                 0, 
                 newCycles, 

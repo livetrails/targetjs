@@ -10,8 +10,8 @@ import { TargetUtil } from "./TargetUtil.js";
  * These objects typically have a DOM but can also operate without one.
  */
 class TModel extends BaseModel {
-    constructor(type, targets) {
-        super(type, targets);
+    constructor(type, targets, oid) {
+        super(type, targets, oid);
         
         this.allChildrenList = [];
         this.allChildrenMap = {};
@@ -36,7 +36,6 @@ class TModel extends BaseModel {
         this.transformMap = {};
         
         this.visibilityStatus = undefined;
-        this.isNowInvisible = false;
                       
         this.hasDomNow = false;
         this.isNowVisible = false;
@@ -103,8 +102,10 @@ class TModel extends BaseModel {
                 if (foundKey) {
                     child = new TModel(child.id || foundKey, child);
                     this.actualValues[foundKey] = child;
-                } else if (child.id) {                    
-                    child = new TModel(child.id , child);                    
+                } else if (TUtil.isDefined(child.otype)) {
+                    child = new TModel(child.otype, child);                     
+                } else if (TUtil.isDefined(child.id)) {                    
+                    child = new TModel(child.id, child, child.id);                   
                 } else {
                     child = new TModel(`${this.oid}_`, child);                    
                 }
@@ -326,7 +327,7 @@ class TModel extends BaseModel {
     val(key, value) {
         let actual = this.actualValues;
         let lastActual = this.lastActualValues;
-        if (key.startsWith('_')) {
+        if (key?.startsWith('_')) {
             actual = this;
             key = key.slice(1);
         }

@@ -1,6 +1,6 @@
 import { TUtil } from "./TUtil.js";
-import { $Dom } from "./$Dom.js";
 import { tApp, App, getRunScheduler, getLocationManager, getEvents } from "./App.js";
+import { $Dom } from "./$Dom.js";
 
 /**
  * It enables opening new pages and managing history. It alo provide page caching.
@@ -11,6 +11,12 @@ class PageManager {
         this.lastLink = TUtil.getFullLink(document.URL);
         this.pageCache = {};
     }
+    
+    initPage(html) {
+        tApp.tRoot.$dom.outerHTML(html);
+        tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
+        TUtil.initPageDoms(tApp.tRoot.$dom);
+    }
 
     async openPage(link) {        
         await tApp.stop();
@@ -19,9 +25,7 @@ class PageManager {
         link = TUtil.getFullLink(link);
 
         if (!this.pageCache[link]) {
-            if (tApp.tRoot.hasDom()) {
-                tApp.tRoot.$dom.innerHTML("");                
-            }
+            tApp.tRoot.$dom.innerHTML("");            
             tApp.tRoot = tApp.tRootFactory();
             App.oids = {};
             tApp.pageIsEmpty = true;
@@ -32,11 +36,11 @@ class PageManager {
         } else {
             tApp.tRoot = this.pageCache[link].tRoot;
             App.oids = this.pageCache[link].oids;
-                    
-            tApp.tRoot.$dom = new $Dom('#tgjs-root');
-            tApp.tRoot.$dom.innerHTML(this.pageCache[link].html);
             
-            TUtil.initDoms(this.pageCache[link].visibleList);
+            tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
+            tApp.tRoot.$dom.innerHTML(this.pageCache[link].html);
+                        
+            TUtil.initCacheDoms(this.pageCache[link].visibleList);
             this.pageCache[link].visibleList.forEach(tmodel => {
                 tmodel.visibilityStatus = undefined;
             });
@@ -69,7 +73,7 @@ class PageManager {
         link = TUtil.getFullLink(link);
 
         if (this.lastLink) {
-            tApp.tRoot.$dom = new $Dom('#tgjs-root');
+            tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
             const html = tApp.tRoot.$dom.innerHTML();
             
             this.onPageClose();        
@@ -96,7 +100,7 @@ class PageManager {
         const currentState = window.history.state;
         
         if (!currentState.browserUrl) {
-            tApp.tRoot.$dom = new $Dom('#tgjs-root');
+            tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
             this.pageCache[document.URL] = {
                 link: document.URL,
                 html: tApp.tRoot.$dom.innerHTML(),

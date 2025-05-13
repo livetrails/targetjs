@@ -45,7 +45,8 @@ module.exports = {
                     'eqeqeq': 'error',
                     'dot-notation': 'off',
                     'no-console': 'warn',
-                    'no-loop-func': 'off'
+                    'no-loop-func': 'off',
+                    'no-empty': 'off'
                 }
             }
         })
