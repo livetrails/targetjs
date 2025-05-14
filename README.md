@@ -309,17 +309,17 @@ App({
     width: {
         value: 250,        
         steps: 30,
-        stepInterval: 50
+        interval: 50
     },
     height: {
         value: 250,        
         steps: 30,
-        stepInterval: 50
+        interval: 50
     },
     opacity: {
         value: 0.15,        
         steps: 30,
-        stepInterval: 50
+        interval: 50
     }
  });
 ```
