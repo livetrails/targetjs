@@ -119,7 +119,7 @@ In this example, we load one user and display its name.
 ![first example](https://targetjs.io/img/quick2_4.gif)
 
 ```bash
-import { App, fetch } from "targetj";
+import { App } from "targetj";
 
 App({
   fetch: "https://targetjs.io/api/randomUser?id=user0",
