@@ -153,8 +153,8 @@ import { App, fetch } from "targetj";
 
 App({
     loadUsers() {
-      fetch(this, "https://targetjs.io/api/randomUser", { id: "user0" });
-      fetch(this, "https://targetjs.io/api/randomUser", { id: "user1" });
+      fetch(this, "https://targetjs.io/api/randomUser?id=user0");
+      fetch(this, "https://targetjs.io/api/randomUser?id=user1");
     },
     _children$() {
       return {
