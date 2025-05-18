@@ -105,7 +105,7 @@ class TUtil {
                 if (!id && !parentModel) {
                     id = App.getOid('blank').oid;
                     element.setAttribute('id', id);
-                }
+                }  
 
                 if (!element.getAttribute('tg')) {
                     element.setAttribute('tg', true);
@@ -127,22 +127,24 @@ class TUtil {
                     };
                 }
                 
-                newModel.shouldBeBracketed = false;
-                newModel.otype = newModel.id || (parentModel.id || App.getOid('blank').oid)  + "_";
-                newModel.$dom.detach();
-                delete newModel.$dom; 
-                delete newModel.id;
-                newModel.isVisible = function() { return this.getParent().isVisible(); };
-                newModel.domParent = function() { return this.getParent(); };
-
-                if (parentModel.children) {
-                    if (Array.isArray(parentModel.children.value)) {
-                        parentModel.children.value.push(newModel);
-                    } else {
-                        parentModel.children.value = [ newModel ];                        
+                
+                const childrenKey = TUtil.getChildrenKey(parentModel);
+                
+                if (childrenKey) {
+                    if (Array.isArray(parentModel[childrenKey].value)) {
+                        parentModel[childrenKey].value.push(newModel);
+                    } else if (typeof parentModel[childrenKey] === 'string') {
+                        parentModel[childrenKey] = {
+                            cycles: TUtil.isNumber(+parentModel[childrenKey]) ? +parentModel[childrenKey] : 0,
+                            value: [ newModel ]
+                        }
+                    } else if (typeof parentModel[childrenKey] === 'object') {
+                        parentModel[childrenKey].value = [ newModel ];
                     }
+
                 } else {
-                    parentModel.children = {
+                    parentModel._children$ = {
+                        cycles: 0,
                         value: [ newModel ]
                     };
                 }
@@ -150,28 +152,51 @@ class TUtil {
                 elementToModel.set(element, newModel);
 
             } else if (newModel) {
-                newModel.isVisible = true;
-                tRoot().addChild(newModel);
-                            
                 elementToModel.set(element, newModel);
-
             }
         }
+
+        for (const value of elementToModel.values()) {
+            const parentEl = value.$dom.element.parentElement;
+            const parentModel = elementToModel.get(parentEl);
+                        
+            if (parentModel) {
+                value.$dom.detach();
+                delete value.$dom; 
+                delete value.id;                
+                value.shouldBeBracketed = false;
+                value.otype = value.id || (parentModel.id || App.getOid('blank').oid)  + "_";
+                value.isVisible = function() { return this.getParent().isVisible(); };
+                value.domParent = function() { return this.getParent(); };                  
+            } else {
+                value.isVisible = true;                
+                tRoot().addChild(value);
+            }
+        }        
+    }
+    
+    static getChildrenKey(obj) {
+        for (const key of Object.keys(obj)) {
+          if (key.toLowerCase().includes("children")) {
+            return key;
+          }
+        }
+        
+        return null;
     }
     
     static parseString(rawValue) {
         
-        try {
-            return eval(`(${rawValue})`);  
-        } catch {
-        }
-
-        if (typeof rawValue === 'string' && (rawValue.includes('return') || rawValue.includes('setTarget'))) {
+        if (typeof rawValue === 'string' && (rawValue.includes('return') || rawValue.includes('setTarget') || rawValue.includes('TargetJS.') ) ) {
             try {
                 return new Function(rawValue);
             } catch {}
         }
-
+                 
+        try {
+            return eval(`(${rawValue})`);  
+        } catch {}
+        
         try {
             return JSON.parse(rawValue);
         } catch {

@@ -316,6 +316,18 @@ class TModel extends BaseModel {
         return parent ? parent.val(targetName) : undefined;
     }
     
+    getParentValueAtMyIndex(targetName) {
+        const parentValue = this.getParentValue(targetName);
+        if (Array.isArray(parentValue)) {
+            const index = this.getParent()?.getChildIndex(this);
+            if (typeof index === 'number') {
+                return parentValue[index];
+            }
+        }
+        
+        return parentValue;
+    }
+    
     delVal(key) {
         if (key.startsWith('_')) {
             delete this[key.slice(1)];

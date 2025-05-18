@@ -86,7 +86,7 @@ class TargetUtil {
 
         Object.keys(target).forEach(method => {
             if (method === 'value') {
-                const originalMethod = target[method];
+                const originalMethod = target[method];                
                 target[method] = function() {
                     TargetUtil.currentTargetName = cleanKey;
                     TargetUtil.currentTModel = tmodel;
@@ -122,7 +122,7 @@ class TargetUtil {
         const isEndTrigger = targetName?.endsWith('$');
         const fetchAction = target?.fetchAction;
         const childAction = target?.childAction;
-             
+        
         if (fetchAction) {
             if (fetchAction === 'onEnd' && TargetUtil.hasTargetEnded(tmodel, key)) {
                     TargetUtil.activateNextTarget(tmodel, cleanTargetName);
@@ -184,12 +184,12 @@ class TargetUtil {
         return true;
     }
     
-    static activateNextTarget(tmodel, activateNextTarget) {
-        if (tmodel.targetValues[activateNextTarget]) {
-            tmodel.targetValues[activateNextTarget].isImperative = false;
+    static activateNextTarget(tmodel, target) {
+        if (tmodel.targetValues[target]) {
+            tmodel.targetValues[target].isImperative = false;
         }
-        if (!tmodel.activeTargetMap[activateNextTarget]) {
-            tmodel.activate(activateNextTarget); 
+        if (!tmodel.activeTargetMap[target]) {
+            tmodel.activate(target); 
         }
     }
     

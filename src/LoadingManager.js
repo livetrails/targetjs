@@ -49,9 +49,13 @@ class LoadingManager {
     }
     
     fetch(tmodel, url, query, cacheId) {
-        const fetchId = `${tmodel.oid}_${url}_${JSON.stringify(query)}`;
-        this.fetchCommon(fetchId, cacheId, tmodel, this.fetchingAPIMap, () => {
-            this.ajaxAPI(url, query, this.fetchingAPIMap[fetchId]);
+        const urls = Array.isArray(url) ? url : [url];
+
+        urls.forEach(singleUrl => {
+            const fetchId = `${tmodel.oid}_${singleUrl}_${JSON.stringify(query)}`;
+            this.fetchCommon(fetchId, cacheId, tmodel, this.fetchingAPIMap, () => {
+                this.ajaxAPI(singleUrl, query, this.fetchingAPIMap[fetchId]);
+            });
         });
     }
 
@@ -101,7 +105,11 @@ class LoadingManager {
     
     isLoading(tmodel, targetName) {
         const key = this.getTModelKey(tmodel, targetName);
-        return this.tmodelKeyMap[key];
+        const tmodelEntry = this.tmodelKeyMap[key];
+                
+        if (tmodelEntry && tmodelEntry.accessIndex < tmodelEntry.resultCount) {
+            return true;
+        }        
     }
     
     isLoadingSuccessful(tmodel, targetName) {

@@ -118,15 +118,20 @@ class RunScheduler {
         if (this.rerunId) {
             this.schedule(1, `rerun-${this.rerunId}`); 
         } else {
-            const newDelay = this.nextRuns.length > 0 ? this.nextRuns[0].delay - (TUtil.now() - this.nextRuns[0].insertTime) : undefined;
-            if (newDelay === undefined) {
+            const newDelay = this.nextRuns.length > 0 ? this.nextRuns[0].delay - (TUtil.now() - this.nextRuns[0].insertTime) : undefined;            
+            if (newDelay === undefined || getManager().lists.activeTModels.length > 0) {                
                 if (getEvents().eventQueue.length > 0) {
                     this.schedule(15, `events-${getEvents().eventQueue.length}`); 
                 } else if (getManager().lists.updatingTModels.length > 0) {
                     this.schedule(15, `getManager-needsRerun-updatingTModels`);                     
                 } else if (getManager().lists.activeTModels.length > 0) {
                     const activeTModel = getManager().lists.activeTModels.find(tmodel => {
-                        return (tmodel.targetExecutionCount === 0 || tmodel.activeTargetList.some(target => tmodel.shouldScheduleRun(target)));
+                        return (
+                            tmodel.targetExecutionCount === 0 ||
+                            tmodel.activeTargetList
+                                .filter(target => !tmodel.isScheduledPending(target))
+                                .some(target => tmodel.shouldScheduleRun(target))
+                        );
                     });
                     if (activeTModel) {
                         const delay = !this.activeStartTime || TUtil.now() - this.activeStartTime > 15 ? 1 : 15;
