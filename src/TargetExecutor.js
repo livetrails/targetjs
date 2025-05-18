@@ -12,7 +12,7 @@ class TargetExecutor {
     static executeDeclarativeTarget(tmodel, key, cycle) { 
         TargetExecutor.resolveTargetValue(tmodel, key, cycle);
         TargetExecutor.updateTarget(tmodel, tmodel.targetValues[key], key, false);
-
+        
         TargetUtil.shouldActivateNextTarget(tmodel, key);     
     }
 

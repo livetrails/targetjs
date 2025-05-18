@@ -241,7 +241,7 @@ class TargetUtil {
     }
     
     static isFetchTarget(key, value) {
-        return key === 'fetch' && typeof value === 'string';
+        return key === 'fetch' && (typeof value === 'string' || Array.isArray(value));
     }
     
     static isObjectTarget(key, value) {

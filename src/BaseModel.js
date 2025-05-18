@@ -94,8 +94,12 @@ class BaseModel {
         } else if (domExists && !TUtil.isDefined(this.targets['reuseDomDefinition'])) {
             this.targets['reuseDomDefinition'] = true;
             this.targets['excludeXYCalc'] = true;
-            this.targets['excludeX'] = true;
-            this.targets['excludeY'] = true;
+            if (!this.targets['x']) {
+                this.targets['excludeX'] = true;
+            }
+            if (!this.targets['y']) {
+                this.targets['excludeY'] = true;                
+            }
             this.targets['position'] = 'relative';
         }
 
