@@ -152,10 +152,7 @@ TargetJS ensures that API results are processed in the same sequence as the API 
 import { App, fetch } from "targetj";
 
 App({
-    loadUsers() {
-      fetch(this, "https://targetjs.io/api/randomUser?id=user0");
-      fetch(this, "https://targetjs.io/api/randomUser?id=user1");
-    },
+    fetch: ['https://targetjs.io/api/randomUser?id=user0', 'https://targetjs.io/api/randomUser?id=user1'],
     _children$() {
       return {
         background: "mediumpurple",
@@ -169,12 +166,12 @@ App({
 Or in HTML:
 
 ```html 
-    <div tg-users="TargetJS.fetch(this, ['https://targetjs.io/api/randomUser?id=user0', 'https://targetjs.io/api/randomUser?id=user1']);">
+    <div tg-fetch="['https://targetjs.io/api/randomUser?id=user0', 'https://targetjs.io/api/randomUser?id=user1']">
       <div
         tg-background="mediumpurple"
         tg-width="[{ list: [100, 250, 100] }, 50, 10]"
         tg-height$="return this.prevTargetValue / 2;"
-        tg-html="return this.getParentValueAtMyIndex('users')?.name;">
+        tg-html="return this.getParentValueAtMyIndex('fetch')?.name;">
       </div>
     </div>
 ``` 
