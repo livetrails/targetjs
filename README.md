@@ -5,7 +5,8 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework designed to simplify front-end development by introducing a unique paradigm based on literal objects and extending their properties and methods with lifecycles and functional pipelines.  The framework provides a unified solution for UI rendering, animations, API interactions, state management, and event handling, leading to more compact code and a stronger focus on user experience. TargetJS is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
+TargetJS is a modern JavaScript UI framework that simplifies front-end development. It introduces a unique paradigm: leveraging literal objects or HTML elements and extending their capabilities with built-in lifecycles and functional pipelines. The framework provides a unified solution for key aspects like UI rendering, animations, API interactions, state management, and event handling. This integrated approach leads to more compact code and allows for a stronger focus on user experience. TargetJS also supports backend generation of its specific HTML elements. 
+Furthermore, it is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 ## What Problems Does TargetJS Solve?
 
 TargetJS addresses several common pain points in front-end development:
@@ -374,6 +375,18 @@ App({
     }
  });
 ```
+
+**HTML**
+
+```html 
+  <div 
+    tg-background="#fff"
+    tg-width="[120, 30, 50]"
+    tg-height="[120, 30, 50]"
+    tg-opacity="[0.15, 30, 50]"
+  >  
+  </div>
+ ```
 
 ## Declarative and Imperative Targets Example
 
