@@ -167,7 +167,8 @@ App({
 Or in HTML:
 
 ```html 
-    <div tg-fetch="['https://targetjs.io/api/randomUser?id=user0', 'https://targetjs.io/api/randomUser?id=user1']">
+    <div tg-fetch="['https://targetjs.io/api/randomUser?id=user0',
+         'https://targetjs.io/api/randomUser?id=user1']">
       <div
         tg-background="mediumpurple"
         tg-width="[{ list: [100, 250, 100] }, 50, 10]"
