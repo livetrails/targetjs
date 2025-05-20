@@ -93,14 +93,18 @@ class BaseModel {
             });
         } else if (domExists && !TUtil.isDefined(this.targets['reuseDomDefinition'])) {
             this.targets['reuseDomDefinition'] = true;
-            this.targets['excludeXYCalc'] = true;
-            if (!this.targets['x']) {
+            if (!TUtil.isDefined('excludeXYCalc')) {
+                this.targets['excludeXYCalc'] = true;                
+            } 
+            if (!TUtil.isDefined(this.targets['x'])) {
                 this.targets['excludeX'] = true;
             }
-            if (!this.targets['y']) {
+            if (!TUtil.isDefined(!this.targets['y'])) {
                 this.targets['excludeY'] = true;                
             }
-            this.targets['position'] = 'relative';
+            if (!TUtil.isDefined(this.targets['position'])) {
+                this.targets['position'] = 'relative';
+            }            
         }
 
         Object.keys(this.targets).forEach(key => {

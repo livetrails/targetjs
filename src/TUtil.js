@@ -88,7 +88,7 @@ class TUtil {
                         const rawValue = attr.value.trim();
                         
                         let value = TUtil.parseString(rawValue);
-                        
+                                                
                         attributeSet[key] = value;                                           
                     }
                 }
@@ -186,26 +186,35 @@ class TUtil {
     }
     
     static parseString(rawValue) {
+        if (typeof rawValue !== 'string') {
+            return rawValue;
+        }
+
+        const trimmed = rawValue.trim();
+        const isFunction = /^function\s*\([\s\S]*?\)\s*\{[\s\S]*\}$/m.test(trimmed) || /^\(?[\w\s,]*\)?\s*=>\s*(\{[\s\S]*\}|\S+)/m.test(trimmed);         
+        const isObject = /^(\{[\s\S]*\}|\[[\s\S]*\])$/.test(trimmed);
         
-        if (typeof rawValue === 'string' && (rawValue.includes('return') || rawValue.includes('setTarget') || rawValue.includes('TargetJS.') ) ) {
+        if (!isObject && !isFunction && (trimmed.includes('return') || trimmed.includes('setTarget') || trimmed.includes('TargetJS.'))) {
             try {
-                return new Function(rawValue);
+                return new Function(trimmed);
+            } catch {
+            }
+        }
+
+        if (isObject || isFunction) {
+            try {
+                return eval(`(${trimmed})`);
             } catch {}
         }
-                 
+    
         try {
-            return eval(`(${rawValue})`);  
-        } catch {}
-        
-        try {
-            return JSON.parse(rawValue);
+            return JSON.parse(trimmed);
         } catch {
         }
 
         return rawValue;
     }
 
-    
     static contains(container, tmodel) {
         if (!container || !tmodel) {
             return false;
