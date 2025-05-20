@@ -200,7 +200,7 @@ Or in HTML:
 
 ## The Core of TargetJS
 
-TargetJS utilizes literal JavaScript objects for target definitions, providing a compact and readable format. The core principles are:
+TargetJS utilizes literal JavaScript objects or HTML elements for target definitions, providing a compact and readable format. The core principles are:
 
 - Provide an internal wrapper (called "targets") for both properties and methods of the literal object.
 - Execute targets sequentially, in the order they are written leveraging ES2015's guaranteed property order.
