@@ -5,7 +5,8 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework designed to simplify front-end development by introducing a unique paradigm based on literal objects and extending their properties and methods with lifecycles and functional pipelines.  The framework provides a unified solution for UI rendering, animations, API interactions, state management, and event handling, leading to more compact code and a stronger focus on user experience. TargetJS is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
+TargetJS is a modern JavaScript UI framework that simplifies front-end development. It introduces a unique paradigm: leveraging literal objects or HTML elements and extending their capabilities with built-in lifecycles and functional pipelines. The framework provides a unified solution for key aspects like UI rendering, animations, API interactions, state management, and event handling. This integrated approach leads to more compact code and allows for a stronger focus on user experience. TargetJS also supports backend generation of its specific HTML elements. 
+Furthermore, it is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 ## What Problems Does TargetJS Solve?
 
 TargetJS addresses several common pain points in front-end development:
@@ -142,7 +143,7 @@ Or in HTML:
 
 In this example, we load two separate users and display two purple boxes, each containing a user's name, based on our first example.
 
-- `loadUsers` calls two fetch APIs to retrieve details for two users.
+- `fetch` calls two APIs to retrieve details for two users.
 - `children` is a special target that adds new items to the parent each time it executes. Since the target name is prefixed with _, it is inactive by default. Because it ends with $, it executes every time an API call returns a result.
 TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, `children` will not execute until the result for user0 has been received.
   
@@ -152,10 +153,7 @@ TargetJS ensures that API results are processed in the same sequence as the API 
 import { App, fetch } from "targetj";
 
 App({
-    loadUsers() {
-      fetch(this, "https://targetjs.io/api/randomUser?id=user0");
-      fetch(this, "https://targetjs.io/api/randomUser?id=user1");
-    },
+    fetch: ['https://targetjs.io/api/randomUser?id=user0', 'https://targetjs.io/api/randomUser?id=user1'],
     _children$() {
       return {
         background: "mediumpurple",
@@ -169,12 +167,13 @@ App({
 Or in HTML:
 
 ```html 
-    <div tg-users="TargetJS.fetch(this, ['https://targetjs.io/api/randomUser?id=user0', 'https://targetjs.io/api/randomUser?id=user1']);">
+    <div tg-fetch="['https://targetjs.io/api/randomUser?id=user0',
+         'https://targetjs.io/api/randomUser?id=user1']">
       <div
         tg-background="mediumpurple"
         tg-width="[{ list: [100, 250, 100] }, 50, 10]"
         tg-height$="return this.prevTargetValue / 2;"
-        tg-html="return this.getParentValueAtMyIndex('users')?.name;">
+        tg-html="return this.getParentValueAtMyIndex('fetch')?.name;">
       </div>
     </div>
 ``` 
@@ -377,6 +376,18 @@ App({
     }
  });
 ```
+
+**HTML**
+
+```html 
+  <div 
+    tg-background="#fff"
+    tg-width="[120, 30, 50]"
+    tg-height="[120, 30, 50]"
+    tg-opacity="[0.15, 30, 50]"
+  >  
+  </div>
+ ```
 
 ## Declarative and Imperative Targets Example
 
