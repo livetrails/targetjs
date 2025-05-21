@@ -532,7 +532,6 @@ Or in HTML:
 
 ```HTML
 <div
-  id="scroller"
   tg-domHolder="true"
   tg-preventDefault="true"
   tg-containerOverflowMode="always"
