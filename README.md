@@ -438,6 +438,38 @@ App({
     height: getScreenHeight
 });
 ```
+Or in HTML:
+
+```html 
+<div
+  tg-width="function() { return TargetJS.getScreenWidth(); }"
+  tg-height="function() { return TargetJS.getScreenHeight(); }"
+  tg-children="{ cycles: 9, interval: 500 }">
+    <div
+        tg-width="50"
+        tg-height="50"
+        tg-background="brown",
+        tg-left2right="function() {
+          const width = this.getWidth();
+          const parentWidth = this.getParentValue('width');
+          this.setTarget('x', { list: [ -width, parentWidth + width ] }, 400);
+          this.setTarget('y', Math.floor(Math.random() * (this.getParentValue('height') - this.getHeight())), 30);
+        }"
+        tg-_right2left$$="function() {
+          const width = this.getWidth();
+          const parentWidth = this.getParentValue('width');
+          this.setTarget('x', { list: [ parentWidth + width, -width ] }, 400);
+        }"
+        tg-_onesecond$$="function() {
+          this.setTarget('1second', 1, 1, 1000);
+        }"
+        tg-_repeat$$="function() {
+          this.activateTarget('left2right');
+        }"
+    >
+    </div>
+</div>
+```
 
 ### Infinite Loading and Scrolling Example
 
