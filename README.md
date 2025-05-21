@@ -528,6 +528,52 @@ App({
 });
 ```
 
+Or in HTML:
+
+```HTML
+<div
+  id="scroller"
+  tg-domHolder="true"
+  tg-preventDefault="true"
+  tg-containerOverflowMode="always"
+  tg-width="return TargetJS.getScreenWidth();"
+  tg-height="return TargetJS.getScreenHeight();"
+  tg-children="function() {
+    const childrenCount = this.getChildren().length;
+    return Array.from({ length: 20 }, (_, i) => ({
+      width: [{ list: [100, 250] }, 15],
+      background: [{ list: ['#FCE961', '#B388FF'] }, 15, 15],
+      height: 48,
+      color: '#C2FC61',
+      textAlign: 'center',
+      lineHeight: 48,
+      bottomMargin: 2,
+      x: function() { return this.getCenterX(); },
+      validateVisibilityInParent: true,
+      html: childrenCount + i
+    }));
+  }"
+  tg-_load$="function() {
+    this.prevTargetValue.forEach(data =>
+      TargetJS.fetch(this, 'https://targetjs.io/api/randomUser', { id: data.oid })
+    );
+  }"
+  tg-_populate$$="function() {
+    this.prevTargetValue.forEach((data) =>
+      this.getChildByOid(data.id).setTarget('html', data.name)
+    );
+  }"
+  tg-onScroll="function() {
+    this.setTarget('scrollTop', Math.max(0, this.getScrollTop() + TargetJS.getEvents().deltaY()));
+  }"
+  tg-onVisibleChildrenChange="function() {
+    if (TargetJS.getEvents().dir() === 'down' && this.visibleChildren.length * 50 < this.getHeight()) {
+      this.activateTarget('children');
+    }
+  }"
+></div>
+```
+
 ## Simple SPA Example
 
 Below is a simple single-page application that demonstrates how to build a fully-featured app using TargetJS. Each page is represented by a textarea. You’ll notice that when you type something, switch to another page, and then return to the same page, your input remains preserved. This also applies to the page's scroll position—when you return, the page will open at the same scroll position where you left it, rather than defaulting to the top.
