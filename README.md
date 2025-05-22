@@ -585,84 +585,167 @@ You can now assemble your app by incorporating code segments from the examples o
 import { App, getScreenHeight, getScreenWidth, getEvents, getPager } from "targetj";
 
 App({
-    width() { return getScreenWidth(); },
-    height() { return getScreenHeight(); },
-    menubar() {
-        return {
-            children() {
-                return ["home", "page1", "page2"].map(menu => ({
-                     canHandleEvents: "touch",
-                     background: "#fce961",
-                     width: 100,
-                     height: 50,
-                     lineHeight: 50,
-                     itemOverflowMode: 'never',
-                     opacity: 0.5,
-                     cursor: "pointer",
-                     html: menu,
-                     onEnter() {
-                       this.setTarget("opacity", 1, 20);
-                     },
-                     onLeave() {
-                       this.setTarget("opacity", 0.5, 20);
-                     },
-                     onClick() {
-                       this.setTarget("opacity", 0.5);
-                       getPager().openLink(menu);
-                     }
-                 }));
-            },
+  domHolder: true,
+  width() { return getScreenWidth(); },
+  height() { return getScreenHeight(); },
+  menubar() {
+    return {
+      children() {
+        return ['home', 'page1', 'page2'].map(menu => {
+          return {
+            background: '#fce961',
+            width: 100,
             height: 50,
-            width() { return getScreenWidth(); },
-            onResize: ["width"]
-        }; 
-    },
-    page() {
-        return {
-            width() { return getScreenWidth(); },
-            height() { return getScreenHeight() - 50; },
-            baseElement: 'textarea',
-            keepEventDefault: [ 'touchstart', 'touchend', 'mousedown', 'mouseup' ],
-            boxSizing: 'border-box',
-            html: "main page",
-            onKey() { this.setTarget('html', this.$dom.value()); },
-            onResize: [ "width", "height" ]
-        };        
-    },
-    mainPage() {
-        return {
-            ...this.val('page'),
-            background: "#e6f6fb",
-            html: 'main page'
-        };
-    },
-    page1() {
-        return {
-            ...this.val('page'),
-            background: "#C2FC61",
-            html: 'page1'
-        };        
-    },
-    page2() {
-        return {
-            ...this.val('page'),
-            background: "#B388FF",
-            html: 'page2'
-        };         
-    },    
-    children() {
-        const pageName = window.location.pathname.split("/").pop();
-        switch (pageName) {
-          case "page1":
-            return [ this.val('menubar'), this.val('page1')];
-          case "page2":
-            return [ this.val('menubar'), this.val('page2')];
-          default:
-            return [ this.val('menubar'), this.val('mainPage') ];
-        }
-    },
-    onResize: ["width", "height"]
+            lineHeight: 50,
+            itemOverflowMode: 'never',
+            opacity: 0.5,
+            cursor: 'pointer',
+            html: menu,
+            onEnter: function() {
+              this.setTarget('opacity', 1, 20);
+            },
+            onLeave: function() {
+              this.setTarget('opacity', 0.5, 20);
+            },
+            onClick: function() {
+              this.setTarget('opacity', 0.5);
+              getPager().updateBrowserUrl(menu);
+              this.activateAncestorTarget('updateChildren');
+            }
+          };
+        });
+      },
+      height: 50,
+      width: function() { return getScreenWidth(); },
+      onResize: ['width']
+    };
+  },
+  page() {
+    return {
+      width: function() { return getScreenWidth(); },
+      height: function() { return getScreenHeight() - 50; },
+      baseElement: 'textarea',
+      keepEventDefault: ['touchstart', 'touchend', 'mousedown', 'mouseup'],
+      boxSizing: 'border-box',
+      html: 'main page',
+      onKey() {
+        this.setTarget('html', this.$dom.value());
+      }
+    };
+  },
+  mainpage() {
+    return Object.assign({}, this.val('page'), {
+      background: '#e6f6fb',
+      html: 'main page'
+    });
+  },
+  page1() {
+    return Object.assign({}, this.val('page'), {
+      background: '#C2FC61',
+      html: 'page1'
+    });
+  },
+  page2() {
+    return Object.assign({}, this.val('page'), {
+      background: '#B388FF',
+      html: 'page2'
+    });
+  },
+  updateChildren() {
+    const pageName = window.location.pathname.split('/').pop(); 
+      
+    if (this.hasChildren()) {
+        this.removeChild(this.getLastChild());
+    } else {
+        this.addChild(this.val('menubar'));
+    }
+    this.addChild(this.val(pageName) ||  this.val('mainpage'));
+  }  
 });
+```
+
+Or in HTML:
+
+```HTML
+<div
+  tg-domHolder="true"
+  tg-width="return TargetJS.getScreenWidth();"
+  tg-height="return TargetJS.getScreenHeight();"
+  tg-menubar="function() {
+    return {
+      children: function() {
+        return ['home', 'page1', 'page2'].map(function(menu) {
+          return {
+            background: '#fce961',
+            width: 100,
+            height: 50,
+            lineHeight: 50,
+            itemOverflowMode: 'never',
+            opacity: 0.5,
+            cursor: 'pointer',
+            html: menu,
+            onEnter: function() {
+              this.setTarget('opacity', 1, 20);
+            },
+            onLeave: function() {
+              this.setTarget('opacity', 0.5, 20);
+            },
+            onClick: function() {
+              this.setTarget('opacity', 0.5);
+              TargetJS.getPager().updateBrowserUrl(menu);
+              this.activateAncestorTarget('update-children');
+            }
+          };
+        });
+      },
+      height: 50,
+      width: function() { return TargetJS.getScreenWidth(); },
+      onResize: ['width']
+    };
+  }"
+  tg-page="
+    return {
+      width: function() { return TargetJS.getScreenWidth(); },
+      height: function() { return TargetJS.getScreenHeight() - 50; },
+      baseElement: 'textarea',
+      keepEventDefault: ['touchstart', 'touchend', 'mousedown', 'mouseup'],
+      boxSizing: 'border-box',
+      html: 'main page',
+      onKey: function() {
+        this.setTarget('html', this.$dom.value());
+      },
+      onResize: ['width', 'height']
+    };"
+  tg-mainpage="function() {
+    return Object.assign({}, this.val('page'), {
+      background: '#e6f6fb',
+      html: 'main page'
+    });
+  }"
+  tg-page1="function() {
+    return Object.assign({}, this.val('page'), {
+      background: '#C2FC61',
+      html: 'page1'
+    });
+  }"
+  tg-page2="function() {
+    return Object.assign({}, this.val('page'), {
+      background: '#B388FF',
+      html: 'page2'
+    });
+  }"
+  tg-test="function() { console.log('test'); }"
+  tg-update-children="function() {
+    const pageName = window.location.pathname.split('/').pop();       
+  
+    if (this.hasChildren()) {
+        this.removeChild(this.getLastChild());
+    } else {
+        this.addChild(this.val('menubar'));
+    }
+    this.addChild(this.val(pageName) ||  this.val('mainpage'));
+  }"
+></div>
 ```
 
 ## Using TargetJS as a Library Example
