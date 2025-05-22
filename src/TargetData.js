@@ -306,10 +306,16 @@ class TargetData {
         textdecoration: 'textDecoration', 
         boxshadow: 'boxShadow', 
         fontweight: 'fontWeight',
-        willchange: 'willChange'        
-        
-        
-    }
+        willchange: 'willChange',
+        domholder: 'domHolder',
+        shouldcalculatechildtargets: 'shouldCalculateChildTargets',
+        coretargets: 'coreTargets',
+        domparent: 'domParent',
+        containeroverflowmode: 'containerOverflowMode',
+        itemoverflowmode: 'itemOverflowMode',
+        onvisiblechildrenchange: 'onVisibleChildrenChange',
+        onchildrenchange: 'onChildrenChange'   
+    };
     
     static targetToEventsMapping = {
         onStart: [ 'touchStart', 'mouseStart' ],

@@ -125,6 +125,10 @@ class TModel extends BaseModel {
     }
   
     removeChild(child) {
+        if (!child) {
+            return;
+        }
+            
         this.deletedChildren.push(child);   
         this.removeFromUpdatingChildren(child);           
         this.childrenUpdateFlag = true;

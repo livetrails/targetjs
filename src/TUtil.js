@@ -155,7 +155,7 @@ class TUtil {
                 elementToModel.set(element, newModel);
             }
         }
-
+        
         for (const value of elementToModel.values()) {
             const parentEl = value.$dom.element.parentElement;
             const parentModel = elementToModel.get(parentEl);
@@ -169,10 +169,11 @@ class TUtil {
                 value.isVisible = function() { return this.getParent().isVisible(); };
                 value.domParent = function() { return this.getParent(); };                  
             } else {
-                value.isVisible = true;                
+                value.isVisible = true;  
+                value.sourceDom = true;
                 tRoot().addChild(value);
             }
-        }        
+        } 
     }
     
     static getChildrenKey(obj) {

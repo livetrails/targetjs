@@ -30,24 +30,23 @@ class PageManager {
             App.oids = {};
             tApp.pageIsEmpty = true;
             this.lastLink = link;
-            
+                        
             tApp.start();
-            
         } else {
             tApp.tRoot = this.pageCache[link].tRoot;
             App.oids = this.pageCache[link].oids;
             
             tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
             tApp.tRoot.$dom.innerHTML(this.pageCache[link].html);
-                        
+   
             TUtil.initCacheDoms(this.pageCache[link].visibleList);
             this.pageCache[link].visibleList.forEach(tmodel => {
                 tmodel.visibilityStatus = undefined;
             });
-                    
+
             tApp.manager.lists.visible = [...this.pageCache[link].visibleList];
-            this.lastLink = link;
-            tApp.start();
+            this.lastLink = link;           
+            tApp.start();        
         }
     }
 
@@ -71,13 +70,13 @@ class PageManager {
 
     openLink(link, updateHistory = true) {    
         link = TUtil.getFullLink(link);
-
+        
         if (this.lastLink) {
             tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
             const html = tApp.tRoot.$dom.innerHTML();
             
-            this.onPageClose();        
-                                                
+            this.onPageClose();
+                              
             this.pageCache[this.lastLink] = {
                 link: this.lastLink,
                 html: html,
@@ -90,29 +89,29 @@ class PageManager {
         if (updateHistory) {
             history.pushState({ link }, "", link);
         }
-
+        
         this.openPage(link);
-
+                
         getRunScheduler().schedule(0, "pagemanager-processOpenLink");
     }
 
-    updateBrowserUrl(link) {
-        const currentState = window.history.state;
+    updateBrowserUrl(link, updateHistory) {
         
-        if (!currentState.browserUrl) {
-            tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
-            this.pageCache[document.URL] = {
-                link: document.URL,
-                html: tApp.tRoot.$dom.innerHTML(),
-                oids: { ...App.oids },
-                visibleList: [...tApp.manager.lists.visible],
-                tRoot: tApp.tRoot
-            };
+        tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
+        this.pageCache[document.URL] = {
+            link: document.URL,
+            html: tApp.tRoot.$dom.innerHTML(),
+            oids: { ...App.oids },
+            visibleList: [...tApp.manager.lists.visible],
+            tRoot: tApp.tRoot
+        };
+        
+        if (updateHistory) {  
             history.pushState({ browserUrl: link }, "", link);
         } else {
             history.replaceState({ browserUrl: link }, "", link);
         }
-
+        
         getRunScheduler().schedule(0, "pagemanager-processUpdateBrowserUrl");
     }
 

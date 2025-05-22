@@ -266,7 +266,7 @@ class EventListener {
 
         const { type: originalName, target: eventTarget } = event; 
         const eventItem = this.allEvents[originalName];
-                                 
+                        
         if (!eventItem) {
             return;
         }

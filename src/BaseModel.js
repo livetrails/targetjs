@@ -4,6 +4,7 @@ import { TUtil } from "./TUtil.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
+import { SearchUtil } from "./SearchUtil.js";
 import { $Dom } from "./$Dom.js";
 
 /**
@@ -93,7 +94,7 @@ class BaseModel {
             });
         } else if (domExists && !TUtil.isDefined(this.targets['reuseDomDefinition'])) {
             this.targets['reuseDomDefinition'] = true;
-            if (!TUtil.isDefined('excludeXYCalc')) {
+            if (!TUtil.isDefined(this.targets['excludeXYCalc'])) {
                 this.targets['excludeXYCalc'] = true;                
             } 
             if (!TUtil.isDefined(this.targets['x'])) {
@@ -731,11 +732,15 @@ class BaseModel {
                 this.updateTargetStatus(key);
             } else {
                 this.addToActiveTargets(key);
-            }            
+            }           
             this.activate(key);            
         }
 
         return this;
+    }
+    
+    activateAncestorTarget(key) {
+        SearchUtil.findParentByTarget(this, key)?.activateTarget(key);
     }
     
     manageChildTargetExecution(child, shouldCalculateChildTargets) {

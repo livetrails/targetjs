@@ -73,6 +73,9 @@ const AppFn = () => {
            
             if (my.tRoot) {
                 my.tRoot.getChildren().forEach(t => {
+                    if (t.val('sourceDom')) {
+                        return;
+                    }
                     const child = new TModel(t.type, t.targets);
                     tmodel.addChild(child);
                 });
