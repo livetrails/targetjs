@@ -88,7 +88,7 @@ In this example, we load two separate users and display two purple boxes, each c
 
 - `fetch` calls two APIs to retrieve details for two users.
 - `children` is a special target that adds new items to the parent each time it executes. Since the target name is prefixed with _, it is inactive by default. Because it ends with $, it executes every time an API call returns a result.
-TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, `children` will not execute until the result for user0 has been received.
+- TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, `children` will not execute until the result for user0 has been received.
   
 ![first example](https://targetjs.io/img/quick3_1.gif)
 
