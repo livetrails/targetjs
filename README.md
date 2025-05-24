@@ -145,10 +145,37 @@ Or in HTML:
 
 ## **📦 Installation**
 
-Install TargetJS via npm (note that there is no 's' at the end):
+**Via CDN**
+
+Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 44KB compressed):
+
+```bash
+<script src="https://ltstaticfiles.s3.us-east-1.amazonaws.com/targetjs.js"></script>
+```
+
+This will add `TargetJS` to the global `window` object, making it accessible throughout your JavaScript such as `TargetJS.App(YourApp)`.
+You can also use it directly in your HTML with custom attributes:
+
+```html
+<div
+   tg-background="red"
+   tg-width="[100, 50, 10]"
+   tg-height="[100, 50, 10]">
+</div>
+```
+
+**Via package manager**
+
+Install TargetJS via npm (note: there's no "s" at the end):
 
 ```bash
 npm install targetj
+```
+
+Then import it into your JavaScript code:
+
+```bash
+import { App } from "targetj";
 ```
 
 ## Key Features and Concepts
