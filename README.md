@@ -31,7 +31,7 @@ TargetJS addresses several common pain points in front-end development:
 
 ![first example](https://targetjs.io/img/quick1_3.gif)
 
-```bash
+```javascript
 import { App } from "targetj";
 
 App({
@@ -62,7 +62,7 @@ In this example, we load one user and display its name.
 
 ![first example](https://targetjs.io/img/quick2_4.gif)
 
-```bash
+```javascript
 import { App } from "targetj";
 
 App({
@@ -92,7 +92,7 @@ In this example, we load two separate users and display two purple boxes, each c
   
 ![first example](https://targetjs.io/img/quick3_1.gif)
 
-```bash
+```javascript
 import { App, fetch } from "targetj";
 
 App({
@@ -174,7 +174,7 @@ npm install targetj
 
 Then import it into your JavaScript code:
 
-```bash
+```javascript
 import { App } from "targetj";
 ```
 
@@ -332,7 +332,7 @@ You can view a live example here: https://targetjs.io/examples/overview.html.
 
 **Object**
 
-```bash
+```javascript
 import { App } from "targetj";
 
 App({
@@ -356,7 +356,7 @@ App({
 ```
 **Array**
 
-```bash
+```javascript
 import { App } from "targetj";
 
 App({
@@ -368,7 +368,7 @@ App({
 ```
 **Imperative** (more in the next example)
 
-```bash
+```javascript
 import { App } from "targetj";
 
 App({
@@ -382,7 +382,7 @@ App({
 ```
 **Imperative Multi-Targets**
 
-```bash
+```javascript
 import { App } from "targetj";
 
 App({
@@ -424,7 +424,7 @@ introducing a 1-second pause. After that, `repeat` is executed, reactivating the
 
 ![declarative example](https://targetjs.io/img/declarative3.gif)
 
-```bash
+```javascript
 import { App, getScreenWidth, getScreenHeight } from "targetj";
 
 App({
@@ -505,7 +505,7 @@ If you inspect the HTML elements in the browser's developer tools, you'll notice
 
 ![Single page app](https://targetjs.io/img/infiniteScrolling11.gif)
 
-```bash
+```javascript
 import { App, getEvents, fetch, getScreenWidth, getScreenHeight } from "targetj";
 
 App({
@@ -601,7 +601,7 @@ You can now assemble your app by incorporating code segments from the examples o
 
 ![Single page app](https://targetjs.io/img/singlePage2.gif)
 
-```bash
+```javascript
 import { App, getScreenHeight, getScreenWidth, getEvents, getPager } from "targetj";
 
 App({
@@ -776,7 +776,7 @@ The `rectTop`, `absY`, and `onWindowScroll` targets are used to track the visibl
 
 ![animation api example](https://targetjs.io/img/targetjsAsLibrary.gif) 
 
-```bash
+```javascript
 import { App, $Dom } from "targetj";
 
 App({
