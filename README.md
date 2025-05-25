@@ -228,7 +228,7 @@ TargetJS utilizes literal JavaScript objects or HTML elements for target definit
 - Execute targets sequentially and predictably in the order they are written leveraging ES2015's guaranteed property order.
 - Enable reactive pipelines between adjacent targets.
 - Add lifecycles to targets enabling them to behave like living, responsive cells.
-- 
+  
 ## Anatomy of a Target
 
 Each target consists of the following:
