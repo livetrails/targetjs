@@ -5,7 +5,7 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework that simplifies front-end development. It introduces a unique paradigm: leveraging literal objects or HTML elements and extending their capabilities with built-in lifecycles and functional pipelines. The framework provides a unified solution for key aspects like UI rendering, animations, API interactions, state management, and event handling. This integrated approach leads to more compact code and allows for a stronger focus on user experience. TargetJS also supports backend generation of its specific HTML elements. 
+TargetJS is a modern JavaScript UI framework that simplifies front-end development. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to more compact code and allows for a stronger focus on user experience.
 Furthermore, it is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 ## What Problems Does TargetJS Solve?
 
@@ -27,7 +27,7 @@ TargetJS addresses several common pain points in front-end development:
 - Targets run initially in the order they appear in the code, so `background` runs first, followed by `width`. The `_` prefix indicates that a target is inactive by default, meaning `height` does not run initially.
 - `background` sets the background to purple, and its lifecycle ends.
 - `width` animates from 100 → 250 → 100px, in 50 steps with 10ms pauses.
-- `height` follows `width` and scales dynamically with its value. The `$` postfix creates a functional pipeline where the target is triggered each time the preceding target runs. `prevTargetValue` refers to the previous target's value, which in this case is `width`.
+- `height` follows `width` and scales dynamically with its value. The `$` postfix creates a reactive pipeline where the target is triggered each time the preceding target runs. `prevTargetValue` refers to the previous target's value, which in this case is `width`.
 
 ![first example](https://targetjs.io/img/quick1_3.gif)
 
@@ -224,13 +224,11 @@ import { App } from "targetj";
 
 TargetJS utilizes literal JavaScript objects or HTML elements for target definitions, providing a compact and readable format. The core principles are:
 
-- Provide an internal wrapper (called "targets") for both properties and methods of the literal object.
-- Execute targets sequentially, in the order they are written leveraging ES2015's guaranteed property order.
-- Enable functional pipelines between adjacent targets.
-- Add lifecycles, looping, and timing to targets, enabling them to execute or re-execute based on conditions or time.
-
-That's the basic idea. Learn more [here](https://dev.to/ahmad_wasfi_f88513699c56d/targetjs-rethinking-ui-with-declarative-synchronous-pipelines-5bbi).
-
+- Properties and methods are unified via an internal wrapper called "targets."
+- Execute targets sequentially and predictably in the order they are written leveraging ES2015's guaranteed property order.
+- Enable reactive pipelines between adjacent targets.
+- Add lifecycles to targets enabling them to behave like living, responsive cells.
+- 
 ## Anatomy of a Target
 
 Each target consists of the following:
