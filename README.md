@@ -149,7 +149,7 @@ Or in HTML:
 
 Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 44KB compressed):
 
-```bash
+```html
 <script src="https://ltstaticfiles.s3.us-east-1.amazonaws.com/targetjs.js"></script>
 ```
 
