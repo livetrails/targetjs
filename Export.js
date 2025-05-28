@@ -6,6 +6,7 @@ export * from "./build/TargetData.js";
 export * from "./build/TargetUtil.js";
 export * from "./build/TModelUtil.js";
 export * from "./build/TUtil.js";
+export * from "./build/DomInit.js"
 export * from "./build/$Dom.js";
 export * from "./build/Bracket.js";
 export * from "./build/BracketGenerator.js";
@@ -21,6 +22,7 @@ import * as TargetData from './build/TargetData.js';
 import * as TargetUtil from './build/TargetUtil.js';
 import * as TModelUtil from './build/TModelUtil.js';
 import * as TUtil from './build/TUtil.js';
+import * as DomInit from './build/DomInit.js';
 import * as Dom from './build/$Dom.js';
 import * as Bracket from './build/Bracket.js';
 import * as BracketGenerator from './build/BracketGenerator.js';
@@ -37,6 +39,7 @@ const TargetJS = {
   ...TargetUtil,
   ...TModelUtil,
   ...TUtil,
+  ...DomInit,
   ...Dom,
   ...Bracket,
   ...BracketGenerator,

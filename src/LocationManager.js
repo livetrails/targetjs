@@ -122,11 +122,8 @@ class LocationManager {
             this.locationListStats.push(child.oid);
             
             viewport.setCurrentChild(child);
+            viewport.setLocation(); 
 
-            if (!child.targets['excludeXYCalc']) {
-                viewport.setLocation(); 
-            }
-            
             if (child.isIncluded() && container.manageChildTargetExecution(child, shouldCalculateChildTargets)) {
                 this.calculateTargets(child);
             }
@@ -134,7 +131,7 @@ class LocationManager {
             if (container.getContainerOverflowMode() === 'always' 
                     || (container.getContainerOverflowMode() === 'auto' && child.getItemOverflowMode() === 'auto' && viewport.isOverflow())) {
                 viewport.overflow();
-                viewport.setLocation();  
+                viewport.setLocation();
             }
             
             if (child.isIncluded()) {  
@@ -191,12 +188,12 @@ class LocationManager {
                 this.calculateContainer(child, shouldCalculateChildTargets && container.shouldCalculateChildTargets() !== false);
             }
             
-            if (!child.isTargetImperative('height') && !TUtil.isDefined(child.targets.height) && !TUtil.isDefined(child.targets.heightFromDom) && child.getContentHeight() > 0) {
+            if (!child.isTargetImperative('height') && !TModelUtil.isHeightDefined(child) && !TUtil.isDefined(child.targets.heightFromDom) && child.getContentHeight() > 0) {
                 child.val('height', child.getContentHeight());
                 child.addToStyleTargetList('height');
             }
 
-            if (!child.isTargetImperative('width') && !TUtil.isDefined(child.targets.width) && !TUtil.isDefined(child.targets.widthFromDom) && child.getContentWidth() > 0) {
+            if (!child.isTargetImperative('width') && !TModelUtil.isWidthDefined(child) && !TUtil.isDefined(child.targets.widthFromDom) && child.getContentWidth() > 0) {
                 child.val('width', child.getContentWidth());
                 child.addToStyleTargetList('width');
             }               
@@ -228,16 +225,21 @@ class LocationManager {
         tApp.targetManager.applyTargetValues(tmodel);        
         tApp.targetManager.setActualValues(tmodel);
 
-        if (tmodel.hasDom()) {
-            if (TModelUtil.shouldMeasureWidthFromDom(tmodel)) {
+
+        if (TModelUtil.shouldMeasureWidthFromDom(tmodel)) {
+            if (tmodel.hasDom()) {
                 TModelUtil.setWidthFromDom(tmodel);
+            } else {           
+                tmodel.addToActiveTargets('width'); 
             }
         }
         
-        if (tmodel.hasDom()) {
-            if (TModelUtil.shouldMeasureHeightFromDom(tmodel)) {
+        if (TModelUtil.shouldMeasureHeightFromDom(tmodel)) {
+            if (tmodel.hasDom()) {
                 TModelUtil.setHeightFromDom(tmodel);
-            }           
+            } else {    
+                tmodel.addToActiveTargets('height'); 
+            }
         }        
         
         tmodel.isNowVisible = false;

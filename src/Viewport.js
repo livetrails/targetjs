@@ -29,8 +29,10 @@ class Viewport {
     }
 
     setLocation() {
-        this.currentChild.x = this.xNext + this.currentChild.getLeftMargin();
-        this.currentChild.y = this.yNext + this.currentChild.getTopMargin();
+        if (!this.currentChild.targets['excludeXYCalc']) {
+            this.currentChild.x = this.xNext + this.currentChild.getLeftMargin();
+            this.currentChild.y = this.yNext + this.currentChild.getTopMargin();
+        }
     }
     
     isOverflow() {

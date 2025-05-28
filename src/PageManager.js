@@ -1,5 +1,6 @@
 import { TUtil } from "./TUtil.js";
 import { tApp, App, getRunScheduler, getLocationManager, getEvents } from "./App.js";
+import { DomInit } from "./DomInit.js";
 import { $Dom } from "./$Dom.js";
 
 /**
@@ -15,7 +16,7 @@ class PageManager {
     initPage(html) {
         tApp.tRoot.$dom.outerHTML(html);
         tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
-        TUtil.initPageDoms(tApp.tRoot.$dom);
+        DomInit.initPageDoms(tApp.tRoot.$dom);
     }
 
     async openPage(link) {        
@@ -39,7 +40,7 @@ class PageManager {
             tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
             tApp.tRoot.$dom.innerHTML(this.pageCache[link].html);
    
-            TUtil.initCacheDoms(this.pageCache[link].visibleList);
+            DomInit.initCacheDoms(this.pageCache[link].visibleList);
             this.pageCache[link].visibleList.forEach(tmodel => {
                 tmodel.visibilityStatus = undefined;
             });

@@ -210,7 +210,7 @@ class BaseModel {
         if (!enforce && (this.excludeStyling() || this.targets[`exclude${TUtil.capitalizeFirstLetter(key)}`])) {
             return;
         }
-        
+               
         const isAsyncStyleTarget = TargetData.asyncStyleTargetMap[key];
         const isAttributeTarget = TargetData.attributeTargetMap[key];
 

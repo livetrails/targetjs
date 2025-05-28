@@ -1,6 +1,6 @@
 {
   "name": "targetj",
-  "version": "1.0.169",
+  "version": "1.0.170",
   "description": "TargetJS is a JavaScript framework designed for creating animated and efficient web user interfaces.",
   "keywords": ["targetjs"],
   "main": "Export.js",
@@ -19,7 +19,7 @@
     }
   ],
   "scripts": {
-    "prod": "webpack --mode production",
+    "prod": "webpack --mode production && gzip -kf ./dist/targetjs.js",
     "dev": "webpack --mode development",
     "build": "babel src --out-dir build"
   },

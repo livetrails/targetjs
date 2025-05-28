@@ -64,14 +64,22 @@ class TModelUtil {
     }
    
     static shouldMeasureHeightFromDom(tmodel) {
-        return (!tmodel.excludeDefaultStyling() && !TUtil.isDefined(tmodel.targetValues.height) && !TUtil.isDefined(tmodel.targets.height) && !tmodel.hasChildren()) 
+        return (!tmodel.excludeDefaultStyling() && !TUtil.isDefined(tmodel.targetValues.height) && !TModelUtil.isHeightDefined(tmodel) && !tmodel.hasChildren()) 
             || !!tmodel.getTargetValue('heightFromDom');   
     }
     
     static shouldMeasureWidthFromDom(tmodel) {
-        return (!tmodel.excludeDefaultStyling() && !tmodel.reuseDomDefinition() && !TUtil.isDefined(tmodel.targetValues.width) && !TUtil.isDefined(tmodel.targets.width) && !tmodel.hasChildren()) 
+        return (!tmodel.excludeDefaultStyling() && !tmodel.reuseDomDefinition() && !TUtil.isDefined(tmodel.targetValues.width) && !TModelUtil.isWidthDefined(tmodel) && !tmodel.hasChildren()) 
             || !!tmodel.getTargetValue('widthFromDom');   
     } 
+    
+    static isHeightDefined(tmodel) {
+        return TUtil.isDefined(tmodel.targets.height) || TUtil.isDefined(tmodel.targets.style?.height);
+    }
+    
+    static isWidthDefined(tmodel) {
+        return TUtil.isDefined(tmodel.targets.width) || TUtil.isDefined(tmodel.targets.style?.width);
+    }      
 
     static createDom(tmodel) {
         tmodel.$dom = new $Dom();
@@ -177,7 +185,7 @@ class TModelUtil {
             if (width > 0 || (width === 0 && child.lastVal('width') > 0)) {
                 child.addToStyleTargetList('width');              
             }
-            getRunScheduler().schedule(15, 'resize');           
+            getRunScheduler().schedule(15, 'resize');            
         }
     }
     
@@ -234,7 +242,14 @@ class TModelUtil {
             if (key === 'style') {
                 const style = tmodel.getStyle();
                 if (TUtil.isDefined(style) && tmodel.styleMap.style !== style) {
-                    tmodel.$dom.setStyleByMap(tmodel.getStyle());
+                    tmodel.$dom.setStyleByMap(style);
+                    if (style.height) {
+                        tmodel.val('height', parseInt(style.height, 10));
+                    }
+                    if (style.width) {
+                        tmodel.val('width', parseInt(style.width, 10));
+                    }
+
                     tmodel.styleMap.style = style;
                 }
             } else if (key === 'attributes') {

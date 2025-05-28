@@ -10,6 +10,7 @@ import { RunScheduler } from "./RunScheduler.js";
 import { TargetManager } from "./TargetManager.js";
 import { TargetExecutor } from "./TargetExecutor.js";
 import { TUtil } from "./TUtil.js";
+import { DomInit } from "./DomInit.js";
 import { SearchUtil } from "./SearchUtil.js";
 
 let tApp;
@@ -47,29 +48,29 @@ const AppFn = () => {
                 styling: false,
                 domHolder: true,
                 isVisible: true,
-                width() {
+                screenWidth() {
                     const width = $Dom.getScreenWidth();
-                    if (width !== tmodel.val('width')) {
+                    if (width !== tmodel.val('screenWidth')) {
                         my.resizeLastUpdate = TUtil.now();     
                     }
                     return width;
                 },
-                height() {
+                screenHeight() {
                     const height = $Dom.getScreenHeight();
-                    if (height !== tmodel.val('height')) {
+                    if (height !== tmodel.val('screenHeight')) {
                         my.resizeLastUpdate = TUtil.now();     
                     }
                     return height;
                 },
                 initPageDom() {
-                    TUtil.initPageDoms(this.$dom);                    
+                    DomInit.initPageDoms(this.$dom);                    
                 }
             });
             
             tmodel.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
 
-            tmodel.val('width', $Dom.getScreenWidth());                
-            tmodel.val('height', $Dom.getScreenHeight());            
+            tmodel.val('screenWidth', $Dom.getScreenWidth());                
+            tmodel.val('screenHeight', $Dom.getScreenHeight());            
            
             if (my.tRoot) {
                 my.tRoot.getChildren().forEach(t => {
@@ -94,8 +95,8 @@ const AppFn = () => {
     my.start = async function() {
         my.runningFlag = false;
                 
-        TargetExecutor.executeDeclarativeTarget(my.tRoot, 'width');
-        TargetExecutor.executeDeclarativeTarget(my.tRoot, 'height');
+        TargetExecutor.executeDeclarativeTarget(my.tRoot, 'screenWidth');
+        TargetExecutor.executeDeclarativeTarget(my.tRoot, 'screenHeight');
         
         my.events.detachAll();        
         my.events.detachWindowEvents();
@@ -185,8 +186,8 @@ const getManager = () => tApp?.manager;
 const getRunScheduler = () => tApp?.runScheduler;
 const getLocationManager = () => tApp?.locationManager;
 const getBrowser = () => tApp?.browser;
-const getScreenWidth = () => tApp?.tRoot?.getWidth() ?? 0;
-const getScreenHeight = () => tApp?.tRoot?.getHeight() ?? 0;
+const getScreenWidth = () => tApp?.tRoot?.val('screenWidth') ?? 0;
+const getScreenHeight = () => tApp?.tRoot?.val('screenHeight') ?? 0;
 const getVisibles = () => tApp?.manager?.lists.visible;
 const getResizeLastUpdate = () => tApp?.resizeLastUpdate;
 

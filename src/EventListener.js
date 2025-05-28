@@ -331,7 +331,7 @@ class EventListener {
                 
                 this.findEventHandlers(newEvent); 
                 this.canFindHandlers = false;
-
+               
                 this.swipeStartX = this.start0.x - this.currentHandlers.swipe?.getX();
                 this.swipeStartY = this.start0.y - this.currentHandlers.swipe?.getY();
                 
@@ -443,8 +443,8 @@ class EventListener {
     }
     
     resizeRoot() {
-        TargetExecutor.executeDeclarativeTarget(tRoot(), 'width');
-        TargetExecutor.executeDeclarativeTarget(tRoot(), 'height');
+        TargetExecutor.executeDeclarativeTarget(tRoot(), 'screenWidth');
+        TargetExecutor.executeDeclarativeTarget(tRoot(), 'screenHeight');
     }
 
     preventDefault(tmodel, eventName) {
