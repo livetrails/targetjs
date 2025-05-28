@@ -5,96 +5,39 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework that simplifies front-end development. It introduces a unique paradigm: leveraging literal objects or HTML elements and extending their capabilities with built-in lifecycles and functional pipelines. The framework provides a unified solution for key aspects like UI rendering, animations, API interactions, state management, and event handling. This integrated approach leads to more compact code and allows for a stronger focus on user experience. TargetJS also supports backend generation of its specific HTML elements. 
+TargetJS is a modern JavaScript UI framework that simplifies front-end development. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to more compact code and allows for a stronger focus on user experience.
 Furthermore, it is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 ## What Problems Does TargetJS Solve?
 
 TargetJS addresses several common pain points in front-end development:
 
-1.  **Complexity of Asynchronous Operations:**  Traditional JavaScript often involves complex handling of asynchronous operations (Promises, callbacks, `async/await`). TargetJS addresses this by providing a structured, synchronous, and predictable execution flow, allowing developers to avoid asynchronous operations altogether.
-2.  **Scattered State Management:** Many frameworks require separate libraries or complex patterns for state management. In TargetJS, state management is inherently handled through its core concept of Targets, eliminating the need for direct state management.
-3.  **Boilerplate and Verbosity:** TargetJS aims to reduce boilerplate code. The code is compact and follows a predictable execution flow. Method calls are not allowed, and loops and conditional statements are rarely needed.
-4.  **Rigid Static Layer of HTML:** Many frameworks use HTML as the primary medium for generating the user interface. TargetJS minimizes reliance on traditional HTML and CSS, allowing JavaScript to be the primary player, resulting in a better and more dynamic user experience.
-5.  **Disjointed Development Workflow:**  Developers often juggle multiple tools and concepts (UI libraries, animation libraries, state managers, event handlers). TargetJS provides a *unified* solution, simplifying the learning curve and development process.
-6.  **Difficult Animation Control:**  TargetJS makes animations first-class citizens. It also provides fine-grained control without requiring external libraries.
-7.  **Complicated execution flow:** Other frameworks are based on reactive model which often lead to unpredictable execution flow while TargetJS execution is based on the order targets are written.
+1.  **Scattered State Management:** Many frameworks require separate libraries or complex patterns for state management. In TargetJS, state management is inherently handled through its core concept of unifying both methods and variables eliminating the need for direct state management.
+2.  **Complexity of Asynchronous Operations:**  Traditional JavaScript often involves complex handling of asynchronous operations (Promises, callbacks, `async/await`). TargetJS addresses this by providing a structured synchronous execution avoiding asynchronous operations altogether.
+3.  **Disjointed Development Workflow:**  Developers often juggle multiple tools and concepts (UI libraries, animation libraries, state managers, event handlers). TargetJS provides a unified solution simplifying the learning curve and development process.
+4.  **Rigid Static Layer of HTML:** Many frameworks use HTML as the primary medium for generating the user interface. TargetJS makes JavaScript the primary driver, either by running directly or through a handful of HTML elements extended with superpowers.  
+5.  **Boilerplate and Verbosity:** TargetJS aims to reduce boilerplate code. The code is compact and follows a predictable execution flow. Direct method calls are not allowed, and loops and conditional statements are rarely needed.
+6.  **Difficult Animation Control:**  TargetJS makes animations first-class citizens with fine-grained control.
+7.  **Complicated execution flow:** Other frameworks are based on reactive model which often lead to unpredictable execution flow while TargetJS execution flow follows the order the code is written.
 8.  **Performance Bottlenecks with Large Lists:** TargetJS optimizes rendering for large lists by using a tree structure that renders only the visible branches.
 
-## Table of Contents
-
-1. [Installation](#installation)
-2. [Key Features and Concepts](#key-features-and-concepts)
-5. Examples:
-   - [Quick Example: Growing and Shrinking Box](#quick-example-growing-and-shrinking-box)   
-   - [Simple Loading API Example](#simple-loading-api-example)
-   - [Loading Two Users Example](#loading-two-users-example)
-6. [Comparison with Other UI Frameworks](#comparison-with-other-ui-frameworks)
-7. [The Core of TargetJS](#the-core-of-targetjs)
-8. [Anatomy of a Target](#anatomy-of-a-target)
-9. [Target Methods](#target-methods)
-10. [Target Variables](#target-variables)
-11. More Examples:
-    - [Basic Example](#basic-example)
-    - [Declarative and Imperative Targets Example](#declarative-and-imperative-targets-example)
-    - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
-    - [Simple SPA Example](#simple-spa-example)
-    - [Using TargetJS as a Library Example](#using-targetjs-as-a-library-example) 
-12. [Special Target Names](#special-target-names)
-13. [How to Debug in TargetJS](#how-to-debug-in-targetjs)
-14. [Documentation](#documentation)
-15. [License](#license)
-16. [Contact](#contact)
-17. [Call to Action](#call-to-action)
-
-## **📦 Installation**
-
-Install TargetJS via npm (note that there is no 's' at the end):
-
-```bash
-npm install targetj
-```
-
-## Key Features and Concepts
-
-*   **Targets:** The fundamental building blocks of TargetJS. Targets provide a unified interface for properties and methods with built-in lifecycles. They can:
-    *   Iterate towards values (useful for animations and transitions).
-    *   Execute conditionally.
-    *   Manage repeated executions.
-    *   Control execution timing (useful for UI operations and advanced animations).
-    *   Form synchronous execution pipelines (similar to assembling Lego).
-    *   Track the execution progress of other targets.
-    *   Declarative execution (execution follows the way the code is written).
-    *   Compact code (No unnecessary function calls, minimal if statements and loops).
-    *   Manage their own state.
-
-*   **Unified Approach:**  Targets handle UI updates, API calls, animations, state, and events, reducing the need to learn and integrate multiple libraries.
-
-*  **Unique computational paradigm:** TargetJS introduces a novel computational model by integrating multiple paradigms: Turing Completeness, the Von Neumann Execution Model, and Functional Programming. This results in:
-
-   * Deterministic Execution Flow: Targets execute based on their activation order, initially following their order in the code. They run in sequence as part of the framework execution cycle. Everything in TargetJS is synchronous, and targets cannot be called directly.
-   * Powerful Functional Pipeline: Targets can be structured as a functional pipeline with enhanced capabilities.
-
-*   **Easy Integration:** Can be used as a library within existing projects.
-
 ## Examples
-
 ### Quick Example: Growing and Shrinking Box
 
 💡 What's happening here?
 - Targets run initially in the order they appear in the code, so `background` runs first, followed by `width`. The `_` prefix indicates that a target is inactive by default, meaning `height` does not run initially.
 - `background` sets the background to purple, and its lifecycle ends.
 - `width` animates from 100 → 250 → 100px, in 50 steps with 10ms pauses.
-- `height` follows `width` and scales dynamically with its value. The `$` postfix means it is activated each time the preceding target executes. `prevTargetValue` refers to the previous target's value, which in this case is `width`.
+- `height` follows `width` and scales dynamically with its value. The `$` postfix creates a reactive pipeline where the target is triggered each time the preceding target runs. `prevTargetValue` refers to the previous target's value, which in this case is `width`.
 
 ![first example](https://targetjs.io/img/quick1_3.gif)
 
-```bash
+```javascript
 import { App } from "targetj";
 
 App({
     background: "mediumpurple",
-    width: [{ list: [100, 250, 100] }, 50, 10], // Target values, steps, interval
-    _height$() { // activated when width executes
+    width: [{ list: [100, 250, 100] }, 50, 10], //  width animates through 100 → 250 → 100, over 50 steps, 10ms interval
+    _height$() { // `$` creates a reactive pipeline: the `height` updates each time `width` executes
       return this.prevTargetValue / 2;
     } 
 });
@@ -119,7 +62,7 @@ In this example, we load one user and display its name.
 
 ![first example](https://targetjs.io/img/quick2_4.gif)
 
-```bash
+```javascript
 import { App } from "targetj";
 
 App({
@@ -145,11 +88,11 @@ In this example, we load two separate users and display two purple boxes, each c
 
 - `fetch` calls two APIs to retrieve details for two users.
 - `children` is a special target that adds new items to the parent each time it executes. Since the target name is prefixed with _, it is inactive by default. Because it ends with $, it executes every time an API call returns a result.
-TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, `children` will not execute until the result for user0 has been received.
+- TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, `children` will not execute until the result for user0 has been received.
   
 ![first example](https://targetjs.io/img/quick3_1.gif)
 
-```bash
+```javascript
 import { App, fetch } from "targetj";
 
 App({
@@ -178,6 +121,85 @@ Or in HTML:
     </div>
 ``` 
 
+## Table of Contents
+
+1. [Installation](#installation)
+2. [Key Features and Concepts](#key-features-and-concepts)
+6. [Comparison with Other UI Frameworks](#comparison-with-other-ui-frameworks)
+7. [The Core of TargetJS](#the-core-of-targetjs)
+8. [Anatomy of a Target](#anatomy-of-a-target)
+9. [Target Methods](#target-methods)
+10. [Target Variables](#target-variables)
+11. More Examples:
+    - [Basic Example](#basic-example)
+    - [Declarative and Imperative Targets Example](#declarative-and-imperative-targets-example)
+    - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
+    - [Simple SPA Example](#simple-spa-example)
+    - [Using TargetJS as a Library Example](#using-targetjs-as-a-library-example) 
+12. [Special Target Names](#special-target-names)
+13. [How to Debug in TargetJS](#how-to-debug-in-targetjs)
+14. [Documentation](#documentation)
+15. [License](#license)
+16. [Contact](#contact)
+17. [Call to Action](#call-to-action)
+
+## **📦 Installation**
+
+**Via CDN**
+
+Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 44KB compressed):
+
+```html
+<script src="https://ltstaticfiles.s3.us-east-1.amazonaws.com/targetjs.js"></script>
+```
+
+This will add `TargetJS` to the global `window` object, making it accessible throughout your JavaScript such as `TargetJS.App(YourApp)`.
+You can also use it directly in your HTML with custom attributes:
+
+```html
+<div
+   tg-background="red"
+   tg-width="[100, 50, 10]"
+   tg-height="[100, 50, 10]">
+</div>
+```
+
+**Via package manager**
+
+Install TargetJS via npm (note: there's no "s" at the end):
+
+```bash
+npm install targetj
+```
+
+Then import it into your JavaScript code:
+
+```javascript
+import { App } from "targetj";
+```
+
+## Key Features and Concepts
+
+*   **Targets:** The fundamental building blocks of TargetJS. Targets provide a unified interface for properties and methods with built-in lifecycles. They can:
+    *   Iterate towards values (useful for animations and transitions).
+    *   Execute conditionally.
+    *   Manage repeated executions.
+    *   Control execution timing (useful for UI operations and advanced animations).
+    *   Form synchronous execution pipelines (similar to assembling Lego).
+    *   Track the execution progress of other targets.
+    *   Declarative execution (execution follows the way the code is written).
+    *   Compact code (No unnecessary function calls, minimal if statements and loops).
+    *   Manage their own state.
+
+*   **Unified Approach:**  Targets handle UI updates, API calls, animations, state, and events, reducing the need to learn and integrate multiple libraries.
+
+*  **Unique computational paradigm:** TargetJS introduces a novel computational model by integrating multiple paradigms: Turing Completeness, the Von Neumann Execution Model, and Functional Programming. This results in:
+
+   * Deterministic Execution Flow: Targets execute based on their activation order, initially following their order in the code. They run in sequence as part of the framework execution cycle. Everything in TargetJS is synchronous, and targets cannot be called directly.
+   * Powerful Functional Pipeline: Targets can be structured as a functional pipeline with enhanced capabilities.
+
+*   **Easy Integration:** Can be used as a library within existing projects.
+
 ## Comparison with Other UI Frameworks  
 
 | Feature                               | TargetJS                                                              | Reactive Model Frameworks                                         |
@@ -202,13 +224,11 @@ Or in HTML:
 
 TargetJS utilizes literal JavaScript objects or HTML elements for target definitions, providing a compact and readable format. The core principles are:
 
-- Provide an internal wrapper (called "targets") for both properties and methods of the literal object.
-- Execute targets sequentially, in the order they are written leveraging ES2015's guaranteed property order.
-- Enable functional pipelines between adjacent targets.
-- Add lifecycles, looping, and timing to targets, enabling them to execute or re-execute based on conditions or time.
-
-That's the basic idea. Learn more [here](https://dev.to/ahmad_wasfi_f88513699c56d/targetjs-rethinking-ui-with-declarative-synchronous-pipelines-5bbi).
-
+- Properties and methods are unified via an internal wrapper called "targets."
+- Execute targets sequentially and predictably in the order they are written leveraging ES2015's guaranteed property order.
+- Enable reactive pipelines between adjacent targets.
+- Add lifecycles to targets enabling them to behave like living, responsive cells.
+  
 ## Anatomy of a Target
 
 Each target consists of the following:
@@ -312,7 +332,7 @@ You can view a live example here: https://targetjs.io/examples/overview.html.
 
 **Object**
 
-```bash
+```javascript
 import { App } from "targetj";
 
 App({
@@ -336,7 +356,7 @@ App({
 ```
 **Array**
 
-```bash
+```javascript
 import { App } from "targetj";
 
 App({
@@ -348,7 +368,7 @@ App({
 ```
 **Imperative** (more in the next example)
 
-```bash
+```javascript
 import { App } from "targetj";
 
 App({
@@ -362,7 +382,7 @@ App({
 ```
 **Imperative Multi-Targets**
 
-```bash
+```javascript
 import { App } from "targetj";
 
 App({
@@ -404,7 +424,7 @@ introducing a 1-second pause. After that, `repeat` is executed, reactivating the
 
 ![declarative example](https://targetjs.io/img/declarative3.gif)
 
-```bash
+```javascript
 import { App, getScreenWidth, getScreenHeight } from "targetj";
 
 App({
@@ -485,7 +505,7 @@ If you inspect the HTML elements in the browser's developer tools, you'll notice
 
 ![Single page app](https://targetjs.io/img/infiniteScrolling11.gif)
 
-```bash
+```javascript
 import { App, getEvents, fetch, getScreenWidth, getScreenHeight } from "targetj";
 
 App({
@@ -581,7 +601,7 @@ You can now assemble your app by incorporating code segments from the examples o
 
 ![Single page app](https://targetjs.io/img/singlePage2.gif)
 
-```bash
+```javascript
 import { App, getScreenHeight, getScreenWidth, getEvents, getPager } from "targetj";
 
 App({
@@ -756,7 +776,7 @@ The `rectTop`, `absY`, and `onWindowScroll` targets are used to track the visibl
 
 ![animation api example](https://targetjs.io/img/targetjsAsLibrary.gif) 
 
-```bash
+```javascript
 import { App, $Dom } from "targetj";
 
 App({
