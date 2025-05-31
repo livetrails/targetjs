@@ -14,6 +14,12 @@ import { DomInit } from "./DomInit.js";
 import { SearchUtil } from "./SearchUtil.js";
 
 let tApp;
+let queuedAppCall = null;
+
+document.addEventListener("DOMContentLoaded", () => {
+    tApp = AppFn();
+    tApp.init().start();    
+});
 
 const AppFn = () => {
     const my = {};
@@ -27,7 +33,7 @@ const AppFn = () => {
     my.init = function() {
         my.browser = new Browser();
         my.browser.setup();
-        
+
         my.$window = new $Dom(window);
         my.$window.addEvent("popstate", function(event) {
             if (event.state) {
@@ -42,7 +48,7 @@ const AppFn = () => {
         my.targetManager = new TargetManager();
         my.manager = new TModelManager();
         my.runScheduler = new RunScheduler();
-        
+
         my.tRootFactory = () => {
             const tmodel = new TModel('tRoot', {
                 styling: false,
@@ -63,15 +69,20 @@ const AppFn = () => {
                     return height;
                 },
                 initPageDom() {
-                    DomInit.initPageDoms(this.$dom);                    
+                    DomInit.initPageDoms(this.$dom); 
+                    
+                    if (queuedAppCall) {
+                        this.addChild(queuedAppCall);
+                        queuedAppCall = undefined;
+                    }
                 }
             });
-            
+
             tmodel.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
 
             tmodel.val('screenWidth', $Dom.getScreenWidth());                
             tmodel.val('screenHeight', $Dom.getScreenHeight());            
-           
+
             if (my.tRoot) {
                 my.tRoot.getChildren().forEach(t => {
                     if (t.val('sourceDom')) {
@@ -94,16 +105,16 @@ const AppFn = () => {
 
     my.start = async function() {
         my.runningFlag = false;
-                
+
         TargetExecutor.executeDeclarativeTarget(my.tRoot, 'screenWidth');
         TargetExecutor.executeDeclarativeTarget(my.tRoot, 'screenHeight');
-        
+
         my.events.detachAll();        
         my.events.detachWindowEvents();
         my.events.attachWindowEvents();
         my.events.clearAll();
         my.events.attachEvents(my.manager.lists.visible);
-        
+
         await my.runScheduler.resetRuns();
 
         my.runningFlag = true;
@@ -118,7 +129,7 @@ const AppFn = () => {
         my.events.detachAll();
         my.events.detachWindowEvents();        
         my.events.clearAll();
-        
+
         await my.runScheduler.resetRuns();
 
         return my;
@@ -151,18 +162,16 @@ const AppFn = () => {
 };
 
 const App = firstChild => {
-    if (tApp) {
-        if (firstChild) {
-            tApp.tRoot.addChild(firstChild);
-            tApp.runScheduler.schedule(0, "appStart");
-        }
-    } else {
-        tApp = AppFn();
-        tApp.init().start();
+    if (!tApp?.tRoot) {
+        queuedAppCall = firstChild;
+    } else if (firstChild) {
+        tApp?.tRoot.addChild(firstChild);
     }
 };
 
 App.oids = {};
+App.tmodelIdMap = {};
+
 App.getOid = type => {
     const oids = App.oids;
     if (!TUtil.isDefined(oids[type])) {
@@ -172,8 +181,6 @@ App.getOid = type => {
     const num = oids[type]++;
     return { oid: num > 0 || type.endsWith('_') ? `${type}${num}` : type, num };
 };
-
-App();
 
 const isRunning = () => tApp ? tApp.runningFlag : false;
 const tRoot = () => tApp?.tRoot;
@@ -190,8 +197,13 @@ const getScreenWidth = () => tApp?.tRoot?.val('screenWidth') ?? 0;
 const getScreenHeight = () => tApp?.tRoot?.val('screenHeight') ?? 0;
 const getVisibles = () => tApp?.manager?.lists.visible;
 const getResizeLastUpdate = () => tApp?.resizeLastUpdate;
+const getTModelById = id => App.tmodelIdMap[id];
+const getDomTModelById = id => {
+    const tmodel = App.tmodelIdMap[id];
+    return tmodel && tmodel.targets['sourceDom'] ? tmodel : undefined;
+};
 
-window.t = window.t || SearchUtil.find;
+window.t = window.t || getTModelById;
 
 export {
     tApp,
@@ -210,5 +222,7 @@ export {
     getScreenWidth,
     getScreenHeight,
     getVisibles,
-    getResizeLastUpdate
+    getResizeLastUpdate,
+    getTModelById,
+    getDomTModelById
 };

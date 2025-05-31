@@ -33,11 +33,11 @@ class DomInit {
         const elementToModel = new Map();
 
         const elements = $dom.queryAll('*');
-
+        
         for (let element of elements) {
             let newModel;
             const attrs = Array.from(element.attributes);
-            
+                        
             const isTargetElement = attrs.some(attr => attr.name === 'tg' || attr.name.startsWith('tg-'));
 
     
@@ -119,7 +119,7 @@ class DomInit {
                 elementToModel.set(element, newModel);
             }
         }
-        
+                
         for (const value of elementToModel.values()) {
             const parentEl = value.$dom.element.parentElement;
             const parentModel = elementToModel.get(parentEl);
@@ -127,7 +127,8 @@ class DomInit {
             if (parentModel) {
                 value.$dom.detach();
                 delete value.$dom; 
-                delete value.id;                
+                delete value.id; 
+                value.sourceDom = true;
                 value.shouldBeBracketed = false;
                 value.otype = value.id || (parentModel.id || App.getOid('blank').oid)  + "_";
                 value.isVisible = !TUtil.isDefined(value.isVisible) ? function() { return this.getParent().isVisible(); } : value.isVisible;

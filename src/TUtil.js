@@ -182,7 +182,18 @@ class TUtil {
             }
         }
     }
-  
+    
+    static mergeTargets(tmodel1, tmodel2) {
+        const sourceTargets = tmodel2.targets;
+        const destTargets = tmodel1.targets;
+                
+        Object.keys(sourceTargets).forEach(key => {
+            if (!TUtil.isDefined(destTargets[key])) {
+                destTargets[key] = sourceTargets[key];
+                tmodel1.processNewTarget(key);
+            }
+        });     
+    }
 }
 
 export { TUtil };

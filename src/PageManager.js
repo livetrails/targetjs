@@ -29,6 +29,7 @@ class PageManager {
             tApp.tRoot.$dom.innerHTML("");            
             tApp.tRoot = tApp.tRootFactory();
             App.oids = {};
+            App.tmodelIdMap = {};
             tApp.pageIsEmpty = true;
             this.lastLink = link;
                         
@@ -36,6 +37,7 @@ class PageManager {
         } else {
             tApp.tRoot = this.pageCache[link].tRoot;
             App.oids = this.pageCache[link].oids;
+            App.tmodelIdMap = this.pageCache[link].tmodelIdMap;
             
             tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
             tApp.tRoot.$dom.innerHTML(this.pageCache[link].html);
@@ -82,6 +84,7 @@ class PageManager {
                 link: this.lastLink,
                 html: html,
                 oids: { ...App.oids },
+                tmodelIdMap:  { ...App.tmodelIdMap },
                 visibleList: [...tApp.manager.lists.visible],
                 tRoot: tApp.tRoot
             };
@@ -103,6 +106,7 @@ class PageManager {
             link: document.URL,
             html: tApp.tRoot.$dom.innerHTML(),
             oids: { ...App.oids },
+            tmodelIdMap:  { ...App.tmodelIdMap },
             visibleList: [...tApp.manager.lists.visible],
             tRoot: tApp.tRoot
         };

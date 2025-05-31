@@ -18,15 +18,18 @@ class BaseModel {
         }
         this.type = type || 'blank';
         this.targets = Object.assign({}, targets);
-
-        if (!oid) {
+        
+        if (!TUtil.isDefined(oid)) {
             const uniqueId = App.getOid(this.type);
             this.oid = uniqueId.oid;
             this.oidNum = uniqueId.num;
         } else {
+            App.getOid(oid);
             this.oid = oid;
             this.oidNum = 0;
         }
+        
+        App.tmodelIdMap[this.oid] = this;
         
         this._state = {};
     }
