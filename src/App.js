@@ -16,16 +16,6 @@ import { SearchUtil } from "./SearchUtil.js";
 let tApp;
 let queuedAppCall = null;
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => {
-    tApp = AppFn();
-    tApp.init().start();
-  });
-} else {
-  tApp = AppFn();
-  tApp.init().start();
-}
-
 const AppFn = () => {
     const my = {};
 
@@ -165,6 +155,17 @@ const AppFn = () => {
 
     return my;
 };
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
+    tApp = AppFn();
+    tApp.init().start();
+  });
+} else {
+  tApp = AppFn();
+  tApp.init().start();
+}
+
 
 const App = firstChild => {
     if (!tApp?.tRoot) {
