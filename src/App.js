@@ -16,10 +16,15 @@ import { SearchUtil } from "./SearchUtil.js";
 let tApp;
 let queuedAppCall = null;
 
-document.addEventListener("DOMContentLoaded", () => {
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
     tApp = AppFn();
-    tApp.init().start();    
-});
+    tApp.init().start();
+  });
+} else {
+  tApp = AppFn();
+  tApp.init().start();
+}
 
 const AppFn = () => {
     const my = {};
