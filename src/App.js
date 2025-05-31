@@ -156,17 +156,6 @@ const AppFn = () => {
     return my;
 };
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => {
-    tApp = AppFn();
-    tApp.init().start();
-  });
-} else {
-  tApp = AppFn();
-  tApp.init().start();
-}
-
-
 const App = firstChild => {
     if (!tApp?.tRoot) {
         queuedAppCall = firstChild;
@@ -210,6 +199,18 @@ const getDomTModelById = id => {
 };
 
 window.t = window.t || getTModelById;
+
+const runApp = () => {
+    tApp = AppFn();
+    tApp.init().start();
+};
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", runApp);
+} else {
+    runApp();
+}
+
 
 export {
     tApp,
