@@ -29,7 +29,7 @@ class BaseModel {
             this.oidNum = 0;
         }
         
-        if (!targets['sourceDom'] && TUtil.isDefined(oid)) {
+        if (!targets?.sourceDom && TUtil.isDefined(oid)) {
             this.originalId = oid;
         }        
         
