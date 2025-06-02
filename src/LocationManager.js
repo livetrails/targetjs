@@ -59,6 +59,7 @@ class LocationManager {
 
     calculate() {
         this.calculateContainer(tApp.tRoot);
+        this.calculateCoreTargets(tApp.tRoot);
     }
 
     calculateActivated() {
@@ -142,14 +143,7 @@ class LocationManager {
                 this.addToLocationList(child);
             }
 
-            const coreTargets = child.getCoreTargets();
-            if (coreTargets) {
-                coreTargets.forEach(target => {
-                    if (child.isTargetEnabled(target) && !child.isTargetUpdating(target) && !child.isTargetImperative(target)) {
-                        TargetExecutor.executeDeclarativeTarget(child, target, child.getTargetCycle(target));
-                    }
-                });
-            }
+            this.calculateCoreTargets(child);
             
             if ((!child.isTargetImperative('x') && !child.targets['x']) || !TUtil.isDefined(child.targetValues.x)) {
                 child.val('x', child.x);
@@ -218,6 +212,17 @@ class LocationManager {
         for (const child of allChildrenList) {
             this.checkExternalEvents(child);
         }
+    }
+    
+    calculateCoreTargets(tmodel) {
+        const coreTargets = tmodel.getCoreTargets();
+        if (coreTargets) {
+            coreTargets.forEach(target => {
+                if (tmodel.isTargetEnabled(target) && !tmodel.isTargetUpdating(target) && !tmodel.isTargetImperative(target)) {
+                    TargetExecutor.executeDeclarativeTarget(tmodel, target, tmodel.getTargetCycle(target));
+                }
+            });
+        }        
     }
 
     calculateTargets(tmodel) {
