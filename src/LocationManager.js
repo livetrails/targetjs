@@ -59,7 +59,6 @@ class LocationManager {
 
     calculate() {
         this.calculateContainer(tApp.tRoot);
-        this.calculateCoreTargets(tApp.tRoot);
     }
 
     calculateActivated() {

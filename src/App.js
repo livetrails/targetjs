@@ -63,13 +63,6 @@ const AppFn = () => {
                     }
                     return height;
                 },
-                height() {
-                    return this.getContentHeight();
-                },
-                width() {
-                    return this.getContentWidth();
-                },
-                coreTargets: [ 'width', 'height' ],
                 initPageDom() {
                     DomInit.initPageDoms(this.$dom); 
                     

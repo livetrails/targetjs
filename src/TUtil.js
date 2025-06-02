@@ -20,11 +20,13 @@ class TUtil {
         }
 
         const status = child.visibilityStatus;
+        
+        const validateInParent = child.validateVisibilityInParent() && parent !== tRoot();
 
-        const parentX = child.validateVisibilityInParent() ? Math.max(domParent.absX, parent.absX) : 0;
-        const parentY = child.validateVisibilityInParent() ? Math.max(domParent.absY, parent.absY) : 0;
-        const parentWidth = child.validateVisibilityInParent() ? Math.min(domParent.getWidth(), parent.getWidth()) : getScreenWidth();
-        const parentHeight = child.validateVisibilityInParent() ? Math.min(domParent.getHeight(), parent.getHeight()) : getScreenHeight();
+        const parentX = validateInParent ? Math.max(domParent.absX, parent.absX) : 0;
+        const parentY = validateInParent ? Math.max(domParent.absY, parent.absY) : 0;
+        const parentWidth = validateInParent ? Math.min(domParent.getWidth(), parent.getWidth()) : getScreenWidth();
+        const parentHeight = validateInParent ? Math.min(domParent.getHeight(), parent.getHeight()) : getScreenHeight();
 
         status.right = x <= parentX + parentWidth;
         status.left = x + maxWidth >= parentX;
