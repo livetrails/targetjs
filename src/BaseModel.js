@@ -1,4 +1,4 @@
-import { tApp, App, getRunScheduler, getLocationManager } from "./App.js";
+import { tApp, App, getRunScheduler, getLocationManager, getDomTModelById } from "./App.js";
 import { TargetExecutor } from "./TargetExecutor.js";
 import { TUtil } from "./TUtil.js";
 import { TModelUtil } from "./TModelUtil.js";
@@ -29,7 +29,13 @@ class BaseModel {
             this.oidNum = 0;
         }
         
-        App.tmodelIdMap[this.oid] = this;
+        if (!targets['sourceDom'] && TUtil.isDefined(oid)) {
+            this.originalId = oid;
+        }        
+        
+        if (!App.tmodelIdMap[this.oid]) {
+            App.tmodelIdMap[this.oid] = this;
+        }
         
         this._state = {};
     }
@@ -79,7 +85,15 @@ class BaseModel {
         return this.parent;
     }
 
-    initTargets() {
+    initTargets() {        
+        this.originalTargetNames = Object.keys(this.targets);        
+        
+        if (TUtil.isDefined(this.originalId) && getDomTModelById(this.originalId)) {
+            TUtil.mergeTargets(getDomTModelById(this.originalId), this);
+            this.toDiscard = true;
+            return;
+        }
+        
         this.actualValues = TModelUtil.defaultActualValues();
         this.targetValues = {};
         this.activeTargetMap = {};

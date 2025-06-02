@@ -185,14 +185,23 @@ class TUtil {
     
     static mergeTargets(tmodel1, tmodel2) {
         const sourceTargets = tmodel2.targets;
+        const targetNames = tmodel2.originalTargetNames;
         const destTargets = tmodel1.targets;
-                
-        Object.keys(sourceTargets).forEach(key => {
+
+        const newTargets = [];
+
+        targetNames.forEach(key => {
             if (!TUtil.isDefined(destTargets[key])) {
-                destTargets[key] = sourceTargets[key];
-                tmodel1.processNewTarget(key);
+                newTargets.push(key);
             }
-        });     
+        });
+        
+        tmodel1.originalTargetNames.push(...newTargets);
+        
+        newTargets.forEach(key => {
+            destTargets[key] = sourceTargets[key];
+            tmodel1.processNewTarget(key);            
+        });
     }
 }
 

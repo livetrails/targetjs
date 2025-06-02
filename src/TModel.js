@@ -1,5 +1,5 @@
 import { BaseModel } from "./BaseModel.js";
-import { getRunScheduler, getDomTModelById } from "./App.js";
+import { getRunScheduler } from "./App.js";
 import { Viewport } from "./Viewport.js";
 import { TUtil } from "./TUtil.js";
 import { SearchUtil } from "./SearchUtil.js";
@@ -127,7 +127,6 @@ class TModel extends BaseModel {
             if (!(child instanceof TModel)) {   
                 
                 const foundKey = Object.keys(this.actualValues).find(key => this.actualValues[key] === child);
-                const originalId = child.id;
 
                 if (foundKey) {
                     child = new TModel(child.id || foundKey, child);
@@ -135,24 +134,23 @@ class TModel extends BaseModel {
                 } else if (TUtil.isDefined(child.otype)) {
                     child = new TModel(child.otype, child);                     
                 } else if (TUtil.isDefined(child.id)) {     
-                    child = new TModel(child.id, child, child.sourceDom ? child.id : undefined);                   
+                    child = new TModel(child.id, child, child.id);                   
                 } else {
                     child = new TModel(`${this.oid}_`, child);                    
                 }
-                
-                if (!child.targets['sourceDom'] && TUtil.isDefined(originalId)) {
-                    child.originalId = originalId;
+            }
+            
+            if (!child.toDiscard) {
+                this.addedChildren.push({ index, child });
+                child.parent = this;
+                if (child.updatingTargetList.length > 0) {
+                    this.addToUpdatingChildren(child);
                 }
+                if (child.activeTargetList.length > 0) {
+                    this.addToActiveChildren(child);
+                }
+                child.activate();
             }
-            this.addedChildren.push({ index, child });
-            child.parent = this;
-            if (child.updatingTargetList.length > 0) {
-                this.addToUpdatingChildren(child);
-            }
-            if (child.activeTargetList.length > 0) {
-                this.addToActiveChildren(child);
-            }
-            child.activate();
         }
         return this;
     }    
@@ -177,10 +175,6 @@ class TModel extends BaseModel {
             this.addedChildren.sort((a, b) => a.index - b.index);
 
             this.addedChildren.forEach(({ index, child }) => {
-                if (TUtil.isDefined(child.originalId) && getDomTModelById(child.originalId) && !child.targets['sourceDom']) {
-                    TUtil.mergeTargets(getDomTModelById(child.originalId), child);
-                    return;
-                }
                 
                 if (this.allChildrenMap[child.oid]) {
                     return;

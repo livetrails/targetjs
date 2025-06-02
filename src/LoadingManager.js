@@ -52,7 +52,7 @@ class LoadingManager {
         const urls = Array.isArray(url) ? url : [url];
 
         urls.forEach(singleUrl => {
-            const fetchId = `${tmodel.oid}_${singleUrl}_${JSON.stringify(query)}`;
+            const fetchId = query ? `${tmodel.oid}_${singleUrl}_${JSON.stringify(query)}` : `${tmodel.oid}_${singleUrl}`;
             this.fetchCommon(fetchId, cacheId, tmodel, this.fetchingAPIMap, () => {
                 this.ajaxAPI(singleUrl, query, this.fetchingAPIMap[fetchId]);
             });
