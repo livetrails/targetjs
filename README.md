@@ -537,7 +537,6 @@ App({
     children() {
         const childrenCount = this.getChildren().length;
         return Array.from({ length: 20 }, (_, i) => ({
-             id: 'scrollItem',
              width: [{list: [100, 250]}, 15],
              background: [{list: ["#FCE961", "#B388FF"]}, 15, 15],
              height: 48,
