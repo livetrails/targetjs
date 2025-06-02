@@ -51,7 +51,29 @@ Or in HTML (no JavaScript required), using tg- attributes that mirror object lit
    tg-width="[{ list: [100, 250, 100] }, 50, 10]"
    tg-height$="return this.prevTargetValue / 2;">
 </div>
-``` 
+```
+Or a combination of JavaScript and HTML, linked together using the same HTML ID. In the example below, both the object and the `<div>` element are bound using the ID 'box'. The object uses the `<div>` as its base element, combining the background from the element with the width and height from the object:
+
+```javascript
+import { App } from "targetj";
+
+App({
+    id: 'box',
+    width: [{ list: [100, 250, 100] }, 50, 10],
+    _height$() {
+      return this.prevTargetValue / 2;
+    } 
+});
+```
+
+```html 
+<div
+   id="box"
+   tg-background="mediumpurple"
+</div>
+```
+
+
 
 ### Simple Loading API Example
 
