@@ -531,13 +531,13 @@ If you inspect the HTML elements in the browser's developer tools, you'll notice
 import { App, getEvents, fetch, getScreenWidth, getScreenHeight } from "targetj";
 
 App({
+    id: "scroller",
     domHolder: true,
     preventDefault: true,
     containerOverflowMode: "always",
     children() {
         const childrenCount = this.getChildren().length;
         return Array.from({ length: 20 }, (_, i) => ({
-             id: 'scrollItem',
              width: [{list: [100, 250]}, 15],
              background: [{list: ["#FCE961", "#B388FF"]}, 15, 15],
              height: 48,
