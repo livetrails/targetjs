@@ -319,7 +319,7 @@ class TModel extends BaseModel {
 
     getParentValue(targetName) {
         const parent = SearchUtil.findParentByTarget(this, targetName);
-        return parent ? parent.val(targetName) : undefined;
+        return parent ? parent.val(targetName) : this.getParent()?.val(targetName);
     }
     
     getParentValueAtMyIndex(targetName) {
