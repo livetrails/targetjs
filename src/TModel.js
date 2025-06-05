@@ -155,6 +155,17 @@ class TModel extends BaseModel {
         return this;
     }    
     
+    addSibling(sibling) {
+        this.getParent().addChild(sibling);
+    }
+    
+    removeSibling(sibling) {
+        if (!sibling) {
+            sibling = this.getParent().getChildren().find(child => child !== this);
+        }
+        this.getParent().removeChild(sibling);
+    }
+    
     getChildren() { 
         const state = this.state();
 
@@ -414,6 +425,16 @@ class TModel extends BaseModel {
         return this.val('isVisible');
     }
     
+    makeVisible() {
+        this.val('isVisible', true);
+        this.targets.isVisible = true;
+    }
+    
+    makeInvisible() {
+        this.val('isVisible', true);
+        this.targets.isVisible = false;        
+    }
+    
     calcVisibility() {
         return TUtil.calcVisibility(this);
     }
@@ -507,6 +528,10 @@ class TModel extends BaseModel {
     
     canDeleteDom() {
         return TUtil.isDefined(this.val('canDeleteDom')) ? this.val('canDeleteDom') : !this.reuseDomDefinition();
+    }
+    
+    requiresDom() {
+        return TUtil.isDefined(this.val('requiresDom')) ? this.val('requiresDom') : !this.reuseDomDefinition();
     }
 
     excludeDefaultStyling() {

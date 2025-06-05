@@ -9,7 +9,7 @@ import { TargetData } from "./TargetData.js";
  */
 class DomInit {
     static initCacheDoms(visibleList) {
-        const elements = tRoot().$dom.queryAll('[tg]');
+        const elements = tRoot().$dom.queryAll('[tgjs]');
 
         visibleList.forEach(tmodel => {
             tmodel.$dom = null;
@@ -54,13 +54,15 @@ class DomInit {
                         let value = DomInit.parseString(rawValue);
                                                 
                         attributeSet[key] = value;                                           
+                    } else if (attr.name === 'tg') {
+                        attributeSet[attr.name] = true; 
                     }
                 }
             }
             
             const parentEl = element.parentElement;
-            const parentModel = elementToModel.get(parentEl);            
-
+            const parentModel = elementToModel.get(parentEl);
+            
             let id;
             
             if (Object.keys(attributeSet).length > 0) {
@@ -71,12 +73,13 @@ class DomInit {
                     element.setAttribute('id', id);
                 }  
 
-                if (!element.getAttribute('tg')) {
-                    element.setAttribute('tg', true);
+                if (!element.getAttribute('tgjs')) {
+                    element.setAttribute('tgjs', true);
                 }
                  
                newModel = {
                     id,
+                    baseElement: element.tagName.toLowerCase(),
                     $dom: new $Dom(element),
                     ...attributeSet
                 }; 
@@ -107,7 +110,7 @@ class DomInit {
                     }
 
                 } else {
-                    parentModel._children$ = {
+                    parentModel.children$ = {
                         cycles: 0,
                         value: [ newModel ]
                     };
@@ -120,6 +123,7 @@ class DomInit {
             }
         }
                 
+        const invisibleList = [];
         for (const value of elementToModel.values()) {
             const parentEl = value.$dom.element.parentElement;
             const parentModel = elementToModel.get(parentEl);
@@ -134,11 +138,24 @@ class DomInit {
                 value.isVisible = !TUtil.isDefined(value.isVisible) ? function() { return this.getParent().isVisible(); } : value.isVisible;
                 value.domParent = !TUtil.isDefined(value.domParent) ? function() { return this.getParent(); } : value.domParent;                  
             } else {
-                value.isVisible = !TUtil.isDefined(value.isVisible) ? true : value.isVisible;  
+                value.isVisible = !TUtil.isDefined(value.isVisible) ? true : value.isVisible;
+                value.domHolder = !TUtil.isDefined(value.domHolder) ? true : value.domHolder; 
                 value.sourceDom = true;
+                
                 tRoot().addChild(value);
+                
+                if (!value.isVisible) {
+                    invisibleList.push({ $dom: value.$dom, tmodel: tRoot().getLastChild() });
+                }
             }
-        } 
+        }
+        
+        invisibleList.forEach(({ $dom, tmodel }) => {
+            if ($dom.exists() && !tmodel.hasChildren()) {
+                $dom.detach();
+                tmodel.val('requiresDom', false);
+            }
+        });
     }
     
     static getChildrenKey(obj) {
@@ -159,8 +176,9 @@ class DomInit {
         const trimmed = rawValue.trim();
         const isFunction = /^function\s*\([\s\S]*?\)\s*\{[\s\S]*\}$/m.test(trimmed) || /^\(?[\w\s,]*\)?\s*=>\s*(\{[\s\S]*\}|\S+)/m.test(trimmed);         
         const isObject = /^(\{[\s\S]*\}|\[[\s\S]*\])$/.test(trimmed);
+        const containsCode = ['return', 'setTarget', 'TargetJS.', 'addChild', 'addSibling'].some(keyword => trimmed.includes(keyword));
         
-        if (!isObject && !isFunction && (trimmed.includes('return') || trimmed.includes('setTarget') || trimmed.includes('TargetJS.')) || (trimmed.includes('addChild'))) {
+        if (!isObject && !isFunction && containsCode) {
             try {
                 return new Function(trimmed);
             } catch {

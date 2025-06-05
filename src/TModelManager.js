@@ -115,7 +115,7 @@ class TModelManager {
                 tmodel.deactivate();
             }
 
-            if ((visible || !tmodel.canDeleteDom()) &&
+            if ((visible || tmodel.requiresDom()) &&
                 (tmodel.canHaveDom() && !tmodel.hasDom() && !this.noDomMap[tmodel.oid])) {
                 this.lists.noDom.push(tmodel);
                 this.noDomMap[tmodel.oid] = true;
@@ -212,7 +212,7 @@ class TModelManager {
             tmodel.transformMap = {};
             tmodel.val('isVisible', false);
             tmodel.hasDomNow = false;
-        
+
             tmodel.$dom?.detach();
             tmodel.$dom = null;
         }
@@ -275,6 +275,10 @@ class TModelManager {
             if (tmodel.getDomHolder(tmodel)?.exists()) {
                 if (tmodel.val('$dom')) {
                     tmodel.$dom = tmodel.val('$dom');
+                    if (!tmodel.hasDom()) {
+                        tmodel.getDomHolder(tmodel).appendTModel$Dom(tmodel);
+                        tmodel.hasDomNow = true;    
+                    }   
                 } else {
                     tmodel.$dom = new $Dom();
                     TModelUtil.createDom(tmodel);

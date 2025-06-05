@@ -1,5 +1,6 @@
 import { getEvents, getResizeLastUpdate } from "./App.js";
 import { TUtil } from "./TUtil.js";
+import { $Dom } from "./$Dom.js";
 
 class TargetData {
     
@@ -213,7 +214,7 @@ class TargetData {
 
         windowEvents: {
             keyup: { eventName: 'key', inputType: '', eventType: 'key', order: 1, windowEvent: true, queue: true, rateLimit: 50 },
-            keydown: { eventName: 'key', inputType: '', eventType: 'key', order: 1, windowEvent: true, queue: true, rateLimit: 50 },
+            keydown: { eventName: 'keydown', inputType: '', eventType: 'keydown', order: 1, windowEvent: true, queue: true, rateLimit: 50 },            
             blur: { eventName: 'blur', inputType: 'mouse', eventType: 'cancel', order: 2, windowEvent: true, queue: true, rateLimit: 0 },
             resize: { eventName: 'resize', inputType: '', eventType: 'resize', order: 1, windowEvent: true, queue: true, rateLimit: 50 },
             orientationchange: { eventName: 'resize', inputType: '', eventType: 'resize', order: 1, windowEvent: true, queue: true, rateLimit: 50 }
@@ -258,7 +259,9 @@ class TargetData {
     static attributesToTargets = {
         onstart: 'onStart',
         onend: 'onEnd',
-        onKkey: 'onKey',
+        onkey: 'onKey',
+        onkeydown: 'onKeyDown',
+        onanykey: 'onAnyKey',
         onclick: 'onClick',
         onanyclick: 'onAnyClick',
         onhover: 'onHover',
@@ -267,6 +270,8 @@ class TargetData {
         onpinch: 'onPinch',
         onenter: 'onEnter',
         onleave: 'onLeave',
+        onblur: 'onBlur',
+        onfocus: 'onFocus',
         onscroll: 'onScroll',
         onscrollleft: 'onScrollLeft',
         onscrolltop: 'onScrollTop',        
@@ -314,13 +319,19 @@ class TargetData {
         containeroverflowmode: 'containerOverflowMode',
         itemoverflowmode: 'itemOverflowMode',
         onvisiblechildrenchange: 'onVisibleChildrenChange',
-        onchildrenchange: 'onChildrenChange'   
+        onchildrenchange: 'onChildrenChange',
+        isvisible: 'isVisible',
+        isinflow: 'isInFlow'
     };
     
     static targetToEventsMapping = {
         onStart: [ 'touchStart', 'mouseStart' ],
         onEnd: [ ],
         onKey: [ ],
+        onKeyDown: [ ],
+        onAnyKey: [ ],
+        onBlur: [ ],
+        onFocus: [ ],
         onClick: [ 'clickEvents', 'touchStart', 'mouseStart' ],
         onAnyClick: [ 'clickEvents', 'touchStart', 'mouseStart' ],
         onHover: [ 'moveEvents' ],
@@ -365,7 +376,9 @@ class TargetData {
         onFocus: tmodel => getEvents().onFocus(tmodel),
         onBlur: tmodel => getEvents().onBlur(tmodel),
         onPinch: tmodel => getEvents().isPinchHandler(tmodel),
-        onKey: () => getEvents().getEventType() === 'key' && getEvents().currentKey, 
+        onKey: tmodel => getEvents().getEventType() === 'key' && getEvents().currentKey && $Dom.hasFocus(tmodel),
+        onKeyDown: tmodel => getEvents().getEventType() === 'keydown' && getEvents().currentKey && $Dom.hasFocus(tmodel), 
+        onAnyKey: () => getEvents().getEventType() === 'key' && getEvents().currentKey,
         onScroll: tmodel => (getEvents().isScrollLeftHandler(tmodel) && getEvents().deltaX()) || (getEvents().isScrollTopHandler(tmodel) && getEvents().deltaY()),
         onScrollTop: tmodel => getEvents().getOrientation() !== 'horizontal' && getEvents().isScrollTopHandler(tmodel) && getEvents().deltaY(), 
         onScrollLeft: tmodel => getEvents().getOrientation() !== 'vertical' && getEvents().isScrollLeftHandler(tmodel) && getEvents().deltaX(),

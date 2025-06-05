@@ -30,11 +30,15 @@ class $Dom {
         return new $Dom(this.element.content?.cloneNode(true).children[0]);
     }
     
+    clone() {
+        return this.element.cloneNode(true); 
+    }
+    
     exists() {
         if (this.selector) {
             this.element = $Dom.query(this.selector);
         }
-        return !!this.element;
+        return this.element ? !!this.element.parentElement : false;
     }
     
     contains(element) {

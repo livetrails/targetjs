@@ -46,6 +46,8 @@ class EventListener {
         this.currentEventName = "";
         this.currentEventType = "";
         this.currentEventTarget = undefined;
+        this.currentKey = "";
+        
         this.currentHandlers = { 
             touch: null, 
             scrollLeft: null, 
@@ -160,7 +162,7 @@ class EventListener {
                 
                 if (Math.abs(this.currentTouch.deltaY) < 0.1) {
                     this.currentTouch.deltaY = 0;
-    }
+                }
                 if (Math.abs(this.currentTouch.deltaX) < 0.1) {
                     this.currentTouch.deltaX = 0;
                 }
@@ -229,6 +231,7 @@ class EventListener {
         this.currentHandlers.leave = undefined;
         this.currentHandlers.justFocused = undefined;
         this.currentHandlers.blur = undefined;
+        this.currentKey = this.currentTouch.key;
         
         if (this.eventQueue.length === 0) {
             this.currentEventName = "";
@@ -251,7 +254,6 @@ class EventListener {
         this.currentEventName = lastEvent.eventName;
         this.currentEventType = lastEvent.eventType;
         this.currentEventTarget = lastEvent.eventTarget;
-        this.currentKey = this.currentTouch.key;
         this.currentTouch.key = "";      
     }
     
@@ -433,6 +435,10 @@ class EventListener {
             case 'key':
                 this.currentTouch.key = event.which || event.keyCode;
                 break;
+                
+            case 'keydown':
+                this.currentTouch.key = event.which || event.keyCode;
+                break;                
                 
             case 'resize':
                 this.resizeRoot();                
