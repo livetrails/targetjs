@@ -169,8 +169,15 @@ class LocationManager {
                 newVStatus = child.calcVisibility();
             }
             
+            let targetResult = false;
             if (TUtil.isDefined(child.targets.isVisible)) {
-                TargetExecutor.executeDeclarativeTarget(child, 'isVisible');
+                if (typeof child.targets.isVisible.value === 'function') {
+                   targetResult = child.targets.isVisible.value.call(child); 
+                } else {
+                    targetResult = !!child.targets.isVisible;
+                }
+                
+                child.val('isVisible', targetResult);
             }  
                 
             child.isNowVisible = (!isVisibleByStatus && newVStatus) || (!isVisible && child.isVisible());
@@ -218,7 +225,8 @@ class LocationManager {
         if (coreTargets) {
             coreTargets.forEach(target => {
                 if (tmodel.isTargetEnabled(target) && !tmodel.isTargetUpdating(target) && !tmodel.isTargetImperative(target)) {
-                    TargetExecutor.executeDeclarativeTarget(tmodel, target, tmodel.getTargetCycle(target));
+                    TargetExecutor.resolveTargetValue(tmodel, target, tmodel.getTargetCycle(target));
+                    TargetExecutor.updateTarget(tmodel, tmodel.targetValues[target], target, false);                    
                 }
             });
         }        

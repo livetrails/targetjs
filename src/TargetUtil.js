@@ -5,7 +5,7 @@ import { TUtil } from "./TUtil.js";
  * It provides helper functions for target management, such as deriving the values for steps, intervals, and cycles from targets.
  */
 class TargetUtil {
-         
+
     static emptyValue() {
         return {
             value: undefined,
@@ -37,12 +37,9 @@ class TargetUtil {
         return cleanKey;
     }
     
-    static bindTarget(tmodel, key, keys = Object.keys(tmodel.targets)) {
+    static bindTarget(tmodel, key, prevKey, nextKey) {
         let target = tmodel.targets[key];
-        const keyIndex = keys.indexOf(key);
-        const prevKey = keyIndex > 0 ? TargetUtil.getTargetName(keys[keyIndex - 1]) : undefined;
-        const nextKey = keyIndex < keys.length - 1 ? keys[keyIndex + 1] : undefined;
-        
+                
         const getPrevValue = () => {
             if (prevKey) { 
                 if (getLoader && getLoader().isLoading(tmodel, prevKey)) {
@@ -117,8 +114,18 @@ class TargetUtil {
     
     static shouldActivateNextTarget(tmodel, key, level = 0) {
         const target = tmodel.targets[key];
-        const targetName = target?.activateNextTarget; 
-        const cleanTargetName = TargetUtil.getTargetName(targetName);        
+        const targetName = target?.activateNextTarget;
+        
+        const { originalTModel, originalTargetName } = tmodel.isTargetImperative(key) ? tmodel.targetValues[key] : target;
+        
+        if (!targetName ) {
+            if (level < 2 && originalTargetName && originalTModel && TargetUtil.hasTargetEnded(originalTModel, originalTargetName)) {
+                TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
+            }                  
+            return;
+        }
+        
+        const cleanTargetName = TargetUtil.getTargetName(targetName);           
         const isEndTrigger = targetName?.endsWith('$');
         const fetchAction = target?.fetchAction;
         const childAction = target?.childAction;
@@ -152,17 +159,13 @@ class TargetUtil {
             return;
         }
 
-        if (target && cleanTargetName && !tmodel.isTargetImperative(key)) {
+        if (target && cleanTargetName && !tmodel.isTargetImperative(key)) {          
             if ((isEndTrigger && TargetUtil.hasTargetEnded(tmodel, key)) || !isEndTrigger) {
                 TargetUtil.activateNextTarget(tmodel, cleanTargetName);
             }
             return;
         }
 
-        const { originalTModel, originalTargetName } = tmodel.isTargetImperative(key) ? tmodel.targetValues[key] : target;
-        if (level < 2 && originalTargetName && originalTModel && TargetUtil.hasTargetEnded(originalTModel, originalTargetName)) {
-            TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
-        }             
     }
 
     static hasTargetEnded(tmodel, key) {
@@ -173,7 +176,7 @@ class TargetUtil {
                 
         const target = tmodel.targets[key];     
         if (target) {
-            if (target.childAction && (tmodel.hasUpdatingChildren() || tmodel.hasActiveChildren())) {
+            if (target.childAction && (tmodel.hasUpdatingChildren(key) || tmodel.hasActiveChildren(key))) {
                 return false;
             }
             if (target.fetchAction && !getLoader().isLoadingSuccessful(tmodel, key)) {

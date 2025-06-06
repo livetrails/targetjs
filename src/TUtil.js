@@ -201,8 +201,9 @@ class TUtil {
         tmodel1.originalTargetNames.push(...newTargets);
         
         newTargets.forEach(key => {
+            const keyIndex = tmodel1.originalTargetNames.indexOf(key);
             destTargets[key] = sourceTargets[key];
-            tmodel1.processNewTarget(key);            
+            tmodel1.processNewTarget(key, keyIndex);            
         });
     }
 }

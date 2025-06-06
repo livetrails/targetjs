@@ -125,30 +125,50 @@ class BaseModel {
             }            
         }
 
-        Object.keys(this.targets).forEach(key => {
-            this.processNewTarget(key);
+        Object.keys(this.targets).forEach((key, keyIndex) => {
+            this.processNewTarget(key, keyIndex);
         });
     }
     
-    processNewTarget(key) {
-        let target = this.targets[key];        
-        const cleanKey = TargetUtil.getTargetName(key);
-
+    processNewTarget(key, keyIndex) {
+        let target = this.targets[key];
+        
         if (!TUtil.isDefined(target)) {
             this.delVal('key');
             return;
         }
         
-       if (!TargetData.controlTargetMap[key]) {
-            if (typeof target !== 'object' || Array.isArray(target)) {
+        const targetType = typeof target;
+                
+        const cleanKey = TargetUtil.getTargetName(key);
+        const isInactiveKey = key.startsWith('_');  
+        const isExternalEvent = TargetData.allEventMap[cleanKey];
+        const isInternalEvent = TargetData.internalEventMap[cleanKey];
+
+        if (!TargetData.controlTargetMap[key]) {
+            if (targetType !== 'object' || Array.isArray(target)) {
                 this.targets[key] = { value: target };
                 target = this.targets[key];
             }
-                 
-            TargetUtil.bindTarget(this, key, this.originalTargetNames);
         }
 
-        if (TargetData.allEventMap[cleanKey]) {
+        if (TUtil.isDefined(keyIndex)) {
+            const prevKey = keyIndex > 0 ? TargetUtil.getTargetName(this.originalTargetNames[keyIndex - 1]) : undefined;
+            const nextKey = keyIndex < this.originalTargetNames.length - 1 ? this.originalTargetNames[keyIndex + 1] : undefined;
+            const doesNextTargetUsePrevValue = nextKey && nextKey.endsWith('$') ? true : false;
+            
+            if (doesNextTargetUsePrevValue
+                || isInactiveKey 
+                || isExternalEvent 
+                || isInternalEvent 
+                || targetType === 'object'
+                || targetType === 'function'
+            ) {            
+                TargetUtil.bindTarget(this, key, prevKey, nextKey);
+            }
+        }
+
+        if (isExternalEvent) {
             if (!this.externalEventMap[cleanKey]) {
                 this.externalEventList.push(cleanKey);
                 this.externalEventMap[cleanKey] = true;
@@ -156,15 +176,13 @@ class BaseModel {
             }
         }
         
-        if (TargetData.internalEventMap[cleanKey]) {
+        if (isInternalEvent) {
             if (!this.internalEventMap[cleanKey]) {
                 this.internalEventList.push(cleanKey);
                 this.internalEventMap[cleanKey] = true;
                 target.active = false;
             }
         }        
-
-        const isInactiveKey = key.startsWith('_');
 
         if (cleanKey !== key) {
             this.targets[cleanKey] = this.targets[key];
@@ -669,8 +687,23 @@ class BaseModel {
         }
     } 
     
-    hasUpdatingChildren() {
-        return this.updatingChildrenList.length > 0;
+    hasUpdatingChildren(originalTargetName) {
+        if (originalTargetName) {
+            let count = 0;
+            this.updatingChildrenList.forEach(child => {
+                child.updatingTargetList.forEach(target => {
+                    if (child.isTargetImperative(target) && child.targetValues[target]?.originalTargetName === originalTargetName) {
+                        count++;
+                    } else if (child.targets[target]?.originalTargetName === originalTargetName) {
+                        count++;
+                    }
+                });
+            });
+            
+            return count;
+        } else {
+            return this.updatingChildrenList.length > 0;
+        }
     }    
     
     addToActiveChildren(child) {

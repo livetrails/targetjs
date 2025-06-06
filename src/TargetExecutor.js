@@ -19,7 +19,7 @@ class TargetExecutor {
     static executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel) {
         tmodel.targetValues[key] = tmodel.targetValues[key] || TargetUtil.emptyValue();
         const targetValue = tmodel.targetValues[key];
-
+        
         targetValue.isImperative = true;
         targetValue.originalTargetName = originalTargetName;
         targetValue.originalTModel = originalTModel;
