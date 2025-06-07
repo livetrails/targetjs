@@ -24,10 +24,10 @@ TargetJS addresses several common pain points in front-end development:
 ### Quick Example: Growing and Shrinking Box
 
 💡 What's happening here?
-- Targets run initially in the order they appear in the code, so `background` runs first, followed by `width`. The `_` prefix indicates that a target is inactive by default, meaning `height` does not run initially.
+- Targets run initially in the order they appear in the code, so `background` runs first, followed by `width`.
 - `background` sets the background to purple, and its lifecycle ends.
 - `width` animates from 100 → 250 → 100px, in 50 steps with 10ms pauses.
-- `height` follows `width` and scales dynamically with its value. The `$` postfix creates a reactive pipeline where the target is triggered each time the preceding target runs. `prevTargetValue` refers to the previous target's value, which in this case is `width`.
+- `height` follows `width` and scales dynamically with its value. The `$` postfix creates a reactive pipeline, meaning this target (`height`) only executes when the preceding target (`width`) runs. `prevTargetValue` refers to the previous target's value, which in this case is `width`.
 
 ![first example](https://targetjs.io/img/quick1_3.gif)
 
@@ -37,7 +37,7 @@ import { App } from "targetj";
 App({
     background: "mediumpurple",
     width: [{ list: [100, 250, 100] }, 50, 10], //  width animates through 100 → 250 → 100, over 50 steps, 10ms interval
-    _height$() { // `$` creates a reactive pipeline: the `height` updates each time `width` executes
+    height$() { // `$` creates a reactive pipeline: the `height` updates each time `width` executes
       return this.prevTargetValue / 2;
     } 
 });
@@ -60,7 +60,7 @@ import { App } from "targetj";
 App({
     id: 'box',
     width: [{ list: [100, 250, 100] }, 50, 10],
-    _height$() {
+    height$() {
       return this.prevTargetValue / 2;
     } 
 });
@@ -80,7 +80,7 @@ App({
 In this example, we load one user and display its name.
 
 - `fetch` is a special target that performs a data fetch when given a URL string. For more complex API requests, you can use the framework’s built-in `fetch()` function. See examples below.
-- `html` sets the text content of the div to the user's name. Since the target name is prefixed with `_` and ends with `$`, it executes only when an API call returns a result. `prevTargetValue` refers to the result of the previous target, which, in this case, is the result of the API call.
+- `html` sets the text content of the div to the user's name. Since the target name ends with `$`, it is a reactive target and it executes only when an API call returns a result. `prevTargetValue` refers to the result of the previous target, which, in this case, is the result of the API call.
 
 ![first example](https://targetjs.io/img/quick2_4.gif)
 
@@ -89,7 +89,7 @@ import { App } from "targetj";
 
 App({
   fetch: "https://targetjs.io/api/randomUser?id=user0",
-  _html$() {
+  html$() {
     return this.prevTargetValue.name;
   }
 });
@@ -100,7 +100,7 @@ Or in HTML:
 ```html 
 <div
    tg-fetch="https://targetjs.io/api/randomUser?id=user0"
-   tg-html$="return this.prevTargetValue?.name;">
+   tg-html$="return this.prevTargetValue.name;">
 </div>
 ``` 
 
@@ -109,7 +109,7 @@ Or in HTML:
 In this example, we load two separate users and display two purple boxes, each containing a user's name, based on our first example.
 
 - `fetch` calls two APIs to retrieve details for two users.
-- `children` is a special target that adds new items to the parent each time it executes. Since the target name is prefixed with _, it is inactive by default. Because it ends with $, it executes every time an API call returns a result.
+- `children` is a special target that adds new items to the parent each time it executes. Because it ends with $, it executes every time an API call returns a result.
 - TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, `children` will not execute until the result for user0 has been received.
   
 ![first example](https://targetjs.io/img/quick3_1.gif)
@@ -119,12 +119,12 @@ import { App, fetch } from "targetj";
 
 App({
     fetch: ['https://targetjs.io/api/randomUser?id=user0', 'https://targetjs.io/api/randomUser?id=user1'],
-    _children$() {
+    children$() {
       return {
         background: "mediumpurple",
         html: this.prevTargetValue.name,
         width: [{ list: [100, 250, 100] }, 50, 10],
-        _height$() { return this.prevTargetValue / 2; },
+        height$() { return this.prevTargetValue / 2; },
       };
     }
 });
@@ -463,15 +463,15 @@ App({
               this.setTarget("x", { list: [-width, parentWidth + width] }, 300);
               this.setTarget("y", Math.floor(Math.random() * (this.getParentValue("height") - this.getHeight())), 30);
           },
-          _animateRightToLeft$$() {
+          animateRightToLeft$$() {
             const width = this.getWidth();
             const parentWidth = this.getParentValue("width");
             this.setTarget("x", { list: [parentWidth + width, -width] }, 300);
           },
-          _waitOneSecond$$() {
+          waitOneSecond$$() {
             this.setTarget('1second', 1, 1, 1000); //name, value, steps, interval 
           },
-          _repeat$$() {
+          repeat$$() {
             this.activateTarget('animateLeftToRight');
           }
         })
@@ -497,15 +497,15 @@ Or in HTML:
           this.setTarget('x', { list: [ -width, parentWidth + width ] }, 400);
           this.setTarget('y', Math.floor(Math.random() * (this.getParentValue('height') - this.getHeight())), 30);
         }"
-        tg-_right2left$$="function() {
+        tg-right2left$$="function() {
           const width = this.getWidth();
           const parentWidth = this.getParentValue('width');
           this.setTarget('x', { list: [ parentWidth + width, -width ] }, 400);
         }"
-        tg-_onesecond$$="function() {
+        tg-onesecond$$="function() {
           this.setTarget('1second', 1, 1, 1000);
         }"
-        tg-_repeat$$="function() {
+        tg-repeat$$="function() {
           this.activateTarget('left2right');
         }"
     >
@@ -550,11 +550,11 @@ App({
              html: childrenCount + i
          }));
     },
-    _load$() {
+    load$() {
         this.prevTargetValue.forEach(data =>
             fetch(this, "https://targetjs.io/api/randomUser", { id: data.oid }));
     },
-    _populate$$() {
+    populate$$() {
         this.prevTargetValue.forEach((data) => this.getChildByOid(data.id).setTarget("html", data.name));
     },
     onScroll() {
@@ -594,12 +594,12 @@ Or in HTML:
       html: childrenCount + i
     }));
   }"
-  tg-_load$="function() {
+  tg-load$="function() {
     this.prevTargetValue.forEach(data =>
       TargetJS.fetch(this, 'https://targetjs.io/api/randomUser', { id: data.oid })
     );
   }"
-  tg-_populate$$="function() {
+  tg-populate$$="function() {
     this.prevTargetValue.forEach((data) =>
       this.getChildByOid(data.id).setTarget('html', data.name)
     );
