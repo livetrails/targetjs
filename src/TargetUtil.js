@@ -118,7 +118,7 @@ class TargetUtil {
         
         const { originalTModel, originalTargetName } = tmodel.isTargetImperative(key) ? tmodel.targetValues[key] : target;
         
-        if (!targetName ) {
+        if (!targetName) {
             if (level < 2 && originalTargetName && originalTModel && TargetUtil.hasTargetEnded(originalTModel, originalTargetName)) {
                 TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
             }                  

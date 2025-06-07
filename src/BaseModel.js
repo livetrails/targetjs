@@ -141,7 +141,7 @@ class BaseModel {
         const targetType = typeof target;
                 
         const cleanKey = TargetUtil.getTargetName(key);
-        const isInactiveKey = key.startsWith('_');  
+        const isInactiveKey = key.startsWith('_') || (key.endsWith('$') && !target.active);
         const isExternalEvent = TargetData.allEventMap[cleanKey];
         const isInternalEvent = TargetData.internalEventMap[cleanKey];
 
@@ -606,22 +606,7 @@ class BaseModel {
     addToActiveTargets(key) {
         if (!this.activeTargetMap[key] && this.canTargetBeActivated(key)) {      
             this.activeTargetMap[key] = true;
-
-            const priorityOrder = ['y', 'x', 'height', 'width', 'start'];
-            const priorityIndex = priorityOrder.indexOf(key);
-
-            if (priorityIndex !== -1) {
-                this.activeTargetList = this.activeTargetList.filter(item => !priorityOrder.includes(item));
-
-                priorityOrder.forEach(priorityKey => {
-                    if (this.activeTargetMap[priorityKey]) {
-                        this.activeTargetList.unshift(priorityKey);
-                    }
-                });
-            } else {
-                this.activeTargetList.push(key);
-            }
-            
+            this.activeTargetList.push(key);
             this.getParent()?.addToActiveChildren(this);
         }
     }

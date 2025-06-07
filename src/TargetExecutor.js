@@ -12,8 +12,8 @@ class TargetExecutor {
     static executeDeclarativeTarget(tmodel, key, cycle) { 
         TargetExecutor.resolveTargetValue(tmodel, key, cycle);
         TargetExecutor.updateTarget(tmodel, tmodel.targetValues[key], key, false);
-        
-        TargetUtil.shouldActivateNextTarget(tmodel, key);     
+
+        TargetUtil.shouldActivateNextTarget(tmodel, key); 
     }
 
     static executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel) {
@@ -25,7 +25,7 @@ class TargetExecutor {
         targetValue.originalTModel = originalTModel;
 
         if (TargetUtil.isListTarget(value)) {
-            TargetExecutor.assignListTarget(targetValue, value.list, value.list[0], steps, interval, easing);
+            TargetExecutor.assignListTarget(tmodel, key, targetValue, value.list, value.list[0], steps, interval, easing);
         } else if (TargetUtil.isObjectTarget(key, value)) {
             const completeValue = TargetData.cssFunctionMap[key] ? { ...TargetData.cssFunctionMap[key], ...value } : value; 
             Object.keys(completeValue).forEach(objectKey => {
@@ -76,7 +76,7 @@ class TargetExecutor {
         tmodel.updateTargetStatus(key);
     }
 
-    static assignListTarget(targetValue, valueList, initialValue, steps, interval, easing) {
+    static assignListTarget(tmodel, key, targetValue, valueList, initialValue, steps, interval, easing) {
         targetValue.valueList = valueList;
         targetValue.stepList = Array.isArray(steps) ? steps : TUtil.isDefined(steps) ? [steps] : [1];
         targetValue.intervalList = Array.isArray(interval) ? interval : TUtil.isDefined(interval) ? [interval] : [0];
@@ -89,8 +89,10 @@ class TargetExecutor {
         targetValue.interval = targetValue.intervalList[0];
         targetValue.easing = targetValue.easingList[0];
 
-        targetValue.step = 0;
+        targetValue.step = Math.min(1, targetValue.steps);
         targetValue.cycles = 0;
+        
+        tmodel.val(key, initialValue);
     }
     
     static executeEventHandlerTarget(groupValue) {
@@ -168,7 +170,7 @@ class TargetExecutor {
                 newInterval
             );
         } else if (TargetUtil.isListTarget(newValue)) {
-            TargetExecutor.assignListTarget(targetValue, newValue.list, newValue.list[0], newSteps, newInterval, easing);
+            TargetExecutor.assignListTarget(tmodel, key, targetValue, newValue.list, newValue.list[0], newSteps, newInterval, easing);
         } else {
             if (newSteps > 0 && !TUtil.areEqual(tmodel.val(key), newValue, tmodel.targets[key]?.deepEquality ?? false)) {
                 tmodel.resetTargetStep(key);
