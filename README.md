@@ -7,6 +7,15 @@
 
 TargetJS is a modern JavaScript UI framework that simplifies front-end development. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to more compact code and allows for a stronger focus on user experience.
 Furthermore, it is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
+
+## Key Innovations and Concepts
+
+1. Unified Methods and Variables: A new construct called "targets" unifies methods and variables. It provides state, iteration, and timing mechanisms for both of them.
+2. Reactive Targets: Targets can get executed when adjacent preceding targets run or are fully completed.
+3. Code-Ordered Execution: The execution flow generally follows the order in which the code is written, making it intuitive and predictable.
+4. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, and event handling.
+5. Flexible Integration: Can be used as a full-featured framework or as a lightweight library alongside other frameworks.
+
 ## What Problems Does TargetJS Solve?
 
 TargetJS addresses several common pain points in front-end development:
@@ -73,8 +82,6 @@ App({
 </div>
 ```
 
-
-
 ### Simple Loading API Example
 
 In this example, we load one user and display its name.
@@ -102,46 +109,40 @@ Or in HTML:
    tg-fetch="https://targetjs.io/api/randomUser?id=user0"
    tg-html$="return this.prevTargetValue.name;">
 </div>
-``` 
+```
 
-### Loading Two Users Example
+### Click Counter Example
 
-In this example, we load two separate users and display two purple boxes, each containing a user's name, based on our first example.
-
-- `fetch` calls two APIs to retrieve details for two users.
-- `children` is a special target that adds new items to the parent each time it executes. Because it ends with $, it executes every time an API call returns a result.
-- TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, `children` will not execute until the result for user0 has been received.
-  
-![first example](https://targetjs.io/img/quick3_1.gif)
+In this example, we demonstrate a click counter, which is commonly used as the 'Hello World' example in front-end frameworks.
 
 ```javascript
-import { App, fetch } from "targetj";
+import { App } from "targetj";
 
 App({
-    fetch: ['https://targetjs.io/api/randomUser?id=user0', 'https://targetjs.io/api/randomUser?id=user1'],
-    children$() {
-      return {
-        background: "mediumpurple",
-        html: this.prevTargetValue.name,
-        width: [{ list: [100, 250, 100] }, 50, 10],
-        height$() { return this.prevTargetValue / 2; },
-      };
+    onClick() {},
+    html$: {
+        initialValue: 0,
+        value() { return this.value + 1; }
     }
 });
 ```
+
 Or in HTML:
 
 ```html 
-    <div tg-fetch="['https://targetjs.io/api/randomUser?id=user0',
-         'https://targetjs.io/api/randomUser?id=user1']">
-      <div
-        tg-background="mediumpurple"
-        tg-width="[{ list: [100, 250, 100] }, 50, 10]"
-        tg-height$="return this.prevTargetValue / 2;"
-        tg-html="return this.getParentValueAtMyIndex('fetch')?.name;">
-      </div>
-    </div>
-``` 
+<div
+ tg-onClick=""
+ tg-html$="{
+   initialValue: 0,
+   value() { return this.value + 1; }
+ }">
+</div>
+```
+
+Here's what's happening.
+- The onClick target is a special function that runs whenever the element is clicked.
+- Since the html ends with $, it executes every time onClick runs.
+- It is also possible to implement the counter update directly within the onClick target, but we wanted to demonstrate the reactive feature between adjacent targets.
 
 ## Table of Contents
 
@@ -154,6 +155,7 @@ Or in HTML:
 10. [Target Variables](#target-variables)
 11. More Examples:
     - [Basic Example](#basic-example)
+    - [Loading Two Users Example](#loading-two-users-example)
     - [Declarative and Imperative Targets Example](#declarative-and-imperative-targets-example)
     - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
     - [Simple SPA Example](#simple-spa-example)
@@ -200,19 +202,18 @@ Then import it into your JavaScript code:
 import { App } from "targetj";
 ```
 
-## Key Features and Concepts
+## Key Features
 
-*   **Targets:** The fundamental building blocks of TargetJS. Targets provide a unified interface for properties and methods with built-in lifecycles. They can:
+*   **Targets:** The fundamental building blocks of TargetJS. Targets provide a unified interface for properties and methods with built-in lifecycles. They can form synchronous execution pipelines between adjacent targetws (similar to assembling Lego). They can also:
     *   Iterate towards values (useful for animations and transitions).
     *   Execute conditionally.
     *   Manage repeated executions.
     *   Control execution timing (useful for UI operations and advanced animations).
-    *   Form synchronous execution pipelines (similar to assembling Lego).
     *   Track the execution progress of other targets.
-    *   Declarative execution (execution follows the way the code is written).
-    *   Compact code (No unnecessary function calls, minimal if statements and loops).
     *   Manage their own state.
-
+    *   Execute targets sequentially and predictably in the order they are written leveraging ES2015's guaranteed property order.
+    *   Utilizes literal JavaScript objects or HTML elements for target definitions, providing a compact and readable format.
+   
 *   **Unified Approach:**  Targets handle UI updates, API calls, animations, state, and events, reducing the need to learn and integrate multiple libraries.
 
 *  **Unique computational paradigm:** TargetJS introduces a novel computational model by integrating multiple paradigms: Turing Completeness, the Von Neumann Execution Model, and Functional Programming. This results in:
@@ -241,15 +242,6 @@ import { App } from "targetj";
 | **Workflow Development**             | Targets offer a unified solution for UI, animation, event handling, API calls, and state management. | Multiple technologies and approaches.                             |
 | **Execution Control by Time**        | TargetJS enables easy sequencing and parallelization for complex UI behaviors. | Not easily accomplished.                                          |
 
-
-## The Core of TargetJS
-
-TargetJS utilizes literal JavaScript objects or HTML elements for target definitions, providing a compact and readable format. The core principles are:
-
-- Properties and methods are unified via an internal wrapper called "targets."
-- Execute targets sequentially and predictably in the order they are written leveraging ES2015's guaranteed property order.
-- Enable reactive pipelines between adjacent targets.
-- Add lifecycles to targets enabling them to behave like living, responsive cells.
   
 ## Anatomy of a Target
 
@@ -340,6 +332,9 @@ It returns `true` if the previous target has been updated. This method is useful
 
 3. **this.key**
 Represents the name of the current target.
+
+3. **this.value**
+Represents the current value of the target.
     
 ## More Examples
 
@@ -430,6 +425,45 @@ App({
   >  
   </div>
  ```
+
+## Loading Two Users Example
+
+In this example, we load two separate users and display two purple boxes, each containing a user's name, based on our first example.
+
+- `fetch` calls two APIs to retrieve details for two users.
+- `children` is a special target that adds new items to the parent each time it executes. Because it ends with $, it executes every time an API call returns a result.
+- TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, `children` will not execute until the result for user0 has been received.
+  
+![first example](https://targetjs.io/img/quick3_1.gif)
+
+```javascript
+import { App, fetch } from "targetj";
+
+App({
+    fetch: ['https://targetjs.io/api/randomUser?id=user0', 'https://targetjs.io/api/randomUser?id=user1'],
+    children$() {
+      return {
+        background: "mediumpurple",
+        html: this.prevTargetValue.name,
+        width: [{ list: [100, 250, 100] }, 50, 10],
+        height$() { return this.prevTargetValue / 2; },
+      };
+    }
+});
+```
+Or in HTML:
+
+```html 
+    <div tg-fetch="['https://targetjs.io/api/randomUser?id=user0',
+         'https://targetjs.io/api/randomUser?id=user1']">
+      <div
+        tg-background="mediumpurple"
+        tg-width="[{ list: [100, 250, 100] }, 50, 10]"
+        tg-height$="return this.prevTargetValue / 2;"
+        tg-html="return this.getParentValueAtMyIndex('fetch')?.name;">
+      </div>
+    </div>
+``` 
 
 ## Declarative and Imperative Targets Example
 
