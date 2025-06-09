@@ -20,9 +20,9 @@ Furthermore, it is also a highly performant web framework, as shown in the [fram
 
 TargetJS addresses several common pain points in front-end development:
 
-1.  **Scattered State Management:** Many frameworks require separate libraries or complex patterns for state management. In TargetJS, state management is inherently handled through its core concept of unifying both methods and variables eliminating the need for direct state management.
-2.  **Complexity of Asynchronous Operations:**  Traditional JavaScript often involves complex handling of asynchronous operations (Promises, callbacks, `async/await`). TargetJS addresses this by providing a structured synchronous execution avoiding asynchronous operations altogether.
-3.  **Disjointed Development Workflow:**  Developers often juggle multiple tools and concepts (UI libraries, animation libraries, state managers, event handlers). TargetJS provides a unified solution simplifying the learning curve and development process.
+1.  **Scattered State Management:** Many frameworks require separate libraries or complex patterns for state management. In TargetJS, state management is inherently handled throught its core concept of “targets,” which unify methods and variables, eliminating the need for explicit state management.
+2.  **Complexity of Asynchronous Operations:**  Traditional JavaScript often involves complex handling of asynchronous operations (Promises, callbacks, `async/await`). TargetJS addresses this by providing a delactive reactive targets and synchronous execution flow.
+3.  **Disjointed Development Workflow:**  Developers often juggle multiple tools and concepts (UI libraries, animation libraries, state managers, event handlers). TargetJS provides a unified solution.
 4.  **Rigid Static Layer of HTML:** Many frameworks use HTML as the primary medium for generating the user interface. TargetJS makes JavaScript the primary driver, either by running directly or through a handful of HTML elements extended with superpowers.  
 5.  **Boilerplate and Verbosity:** TargetJS aims to reduce boilerplate code. The code is compact and follows a predictable execution flow. Direct method calls are not allowed, and loops and conditional statements are rarely needed.
 6.  **Difficult Animation Control:**  TargetJS makes animations first-class citizens with fine-grained control.
