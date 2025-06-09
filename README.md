@@ -10,10 +10,10 @@ Furthermore, it is also a highly performant web framework, as shown in the [fram
 
 ## Key Innovations and Concepts
 
-1. Unified Methods and Variables: A new construct called "targets" unifies methods and variables. It provides state, iteration, and timing mechanisms for both of them.
-2. Reactive Targets: Targets can get executed when adjacent preceding targets run or are fully completed.
-3. Code-Ordered Execution: The execution flow generally follows the order in which the code is written, making it intuitive and predictable.
-4. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, and event handling.
+1. Unifying Methods and Variables with Targets: A new construct called “targets” combines methods and variables, providing state, iteration, and timing mechanisms for both.
+2. Declarative Reactive Targets: Targets can explicitly declare execution when adjacent preceding targets, whether synchronous or asynchronous, run or complete.
+3. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
+4. Code-Ordered Execution: The execution flow generally follows the order in which the code is written.
 5. Flexible Integration: Can be used as a full-featured framework or as a lightweight library alongside other frameworks.
 
 ## What Problems Does TargetJS Solve?
