@@ -408,6 +408,7 @@ class EventListener {
             case 'wheel':
                 if (this.preventDefault(tmodel, eventName)) {
                     event.preventDefault();
+                    event.stopPropagation();
                 }
                 this.touchTimeStamp = now + 500;
                 this.wheel(event);

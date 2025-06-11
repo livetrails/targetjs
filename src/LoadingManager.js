@@ -114,7 +114,7 @@ class LoadingManager {
     
     isLoadingSuccessful(tmodel, targetName) {
         const key = this.getTModelKey(tmodel, targetName);
-        return this.tmodelKeyMap[key] && this.tmodelKeyMap[key].resultCount === this.tmodelKeyMap[key].entryCount && this.tmodelKeyMap[key].errorCount === 0;
+        return this.tmodelKeyMap[key] && this.tmodelKeyMap[key].resultCount === this.tmodelKeyMap[key].entryCount;
     }
     
     resetLoadingError(tmodel, targetName) {
@@ -143,7 +143,7 @@ class LoadingManager {
         const loadTargetName = this.getLoadTargetName(targetName);
         const targetValue = tmodel.val(loadTargetName);
         
-        return modelEntry.errorCount === 0 && Array.isArray(targetValue) && TUtil.isDefined(targetValue[modelEntry.activeIndex]);        
+        return Array.isArray(targetValue) && TUtil.isDefined(targetValue[modelEntry.activeIndex]);        
     }
     
     getLoadingItemValue(tmodel, targetName) {
@@ -161,11 +161,11 @@ class LoadingManager {
 
         if (targetValue) {
             if (target.fetchAction === 'onEnd') {
-                result = targetValue.slice(tmodelEntry.accessIndex);
+                result = targetValue.slice(tmodelEntry.accessIndex, tmodelEntry.resultCount);                
                 tmodelEntry.accessIndex += result.length;
             } else {
-                result = targetValue[tmodelEntry.accessIndex];   
-                tmodelEntry.accessIndex++;            
+                result = targetValue[tmodelEntry.accessIndex];
+                 tmodelEntry.accessIndex++; 
             }
         }
 
@@ -196,7 +196,7 @@ class LoadingManager {
             success: true,
             result
         };
-
+        
         targets.forEach(({ tmodel, targetName }) => {
             const key = this.getTModelKey(tmodel, targetName);
             const tmodelEntry = this.tmodelKeyMap[key];
@@ -214,14 +214,12 @@ class LoadingManager {
             if (targetResults) {
                 targetResults[fetchEntry.order] = res.result;
             }
-            
+                        
             tmodel.val(targetName, targetResults?.length === 1 ? targetResults[0] : targetResults);
             
             tmodelEntry.resultCount++;
             
-            if (tmodelEntry.errorCount === 0) {
-                TargetUtil.shouldActivateNextTarget(tmodel, targetName);
-            }
+            TargetUtil.shouldActivateNextTarget(tmodel, targetName);
         });
         
         delete fetchMap[fetchId];
@@ -237,7 +235,7 @@ class LoadingManager {
         const { fetchId, cacheId, startTime, targets, fetchMap } = fetchStatus;
 
         targets.forEach(({ tmodel, targetName }) => {
-            const key = `${tmodel.oid} ${targetName}`;
+            const key = this.getTModelKey(tmodel, targetName);
             const tmodelEntry = this.tmodelKeyMap[key];
             const loadTargetName = this.getLoadTargetName(targetName);
 
@@ -265,6 +263,7 @@ class LoadingManager {
 
             this.callOnErrorHandler(tmodel, targetName);
             
+            TargetUtil.shouldActivateNextTarget(tmodel, targetName);
         });
         
         delete fetchMap[fetchId];

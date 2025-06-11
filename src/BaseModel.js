@@ -191,6 +191,7 @@ class BaseModel {
             }
             delete this.targets[key];
             key = cleanKey;
+            target = this.targets[key];
         }
 
         if (TargetData.bypassInitialProcessingTargetMap[key]) {
@@ -210,6 +211,10 @@ class BaseModel {
         if (!TargetData.mustExecuteTargets[key] && TUtil.isStringBooleanOrNumber(target)) {          
             this.val(key, target);
             return;
+        }
+        
+        if (target.interval > 0 && !TUtil.isDefined(target.steps) && !TUtil.isDefined(target.cycles)) {
+            target.cycles = 1;
         }
         
         if (target.active !== false && this.canTargetBeActivated(key)) {
@@ -756,7 +761,7 @@ class BaseModel {
             }
 
             const targetValue = this.targetValues[key];
-
+            
             if (targetValue) {
                 targetValue.isImperative = false;
                 targetValue.executionFlag = false;

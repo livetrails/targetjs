@@ -4,7 +4,7 @@ import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { TargetExecutor } from "./TargetExecutor.js";
-import { tApp, getEvents } from "./App.js";
+import { tApp } from "./App.js";
 
 /*
  * It calculates the locations and dimensions of all objects and triggers the calculation of all targets. 
@@ -64,10 +64,19 @@ class LocationManager {
     calculateActivated() {
         let i = 0;     
                 
-        while (i < this.activatedList.length) {
-            const child = this.activatedList[i++];
+        const activatedList = this.activatedList;
+        
+        this.activatedList = [];
+        this.activatedMap = {};        
+        
+        while (i < activatedList.length) {
+            const child = activatedList[i++];
 
-            tApp.targetManager.applyTargetValues(child, child.activatedTargets);
+            const activatedTargets = child.activatedTargets.slice(0);
+                    
+            child.activatedTargets.length = 0;
+                      
+            tApp.targetManager.applyTargetValues(child, activatedTargets);
             
             if (child.updatingTargetList.length > 0) {
                 tApp.targetManager.setActualValues(child, child.updatingTargetList.filter((key => child.getTargetStep(key) === 0)));
@@ -76,12 +85,7 @@ class LocationManager {
             if (!this.hasLocationMap[child.oid]) {
                 this.addToLocationList(child);
             }
-            
-           child.activatedTargets.length = 0;
         }
-        
-        this.activatedList.length = 0;
-        this.activatedMap = {};
     }
 
     getChildren(container) {
@@ -234,6 +238,13 @@ class LocationManager {
 
     calculateTargets(tmodel) {
         this.checkInternalEvents(tmodel);
+        
+        tmodel.activatedTargets.forEach(target => {
+            if (tmodel.activeTargetMap[target]) {
+                tmodel.removeFromActiveTargets(target);
+            }
+        });
+        
         tApp.targetManager.applyTargetValues(tmodel);        
         tApp.targetManager.setActualValues(tmodel);
 
@@ -296,25 +307,20 @@ class LocationManager {
             eventTargets = [eventTargets];
         }
     
-        const originalEventTarget = getEvents().getEventTarget();
-
         eventTargets.forEach(targetName => {
             const target = tmodel.targets[targetName];
             
-            if (tmodel.isTargetEnabled(targetName)) {
-                if (typeof target.value === 'function') {
-                    const result = target.value.call(tmodel, originalEventTarget);
-                    if (Array.isArray(result)) {
-                        result.forEach(t => TargetUtil.activateSingleTarget(tmodel, t));
-                    } else if (typeof result === 'string') {
-                        TargetUtil.activateSingleTarget(tmodel, result);
-                    }
-                } else if (Array.isArray(target.value)) {
-                    target.value.forEach(t => TargetUtil.activateSingleTarget(tmodel, t));
-                } else if (Array.isArray(target)) {
-                    target.forEach(t => TargetUtil.activateSingleTarget(tmodel, t));                      
-                } else {
-                    TargetUtil.activateSingleTarget(tmodel, target.value);
+            if (tmodel.isTargetEnabled(targetName) &&  !tmodel.isTargetUpdating(target)) {
+                TargetExecutor.prepareTarget(tmodel, targetName);
+                TargetExecutor.resolveTargetValue(tmodel, targetName, tmodel.getTargetCycle(targetName));
+                TargetExecutor.updateTarget(tmodel, tmodel.targetValues[targetName], targetName, false);
+                
+                const result = tmodel.val(targetName);
+                
+                if (Array.isArray(result)) {
+                    result.forEach(t => TargetUtil.activateSingleTarget(tmodel, t));
+                } else if (typeof result === 'string') {
+                    TargetUtil.activateSingleTarget(tmodel, result);
                 }
                 
                 TargetUtil.shouldActivateNextTarget(tmodel, targetName);

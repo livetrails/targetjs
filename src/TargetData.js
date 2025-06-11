@@ -1,6 +1,5 @@
 import { getEvents, getResizeLastUpdate } from "./App.js";
 import { TUtil } from "./TUtil.js";
-import { $Dom } from "./$Dom.js";
 
 class TargetData {
     
@@ -376,8 +375,8 @@ class TargetData {
         onFocus: tmodel => getEvents().onFocus(tmodel),
         onBlur: tmodel => getEvents().onBlur(tmodel),
         onPinch: tmodel => getEvents().isPinchHandler(tmodel),
-        onKey: tmodel => getEvents().getEventType() === 'key' && getEvents().currentKey && $Dom.hasFocus(tmodel),
-        onKeyDown: tmodel => getEvents().getEventType() === 'keydown' && getEvents().currentKey && $Dom.hasFocus(tmodel), 
+        onKey: tmodel => getEvents().getEventType() === 'key' && getEvents().currentKey && getEvents().currentHandlers.focus === tmodel && getEvents().currentHandlers.justFocused !== tmodel,
+        onKeyDown: tmodel => getEvents().getEventType() === 'keydown' && getEvents().currentKey && getEvents().currentHandlers.focus === tmodel && getEvents().currentHandlers.justFocused !== tmodel,
         onAnyKey: () => getEvents().getEventType() === 'key' && getEvents().currentKey,
         onScroll: tmodel => (getEvents().isScrollLeftHandler(tmodel) && getEvents().deltaX()) || (getEvents().isScrollTopHandler(tmodel) && getEvents().deltaY()),
         onScrollTop: tmodel => getEvents().getOrientation() !== 'horizontal' && getEvents().isScrollTopHandler(tmodel) && getEvents().deltaY(), 

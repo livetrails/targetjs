@@ -75,21 +75,12 @@ class TargetManager {
                     getRunScheduler().schedule(tmodel.getTargetInterval(key), `targetSchedule__${tmodel.oid}__${key}_rerun`);
                 }            
             });
-        } else {            
-            if (tmodel.isExecuted(key) && tmodel.getTargetCycles(key) > 0) {
-                if (tmodel.getTargetCycle(key) < tmodel.getTargetCycles(key)) {
-                    tmodel.incrementTargetCycle(key, tmodel.getTargetCycle(key));
-                } else {
-                    tmodel.resetTargetCycle(key);
-                }
-                tmodel.resetTargetStep(key);
-                tmodel.resetTargetInitialValue(key);       
-            }
-
+        } else {        
+            TargetExecutor.prepareTarget(tmodel, key);
             TargetExecutor.executeDeclarativeTarget(tmodel, key);       
         }
     }
-
+    
     setActualValues(tmodel, updatingList = tmodel.updatingTargetList.slice(0)) {
         let schedulePeriod = 0;
         

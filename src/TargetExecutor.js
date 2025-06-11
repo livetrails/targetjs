@@ -2,12 +2,25 @@ import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
 import { TUtil } from "./TUtil.js";
 import { Easing } from "./Easing.js";
-import { getEvents, getLoader } from "./App.js";
+import { getEvents, getLoader, getRunScheduler } from "./App.js";
 
 /**
  * It is responsible for executing both declarative and imperative targets.
  */
 class TargetExecutor {
+    
+    static prepareTarget(tmodel, key) {
+        if (tmodel.isExecuted(key) && tmodel.getTargetCycles(key) > 0) {
+
+            if (tmodel.getTargetCycle(key) < tmodel.getTargetCycles(key)) {
+                tmodel.incrementTargetCycle(key, tmodel.getTargetCycle(key));
+            } else {
+                tmodel.resetTargetCycle(key);
+            }
+            tmodel.resetTargetStep(key);
+            tmodel.resetTargetInitialValue(key);       
+        }
+    }
     
     static executeDeclarativeTarget(tmodel, key, cycle) { 
         TargetExecutor.resolveTargetValue(tmodel, key, cycle);
@@ -71,9 +84,12 @@ class TargetExecutor {
         }
         
         tmodel.addToStyleTargetList(key, enforce);
-        tmodel.setTargetMethodName(key, 'value');        
+        tmodel.setTargetMethodName(key, 'value'); 
 
         tmodel.updateTargetStatus(key);
+        
+        getRunScheduler().schedule(10, 'updateTarget-' + tmodel.oid + "-" + key);
+
     }
 
     static assignListTarget(tmodel, key, targetValue, valueList, initialValue, steps, interval, easing) {

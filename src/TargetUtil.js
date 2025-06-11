@@ -71,7 +71,6 @@ class TargetUtil {
         target.originalTModel = TargetUtil.currentTModel;
         
         const cleanKey = TargetUtil.getTargetName(key);
-        const targetValue = () => tmodel.val(cleanKey);
         
         if (doesNextTargetUsePrevValue && !target.activateNextTarget) {
             target.activateNextTarget = nextKey.slice(0, -1);
@@ -88,7 +87,7 @@ class TargetUtil {
                     TargetUtil.currentTargetName = cleanKey;
                     TargetUtil.currentTModel = tmodel;
                     this.key = cleanKey;      
-                    this.value = targetValue();
+                    this.value = this.val(cleanKey);
                     this.prevTargetValue = getPrevValue();         
                     this.isPrevTargetUpdated = isPrevTargetUpdated;
                     const result = typeof originalMethod === 'function' ? originalMethod.apply(this, arguments) : originalMethod;
@@ -101,7 +100,7 @@ class TargetUtil {
                     TargetUtil.currentTargetName = cleanKey;
                     TargetUtil.currentTModel = tmodel;
                     this.key = cleanKey;
-                    this.value = targetValue();
+                    this.value = this.val(cleanKey);
                     this.prevTargetValue = getPrevValue();         
                     this.isPrevTargetUpdated = isPrevTargetUpdated;
                     const result = typeof originalMethod === 'function' ? originalMethod.apply(this, arguments) : originalMethod;
@@ -118,13 +117,13 @@ class TargetUtil {
         
         const { originalTModel, originalTargetName } = tmodel.isTargetImperative(key) ? tmodel.targetValues[key] : target;
         
-        if (!targetName) {
+        if (!targetName || tmodel.isTargetImperative(key)) {
             if (level < 2 && originalTargetName && originalTModel && TargetUtil.hasTargetEnded(originalTModel, originalTargetName)) {
                 TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
             }                  
             return;
         }
-        
+       
         const cleanTargetName = TargetUtil.getTargetName(targetName);           
         const isEndTrigger = targetName?.endsWith('$');
         const fetchAction = target?.fetchAction;
@@ -132,13 +131,13 @@ class TargetUtil {
         
         if (fetchAction) {
             if (fetchAction === 'onEnd' && TargetUtil.hasTargetEnded(tmodel, key)) {
-                    TargetUtil.activateNextTarget(tmodel, cleanTargetName);
+                tmodel.activateTarget(cleanTargetName);
             } else if (fetchAction === 'onEach') {
                     while (getLoader().isNextLoadingItemSuccessful(tmodel, key)) {
                         if (tmodel.activatedTargets.indexOf(cleanTargetName) >= 0) {
                             tmodel.activatedTargets.push(cleanTargetName);
                         } else {
-                            TargetUtil.activateNextTarget(tmodel, cleanTargetName);
+                            tmodel.activateTarget(cleanTargetName);
                         }
                         getLoader().nextActiveItem(tmodel, key);
                     }
@@ -150,18 +149,18 @@ class TargetUtil {
         
         if (childAction) {
             if (childAction === 'onEnd' && TargetUtil.hasTargetEnded(tmodel, key)) {
-                TargetUtil.activateNextTarget(tmodel, cleanTargetName);
+                tmodel.activateTarget(cleanTargetName);
                 target.childAction = 'inactive';
             } else if (childAction === 'onEach') {
-                TargetUtil.activateNextTarget(tmodel, cleanTargetName);
+                tmodel.activateTarget(cleanTargetName);
                 target.childAction = 'inactive';
             }
             return;
         }
 
         if (target && cleanTargetName && !tmodel.isTargetImperative(key)) {          
-            if ((isEndTrigger && TargetUtil.hasTargetEnded(tmodel, key)) || !isEndTrigger) {
-                TargetUtil.activateNextTarget(tmodel, cleanTargetName);
+            if ((isEndTrigger && TargetUtil.hasTargetEnded(tmodel, key)) || !isEndTrigger) {               
+                tmodel.activateTarget(cleanTargetName);
             }
             return;
         }
@@ -169,7 +168,7 @@ class TargetUtil {
     }
 
     static hasTargetEnded(tmodel, key) {
-        const isComplete = (tmodel.isTargetComplete(key) || tmodel.isTargetDone(key) || tmodel.isActivated()) && !tmodel.hasUpdatingTargets(key);
+        const isComplete = (tmodel.isTargetComplete(key) || tmodel.isTargetDone(key) || tmodel.isActivated()) && !tmodel.hasUpdatingTargets(key) && !tmodel.hasTargetUpdates();
         if (!isComplete) {
             return false;
         }
@@ -185,15 +184,6 @@ class TargetUtil {
         }
         
         return true;
-    }
-    
-    static activateNextTarget(tmodel, target) {
-        if (tmodel.targetValues[target]) {
-            tmodel.targetValues[target].isImperative = false;
-        }
-        if (!tmodel.activeTargetMap[target]) {
-            tmodel.activate(target); 
-        }
     }
     
     static activateSingleTarget(tmodel, targetName) {

@@ -1,6 +1,6 @@
 {
   "name": "targetj",
-  "version": "1.0.181",
+  "version": "1.0.182",
   "description": "TargetJS is a JavaScript framework designed for creating animated and efficient web user interfaces.",
   "keywords": ["targetjs"],
   "main": "Export.js",
