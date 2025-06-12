@@ -189,7 +189,7 @@ import { App } from "targetj";
 
 ## Key Features
 
-*   **Targets:** The fundamental building blocks of TargetJS. Targets provide a unified interface for properties and methods with built-in lifecycles. They can form synchronous execution pipelines between adjacent targetws (similar to assembling Lego). They can also:
+*   **Targets:** The fundamental building blocks of TargetJS. Targets provide a unified interface for properties and methods with built-in lifecycles. They can form synchronous execution pipelines between adjacent targets (similar to assembling Lego). They can also:
     *   Iterate towards values (useful for animations and transitions).
     *   Execute conditionally.
     *   Manage repeated executions.
