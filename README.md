@@ -109,7 +109,7 @@ Let’s expand the previous example by adding a click handler. When the element 
 import { App } from 'targetj';
 
 App({
-    background: 'mediumpurple"',
+    background: 'mediumpurple',
     width: [{ list: [100, 250, 100] }, 50, 10],
     height$() { return this.prevTargetValue / 2; },
     fetch$$: 'https://targetjs.io/api/randomUser?id=user0',
