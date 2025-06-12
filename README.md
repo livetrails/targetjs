@@ -129,12 +129,44 @@ Here's what's happening.
 - `pauses`, ending with `$$`, is a reactive target that runs only after the previous target completely done its animation. 
 - `purpleAgain` also ending with $$, executes only after the `pauses` target completes its execution, which takes 2 seconds.
 
+### Let's make it more complicated :)
+
+Let’s expand the previous example by creating 10 boxes instead of just one. Each box will be added every 100 milliseconds. Once all the boxes have been added, their animations are complete, and the user details are populated, we’ll change their background to green.
+
+```javascript
+import { App } from 'targetj';
+
+App({
+    children: {
+        cycles: 9,
+        interval: 100,
+        value(cycle) {
+            return {
+                background: 'mediumpurple',
+                width: [{ list: [100, 250, 100] }, 50, 10],
+                height$() { return this.prevTargetValue / 2; },
+                fetch$$: `https://targetjs.io/api/randomUser?id=user${cycle}`,
+                html$() { return this.prevTargetValue.name; },
+                onClick() { this.setTarget('background', 'orange', 30, 10); },
+                pause$$: { interval: 2000 },
+                purpleAgain$$() { this.setTarget('background', 'mediumpurple', 30, 10); }
+            };
+        }
+    },
+    greenify$$() {
+        this.getChildren().forEach(child => child.setTarget("background", "green", 30, 10));
+    } 
+});
+```
+
+- The `children` target is a special target that adds one or more items each time it runs. The `cycles` property specifies how many times the target should run, in this case, 10 times (from 0 to 9). The `interval` property defines how often it runs. In this example, it triggers every 100 milliseconds.
+- `greenify`, which ends with `$$`, executes only after the children target has fully completed including item creation, animations, API calls, and populating user names.
+
 ## Table of Contents
 
 1. [Installation](#installation)
-2. [Key Features and Concepts](#key-features-and-concepts)
+2. [Key Features](#key-features)
 6. [Comparison with Other UI Frameworks](#comparison-with-other-ui-frameworks)
-7. [The Core of TargetJS](#the-core-of-targetjs)
 8. [Anatomy of a Target](#anatomy-of-a-target)
 9. [Target Methods](#target-methods)
 10. [Target Variables](#target-variables)
@@ -150,7 +182,7 @@ Here's what's happening.
 14. [Documentation](#documentation)
 15. [License](#license)
 16. [Contact](#contact)
-17. [Call to Action](#call-to-action)
+17. [💖 Support TargetJS](#💖-support-targetjs)
 
 ## **📦 Installation**
 
@@ -850,7 +882,7 @@ App({
 });
 ```
 
-## Special Target Namescan
+## Special Target Names
 
 All HTML style names and attributes are treated as special target names. The most commonly used style names and attributes have already been added to the framework, with the possibility of adding more in the future.
 
@@ -918,7 +950,7 @@ Here are all the event targets:
 19. **onVisibleChildrenChange**: Triggered when the count of visible children changes.
 20. **onDomEvent**: It accepts an array of targets and activates them when their associated object acquires a DOM element.
 
-## Debugging in TargetJS
+## How to Debug in TargetJS
 
 TargetJS provides built-in debugging tools:
 
