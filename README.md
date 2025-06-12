@@ -39,10 +39,10 @@ TargetJS addresses several common pain points in front-end development:
 - `height` follows `width` and scales dynamically with its value. The `$` postfix creates a reactive pipeline, meaning this target (`height`) only executes when the preceding target (`width`) runs. `prevTargetValue` refers to the previous target's value, which in this case is `width`.
 
 ```javascript
-import { App } from "targetj";
+import { App } from 'targetj';
 
 App({
-    background: "mediumpurple",
+    background: 'mediumpurple',
     width: [{ list: [100, 250, 100] }, 50, 10], //  width animates through 100 → 250 → 100, over 50 steps, 10ms interval
     height$() { // `$` creates a reactive pipeline: the `height` updates each time `width` executes
       return this.prevTargetValue / 2;
@@ -62,7 +62,7 @@ Or in HTML (no JavaScript required), using tg- attributes that mirror object lit
 Or a combination of JavaScript and HTML, linked together using the same HTML ID. In the example below, both the object and the `<div>` element are bound using the ID 'box'. The object uses the `<div>` as its base element, combining the background from the element with the width and height from the object:
 
 ```javascript
-import { App } from "targetj";
+import { App } from 'targetj';
 
 App({
     id: 'box',
@@ -88,13 +88,13 @@ Let's expand the previous example by calling an API to fetch a user details. Let
 - `html` sets the text content of the div to the user's name. Since the target name ends with `$`, it is a reactive target and it executes only when an API call returns a result. `prevTargetValue` refers to the result of the previous target, which, in this case, is the result of the API call.
 
 ```javascript
-import { App } from "targetj";
+import { App } from 'targetj';
 
 App({
-    background: "mediumpurple",
+    background: 'mediumpurple',
     width: [{ list: [100, 250, 100] }, 50, 10],
     height$() { return this.prevTargetValue / 2; },
-    fetch$$: "https://targetjs.io/api/randomUser?id=user0",
+    fetch$$: 'https://targetjs.io/api/randomUser?id=user0',
     html$() {
        return this.prevTargetValue.name;
     }
@@ -106,13 +106,13 @@ App({
 Let’s expand the previous example by adding a click handler. When the element is clicked, we’ll change the background to orange, wait for two seconds, and then change it back to purple.
 
 ```javascript
-import { App } from "targetj";
+import { App } from 'targetj';
 
 App({
-    background: "mediumpurple",
+    background: 'mediumpurple"',
     width: [{ list: [100, 250, 100] }, 50, 10],
     height$() { return this.prevTargetValue / 2; },
-    fetch$$: "https://targetjs.io/api/randomUser?id=user0",
+    fetch$$: 'https://targetjs.io/api/randomUser?id=user0',
     html$() { return this.prevTargetValue.name; },
     onClick() {
         this.setTarget('background', 'orange', 30, 10);
