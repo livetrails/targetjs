@@ -166,9 +166,24 @@ class TargetUtil {
         }
 
     }
+    
+    static hasDeclarativeTargetUpdates(tmodel) {
+        if (!tmodel.hasTargetUpdates()) {
+            return false;
+        }
+        
+        for (const target of tmodel.updatingTargetList) {
+            if (!tmodel.isTargetImperative(target)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     static hasTargetEnded(tmodel, key) {
-        const isComplete = (tmodel.isTargetComplete(key) || tmodel.isTargetDone(key) || tmodel.isActivated()) && !tmodel.hasUpdatingTargets(key) && !tmodel.hasTargetUpdates();
+        
+        const isComplete = (tmodel.isTargetComplete(key) || tmodel.isTargetDone(key) || tmodel.isActivated()) && !tmodel.hasUpdatingTargets(key) && !TargetUtil.hasDeclarativeTargetUpdates(tmodel);
         if (!isComplete) {
             return false;
         }
