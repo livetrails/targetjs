@@ -38,8 +38,6 @@ TargetJS addresses several common pain points in front-end development:
 - `width` animates from 100 → 250 → 100px, in 50 steps with 10ms pauses.
 - `height` follows `width` and scales dynamically with its value. The `$` postfix creates a reactive pipeline, meaning this target (`height`) only executes when the preceding target (`width`) runs. `prevTargetValue` refers to the previous target's value, which in this case is `width`.
 
-![first example](https://targetjs.io/img/quick1_3.gif)
-
 ```javascript
 import { App } from "targetj";
 
@@ -82,67 +80,54 @@ App({
 </div>
 ```
 
-### Simple Loading API Example
+### Adding an API Call
 
-In this example, we load one user and display its name.
+Let's expand the previous example by calling an API to fetch a user details. Let's also assume that we want to call the API after the box ends its animation. 
 
-- `fetch` is a special target that performs a data fetch when given a URL string. For more complex API requests, you can use the framework’s built-in `fetch()` function. See examples below.
+- `fetch` is a special target that retrieves data when given a URL string. Notice that its name ends with `$$`, indicating it’s a reactive target that runs only after all preceding targets have fully completed their execution.
 - `html` sets the text content of the div to the user's name. Since the target name ends with `$`, it is a reactive target and it executes only when an API call returns a result. `prevTargetValue` refers to the result of the previous target, which, in this case, is the result of the API call.
 
-![first example](https://targetjs.io/img/quick2_4.gif)
-
 ```javascript
 import { App } from "targetj";
 
 App({
-  fetch: "https://targetjs.io/api/randomUser?id=user0",
-  html$() {
-    return this.prevTargetValue.name;
-  }
-});
-```
-
-Or in HTML:
-
-```html 
-<div
-   tg-fetch="https://targetjs.io/api/randomUser?id=user0"
-   tg-html$="return this.prevTargetValue.name;">
-</div>
-```
-
-### Click Counter Example
-
-In this example, we demonstrate a click counter, which is commonly used as the 'Hello World' example in front-end frameworks.
-
-```javascript
-import { App } from "targetj";
-
-App({
-    onClick() {},
-    html$: {
-        initialValue: 0,
-        value() { return this.value + 1; }
+    background: "mediumpurple",
+    width: [{ list: [100, 250, 100] }, 50, 10],
+    height$() { return this.prevTargetValue / 2; },
+    fetch$$: "https://targetjs.io/api/randomUser?id=user0",
+    html$() {
+       return this.prevTargetValue.name;
     }
 });
 ```
 
-Or in HTML:
+### Attaching a Click Handler
 
-```html 
-<div
- tg-onClick=""
- tg-html$="{
-   initialValue: 0,
-   value() { return this.value + 1; }
- }">
-</div>
+Let’s expand the previous example by adding a click handler. When the element is clicked, we’ll change the background to orange, wait for two seconds, and then change it back to purple.
+
+```javascript
+import { App } from "targetj";
+
+App({
+    background: "mediumpurple",
+    width: [{ list: [100, 250, 100] }, 50, 10],
+    height$() { return this.prevTargetValue / 2; },
+    fetch$$: "https://targetjs.io/api/randomUser?id=user0",
+    html$() { return this.prevTargetValue.name; },
+    onClick() {
+        this.setTarget('background', 'orange', 30, 10);
+    },
+    pause$$: { interval: 2000 },
+    purpleAgain$$() {
+        this.setTarget('background', 'mediumpurple', 30, 10);
+    }
+});
 ```
 
 Here's what's happening.
-- The onClick target is a special function that runs whenever the element is clicked.
-- Since the html ends with $, it executes every time onClick runs.
-- It is also possible to implement the counter update directly within the onClick target, but we wanted to demonstrate the reactive feature between adjacent targets.
+- The `onClick` target is a special function that runs whenever the element is clicked. In this example, it animates the background to orange over 30 steps.
+- `pauses`, ending with `$$`, is a reactive target that runs only after the previous target completely done its animation. 
+- `purpleAgain` also ending with $$, executes only after the `pauses` target completes its execution, which takes 2 seconds.
 
 ## Table of Contents
 
