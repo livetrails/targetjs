@@ -256,13 +256,13 @@ It indicates that the target is in an inactive state and must be activated by an
 This is only a property. It indicates whether the target is ready for execution. When set to false, it behaves similarly to a `_ `prefix. By default, all targets are active, so setting it to true is unnecessary.
 
 15. **Postfix `$` to the target name**
-A target name ending with $ indicates that it will be activated when the preceding target is executed. If the preceding target involves API calls, it will be activated
+A target name ending with $ indicates that it will be only activated when the preceding target is executed. If the preceding target involves API calls, it will be activated
 each time an API response is received, while ensuring the order of API calls is enforced. This means it will remain inactive until the first API result is received,
 then the second, and so on.
   
 17. **Postfix `$$` to the target name**
 A target name ending with `$$` indicates indicates that it will be activated only after the preceding target has completed, along with all its imperative targets,
-and after all API results have been received without error.
+and after all API results have been received.
 
 2. **enabledOn**
 Determines whether the target is eligible for execution. If enabledOn() returns false, the target remains active until it is enabled and gets executed.
