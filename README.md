@@ -129,7 +129,7 @@ Here's what's happening.
 - `pauses`, ending with `$$`, is a reactive target that runs only after the previous target completely done its animation. 
 - `purpleAgain` also ending with $$, executes only after the `pauses` target completes its execution, which takes 2 seconds.
 
-### Let's make it more complicated :)
+### Let's Make it More Complicated :)
 
 Let’s expand the previous example by creating 10 boxes instead of just one. Each box will be added every 100 milliseconds. Once all the boxes have been added, their animations are complete, and the user details are populated, we’ll change their background to green.
 
