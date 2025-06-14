@@ -41,8 +41,6 @@ A target name ending with a double `$$` (e.g., `fetch$$`) will activate only aft
 - The completion and return of results from all associated API calls.
 - The finalization of all tasks, animations, and API calls initiated by any dependent child targets that were themselves triggered by a preceding target.
 
-This ensures a robust and reliable execution order, guaranteeing that the `$$` target runs only when its predecessors' entire job is truly done.
-
 ## Examples
 
 To demostrate the power and simplicity of TargetJS, let's explore its concepts through practical examples. We'll begin with a simple animation and incrementally expand it to demonstrate API integration, event handling, and dynamic UI updates.
