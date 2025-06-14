@@ -159,7 +159,7 @@ This sequence demonstrates how TargetJS allows you to define complex, timed flow
 
 ### Let's Make it More Complicated :)
 
-Let’s expand the previous example by creating 10 boxes instead of just one. Each box will be added with a slight delay and undergo its own task from the previous example. Once all these individual box processes (creation, animation, and API calls) are complete, we'll trigger a final collective action: changing all their backgrounds to green.
+Let’s expand the previous example by creating 10 boxes instead of just one. Each box will be added with a slight delay (100ms) and undergo its own task from the previous example. Once all these individual box processes (creation, animation, and API calls) are complete, we'll trigger a final collective action: changing all their backgrounds to green.
 
 ```javascript
 import { App } from 'targetj';
