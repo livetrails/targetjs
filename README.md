@@ -15,6 +15,16 @@ Furthermore, it is also a highly performant web framework, as shown in the [fram
 3. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
 4. Code-Ordered Execution: The execution flow generally follows the order in which the code is written.
 
+## Targets: The Building Blocks of TargetJS
+
+Targets provide a unified interface for both variables and methods. Each Target comes equipped with a built-in set of capabilities:
+
+1. State Management: Targets are inherently stateful, enabling implicit state handling across your application.
+2. Iterations: They can iterate towards defined values, making them perfect for creating animations.
+3. Multiple or Conditional Execution: Targets can execute repeatedly or only under specific conditions.
+4. Execution timing: Targets enable fine-grained control over when they execute.
+5. Code-Ordered Execution: Targets execute sequentially and predictably in the order they are written within a JavaScript object, thanks to ES2015's guaranteed property order.
+
 ## Understanding TargetJS Syntax: Reactive Postfixes
 
 TargetJS uses the postfixes `$` and `$$` appended to target names for defining reactive behaviors. While initially appearing a bit cryptic, this convention provides a compact syntax.
@@ -32,16 +42,6 @@ A target name ending with a double `$$` (e.g., `fetch$$`) will activate only aft
 - The finalization of all tasks, animations, and API calls initiated by any dependent child targets that were themselves triggered by a preceding target.
 
 This ensures a robust and reliable execution order, guaranteeing that the `$$` target runs only when its predecessors' entire job is truly done.
-
-## Targets: The Building Blocks of TargetJS
-
-Targets provide a unified interface for both variables and methods. Each Target comes equipped with a built-in set of capabilities:
-
-1. State Management: Targets are inherently stateful, enabling implicit state handling across your application.
-2. Iterations: They can iterate towards defined values, making them perfect for creating animations.
-3. Multiple or Conditional Execution: Targets can execute repeatedly or only under specific conditions.
-4. Execution timing: Targets enable fine-grained control over when they execute.
-5. Code-Ordered Execution: Targets execute sequentially and predictably in the order they are written within a JavaScript object, thanks to ES2015's guaranteed property order.
 
 ## Examples
 
