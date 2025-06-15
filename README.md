@@ -137,12 +137,12 @@ App({
     height$() { return this.prevTargetValue / 2; },
     fetch$$: 'https://targetjs.io/api/randomUser?id=user0',
     html$() { return this.prevTargetValue.name; },
-    onClick() {
-        this.setTarget('background', 'orange', 30, 10);
+    onClick() { // Special target that runs when the element is clicked
+        this.setTarget('background', 'orange', 30, 10); // Animates background to orange over 30 steps
     },
-    pause$$: { interval: 2000 },
-    purpleAgain$$() {
-        this.setTarget('background', 'mediumpurple', 30, 10);
+    pause$$: { interval: 2000 }, // `$$` ensures this runs only after the preceding 'onClick' animation is fully complete
+    purpleAgain$$() { // `$$` ensures this runs ONLY after `pause$$` completes (2-second interval)
+        this.setTarget('background', 'mediumpurple', 30, 10); // Animates background back to mediumpurple
     }
 });
 ```
