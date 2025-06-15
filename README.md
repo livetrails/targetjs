@@ -163,9 +163,9 @@ Let’s expand the previous example by creating 10 boxes instead of just one. Ea
 import { App } from 'targetj';
 
 App({
-    children: {
-        cycles: 9,
-        interval: 100,
+    children: { // A special target that generates a new list of child objects each time it executes.
+        cycles: 9, // Ceates 10 children (from cycle 0 to 9)
+        interval: 100, // Adds a new child every 100 milliseconds
         value(cycle) {
             return {
                 background: 'mediumpurple',
@@ -179,8 +179,8 @@ App({
             };
         }
     },
-    greenify$$() {
-        this.getChildren().forEach(child => child.setTarget("background", "green", 30, 10));
+    greenify$$() { // `$$` ensures this runs only after all children have completed all their tasks
+        this.getChildren().forEach(child => child.setTarget("background", "green", 30, 10)); // Iterates and animates each child's background
     } 
 });
 ```
