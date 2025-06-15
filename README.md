@@ -58,6 +58,9 @@ App({
     } 
 });
 ```
+
+![first example](https://targetjs.io/img/git1.gif)
+
 **Explanation**
 
 Targets execute precisely in the order they are defined:
@@ -114,6 +117,8 @@ App({
 });
 ```
 
+![second example](https://targetjs.io/img/git2.gif)
+
 **Explanation**
 
 This example introduces two new targets:
@@ -146,6 +151,8 @@ App({
     }
 });
 ```
+
+![third example](https://targetjs.io/img/git3.gif)
 
 **Explanation:**
 
