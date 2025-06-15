@@ -107,9 +107,9 @@ App({
     background: 'mediumpurple',
     width: [{ list: [100, 250, 100] }, 50, 10],
     height$() { return this.prevTargetValue / 2; },
-    fetch$$: 'https://targetjs.io/api/randomUser?id=user0',
-    html$() {
-       return this.prevTargetValue.name;
+    fetch$$: 'https://targetjs.io/api/randomUser?id=user0', // `$$` ensures this runs only after width and height animation is complete
+    html$() { // it runs when the API response is resolved
+        return this.prevTargetValue.name; // `prevTargetValue` holds the result from the previous target (i.e., the API response)
     }
 });
 ```
