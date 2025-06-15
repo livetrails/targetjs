@@ -52,8 +52,8 @@ import { App } from 'targetj';
 
 App({
     background: 'mediumpurple',
-    width: [{ list: [100, 250, 100] }, 50, 10], //  width animates through 100 → 250 → 100, over 50 steps, 10ms interval
-    height$() { // `$` creates a reactive pipeline: the `height` updates each time `width` executes
+    width: [{ list: [100, 250, 100] }, 50, 10], // width animates through 100 → 250 → 100, over 50 steps with 10ms interval
+    height$() { // `$` creates a reactive target: `height` executes each time `width` updates
       return this.prevTargetValue / 2;
     } 
 });
