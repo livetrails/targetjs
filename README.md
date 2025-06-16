@@ -171,7 +171,7 @@ import { App } from 'targetj';
 
 App({
     children: { // A special target that generates a new list of child objects each time it executes.
-        cycles: 9, // Ceates 10 children (from cycle 0 to 9)
+        cycles: 9, // Creates 10 children (from cycle 0 to 9)
         interval: 100, // Adds a new child every 100 milliseconds
         value(cycle) {
             return {
