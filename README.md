@@ -15,32 +15,6 @@ Furthermore, it is also a highly performant web framework, as shown in the [fram
 3. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
 4. Code-Ordered Execution: The execution flow generally follows the order in which the code is written.
 
-## Targets: The Building Blocks of TargetJS
-
-Targets provide a unified interface for both variables and methods. Each Target comes equipped with a built-in set of capabilities:
-
-1. State Management: Targets are inherently stateful, enabling implicit state handling across your application.
-2. Iterations: They can iterate towards defined values, making them perfect for creating animations.
-3. Multiple or Conditional Execution: Targets can execute repeatedly or only under specific conditions.
-4. Execution timing: Targets enable fine-grained control over when they execute.
-5. Code-Ordered Execution: Targets execute sequentially and predictably in the order they are written within a JavaScript object, thanks to ES2015's guaranteed property order.
-
-## Understanding TargetJS Syntax: Reactive Postfixes
-
-TargetJS uses the postfixes `$` and `$$` appended to target names for defining reactive behaviors. While initially appearing a bit cryptic, this convention provides a compact syntax.
-
-**`$` Postfix (Immediate Reactivity):**
-
-A target name ending with a single `$` (e.g., `height$`) indicates that this target will execute every time its immediately preceding target runs or emits a new value. If the preceding target involves an asynchronous operation like an API call, the reactive target activates when the response is received. If there are multiple API calls made, `$` postfix ensures that the target reacts to the first API result when it becomes available, then the second, and so on, maintaining a strict, code-ordered sequence of operations.
-
-**`$$` Postfix (Full Completion Reactivity):**
-
-A target name ending with a double `$$` (e.g., `fetch$$`) will activate only after its immediately preceding targets have fully and comprehensively completed all of their operations. This includes:
-
-- The successful resolution of any timed sequences, such as animations.
-- The completion and return of results from all associated API calls.
-- The finalization of all tasks, animations, and API calls initiated by any dependent child targets that were themselves triggered by a preceding target.
-
 ## Examples
 
 To demostrate the power and simplicity of TargetJS, let's explore its concepts through practical examples. We'll begin with a simple animation and incrementally expand it to demonstrate API integration, event handling, and dynamic UI updates.
@@ -211,7 +185,9 @@ Only when all tasks initiated by children are finished will `greenify$$` runs. I
 
 ## Table of Contents
 
-1. [📦 Installation](#-installation)
+1. [Targets: The Building Blocks of TargetJS](#targets-the-building-blocks-of-targetjs)
+2. [Understanding TargetJS Syntax: Reactive Postfixes](#understanding-targetjs-syntax-reactive-postfixes)
+3. [📦 Installation](#-installation)
 6. [What Problems Does TargetJS Solve?](#what-problems-does-targetjs-solve)
 9. [Target Methods](#target-methods)
 10. [Target Variables](#target-variables)
@@ -228,6 +204,33 @@ Only when all tasks initiated by children are finished will `greenify$$` runs. I
 15. [License](#license)
 16. [Contact](#contact)
 17. [💖 Support TargetJS](#-support-targetjs)
+
+## Targets: The Building Blocks of TargetJS
+
+Targets provide a unified interface for both variables and methods. Each Target comes equipped with a built-in set of capabilities:
+
+1. State Management: Targets are inherently stateful, enabling implicit state handling across your application.
+2. Iterations: They can iterate towards defined values, making them perfect for creating animations.
+3. Multiple or Conditional Execution: Targets can execute repeatedly or only under specific conditions.
+4. Execution timing: Targets enable fine-grained control over when they execute.
+5. Code-Ordered Execution: Targets execute sequentially and predictably in the order they are written within a JavaScript object, thanks to ES2015's guaranteed property order.
+
+## Understanding TargetJS Syntax: Reactive Postfixes
+
+TargetJS uses the postfixes `$` and `$$` appended to target names for defining reactive behaviors. While initially appearing a bit cryptic, this convention provides a compact syntax.
+
+**`$` Postfix (Immediate Reactivity):**
+
+A target name ending with a single `$` (e.g., `height$`) indicates that this target will execute every time its immediately preceding target runs or emits a new value. If the preceding target involves an asynchronous operation like an API call, the reactive target activates when the response is received. If there are multiple API calls made, `$` postfix ensures that the target reacts to the first API result when it becomes available, then the second, and so on, maintaining a strict, code-ordered sequence of operations.
+
+**`$$` Postfix (Full Completion Reactivity):**
+
+A target name ending with a double `$$` (e.g., `fetch$$`) will activate only after its immediately preceding targets have fully and comprehensively completed all of their operations. This includes:
+
+- The successful resolution of any timed sequences, such as animations.
+- The completion and return of results from all associated API calls.
+- The finalization of all tasks, animations, and API calls initiated by any dependent child targets that were themselves triggered by a preceding target.
+
 
 ## **📦 Installation**
 
