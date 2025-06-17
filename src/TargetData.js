@@ -152,6 +152,11 @@ class TargetData {
         y: true 
     };
     
+    static ignoreRerun = {
+        ...TargetData.coreTargetMap,
+        isVisible: true        
+    };
+        
     static ignoreTargetMethodNameMap = {
         ...TargetData.coreTargetMap,
         isVisible: true

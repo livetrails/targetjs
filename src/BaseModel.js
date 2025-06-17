@@ -131,7 +131,9 @@ class BaseModel {
     }
     
     processNewTarget(key, keyIndex) {
-        let target = this.targets[key];
+        
+        const cleanKey = TargetUtil.getTargetName(key);
+        let target = this.targets[key] || this.targets[cleanKey];
         
         if (!TUtil.isDefined(target)) {
             this.delVal('key');
@@ -140,7 +142,6 @@ class BaseModel {
         
         const targetType = typeof target;
                 
-        const cleanKey = TargetUtil.getTargetName(key);
         const isInactiveKey = key.startsWith('_') || (key.endsWith('$') && !target.active);
         const isExternalEvent = TargetData.allEventMap[cleanKey];
         const isInternalEvent = TargetData.internalEventMap[cleanKey];
@@ -185,7 +186,9 @@ class BaseModel {
         }        
 
         if (cleanKey !== key) {
-            this.targets[cleanKey] = this.targets[key];
+            if (this.targets[key]) {
+                this.targets[cleanKey] = this.targets[key];
+            }
             if (isInactiveKey) {
                 this.targets[cleanKey].active = false;
             }
@@ -200,7 +203,7 @@ class BaseModel {
 
         if (TUtil.isDefined(target.initialValue)) {
             this.val(key, target.initialValue);
-        }
+            }
 
         this.addToStyleTargetList(key);
 

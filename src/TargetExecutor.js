@@ -88,7 +88,9 @@ class TargetExecutor {
 
         tmodel.updateTargetStatus(key);
         
-        getRunScheduler().schedule(10, 'updateTarget-' + tmodel.oid + "-" + key);
+        if (!TargetData.ignoreRerun[key] && tmodel.shouldScheduleRun(key))  {
+            getRunScheduler().schedule(10, 'updateTarget-' + tmodel.oid + "-" + key);
+        }
 
     }
 
