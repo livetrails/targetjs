@@ -216,7 +216,7 @@ class BaseModel {
             return;
         }
         
-        if (target.interval > 0 && !TUtil.isDefined(target.steps) && !TUtil.isDefined(target.cycles)) {
+        if (TUtil.isDefined(target.interval) && !TUtil.isDefined(target.steps) && !TUtil.isDefined(target.cycles) && !TUtil.isDefined(target.value)) {
             target.cycles = 1;
         }
         

@@ -478,6 +478,10 @@ class TModel extends BaseModel {
         return this.val('baseWidth') ?? this.getWidth();
     }
     
+    getBaseHeight() {
+        return this.val('baseHeight') ?? this.getHeight();
+    }    
+    
      getMinWidth() {
         return this.val('minWidth') ?? this.getWidth();
     }

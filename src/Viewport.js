@@ -61,7 +61,7 @@ class Viewport {
     }
 
     nextLocation() {   
-        const height = this.currentChild.getHeight() * this.currentChild.getMeasuringScale();
+        const height = this.currentChild.getBaseHeight() * this.currentChild.getMeasuringScale();
         
         const baseWidth = this.currentChild.getBaseWidth() * this.currentChild.getMeasuringScale();
         const topBaseHeight = this.currentChild.getTopBaseHeight() * this.currentChild.getMeasuringScale();
