@@ -125,11 +125,14 @@ Let’s expand the previous example by creating 10 boxes instead of just one. Ea
 import { App } from 'targetj';
 
 App({
+    width: 500,
     children: { // A special target that generates a new list of child objects each time it executes.
         cycles: 9, // Creates 10 children (from cycle 0 to 9)
         interval: 100, // Adds a new child every 100 milliseconds
         value(cycle) {
             return {
+                baseWidth: 250,
+                baseHeight: 125,
                 background: 'mediumpurple',
                 width: [{ list: [100, 250, 100] }, 50, 10],
                 height$() { return this.prevTargetValue / 2; },
@@ -146,6 +149,8 @@ App({
     } 
 });
 ```
+
+![first example](https://targetjs.io/img/git4.gif)
 
 **Explanation:**
 
