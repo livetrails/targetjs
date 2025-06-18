@@ -544,9 +544,7 @@ Or in HTML:
           const parentWidth = this.getParentValue('width');
           this.setTarget('x', { list: [ parentWidth + width, -width ] }, 400);
         }"
-        tg-onesecond$$="function() {
-          this.setTarget('1second', 1, 1, 1000);
-        }"
+        tg-onesecond$$="{ interval: 1000 }"
         tg-repeat$$="function() {
           this.activateTarget('left2right');
         }"
