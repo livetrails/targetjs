@@ -510,8 +510,8 @@ App({
             const parentWidth = this.getParentValue("width");
             this.setTarget("x", { list: [parentWidth + width, -width] }, 300);
           },
-          waitOneSecond$$() {
-            this.setTarget('1second', 1, 1, 1000); //name, value, steps, interval 
+          waitOneSecond$$: {
+            interval: 1000,
           },
           repeat$$() {
             this.activateTarget('animateLeftToRight');
