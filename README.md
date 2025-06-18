@@ -150,7 +150,7 @@ App({
 });
 ```
 
-![first example](https://targetjs.io/img/git4.gif)
+![first example](https://targetjs.io/img/git4_1.gif)
 
 **Explanation:**
 
