@@ -156,7 +156,7 @@ App({
 
 This advanced example demonstrates TargetJS's capability to manage complex, dynamic UI scenarios:
 
-1. `children`: A special target construct used to create a collection of child objects. Each time it executes, the new list objects is added to the parent. The `cycles` property specifies that the value function will run 10 times (from `cycle` 0 to 9), thus creating 10 individual box elements.
+1. `children`: A special target construct used to create a collection of child objects. Each time it executes, a new list objects is added to the parent. The `cycles` property specifies that the value function will run 10 times (from `cycle` 0 to 9), thus creating 10 individual box elements.
 The `interval` property ensures that each new box is created and added to the UI every 100 milliseconds.
 The `value(cycle)` function return the same object element from the previous example.
 
