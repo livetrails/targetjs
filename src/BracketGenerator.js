@@ -140,11 +140,11 @@ class BracketGenerator {
             const endIndex = startIndex + chunk.length;
             const newBracket = BracketGenerator.createBracket(page, startIndex, endIndex, chunk);
             newBracket.parent = bracket.parent;
-
+            
             startIndex = newBracket.endIndex;
             chunks.push(newBracket);
         }
-
+  
         if (bracket.parent !== bracket.realParent) {
             const index = bracket.parent.allChildrenList.indexOf(bracket);
             if (index >= 0) {
@@ -152,14 +152,22 @@ class BracketGenerator {
             }
             
             if (bracket.parent.allChildrenList.length >= bracketSize) {
-                const rebuiltChildren = BracketGenerator.buildTreeBottomUp(page, bracket.parent.allChildrenList);
+                const rebuiltChildren = BracketGenerator.buildTreeBottomUp(page, bracket.parent.allChildrenList);          
                 bracket.parent.allChildrenList = rebuiltChildren;
-
+                                
+                bracket.parent.allChildrenList.forEach(child => {
+                    child.parent = bracket.parent;
+                });
+                
                 // Update grandparent relationships
                 if (bracket.parent.parent) {
                     const parentIndex = bracket.parent.parent.allChildrenList.indexOf(bracket.parent);
                     if (parentIndex >= 0) {
                         bracket.parent.parent.allChildrenList.splice(parentIndex, 1, ...rebuiltChildren);
+                        bracket.parent.parent.allChildrenList.forEach(child => {
+                            child.parent = bracket.parent.parent;
+                        });
+                                        
                     }
                 }
             }           
@@ -208,11 +216,7 @@ class BracketGenerator {
             const startIndex = containsBrackets ? chunk[0].startIndex : i;
             const endIndex = containsBrackets ? chunk[chunk.length - 1].endIndex : (i + chunk.length);
             const bracket = BracketGenerator.createBracket(page, startIndex, endIndex, chunk);
-            if (containsBrackets) {
-                chunk.forEach(child => {
-                    child.parent = bracket;
-                });
-            }            
+          
             brackets.push(bracket);
         }
 

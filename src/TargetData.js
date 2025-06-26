@@ -3,6 +3,60 @@ import { TUtil } from "./TUtil.js";
 
 class TargetData {
     
+    static defaultActualValues() {
+        return {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            leftMargin: 0,
+            rightMargin: 0,
+            topMargin: 0,
+            bottomMargin: 0,
+            opacity: 1,
+            scale: 1,  
+            scrollLeft: 0,
+            scrollTop: 0,
+            textOnly: true,
+            borderRadius: 0,
+            children: [],
+            isInFlow: true,
+            baseElement: 'div',
+            canHaveDom: true,
+            widthFromDom: false,
+            heightFromDom: false,
+            isIncluded: true,
+            bracketThreshold: 10,
+            bracketSize: 5,
+            preventDefault: undefined,            
+            canDeleteDom: undefined
+        };
+    }
+    
+    static transformOrder = {
+        perspective: 0,
+        translateX: 1,
+        translateY: 1,
+        translateZ: 1,
+        translate: 1,
+        translate3d: 1,        
+        rotate: 2,
+        rotateX: 2,
+        rotateY: 2,
+        rotateZ: 2,
+        rotate3d: 2,
+        skew: 3,
+        skewX: 3,
+        skewY: 3,        
+        scale: 4,
+        scaleX: 4,
+        scaleY: 4,
+        scaleZ: 4,
+        scale3DX: 4,
+        scale3DY: 4,
+        scale3DZ: 4
+    };      
+    
     static defaultTargetStyles = {
         position: 'absolute', 
         left: 0, 

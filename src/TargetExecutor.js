@@ -88,10 +88,9 @@ class TargetExecutor {
 
         tmodel.updateTargetStatus(key);
         
-        if (!TargetData.ignoreRerun[key] && tmodel.shouldScheduleRun(key))  {
-            getRunScheduler().schedule(10, 'updateTarget-' + tmodel.oid + "-" + key);
+        if (!TargetData.ignoreRerun[key] && tmodel.shouldScheduleRun(key)) {
+            getRunScheduler().schedule(30, 'updateTarget2-' + tmodel.oid + "-" + key);
         }
-
     }
 
     static assignListTarget(tmodel, key, targetValue, valueList, initialValue, steps, interval, easing) {

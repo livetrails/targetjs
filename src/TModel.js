@@ -41,6 +41,8 @@ class TModel extends BaseModel {
         this.isNowVisible = false;
         this.currentStatus = 'new';
         
+        this.dirtyLayout = false;
+        
         this.initTargets();        
     }
 
@@ -98,6 +100,7 @@ class TModel extends BaseModel {
         this.deletedChildren.push(child);   
         this.removeFromUpdatingChildren(child);           
         this.childrenUpdateFlag = true;
+        this.markLayoutDirty('removeChild');
            
         getRunScheduler().schedule(1, 'removeChild-' + this.oid + "-" + child.oid);
 
@@ -113,7 +116,8 @@ class TModel extends BaseModel {
         }
          
         this.childrenUpdateFlag = true;
-
+        this.markLayoutDirty('moveChild');
+        
         getRunScheduler().schedule(1, 'moveChild-' + this.oid + "-" + child.oid);
                            
         return this;
@@ -124,6 +128,8 @@ class TModel extends BaseModel {
         
         if (typeof child === 'object') {
             this.childrenUpdateFlag = true;
+            this.markLayoutDirty('addChild');
+            
             if (!(child instanceof TModel)) {   
                 
                 const foundKey = Object.keys(this.actualValues).find(key => this.actualValues[key] === child);
@@ -149,7 +155,6 @@ class TModel extends BaseModel {
                 if (child.activeTargetList.length > 0) {
                     this.addToActiveChildren(child);
                 }
-                child.activate();
             }
         }
         return this;
@@ -257,6 +262,7 @@ class TModel extends BaseModel {
     }
 
     removeAll() {  
+        this.markLayoutDirty('removeAll');
         this.allChildrenList = [];
         this.allChildrenMap = {};
 
@@ -274,20 +280,32 @@ class TModel extends BaseModel {
         if (this.isVisible() && this.isInFlow() && this.getParent()) {
             this.getParent().visibleChildren.push(this);
         }
-    }    
+    }
+    
+    markParentLayoutDirty(key) {
+        this.getParent()?.markLayoutDirty(key);
+    }
+    
+    markLayoutDirty(key) {
+        if (!this.dirtyLayout) {
+            key = key.indexOf('#') >= 0 ? key : this.oid + "#" + key;
+            this.dirtyLayout = key;
+            if (this.parent) {
+                this.parent.markLayoutDirty(key);
+            }
+        }
+    }
 
     shouldCalculateChildren() {
         if (TUtil.isDefined(this.val('calculateChildren'))) {
             return this.val('calculateChildren');
         }
-        const result = this.isIncluded() && 
-                (this.isVisible() || this.currentStatus === 'new')  && 
-                (this.hasChildren() || this.childrenUpdateFlag || this.getContentHeight() > 0);
-
+        const result = this.isIncluded() && (!!this.dirtyLayout || this.currentStatus === 'new');
         this.currentStatus = undefined;
+
         return result;
     }
-         
+ 
     getFirstChild() {
         return this.getChildren()[0];
     }
@@ -346,6 +364,8 @@ class TModel extends BaseModel {
     }
     
     delVal(key) {
+        this.markParentLayoutDirty(`del-${key}`);
+        
         if (key.startsWith('_')) {
             delete this[key.slice(1)];
         } else {
@@ -364,6 +384,7 @@ class TModel extends BaseModel {
             lastActual[key] = actual[key];
             if (value !== actual[key]) {
                 actual[key] = value;
+                this.markParentLayoutDirty(`val-${key}`);
             }
             return this;
         }
@@ -397,7 +418,7 @@ class TModel extends BaseModel {
 
         return domParent ? domParent.$dom : null;
     }
-
+   
     bug() {
         return [
             { visible: this.isVisible() },
@@ -535,7 +556,7 @@ class TModel extends BaseModel {
     }
     
     requiresDom() {
-        return TUtil.isDefined(this.val('requiresDom')) ? this.val('requiresDom') : !this.reuseDomDefinition();
+        return TUtil.isDefined(this.val('requiresDom')) ? this.val('requiresDom') : this.reuseDomDefinition();
     }
 
     excludeDefaultStyling() {

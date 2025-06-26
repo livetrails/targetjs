@@ -187,7 +187,6 @@ class EventListener {
     }
     
     findEventHandlers({ tmodel, eventType }) {
-        
         let clickHandler, swipeHandler, scrollLeftHandler, scrollTopHandler, pinchHandler, focusHandler, enterHandler, leaveHandler;
         
         if (tmodel) {
@@ -210,12 +209,15 @@ class EventListener {
             this.currentHandlers.blur = this.currentHandlers.focus;
         }
        
-        this.currentHandlers.start = tmodel?.canHandleEvent('onStart') ? tmodel : undefined;
-        this.currentHandlers.end = tmodel?.canHandleEvent('onEnd') ? tmodel : undefined;  
-        this.currentHandlers.hover = tmodel?.canHandleEvent('onHover') ? tmodel : undefined;
+        if (tmodel) {
+            this.currentHandlers.start = tmodel.canHandleEvent('onStart') ? tmodel : undefined;
+            this.currentHandlers.end = tmodel.canHandleEvent('onEnd') ? tmodel : undefined;  
+            this.currentHandlers.hover = tmodel.canHandleEvent('onHover') ? tmodel : undefined;
+        }
+        
         this.currentHandlers.click = clickHandler;
-        this.currentHandlers.swipe = swipeHandler;
-        this.currentHandlers.scrollLeft = scrollLeftHandler;
+        this.currentHandlers.swipe = swipeHandler;        
+        this.currentHandlers.scrollLeft = scrollLeftHandler;        
         this.currentHandlers.scrollTop = scrollTopHandler;
         this.currentHandlers.pinch = pinchHandler;
         this.currentHandlers.focus = focusHandler;
@@ -278,6 +280,10 @@ class EventListener {
         const now = TUtil.now();
                 
         const tmodel = this.getTModelFromEvent(event);
+        
+        if (tmodel) {
+            tmodel.markLayoutDirty('target-event');
+        }
                                 
         const newEvent = { eventName, eventItem, eventType, originalName, tmodel, eventTarget, timeStamp: now };
 
@@ -376,10 +382,12 @@ class EventListener {
                 this.cursor.y = touch.y;
                 
                 this.end(event);
-
+                
+                this.currentHandlers.end?.markLayoutDirty('touchEnd');
+                
                 this.clearEnd();
-                this.touchCount = 0; 
-
+                this.touchCount = 0;
+                
                 event.stopPropagation();
                 break;                             
                 

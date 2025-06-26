@@ -7,61 +7,7 @@ import { ColorUtil } from "./ColorUtil.js";
 /**
  * It provides helper functions for TModel.
  */
-class TModelUtil {
-    
-    static transformOrder = {
-        perspective: 0,
-        translateX: 1,
-        translateY: 1,
-        translateZ: 1,
-        translate: 1,
-        translate3d: 1,        
-        rotate: 2,
-        rotateX: 2,
-        rotateY: 2,
-        rotateZ: 2,
-        rotate3d: 2,
-        skew: 3,
-        skewX: 3,
-        skewY: 3,        
-        scale: 4,
-        scaleX: 4,
-        scaleY: 4,
-        scaleZ: 4,
-        scale3DX: 4,
-        scale3DY: 4,
-        scale3DZ: 4
-    };    
-    
-    static defaultActualValues() {
-        return {
-            x: 0,
-            y: 0,
-            width: 0,
-            height: 0,
-            leftMargin: 0,
-            rightMargin: 0,
-            topMargin: 0,
-            bottomMargin: 0,
-            opacity: 1,
-            scale: 1,  
-            scrollLeft: 0,
-            scrollTop: 0,
-            textOnly: true,
-            borderRadius: 0,
-            children: [],
-            isInFlow: true,
-            baseElement: 'div',
-            canHaveDom: true,
-            widthFromDom: false,
-            heightFromDom: false,
-            isIncluded: true,
-            bracketThreshold: 10,
-            bracketSize: 5,
-            preventDefault: undefined,            
-            canDeleteDom: undefined
-        };
-    }
+class TModelUtil {    
    
     static shouldMeasureHeightFromDom(tmodel) {
         return (!tmodel.excludeDefaultStyling() && !TUtil.isDefined(tmodel.targetValues.height) && !TModelUtil.isHeightDefined(tmodel) && !tmodel.hasChildren()) 
@@ -84,6 +30,10 @@ class TModelUtil {
     static createDom(tmodel) {
         tmodel.$dom = new $Dom();
         tmodel.$dom.create(tmodel.getBaseElement());
+        TModelUtil.patchDom(tmodel);
+    }
+    
+    static patchDom(tmodel) {
         tmodel.$dom.setSelector(`#${tmodel.oid}`);
         tmodel.$dom.setId(tmodel.oid);
         tmodel.$dom.attr('tgjs', 'true');
@@ -399,7 +349,7 @@ class TModelUtil {
                 transformOrder[name] = index;
             });
         } else {
-            transformOrder = TModelUtil.transformOrder;
+            transformOrder = TargetData.transformOrder;
         }
  
         const sortedKeys = Object.keys(transformMap).sort((a, b) => {

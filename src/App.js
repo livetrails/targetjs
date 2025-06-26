@@ -140,7 +140,7 @@ const AppFn = () => {
                 }
             });             
         });
-        my.manager.clear();
+        my.manager.clearAll();
         my.locationManager.clear();
         SearchUtil.clear();
     };

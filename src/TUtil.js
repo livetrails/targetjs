@@ -38,10 +38,11 @@ class TUtil {
         status.parentHeight = parentHeight;
         status.x = x;
         status.y = y;
+        status.isVisible = status.left && status.right && status.top && status.bottom;
 
-        child.val('isVisible', status.left && status.right && status.top && status.bottom);
+        child.actualValues.isVisible = status.isVisible;
 
-        return child.val('isVisible');
+        return child.actualValues.isVisible;
     }
 
     static contains(container, tmodel) {
@@ -183,6 +184,27 @@ class TUtil {
                 TUtil.logTree(g, gtab);
             }
         }
+    }
+    
+    static logBranch(tmodel) {
+        const branch = [];
+        
+        while(tmodel) {
+            branch.unshift(tmodel);
+            tmodel = tmodel.bracket ? tmodel.bracket : tmodel.getParent();
+        }
+        
+        for (var i = 1; i < branch.length; i++) {
+             const parent = branch[i - 1];
+             const child = branch[i];
+             if (getLocationManager().getChildren(parent).indexOf(child) < 0) {
+                 console.log("branch is not valid: " + parent.oid + ", " + child.oid);
+                 break;
+             }
+        }
+        
+        console.log(branch.map(t => t.oid));
+
     }
     
     static mergeTargets(tmodel1, tmodel2) {

@@ -32,16 +32,19 @@ class TargetManager {
         
         if (tmodel.isExecuted(key) && tmodel.getTargetStep(key) === tmodel.getTargetSteps(key)) {
             if (tmodel.isScheduledPending(key) && getRunScheduler().nextRuns.length > 0) {
+                tmodel.markParentLayoutDirty('schedule');
                 return;
             }
             const schedulePeriod = TargetUtil.scheduleExecution(tmodel, key);
             if (schedulePeriod > 0) {
+                tmodel.markParentLayoutDirty('schedule');
                 getRunScheduler().schedule(schedulePeriod, `targetSchedule__${tmodel.oid}__${key}_${schedulePeriod}`);
                 return;
             }
         }
        
         if (!tmodel.isTargetEnabled(key)) {
+            tmodel.markParentLayoutDirty('enabled');
             if (target.needsReactivation) {
                 tmodel.removeFromActiveTargets(key);
             }
@@ -178,7 +181,7 @@ class TargetManager {
                      
             if (tmodel.getTargetStep(key) < steps) {  
                 TargetUtil.shouldActivateNextTarget(tmodel, key);
-                getRunScheduler().schedule(interval, `${tmodel.oid}---${key}-${step}/${steps}-${cycle}-${interval}`);
+                getRunScheduler().scheduleOnlyIfEarlier(interval, `${tmodel.oid}---${key}-${step}/${steps}-${cycle}-${interval}`);
                 return;
             }
         }
@@ -189,7 +192,7 @@ class TargetManager {
         tmodel.setActualValueLastUpdate(key);
         step = tmodel.getTargetStep(key);
 
-        let scheduleTime = 0;
+        let scheduleTime = 1;
 
         if (targetValue.valueList && cycle < targetValue.valueList.length - 1) {
             tmodel.incrementTargetCycle(key, tmodel.getTargetCycle(key));
@@ -248,7 +251,7 @@ class TargetManager {
             TargetUtil.shouldActivateNextTarget(tmodel, key); 
         }
 
-        getRunScheduler().schedule(scheduleTime, `${tmodel.oid}---${key}-${step}/${steps}-${cycle}-${scheduleTime}`);
+        getRunScheduler().scheduleOnlyIfEarlier(scheduleTime, `${tmodel.oid}---${key}-${step}/${steps}-${cycle}-${scheduleTime}`);
     }
 }
 

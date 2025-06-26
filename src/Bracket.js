@@ -105,11 +105,11 @@ class Bracket extends TModel {
     }
 
     shouldCalculateChildren() {
-        const result = this.isVisible() || this.currentStatus === 'new';
+        const result = (this.isVisible() && (this.getRealParent().backupDirtyLayout)) || this.currentStatus === 'new';
         this.currentStatus = undefined;
         return result;
     }
-    
+
     validateVisibilityInParent() {
         return this.getChildren().length > 0 ? this.getChild(0).validateVisibilityInParent() : false;
     }

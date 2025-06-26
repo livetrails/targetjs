@@ -94,7 +94,7 @@ class BaseModel {
             return;
         }
         
-        this.actualValues = TModelUtil.defaultActualValues();
+        this.actualValues = TargetData.defaultActualValues();
         this.targetValues = {};
         this.activeTargetMap = {};
         this.activeTargetList = [];
@@ -395,9 +395,11 @@ class BaseModel {
         }
 
         if (this.isTargetUpdating(key)) {
+            this.markParentLayoutDirty(key);            
             this.addToUpdatingTargets(key);
-            this.removeFromActiveTargets(key);
+            this.removeFromActiveTargets(key);   
         } else if (this.isTargetActive(key)) {
+            this.markParentLayoutDirty(key);
             this.addToActiveTargets(key);
             this.removeFromUpdatingTargets(key);
         } else {
@@ -531,7 +533,7 @@ class BaseModel {
             return;
         }
 
-        const stepInterval = interval || 8;
+        const stepInterval = interval || 7;
         
         const elapsed = now - lastUpdate;
         const stepIncrement = Math.max(1, Math.floor(elapsed / stepInterval));
@@ -791,6 +793,7 @@ class BaseModel {
                 || this.shouldCalculateChildTargets()
                 || child.hasChildren() 
                 || child.addedChildren.length > 0 
+                || child.dirtyLayout
                 || child.targetExecutionCount === 0;
     }
     

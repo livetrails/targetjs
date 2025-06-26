@@ -19,7 +19,7 @@ class TModelManager {
             restyle: [],
             reasyncStyle: [],
             reattach: [],
-            relocation: [],            
+            relocation: [],
             invisibleDom: [],
             noDom: [],
             updatingTModels: [],
@@ -27,7 +27,7 @@ class TModelManager {
             updatingTargets: [],
             activeTargets: []
         };
-        this.visibleTypeMap = {};
+        this.exchangeTypeMap = {};
         this.visibleOidMap = {};
         this.targetMethodMap = {};
         this.noDomMap = {};
@@ -35,7 +35,7 @@ class TModelManager {
         this.doneTargets = [];
     }
 
-    clear() {
+    clearFrameLists() {
         this.lists.visible.length = 0;
         this.lists.rerender.length = 0;
         this.lists.restyle.length = 0;
@@ -47,44 +47,48 @@ class TModelManager {
         this.lists.activeTModels.length = 0;
         this.lists.updatingTargets.length = 0;
         this.lists.activeTargets.length = 0;
-        this.visibleTypeMap = {};
-        this.visibleOidMap = {};
         this.targetMethodMap = {};
         this.noDomMap = {};
     }
+    
+    clearAll() {
+        this.clearFrameLists();
+        this.deleteDoms();     
+    }
 
     analyze() {
-        const lastVisibleMap = TUtil.list2map(this.lists.visible);
-        this.clear();
+        const lastVisibleMap = { ...this.visibleOidMap };
+        this.clearFrameLists();
 
         for (const tmodel of getLocationManager().hasLocationList) {
-            const parent = tmodel.getParent();
-
-            if (parent && !parent.allChildrenMap[tmodel.oid]) {
-                if (tmodel.hasDom() && !this.lists.invisibleDom.includes(tmodel)) {
-                    this.lists.invisibleDom.push(tmodel);
+            lastVisibleMap[tmodel.oid] = undefined; 
+            
+            if (!tmodel.getParent()?.allChildrenMap[tmodel.oid]) {
+                if (tmodel.hasDom()) {
+                    this.addToInvisibleDom(tmodel);
                 }
+                delete this.visibleOidMap[tmodel.oid];
                 continue;
-            }
+            }            
+
             const visible = tmodel.isVisible();
-
-            if (visible) {
-                lastVisibleMap[tmodel.oid] = null;
-
-                if (tmodel.hasDom() && !tmodel.canHaveDom() && !this.lists.invisibleDom.includes(tmodel)) {
-                    this.lists.invisibleDom.push(tmodel);
-                }
-
-                this.lists.visible.push(tmodel);
-                
+            
+            if (visible && tmodel.isIncluded()) {
                 this.visibleOidMap[tmodel.oid] = tmodel;
-                if (!this.visibleTypeMap[tmodel.type]) {
-                    this.visibleTypeMap[tmodel.type] = [];
-                }
-                
-                this.visibleTypeMap[tmodel.type].push(tmodel);
+                this.lists.visible.push(tmodel);                 
+            } else {
+                delete this.visibleOidMap[tmodel.oid]; 
             }
-
+            
+            if (tmodel.hasDom()) { 
+                if (!tmodel.canHaveDom() && (!tmodel.isIncluded() || !visible)) {
+                    this.addToInvisibleDom(tmodel);
+                    tmodel.getChildren().forEach(tmodel => {
+                        this.addToRecursiveInvisibleDom(tmodel);
+                    });                        
+                }
+            }
+            
             if (visible || tmodel.isActivated()) {
                 this.needsRerender(tmodel);
                 this.needsRestyle(tmodel);
@@ -103,10 +107,6 @@ class TModelManager {
                     this.lists.activeTargets = [...this.lists.activeTargets, ...state.activeTargetList];
                 }
 
-                if (state.activeChildrenList?.length > 0) {
-                    this.lists.activeTModels = [...this.lists.activeTModels, ...state.activeChildrenList];
-                }
-
                 if (state.targetMethodMap && Object.keys(state.targetMethodMap).length > 0) {
                     this.targetMethodMap[tmodel.oid] = { ...state.targetMethodMap };
                     state.targetMethodMap = {};
@@ -116,19 +116,26 @@ class TModelManager {
             }
 
             if ((visible || tmodel.requiresDom()) &&
-                (tmodel.canHaveDom() && !tmodel.hasDom() && !this.noDomMap[tmodel.oid])) {
+                (tmodel.canHaveDom() && !tmodel.hasDom() && tmodel.isIncluded() && !this.noDomMap[tmodel.oid])) {
                 this.lists.noDom.push(tmodel);
                 this.noDomMap[tmodel.oid] = true;
             }
         }
+        
+        Object.values(lastVisibleMap).filter(v => v !== undefined).forEach(tmodel => {
+            if (tmodel.hasDom()) {
 
-        const lastVisible = Object.values(lastVisibleMap)
-            .filter(tmodel => tmodel !== null &&
-                tmodel.hasDom() &&
-                (tmodel.canDeleteDom() || !tmodel.getParent()?.allChildrenMap[tmodel.oid]));
-
-        this.lists.invisibleDom.push(...lastVisible);
-
+                if (!tmodel.getParent()?.allChildrenMap[tmodel.oid] || !tmodel.isIncluded()) {
+                    this.addToInvisibleDom(tmodel);
+                } else if (this.isBracketVisible(tmodel) === false) {
+                    this.addToInvisibleDom(tmodel);
+                    tmodel.getChildren().forEach(tmodel => {
+                        this.addToRecursiveInvisibleDom(tmodel);
+                    });
+                }
+            }
+        });
+        
         return this.lists.noDom.length > 0 ? 0 :
                this.lists.reattach.length > 0 ? 1 :
                this.lists.relocation.length > 0 ? 2 :
@@ -136,6 +143,50 @@ class TModelManager {
                this.lists.reasyncStyle.length > 0 ? 4 :
                this.lists.invisibleDom.length > 0 ? 5 :
                this.lists.restyle.length > 0 ? 10 : -1;
+    }
+    
+    isBracketVisible(tmodel) {
+        tmodel = tmodel.bracket;
+        
+        while(tmodel) {
+            if (tmodel.type !== 'BI') {
+                break;
+            }
+            if (!tmodel.isVisible()) {
+                return false;
+            }
+            
+            tmodel = tmodel.getParent();
+        }
+        
+        return true;
+    }
+    
+    addToRecursiveInvisibleDom(tmodel) {
+        delete this.visibleOidMap[tmodel.oid];
+        
+        if (!this.lists.invisibleDom.includes(tmodel)) {
+            if (tmodel.hasDom()) {
+                this.lists.invisibleDom.push(tmodel);
+            }
+            
+            tmodel.getChildren().forEach(tmodel => {
+                this.addToRecursiveInvisibleDom(tmodel);
+            });
+        }
+    }
+    
+    addToInvisibleDom(tmodel) {
+        delete this.visibleOidMap[tmodel.oid];     
+
+        if (!this.lists.invisibleDom.includes(tmodel)) {
+            this.lists.invisibleDom.push(tmodel);
+
+            if (!tmodel.hasChildren()) {
+                this.addToExchange(tmodel);
+            }
+            
+        }
     }
     
     needsRelocation(tmodel) {
@@ -172,6 +223,14 @@ class TModelManager {
         if (tmodel.hasDom() && !tmodel.reuseDomDefinition() && (tmodel.hasDomHolderChanged() || tmodel.hasBaseElementChanged())) {
             this.lists.reattach.push(tmodel);
         }
+    }  
+    
+    addToExchange(tmodel) {
+        const xKey = this.getDomExchangeKey(tmodel);
+        if (!this.exchangeTypeMap[xKey]) {
+            this.exchangeTypeMap[xKey] = [];
+        }
+        this.exchangeTypeMap[xKey].push(tmodel);  
     }
 
     renderTModels() {
@@ -206,20 +265,24 @@ class TModelManager {
         }
     }
     
+    resetTModelDom(tmodel) {
+        tmodel.styleMap = {};
+        tmodel.transformMap = {};
+        tmodel.actualValues.isVisible = false;
+        tmodel.hasDomNow = false;
+        tmodel.$dom = null;        
+    };
+    
     deleteDoms() {
         for (const tmodel of this.lists.invisibleDom) {
-            tmodel.styleMap = {};
-            tmodel.transformMap = {};
-            tmodel.val('isVisible', false);
-            tmodel.hasDomNow = false;
-
             tmodel.$dom?.detach();
-            tmodel.$dom = null;
+            this.resetTModelDom(tmodel);
         }
-
+        
         this.lists.invisibleDom.length = 0;
+        this.exchangeTypeMap = {};
     }
-
+    
     fixStyles() {
         for (const tmodel of this.lists.restyle) {
             if (tmodel.hasDom()) {
@@ -234,7 +297,11 @@ class TModelManager {
                 TModelUtil.fixAsyncStyle(tmodel);
             }
         }
-    }    
+    }
+    
+    getDomExchangeKey(tmodel) {
+        return `${tmodel.type}-${tmodel.getDomParent().oid}-${tmodel.getBaseElement()}`;
+    }
 
     completeDoneTModels() {
         this.doneTargets.forEach(target => {
@@ -252,7 +319,7 @@ class TModelManager {
         if (this.lists.noDom.length === 0) { 
             return;
         }
-        
+                
         const needsDom = [];
 
         this.lists.noDom.sort((a, b) => {
@@ -280,10 +347,39 @@ class TModelManager {
                         tmodel.hasDomNow = true;    
                     }   
                 } else {
-                    tmodel.$dom = new $Dom();
-                    TModelUtil.createDom(tmodel);
-                    tmodel.getDomHolder(tmodel).appendTModel$Dom(tmodel);
-                    tmodel.hasDomNow = true;                      
+                    const xKey = this.getDomExchangeKey(tmodel);
+                    const xList = this.exchangeTypeMap[xKey];
+                    let invisible = undefined;
+                    
+                    if (xList) {
+                        const idx = xList.findIndex(obj => obj?.$dom);
+                        if (idx === -1) {
+                            delete this.exchangeTypeMap[xKey];
+                        } else {
+                            invisible = this.exchangeTypeMap[xKey][idx];
+                            this.exchangeTypeMap[xKey] = this.exchangeTypeMap[xKey].slice(idx + 1);
+                        }
+                    }
+
+                    if (invisible) {
+                        const index = this.lists.invisibleDom.indexOf(invisible);
+                        if (index >= 0) {                            
+                            this.lists.invisibleDom.splice(index, 1);
+                            tmodel.styleMap = invisible.styleMap;
+                            tmodel.transformMap = invisible.transformMap;
+                            tmodel.$dom = invisible.$dom; 
+                            
+                            TModelUtil.patchDom(tmodel);
+                            this.resetTModelDom(invisible);
+                        }
+                    }
+                    
+                    if (!tmodel.$dom) {
+                        tmodel.$dom = new $Dom();
+                        TModelUtil.createDom(tmodel);
+                        tmodel.getDomHolder(tmodel).appendTModel$Dom(tmodel);
+                        tmodel.hasDomNow = true;
+                    }
                 } 
             }
         }
