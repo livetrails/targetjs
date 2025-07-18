@@ -23,8 +23,6 @@ class TargetData {
             isInFlow: true,
             baseElement: 'div',
             canHaveDom: true,
-            widthFromDom: false,
-            heightFromDom: false,
             isIncluded: true,
             bracketThreshold: 10,
             bracketSize: 5,
@@ -198,7 +196,8 @@ class TargetData {
         width: true, 
         height: true, 
         heightFromDom: true, 
-        widthFromDom: true
+        widthFromDom: true,
+        fetch: true
     };
 
     static coreTargetMap = { 

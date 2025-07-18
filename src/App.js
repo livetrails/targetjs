@@ -108,7 +108,7 @@ const AppFn = () => {
         my.events.detachWindowEvents();
         my.events.attachWindowEvents();
         my.events.clearAll();
-        my.events.attachEvents(my.manager.lists.visible);
+        my.events.attachEvents(my.manager.getVisibles());
 
         await my.runScheduler.resetRuns();
 
@@ -131,7 +131,7 @@ const AppFn = () => {
     };
 
     my.reset = function() {
-        my.manager.lists.visible.forEach(tmodel => { 
+        my.manager.getVisibles().forEach(tmodel => { 
             tmodel.transformMap = {};
             tmodel.styleMap = {};
             tmodel.allStyleTargetList.forEach(function(key) {
@@ -190,7 +190,7 @@ const getLocationManager = () => tApp?.locationManager;
 const getBrowser = () => tApp?.browser;
 const getScreenWidth = () => tApp?.tRoot?.val('screenWidth') ?? 0;
 const getScreenHeight = () => tApp?.tRoot?.val('screenHeight') ?? 0;
-const getVisibles = () => tApp?.manager?.lists.visible;
+const getVisibles = () => tApp?.manager?.getVisibles();
 const getResizeLastUpdate = () => tApp?.resizeLastUpdate;
 const getTModelById = id => App.tmodelIdMap[id];
 const getDomTModelById = id => {

@@ -10,13 +10,21 @@ import { ColorUtil } from "./ColorUtil.js";
 class TModelUtil {    
    
     static shouldMeasureHeightFromDom(tmodel) {
-        return (!tmodel.excludeDefaultStyling() && !TUtil.isDefined(tmodel.targetValues.height) && !TModelUtil.isHeightDefined(tmodel) && !tmodel.hasChildren()) 
-            || !!tmodel.getTargetValue('heightFromDom');   
+        if (tmodel.val('heightFromDom') === false) {
+            return false;
+        }
+        
+        return (!tmodel.excludeDefaultStyling() && !TUtil.isDefined(tmodel.targetValues.height) && !tmodel.val('heightFromDom') && !TModelUtil.isHeightDefined(tmodel) && !tmodel.hasChildren()) 
+            || tmodel.val('heightFromDom');    
     }
     
     static shouldMeasureWidthFromDom(tmodel) {
-        return (!tmodel.excludeDefaultStyling() && !tmodel.reuseDomDefinition() && !TUtil.isDefined(tmodel.targetValues.width) && !TModelUtil.isWidthDefined(tmodel) && !tmodel.hasChildren()) 
-            || !!tmodel.getTargetValue('widthFromDom');   
+        if (tmodel.val('widthFromDom') === false) {
+            return false;
+        }
+        
+        return (!tmodel.excludeDefaultStyling() && !tmodel.reuseDomDefinition() && !tmodel.val('widthFromDom') && !TUtil.isDefined(tmodel.targetValues.width) && !TModelUtil.isWidthDefined(tmodel) && !tmodel.hasChildren()) 
+            || tmodel.val('widthFromDom');   
     } 
     
     static isHeightDefined(tmodel) {

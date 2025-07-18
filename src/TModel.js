@@ -128,7 +128,6 @@ class TModel extends BaseModel {
         
         if (typeof child === 'object') {
             this.childrenUpdateFlag = true;
-            this.markLayoutDirty('addChild');
             
             if (!(child instanceof TModel)) {   
                 
@@ -145,10 +144,12 @@ class TModel extends BaseModel {
                     child = new TModel(`${this.oid}_`, child);                    
                 }
             }
-            
+                        
             if (!child.toDiscard) {
                 this.addedChildren.push({ index, child });
                 child.parent = this;
+                child.markLayoutDirty('addChild');
+                
                 if (child.updatingTargetList.length > 0) {
                     this.addToUpdatingChildren(child);
                 }
@@ -211,7 +212,7 @@ class TModel extends BaseModel {
                 this.lastChildrenUpdate.additions.push({ index, child });
             });
                                     
-            this.addedChildren.length = 0;
+            this.addedChildren.length = 0;            
         }
         
         if (state.movedChildren?.length > 0) {
@@ -262,6 +263,10 @@ class TModel extends BaseModel {
     }
 
     removeAll() {  
+        if (!this.hasChildren()) {
+            return;
+        }
+        
         this.markLayoutDirty('removeAll');
         this.allChildrenList = [];
         this.allChildrenMap = {};
@@ -282,25 +287,68 @@ class TModel extends BaseModel {
         }
     }
     
-    markParentLayoutDirty(key) {
-        this.getParent()?.markLayoutDirty(key);
+    markLayoutDirty(key, tmodel = this) {
+        if (!this.dirtyLayout) {
+            this.dirtyLayout = { oids: {}, count: 0 };
+        }
+        
+        if (!this.dirtyLayout.oids[tmodel.oid]) {
+            this.dirtyLayout.oids[tmodel.oid] = tmodel;
+            this.dirtyLayout.count++;
+        }
+        
+        if (tmodel === this) {
+            key = tmodel.oid + "#" + key;
+        }
+                    
+        this.dirtyLayout.lastKey = key;
+        
+        if (this.bracket) {
+            this.bracket.markLayoutDirty(key, tmodel);    
+        }
+        
+        if (this.parent) {
+            this.parent.markLayoutDirty(key, tmodel);
+        }
     }
     
-    markLayoutDirty(key) {
-        if (!this.dirtyLayout) {
-            key = key.indexOf('#') >= 0 ? key : this.oid + "#" + key;
-            this.dirtyLayout = key;
-            if (this.parent) {
-                this.parent.markLayoutDirty(key);
+    removeLayoutDirty(tmodel, oids) {
+        if (this.dirtyLayout) {
+            if (oids) {
+                oids.forEach(oid => {
+                    if (this.dirtyLayout.oids[oid]) {
+                        this.dirtyLayout.count--;
+                        delete this.dirtyLayout.oids[oid];
+                    }
+                });
+            } else if (this.dirtyLayout.oids[tmodel.oid]) {
+                this.dirtyLayout.count--;
+                delete this.dirtyLayout.oids[tmodel.oid];
+            }
+
+            if (this.dirtyLayout.count === 0) {
+               this.dirtyLayout = false; 
             }
         }
+        
+        if (this.bracket) {
+            this.bracket.removeLayoutDirty(tmodel, oids);    
+        }        
+            
+        if (this.parent) {
+            this.parent.removeLayoutDirty(tmodel, oids);
+        }            
+    }
+    
+    getDirtyLayout() {
+        return this.dirtyLayout;
     }
 
     shouldCalculateChildren() {
         if (TUtil.isDefined(this.val('calculateChildren'))) {
             return this.val('calculateChildren');
         }
-        const result = this.isIncluded() && (!!this.dirtyLayout || this.currentStatus === 'new');
+        const result = this.isIncluded() && (this.dirtyLayout !== false || this.currentStatus === 'new');
         this.currentStatus = undefined;
 
         return result;
@@ -364,7 +412,7 @@ class TModel extends BaseModel {
     }
     
     delVal(key) {
-        this.markParentLayoutDirty(`del-${key}`);
+        this.markLayoutDirty(`del-${key}`);
         
         if (key.startsWith('_')) {
             delete this[key.slice(1)];
@@ -380,11 +428,12 @@ class TModel extends BaseModel {
             actual = this;
             key = key.slice(1);
         }
-        if (value !== undefined) {
+
+        if (arguments.length === 2) {
             lastActual[key] = actual[key];
             if (value !== actual[key]) {
                 actual[key] = value;
-                this.markParentLayoutDirty(`val-${key}`);
+                this.markLayoutDirty(`val-${key}`);
             }
             return this;
         }
@@ -454,6 +503,10 @@ class TModel extends BaseModel {
     makeInvisible() {
         this.val('isVisible', true);
         this.targets.isVisible = false;        
+    }
+    
+    managesOwnScroll() {
+        return this.externalEventMap['onScroll'] || this.externalEventMap['onScrollLeft'] || this.externalEventMap['onScrollTop'];
     }
     
     calcVisibility() {

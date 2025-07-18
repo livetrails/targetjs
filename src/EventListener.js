@@ -209,11 +209,9 @@ class EventListener {
             this.currentHandlers.blur = this.currentHandlers.focus;
         }
        
-        if (tmodel) {
-            this.currentHandlers.start = tmodel.canHandleEvent('onStart') ? tmodel : undefined;
-            this.currentHandlers.end = tmodel.canHandleEvent('onEnd') ? tmodel : undefined;  
-            this.currentHandlers.hover = tmodel.canHandleEvent('onHover') ? tmodel : undefined;
-        }
+        this.currentHandlers.start = tmodel?.canHandleEvent('onStart') ? tmodel : undefined;
+        this.currentHandlers.end = tmodel?.canHandleEvent('onEnd') ? tmodel : undefined;  
+        this.currentHandlers.hover = tmodel?.canHandleEvent('onHover') ? tmodel : undefined;
         
         this.currentHandlers.click = clickHandler;
         this.currentHandlers.swipe = swipeHandler;        
@@ -280,11 +278,9 @@ class EventListener {
         const now = TUtil.now();
                 
         const tmodel = this.getTModelFromEvent(event);
-        
-        if (tmodel) {
-            tmodel.markLayoutDirty('target-event');
-        }
-                                
+                
+        tmodel?.markLayoutDirty('event');
+                
         const newEvent = { eventName, eventItem, eventType, originalName, tmodel, eventTarget, timeStamp: now };
 
         if (this.lastEvent?.eventItem) {
@@ -340,8 +336,8 @@ class EventListener {
                 this.findEventHandlers(newEvent); 
                 this.canFindHandlers = false;
                
-                this.swipeStartX = this.start0.x - this.currentHandlers.swipe?.getX();
-                this.swipeStartY = this.start0.y - this.currentHandlers.swipe?.getY();
+                this.swipeStartX = this.start0.x - (this.currentHandlers.swipe?.getX() ?? 0);
+                this.swipeStartY = this.start0.y - (this.currentHandlers.swipe?.getY() ?? 0);
                 
                 event.stopPropagation();
                 
@@ -359,11 +355,15 @@ class EventListener {
                 if (this.preventDefault(tmodel, eventName) && event.cancelable) {
                     event.preventDefault();
                 }
+                
                 if (this.touchCount > 0) {
                     this.touchTimeStamp = now + 10;
                     
                     this.move(event);
                     event.stopPropagation();
+                    
+                    this.currentHandlers.swipe?.markLayoutDirty('swipe-event');
+                    
                 } else if (this.isCurrentSource('wheel')) {
                     this.clearTouch();                    
                 }
@@ -383,7 +383,7 @@ class EventListener {
                 
                 this.end(event);
                 
-                this.currentHandlers.end?.markLayoutDirty('touchEnd');
+                this.currentHandlers.end?.markLayoutDirty('end-event');
                 
                 this.clearEnd();
                 this.touchCount = 0;
@@ -443,14 +443,21 @@ class EventListener {
 
             case 'key':
                 this.currentTouch.key = event.which || event.keyCode;
+                this.currentHandlers.focus?.markLayoutDirty('key-event');
+                
                 break;
                 
             case 'keydown':
                 this.currentTouch.key = event.which || event.keyCode;
+                this.currentHandlers.focus?.markLayoutDirty('keydown-event');
+                
                 break;                
                 
             case 'resize':
-                this.resizeRoot();                
+                this.resizeRoot();
+                tApp.manager.getVisibles().forEach(tmodel => {
+                    tmodel.markLayoutDirty('resize-event');
+                });  
                 break;              
         }
         
@@ -460,6 +467,8 @@ class EventListener {
     resizeRoot() {
         TargetExecutor.executeDeclarativeTarget(tRoot(), 'screenWidth');
         TargetExecutor.executeDeclarativeTarget(tRoot(), 'screenHeight');
+        
+        
     }
 
     preventDefault(tmodel, eventName) {

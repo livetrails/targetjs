@@ -31,20 +31,17 @@ class TargetManager {
         }    
         
         if (tmodel.isExecuted(key) && tmodel.getTargetStep(key) === tmodel.getTargetSteps(key)) {
-            if (tmodel.isScheduledPending(key) && getRunScheduler().nextRuns.length > 0) {
-                tmodel.markParentLayoutDirty('schedule');
+            if (tmodel.isScheduledPending(key)) {
                 return;
             }
             const schedulePeriod = TargetUtil.scheduleExecution(tmodel, key);
             if (schedulePeriod > 0) {
-                tmodel.markParentLayoutDirty('schedule');
-                getRunScheduler().schedule(schedulePeriod, `targetSchedule__${tmodel.oid}__${key}_${schedulePeriod}`);
+                    getRunScheduler().timeSchedule(schedulePeriod, `targetSchedule__${tmodel.oid}__${key}_${schedulePeriod}`);
                 return;
             }
         }
        
         if (!tmodel.isTargetEnabled(key)) {
-            tmodel.markParentLayoutDirty('enabled');
             if (target.needsReactivation) {
                 tmodel.removeFromActiveTargets(key);
             }
@@ -177,7 +174,6 @@ class TargetManager {
             tmodel.incrementTargetStep(key, now, lastUpdateTime, interval, steps);
 
             tmodel.updateTargetStatus(key);
-            
                      
             if (tmodel.getTargetStep(key) < steps) {  
                 TargetUtil.shouldActivateNextTarget(tmodel, key);
@@ -246,10 +242,8 @@ class TargetManager {
         }
         
         tmodel.updateTargetStatus(key);
-        
-        if (TargetUtil.hasTargetEnded(tmodel, key)) {     
-            TargetUtil.shouldActivateNextTarget(tmodel, key); 
-        }
+
+        TargetUtil.shouldActivateNextTarget(tmodel, key); 
 
         getRunScheduler().scheduleOnlyIfEarlier(scheduleTime, `${tmodel.oid}---${key}-${step}/${steps}-${cycle}-${scheduleTime}`);
     }

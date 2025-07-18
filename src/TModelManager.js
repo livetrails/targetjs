@@ -81,7 +81,7 @@ class TModelManager {
             }
             
             if (tmodel.hasDom()) { 
-                if (!tmodel.canHaveDom() && (!tmodel.isIncluded() || !visible)) {
+                if (!tmodel.canHaveDom() || !tmodel.isIncluded() || (tmodel.canDeleteDom() && !visible)) {
                     this.addToInvisibleDom(tmodel);
                     tmodel.getChildren().forEach(tmodel => {
                         this.addToRecursiveInvisibleDom(tmodel);
@@ -127,7 +127,7 @@ class TModelManager {
 
                 if (!tmodel.getParent()?.allChildrenMap[tmodel.oid] || !tmodel.isIncluded()) {
                     this.addToInvisibleDom(tmodel);
-                } else if (this.isBracketVisible(tmodel) === false) {
+                } else if (tmodel.canDeleteDom() && this.isBracketVisible(tmodel) === false) {
                     this.addToInvisibleDom(tmodel);
                     tmodel.getChildren().forEach(tmodel => {
                         this.addToRecursiveInvisibleDom(tmodel);
@@ -196,6 +196,10 @@ class TModelManager {
         }
         
         return false;
+    }
+    
+    getVisibles() {
+        return Object.values(this.visibleOidMap);
     }
 
     needsRerender(tmodel) {

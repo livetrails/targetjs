@@ -117,6 +117,11 @@ class LoadingManager {
         return this.tmodelKeyMap[key] && this.tmodelKeyMap[key].resultCount === this.tmodelKeyMap[key].entryCount;
     }
     
+    isLoadingComplete(tmodel, targetName) {
+        const key = this.getTModelKey(tmodel, targetName);
+        return this.tmodelKeyMap[key] ? this.tmodelKeyMap[key].resultCount === this.tmodelKeyMap[key].entryCount && this.tmodelKeyMap[key].activeIndex === this.tmodelKeyMap[key].entryCount : true;        
+    }
+    
     resetLoadingError(tmodel, targetName) {
         const key = this.getTModelKey(tmodel, targetName);
         const modelEntry = this.tmodelKeyMap[key];
@@ -202,13 +207,14 @@ class LoadingManager {
             const tmodelEntry = this.tmodelKeyMap[key];
             const loadTargetName = this.getLoadTargetName(targetName);
 
-            if (!tmodelEntry) {
+            if (!tmodelEntry || !tmodelEntry.fetchMap[fetchId]) {
                 return;
             } 
                  
             const fetchEntry = tmodelEntry.fetchMap[fetchId];
+            
             this.callOnSuccessHandler(tmodel, targetName, { ...res, order: fetchEntry.order });
-
+            
             let targetResults = tmodel.val(loadTargetName);
                         
             if (targetResults) {
@@ -239,9 +245,9 @@ class LoadingManager {
             const tmodelEntry = this.tmodelKeyMap[key];
             const loadTargetName = this.getLoadTargetName(targetName);
 
-            if (!tmodelEntry) {
+            if (!tmodelEntry || !tmodelEntry.fetchMap[fetchId]) {
                 return;
-            }
+            } 
             
             const fetchEntry = tmodelEntry.fetchMap[fetchId];
             
@@ -275,7 +281,7 @@ class LoadingManager {
         getRunScheduler().schedule(0, `api_error_${fetchId}`);
     }
     
-    callOnSuccessHandler(tmodel, targetName, res) {        
+    callOnSuccessHandler(tmodel, targetName, res) {   
         const onSuccess = tmodel.targets[targetName]?.onSuccess;
          if (onSuccess) {
              if (typeof onSuccess === 'function') {

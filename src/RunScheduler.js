@@ -61,10 +61,10 @@ class RunScheduler {
 
         const runTime = this.runStartTime + delay;
 
-        if (this.delayProcess && !this.delayProcess.isFired && runTime > this.delayProcess.runTime) {
+        if (this.delayProcess && runTime >= this.delayProcess.runTime) {
             return;
         }
-
+        
         this.schedule(delay, runId);
     }
 
@@ -76,9 +76,17 @@ class RunScheduler {
         if (delay === 0 && tApp.throttle === 0) {
             this.run(delay, runId);
         } else {
-            this.delayRun(tApp.throttle === 0 ? delay || 0 : tApp.throttle, runId);
+            this.delayRun(tApp.throttle === 0 ? delay || 0 : tApp.throttle, runId, this.runStartTime);
         }
     }
+    
+    timeSchedule(delay, runId) {
+        if (!tApp.isRunning() || this.resetting) {
+            return;
+        }
+        this.delayRun(delay, runId, TUtil.now());
+    }    
+    
 
     run(delay, runId) {
         if (!tApp.isRunning() || this.resetting) {
@@ -96,7 +104,6 @@ class RunScheduler {
         this.runId = runId;
         this.runningFlag = true;
         this.runStartTime = TUtil.now();
-
 
         if (this.phase === 0) {
             getEvents().captureEvents();
@@ -169,16 +176,18 @@ class RunScheduler {
     needsRerun() {
         this.phase = 0;
         this.runningFlag = false;
+        
 
         if (this.rerunId) {
             this.defer(`rerun-${this.rerunId}`);
         } else {
             const newDelay = this.nextRuns.length > 0 ? this.nextRuns[0].delay - (TUtil.now() - this.nextRuns[0].insertTime) : undefined;
-            if (newDelay === undefined || getManager().lists.activeTModels.length > 0) {
+                        
+            if (newDelay === undefined || getManager().lists.activeTModels.length > 0 || getManager().lists.updatingTModels.length > 0) {
                 if (getEvents().eventQueue.length > 0) {
-                    this.scheduleOnlyIfEarlier(15, `events-${getEvents().eventQueue.length}`);
+                    this.schedule(15, `events-${getEvents().eventQueue.length}`);
                 } else if (getManager().lists.updatingTModels.length > 0) {
-                    this.scheduleOnlyIfEarlier(15, `getManager-needsRerun-updatingTModels`);
+                    this.schedule(15, `getManager-needsRerun-updatingTModels`);
                 } else if (getManager().lists.activeTModels.length > 0) {
                     const activeTModel = getManager().lists.activeTModels.find(tmodel => {
                         return (
@@ -191,11 +200,10 @@ class RunScheduler {
                     if (activeTModel) {
                         const delay = !this.activeStartTime || TUtil.now() - this.activeStartTime > 15 ? 1 : 15;
                         this.activeStartTime = TUtil.now();
-                        this.scheduleOnlyIfEarlier(delay, `getManager-needsRerun-${activeTModel.oid}-${activeTModel.activeTargetList}`);
+                                                
+                        this.schedule(delay, `getManager-needsRerun-${activeTModel.oid}-${activeTModel.activeTargetList}`);
                     }
                 }
-            } else if (newDelay < 0 && newDelay >= -15) {
-                this.executeNextRun();
             }
         }
     }
@@ -227,21 +235,20 @@ class RunScheduler {
         });
     }
 
-    setDelayProcess(runId, insertTime, runTime, delay) {
+    setDelayProcess(runId, insertTime, interval, runTime, delay) {
         this.delayProcess = {
             runId,
             insertTime,
             runTime: runTime,
-            delay,
-            timeoutId: setTimeout(() => {
-                if (this.delayProcess) {
-                    this.delayProcess.isFired = true;
-                }
+            interval,
+            timeoutId: setTimeout(() => {             
+                this.delayProcess.timeoutId = undefined;
                 this.run(delay, runId);
                 this.executeNextRun();
-            }, Math.min(0, delay))
-        };
-        
+                
+                
+            }, Math.max(0, delay))
+        };    
     }
 
     executeNextRun() {
@@ -256,35 +263,32 @@ class RunScheduler {
             if (newDelay < 0) {
                 lastNegativeRun = nextRun;
             } else {
+                lastNegativeRun = null;
                 nextValidRun = nextRun;
                 break;
             }
         }
 
-
         if (lastNegativeRun) {
-            this.setDelayProcess(lastNegativeRun.runId, lastNegativeRun.insertTime, TUtil.now(), 0);
+            this.setDelayProcess(lastNegativeRun.runId, lastNegativeRun.insertTime, lastNegativeRun.delay, TUtil.now(), 0);
         } else if (nextValidRun) {
             const now = TUtil.now();
-            const newDelay = Math.max(1, nextValidRun.delay - (now - nextValidRun.insertTime));
-            this.setDelayProcess(nextValidRun.runId, nextValidRun.insertTime, now + newDelay, newDelay);
+            const newDelay = Math.max(1, nextValidRun.delay - (now - nextValidRun.insertTime));              
+            this.setDelayProcess(nextValidRun.runId, nextValidRun.insertTime, nextValidRun.delay, now + newDelay, newDelay);
         } else {
             this.delayProcess = undefined;
         }
     }
 
-    delayRun(delay, runId) {
-        const insertTime = this.runStartTime;
+    delayRun(delay, runId, insertTime) {
         const runTime = insertTime + delay;
 
         if (!this.delayProcess) {
-            this.setDelayProcess(runId, insertTime, runTime, delay);
+            this.setDelayProcess(runId, insertTime, delay, runTime, delay);
         } else if (this.delayProcess.timeoutId && runTime < this.delayProcess.runTime) {
-            clearTimeout(this.delayProcess.timeoutId);
-
-            this.insertRun(this.delayProcess.runId, this.delayProcess.insertTime, this.delayProcess.delay);
-
-            this.setDelayProcess(runId, insertTime, runTime, delay);
+            clearTimeout(this.delayProcess.timeoutId);                                 
+            this.insertRun(this.delayProcess.runId, this.delayProcess.insertTime, this.delayProcess.interval);
+            this.setDelayProcess(runId, insertTime, delay, runTime, delay);
         } else {
             this.insertRun(runId, insertTime, delay);
         }

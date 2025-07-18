@@ -26,6 +26,7 @@
   "files": [
     "Export.js",        
     "build/",
+    "dist/",    
     "README.md",
     "LICENSE"
   ],

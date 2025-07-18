@@ -42,12 +42,13 @@ class PageManager {
             tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
             tApp.tRoot.$dom.innerHTML(this.pageCache[link].html);
    
-            DomInit.initCacheDoms(this.pageCache[link].visibleList);
-            this.pageCache[link].visibleList.forEach(tmodel => {
+            const visibles = Object.values(this.pageCache[link].visibleOidMap);
+            DomInit.initCacheDoms(visibles);
+            visibles.forEach(tmodel => {
                 tmodel.visibilityStatus = undefined;
             });
 
-            tApp.manager.lists.visible = [...this.pageCache[link].visibleList];
+            tApp.manager.visibleOidMap = { ...this.pageCache[link].visibleOidMap };
             this.lastLink = link;           
             tApp.start();        
         }
@@ -66,12 +67,12 @@ class PageManager {
     onPageClose() {        
         tApp.resizeLastUpdate = TUtil.now();
         getEvents().resizeRoot();
-        tApp.manager.lists.visible.forEach(tmodel => {
+        tApp.manager.getVisibles().forEach(tmodel => {
             getLocationManager().runEventTargets(tmodel, ['onPageClose']);             
         });          
     }
 
-    openLink(link, updateHistory = true) {    
+    openLink(link, updateHistory = true) {
         link = TUtil.getFullLink(link);
         
         if (this.lastLink) {
@@ -85,7 +86,7 @@ class PageManager {
                 html: html,
                 oids: { ...App.oids },
                 tmodelIdMap:  { ...App.tmodelIdMap },
-                visibleList: [...tApp.manager.lists.visible],
+                visibleOidMap: { ...tApp.manager.visibleOidMap },
                 tRoot: tApp.tRoot
             };
         }
@@ -107,7 +108,7 @@ class PageManager {
             html: tApp.tRoot.$dom.innerHTML(),
             oids: { ...App.oids },
             tmodelIdMap:  { ...App.tmodelIdMap },
-            visibleList: [...tApp.manager.lists.visible],
+            visibleOidMap: { ...tApp.manager.visibleOidMap },
             tRoot: tApp.tRoot
         };
         

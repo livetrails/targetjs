@@ -51,6 +51,8 @@ class BaseModel {
     get activeTargetMap() { return this.state().activeTargetMap ??= {}; }
     get updatingTargetList() { return this.state().updatingTargetList ??= []; }
     get updatingTargetMap() { return this.state().updatingTargetMap ??= {}; }
+    get childActionTargetList() { return this.state().childActionTargetList ??= []; }
+    get fetchActionTargetList() { return this.state().fetchActionTargetList ??= []; }    
     get updatingChildrenList() { return this.state().updatingChildrenList ??= []; }
     get updatingChildrenMap() { return this.state().updatingChildrenMap ??= {}; }
     get activeChildrenList() { return this.state().activeChildrenList ??= []; }
@@ -80,6 +82,8 @@ class BaseModel {
     set actualValues(val) { this.state().actualValues = val; }
     set activeTargetMap(val) { this.state().activeTargetMap = val; }
     set activeTargetList(val) { this.state().activeTargetList = val; }
+    set updatingTargetMap(val) { this.state().updatingTargetMap = val; }
+    set updatingTargetList(val) { this.state().updatingTargetList = val; }
 
     getParent() {
         return this.parent;
@@ -136,12 +140,12 @@ class BaseModel {
         let target = this.targets[key] || this.targets[cleanKey];
         
         if (!TUtil.isDefined(target)) {
-            this.delVal('key');
+            this.delVal(key);
             return;
         }
         
         const targetType = typeof target;
-                
+        
         const isInactiveKey = key.startsWith('_') || (key.endsWith('$') && !target.active);
         const isExternalEvent = TargetData.allEventMap[cleanKey];
         const isInternalEvent = TargetData.internalEventMap[cleanKey];
@@ -203,7 +207,7 @@ class BaseModel {
 
         if (TUtil.isDefined(target.initialValue)) {
             this.val(key, target.initialValue);
-            }
+        }
 
         this.addToStyleTargetList(key);
 
@@ -211,8 +215,8 @@ class BaseModel {
             this.coreTargets.push(key);
         }
         
-        if (!TargetData.mustExecuteTargets[key] && TUtil.isStringBooleanOrNumber(target)) {          
-            this.val(key, target);
+        if (!TargetData.mustExecuteTargets[key] && (targetType === 'string' || targetType === 'number' || targetType === 'boolean')) {          
+            this.val(key, typeof target === 'object' ? target.value : target );
             return;
         }
         
@@ -246,7 +250,7 @@ class BaseModel {
     }
     
     canTargetBeActivated(key) {
-        return (Array.isArray(this.targets['onDomEvent']) && this.targets['onDomEvent'].includes(key) && !this.hasDom()) ? false : true;
+        return (Array.isArray(this.targets['onDomEvent']) && this.targets['onDomEvent'].includes(key) && !this.hasDom()) ? false : !this.activeTargetMap[key];
     }
     
     addToStyleTargetList(key, enforce) {
@@ -395,11 +399,9 @@ class BaseModel {
         }
 
         if (this.isTargetUpdating(key)) {
-            this.markParentLayoutDirty(key);            
             this.addToUpdatingTargets(key);
             this.removeFromActiveTargets(key);   
         } else if (this.isTargetActive(key)) {
-            this.markParentLayoutDirty(key);
             this.addToActiveTargets(key);
             this.removeFromUpdatingTargets(key);
         } else {
@@ -407,6 +409,7 @@ class BaseModel {
             this.removeFromUpdatingTargets(key);
             tApp.manager.doneTargets.push({ tmodel: this, key: key });
         }
+
         return this.targetValues[key].status;
     }
 
@@ -604,6 +607,8 @@ class BaseModel {
             TargetUtil.markTargetAction(originalTModel, 'childAction');
         }
         
+        this.markLayoutDirty(key);
+        
         TargetExecutor.executeImperativeTarget(this, key, value, steps, interval, easing, originalTargetName, originalTModel);
 
         return this;
@@ -614,7 +619,8 @@ class BaseModel {
     }
 
     addToActiveTargets(key) {
-        if (!this.activeTargetMap[key] && this.canTargetBeActivated(key)) {      
+        if (!this.activeTargetMap[key] && this.canTargetBeActivated(key)) {
+            this.markLayoutDirty(key);
             this.activeTargetMap[key] = true;
             this.activeTargetList.push(key);
             this.getParent()?.addToActiveChildren(this);
@@ -636,6 +642,7 @@ class BaseModel {
 
     addToUpdatingTargets(key) {
         if (!this.updatingTargetMap[key]) {
+            this.markLayoutDirty(key);
             this.updatingTargetMap[key] = true;
             this.updatingTargetList.push(key);
             this.getParent()?.addToUpdatingChildren(this);
@@ -764,6 +771,8 @@ class BaseModel {
             if (TUtil.isDefined('value')) {
                 this.val(`__${key}`, value);
             }
+            
+            this.markLayoutDirty(key);
 
             const targetValue = this.targetValues[key];
             

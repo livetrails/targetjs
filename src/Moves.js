@@ -103,16 +103,11 @@ class Moves {
             strength = 20
         } = {}) 
     {
-        if (!Moves.shakeMap[tmodel.oid]) {
-            const xStart = (tmodel.getParentValue('width') - tmodel.getWidth()) / 2;
-            const yStart = tmodel.getY();            
-            const widthStart = tmodel.getWidth();
-            const heightStart = tmodel.getHeight();
-            Moves.shakeMap[tmodel.oid] = { xStart, yStart, widthStart, heightStart };
-        }
-        
-        const { xStart, yStart, widthStart, heightStart } = Moves.shakeMap[tmodel.oid];
-        
+        const xStart = (tmodel.getParentValue('width') - tmodel.getWidth()) / 2;
+        const yStart = tmodel.getY();            
+        const widthStart = tmodel.getWidth();
+        const heightStart = tmodel.getHeight();
+           
         const bounce = Moves.bounce(yStart - strength, yStart, {
             xStart, widthStart, heightStart, bFactor, cFactor 
         });
