@@ -117,10 +117,12 @@ class LocationManager {
             }
         }
                         
+        if (container.shouldBeBracketed()) {
+            container.backupDirtyLayout = { ...container.dirtyLayout };
+        }
+                        
         container.visibleChildren.length = 0;
         
-        container.includedChildrenCount = 0;
-
         for (const child of allChildrenList) {
             if (!child) {
                 continue;
@@ -146,7 +148,6 @@ class LocationManager {
             }  
             
             if (child.isIncluded()) {
-                child.getParent().includedChildrenCount++;
                 if (child.targets['onVisibleChildrenChange'] && !this.visibleChildrenLengthMap[child.oid]) {
                     this.visibleChildrenLengthMap[child.oid] = { 
                         tmodel: child, 
@@ -199,7 +200,6 @@ class LocationManager {
             } else {
                 this.locationListStats.push(`${child.oid}|${child.getDirtyLayout()?.count ?? 0}`);
             }
-
             
             if (child.shouldCalculateChildren() && child.hasChildren()) {              
                 this.calculateContainer(child, shouldCalculateChildTargets && container.shouldCalculateChildTargets() !== false);
@@ -238,7 +238,7 @@ class LocationManager {
                 }
             }
         }
-                        
+        
         container.calcContentWidthHeight();
 
         for (const child of allChildrenList) {
@@ -257,7 +257,6 @@ class LocationManager {
         }
         
         if (child.isIncluded()) {
-            child.getParent().includedChildrenCount++;
             if (child.targets['onVisibleChildrenChange'] && !this.visibleChildrenLengthMap[child.oid]) {
                 this.visibleChildrenLengthMap[child.oid] = { 
                     tmodel: child, 
@@ -310,7 +309,7 @@ class LocationManager {
             child.actualValues.isVisible = targetResult;
         }
 
-        child.isNowVisible = (!oldVisibilityStatus && newVisibilityStatus) || (!isVisible && child.isVisible());
+        child.isNowVisible = (!oldVisibilityStatus && newVisibilityStatus) || (!isVisible && child.isVisible());    
 
         child.addToParentVisibleChildren();
         

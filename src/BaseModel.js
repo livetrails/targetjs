@@ -157,10 +157,11 @@ class BaseModel {
             }
         }
 
+        let doesNextTargetUsePrevValue = false;
         if (TUtil.isDefined(keyIndex)) {
             const prevKey = keyIndex > 0 ? TargetUtil.getTargetName(this.originalTargetNames[keyIndex - 1]) : undefined;
             const nextKey = keyIndex < this.originalTargetNames.length - 1 ? this.originalTargetNames[keyIndex + 1] : undefined;
-            const doesNextTargetUsePrevValue = nextKey && nextKey.endsWith('$') ? true : false;
+            doesNextTargetUsePrevValue = nextKey && nextKey.endsWith('$') ? true : false;
             
             if (doesNextTargetUsePrevValue
                 || isInactiveKey 
@@ -215,7 +216,7 @@ class BaseModel {
             this.coreTargets.push(key);
         }
         
-        if (!TargetData.mustExecuteTargets[key] && (targetType === 'string' || targetType === 'number' || targetType === 'boolean')) {          
+        if (!TargetData.mustExecuteTargets[key] && !doesNextTargetUsePrevValue && (targetType === 'string' || targetType === 'number' || targetType === 'boolean')) {          
             this.val(key, typeof target === 'object' ? target.value : target );
             return;
         }

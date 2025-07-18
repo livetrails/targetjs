@@ -286,7 +286,7 @@ class TModel extends BaseModel {
             this.getParent().visibleChildren.push(this);
         }
     }
-    
+            
     markLayoutDirty(key, tmodel = this) {
         if (!this.dirtyLayout) {
             this.dirtyLayout = { oids: {}, count: 0 };
@@ -506,6 +506,10 @@ class TModel extends BaseModel {
     }
     
     managesOwnScroll() {
+        if (TUtil.isDefined(this.val('managesOwnScroll'))) {
+            return this.val('managesOwnScroll');
+        }
+
         return this.externalEventMap['onScroll'] || this.externalEventMap['onScrollLeft'] || this.externalEventMap['onScrollTop'];
     }
     

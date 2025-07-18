@@ -114,9 +114,9 @@ class TargetUtil {
     
     static shouldActivateNextTarget(tmodel, key, level = 0) {        
         const target = tmodel.targets[key];
-        
+           
         const nextTarget = target?.activateNextTarget;
-  
+             
         if (!nextTarget || tmodel.isTargetImperative(key)) {
             const { originalTModel, originalTargetName } = tmodel.isTargetImperative(key) ? tmodel.targetValues[key] : target;
             if (level < 2 && originalTargetName && originalTModel) {
@@ -160,10 +160,11 @@ class TargetUtil {
                 target.childAction = 'inactive';
             } else if (childAction === 'onEach') {
                 tmodel.activateTarget(cleanNextTarget);
+                target.childAction = 'inactive';
             }
         }
         
-        if (!childAction && !fetchAction && target && !tmodel.isTargetImperative(key)) {            
+        if (!childAction && !fetchAction && target && !tmodel.isTargetImperative(key)) { 
             if ((isEndTrigger && TargetUtil.hasTargetEnded(tmodel, key)) || !isEndTrigger) { 
                 tmodel.activateTarget(cleanNextTarget);
             }            
@@ -239,7 +240,7 @@ class TargetUtil {
 
     static hasTargetEnded(tmodel, key) {
         
-        const inProgress = (!tmodel.isTargetComplete(key) && !tmodel.isTargetDone(key)) || (tmodel.updatingTargetList.length > 0 || tmodel.activeTargetList.length > 0);
+        const inProgress = (!tmodel.isTargetComplete(key) && !tmodel.isTargetDone(key)) || (tmodel.hasUpdatingTargets(key) || TargetUtil.hasDeclarativeTargetUpdates(tmodel));
 
         if (inProgress) {
             return false;

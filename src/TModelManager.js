@@ -63,7 +63,7 @@ class TModelManager {
         for (const tmodel of getLocationManager().hasLocationList) {
             lastVisibleMap[tmodel.oid] = undefined; 
             
-            if (!tmodel.getParent()?.allChildrenMap[tmodel.oid]) {
+            if (this.hasNoParent(tmodel)) {
                 if (tmodel.hasDom()) {
                     this.addToInvisibleDom(tmodel);
                 }
@@ -125,7 +125,7 @@ class TModelManager {
         Object.values(lastVisibleMap).filter(v => v !== undefined).forEach(tmodel => {
             if (tmodel.hasDom()) {
 
-                if (!tmodel.getParent()?.allChildrenMap[tmodel.oid] || !tmodel.isIncluded()) {
+                if (this.hasNoParent(tmodel) || !tmodel.isIncluded()) {
                     this.addToInvisibleDom(tmodel);
                 } else if (tmodel.canDeleteDom() && this.isBracketVisible(tmodel) === false) {
                     this.addToInvisibleDom(tmodel);
@@ -160,6 +160,19 @@ class TModelManager {
         }
         
         return true;
+    }
+    
+    hasNoParent(tmodel, level = 0) {
+        if (tmodel.getParent()) {
+            if (!tmodel.getParent().allChildrenMap[tmodel.oid]) {
+                return true;
+            }
+            if (level <= 1) {
+                return this.hasNoParent(tmodel.getParent(), level + 1);
+            }
+        } else {
+            return false;
+        }
     }
     
     addToRecursiveInvisibleDom(tmodel) {
