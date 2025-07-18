@@ -101,7 +101,7 @@ App({
         this.setTarget('background', 'orange', 30, 10); // Animates background to orange over 30 steps
     },
     pause$$: { interval: 2000 }, // `$$` ensures this runs only after the preceding 'onClick' animation is fully complete
-    purpleAgain$$() { // `$$` ensures this runs ONLY after `pause$$` completes (2-second interval)
+    purpleAgain$$() { // `$$` ensures this runs only after `pause$$` completes (2-second interval)
         this.setTarget('background', 'mediumpurple', 30, 10); // Animates background back to mediumpurple
     }
 });
@@ -125,11 +125,14 @@ Let’s expand the previous example by creating 10 boxes instead of just one. Ea
 import { App } from 'targetj';
 
 App({
-    children: { // A special target that generates a new list of child objects each time it executes.
+    width: 500,
+    children: { // A special target that adds a new list of childen each time it executes.
         cycles: 9, // Creates 10 children (from cycle 0 to 9)
         interval: 100, // Adds a new child every 100 milliseconds
         value(cycle) {
             return {
+                baseWidth: 250,
+                baseHeight: 125,
                 background: 'mediumpurple',
                 width: [{ list: [100, 250, 100] }, 50, 10],
                 height$() { return this.prevTargetValue / 2; },
@@ -147,11 +150,13 @@ App({
 });
 ```
 
+![first example](https://targetjs.io/img/git4_1.gif)
+
 **Explanation:**
 
 This advanced example demonstrates TargetJS's capability to manage complex, dynamic UI scenarios:
 
-1. `children`: A special target construct used to create a collection of child objects. Each time it executes, the new list objects is added to the parent. The `cycles` property specifies that the value function will run 10 times (from `cycle` 0 to 9), thus creating 10 individual box elements.
+1. `children`: A special target construct used to create a collection of child objects. Each time it executes, a new list objects is added to the parent. The `cycles` property specifies that the value function will run 10 times (from `cycle` 0 to 9), thus creating 10 individual box objects.
 The `interval` property ensures that each new box is created and added to the UI every 100 milliseconds.
 The `value(cycle)` function return the same object element from the previous example.
 
@@ -505,8 +510,8 @@ App({
             const parentWidth = this.getParentValue("width");
             this.setTarget("x", { list: [parentWidth + width, -width] }, 300);
           },
-          waitOneSecond$$() {
-            this.setTarget('1second', 1, 1, 1000); //name, value, steps, interval 
+          waitOneSecond$$: {
+            interval: 1000,
           },
           repeat$$() {
             this.activateTarget('animateLeftToRight');
@@ -539,9 +544,7 @@ Or in HTML:
           const parentWidth = this.getParentValue('width');
           this.setTarget('x', { list: [ parentWidth + width, -width ] }, 400);
         }"
-        tg-onesecond$$="function() {
-          this.setTarget('1second', 1, 1, 1000);
-        }"
+        tg-onesecond$$="{ interval: 1000 }"
         tg-repeat$$="function() {
           this.activateTarget('left2right');
         }"
