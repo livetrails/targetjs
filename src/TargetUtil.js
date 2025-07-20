@@ -1,5 +1,6 @@
 import { getLoader } from "./App.js";
 import { TUtil } from "./TUtil.js";
+import { TargetData } from "./TargetData.js";
 
 
 /**
@@ -112,15 +113,22 @@ class TargetUtil {
         });
     }
     
-    static shouldActivateNextTarget(tmodel, key, level = 0) {        
+    static shouldActivateNextTarget(tmodel, key, level = 0) {  
         const target = tmodel.targets[key];
            
         const nextTarget = target?.activateNextTarget;
              
         if (!nextTarget || tmodel.isTargetImperative(key)) {
-            const { originalTModel, originalTargetName } = tmodel.isTargetImperative(key) ? tmodel.targetValues[key] : target;
-            if (level < 2 && originalTargetName && originalTModel) {
-                TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
+            if (tmodel.isTargetImperative(key)) {
+                const { originalTModel, originalTargetName } = tmodel.targetValues[key];
+                if (originalTargetName && originalTModel) {
+                    TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
+                }                
+            } else {
+                const { originalTModel, originalTargetName } = target;
+                if (originalTargetName && originalTModel && originalTModel.targets[originalTargetName]?.activateNextTarget) {                    
+                    TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
+                }                
             }
             
             if (!tmodel.isTargetImperative(key)) {
@@ -138,17 +146,23 @@ class TargetUtil {
         if (fetchAction) {
             if (fetchAction === 'onEnd' && TargetUtil.hasTargetEnded(tmodel, key)) {
                 tmodel.activateTarget(cleanNextTarget);
+                return;
             } else if (fetchAction === 'onEach') {
-                    
+                    let activateFlag = false;
                     while (getLoader().isNextLoadingItemSuccessful(tmodel, key)) {
                         if (tmodel.activatedTargets.indexOf(cleanNextTarget) >= 0) {
                             tmodel.activatedTargets.push(cleanNextTarget);
+                            activateFlag = true;
                         } else {
                             tmodel.activateTarget(cleanNextTarget);
+                            activateFlag = true;
                         }
                         getLoader().nextActiveItem(tmodel, key);
                     }
-
+                    
+                    if (activateFlag) {
+                        return;
+                    }
             } else {
                 TargetUtil.cleanupTarget(tmodel, key);             
             }
@@ -164,13 +178,13 @@ class TargetUtil {
             }
         }
         
-        if (!childAction && !fetchAction && target && !tmodel.isTargetImperative(key)) { 
+        if (!childAction && !fetchAction && target && cleanNextTarget && !tmodel.isTargetImperative(key)) { 
             if ((isEndTrigger && TargetUtil.hasTargetEnded(tmodel, key)) || !isEndTrigger) { 
                 tmodel.activateTarget(cleanNextTarget);
             }            
         }
             
-        if (TargetUtil.hasTargetEnded(tmodel, key)) {                
+        if (TargetUtil.isTargetComplete(tmodel, key)) {                
             TargetUtil.cleanupTarget(tmodel, key);
         }
     }
@@ -223,32 +237,48 @@ class TargetUtil {
         
         return true;
     }
-    
-    static hasDeclarativeTargetUpdates(tmodel) {
-        if (!tmodel.hasTargetUpdates()) {
-            return false;
-        }
-        
-        for (const target of tmodel.updatingTargetList) {
-            if (!tmodel.isTargetImperative(target)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     static hasTargetEnded(tmodel, key) {
         
-        const inProgress = (!tmodel.isTargetComplete(key) && !tmodel.isTargetDone(key)) || (tmodel.hasUpdatingTargets(key) || TargetUtil.hasDeclarativeTargetUpdates(tmodel));
-
-        if (inProgress) {
-            return false;
+        return !TargetUtil.isTargetComplete(tmodel, key) || tmodel.hasUpdatingTargets(key) || !TargetUtil.arePreviousTargetsComplete(tmodel, key) ? false : true;
+    }
+       
+    static arePreviousTargetsComplete(tmodel, key) {
+        const keyIndex = tmodel.originalTargetNames.findIndex(name => key === TargetUtil.getTargetName(name));
+        
+        for (var i = 0; i < keyIndex; i++) {
+            var prevTarget = TargetUtil.getTargetName(tmodel.originalTargetNames[i]);
+            if (tmodel.isTargetImperative(prevTarget)) {
+                continue;
+            }
+                        
+            if (!TargetUtil.isTargetComplete(tmodel, prevTarget)) {
+               return false; 
+            }
         }
+        return true;
+    }
+
+    static isTargetComplete(tmodel, key) {
+
+        const target = tmodel.targets[key];
                 
-        const target = tmodel.targets[key];     
         if (target) {
-            if (target.childAction && (tmodel.hasUpdatingChildren(key) || tmodel.hasActiveChildren(key))) {
+            const targetType = typeof target.value;
+
+            if (TargetData.controlTargetMap[key]) {
+                return true;
+            }
+
+            if (!target.childAction && !target.fetchAction && (targetType === 'string' || targetType === 'number' || targetType === 'boolean')) {
+                return true;
+            } 
+            
+            if (!tmodel.isTargetComplete(key) && !tmodel.isTargetDone(key)) {
+                return false;
+            }            
+            
+            if (target.childAction && (TargetUtil.hasUpdatingChildren(tmodel, key) || tmodel.hasActiveChildren())) {
                             
                 return false;
             }
@@ -257,8 +287,25 @@ class TargetUtil {
             }
         }
         
-        return true;
+        return true;        
     }
+    
+    static hasUpdatingChildren(tmodel, originalTargetName) {
+        let count = 0;
+        tmodel.updatingChildrenList.filter(child => child.isVisible()).forEach(child => {
+            child.updatingTargetList.forEach(target => {
+                if (child.isTargetImperative(target) && child.targetValues[target]?.originalTargetName === originalTargetName) {
+                    count++;
+                } else if (child.targets[target]?.originalTargetName === originalTargetName) {
+                    count++;
+                }
+            });
+        });
+
+        return count;
+        
+    }    
+        
     
     static activateSingleTarget(tmodel, targetName) {
         if (tmodel.targets[targetName] && tmodel.canTargetBeActivated(targetName)) {

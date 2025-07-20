@@ -177,15 +177,19 @@ class RunScheduler {
         this.phase = 0;
         this.runningFlag = false;
         
-
         if (this.rerunId) {
             this.defer(`rerun-${this.rerunId}`);
         } else {
             const newDelay = this.nextRuns.length > 0 ? this.nextRuns[0].delay - (TUtil.now() - this.nextRuns[0].insertTime) : undefined;
                         
-            if (newDelay === undefined || getManager().lists.activeTModels.length > 0 || getManager().lists.updatingTModels.length > 0) {
+            if (newDelay === undefined 
+                    || getManager().lists.activeTModels.length > 0 
+                    || getManager().lists.updatingTModels.length > 0
+                    || getLocationManager().activatedList.length > 0) {
                 if (getEvents().eventQueue.length > 0) {
                     this.schedule(15, `events-${getEvents().eventQueue.length}`);
+                } else if (getLocationManager().activatedList.length > 0) {
+                    this.schedule(15, `getManager-locationManager-activatedList`); 
                 } else if (getManager().lists.updatingTModels.length > 0) {
                     this.schedule(15, `getManager-needsRerun-updatingTModels`);
                 } else if (getManager().lists.activeTModels.length > 0) {
@@ -204,7 +208,7 @@ class RunScheduler {
                         this.schedule(delay, `getManager-needsRerun-${activeTModel.oid}-${activeTModel.activeTargetList}`);
                     }
                 }
-            }
+            } 
         }
     }
 

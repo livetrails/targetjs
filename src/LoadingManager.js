@@ -14,29 +14,31 @@ class LoadingManager {
         this.fetchingAPIMap = {};
         this.fetchingImageMap = {};
     }
+    
+    clear() {
+        this.tmodelKeyMap = {};
+        this.fetchingAPIMap = {};
+        this.fetchingImageMap = {};
+    }
 
     fetchCommon(fetchId, cacheId, tmodel, fetchMap, fetchFn) { 
         TargetUtil.markTargetAction(tmodel, 'fetchAction');
         
-        if (!cacheId || !this.isFetched(cacheId)) {
+        if (!this.isFetched(cacheId)) {
             if (!fetchMap[fetchId]) {
                 fetchMap[fetchId] = {
                     fetchId,
                     cacheId,
-                    fetchingFlag: true,
                     startTime: TUtil.now(),
                     targets: [{ tmodel, targetName: tmodel.key }],
                     fetchMap
                 };            
                 fetchFn();
-            } else {
-                fetchMap[fetchId].targets.push({ tmodel, targetName: tmodel.key });
-            }
+            } 
         } else if (!fetchMap[fetchId]) {
             fetchMap[fetchId] = {
                 fetchId,
                 cacheId,
-                fetchingFlag: true,
                 startTime: TUtil.now(),
                 targets: [{ tmodel, targetName: tmodel.key }],
                 fetchMap
@@ -80,8 +82,11 @@ class LoadingManager {
                  
         if (!this.tmodelKeyMap[key]) {
             this.tmodelKeyMap[key] = { fetchMap: {}, entryCount: 0, resultCount: 0, errorCount: 0, activeIndex: 0, accessIndex: 0 };
-            tmodel.val(loadTargetName, []);
         }
+        
+        if (!tmodel.val(loadTargetName)) {
+            tmodel.val(loadTargetName, []);
+        };
 
         if (!this.tmodelKeyMap[key].fetchMap[fetchId]) {
             this.tmodelKeyMap[key].fetchMap[fetchId] = {
@@ -94,6 +99,7 @@ class LoadingManager {
         }
         
         if (cacheId && this.isFetched(cacheId)) {
+            this.fetchingAPIMap[fetchId].startTime = TUtil.now();
             this.handleSuccess(this.fetchingAPIMap[fetchId], this.cacheMap[cacheId].result);
         }        
     }
@@ -177,10 +183,6 @@ class LoadingManager {
         return result;
     }
 
-    isFetching(fetchId) {
-        return this.fetchingAPIMap[fetchId]?.fetchingFlag ?? false;
-    }
-
     isFetched(cacheId) {
         return this.cacheMap[cacheId]?.success ?? false;
     }
@@ -201,7 +203,7 @@ class LoadingManager {
             success: true,
             result
         };
-        
+                
         targets.forEach(({ tmodel, targetName }) => {
             const key = this.getTModelKey(tmodel, targetName);
             const tmodelEntry = this.tmodelKeyMap[key];
@@ -218,13 +220,14 @@ class LoadingManager {
             let targetResults = tmodel.val(loadTargetName);
                         
             if (targetResults) {
+                if (!targetResults[fetchEntry.order]) {
+                    tmodelEntry.resultCount++;
+                }
                 targetResults[fetchEntry.order] = res.result;
             }
                         
             tmodel.val(targetName, targetResults?.length === 1 ? targetResults[0] : targetResults);
-            
-            tmodelEntry.resultCount++;
-            
+
             TargetUtil.shouldActivateNextTarget(tmodel, targetName);
         });
         
@@ -260,15 +263,19 @@ class LoadingManager {
             
             let targetResults = tmodel.val(loadTargetName);
             
-            targetResults[fetchEntry.order] = res;            
-            
+            if (targetResults) {
+                if (!targetResults[fetchEntry.order]) {
+                    tmodelEntry.resultCount++;
+                }
+                targetResults[fetchEntry.order] = res;
+            }
+                              
             tmodel.val(targetName, targetResults.length === 1 ? targetResults[0] : targetResults);
 
-            tmodelEntry.resultCount++;
             tmodelEntry.errorCount++;
 
             this.callOnErrorHandler(tmodel, targetName);
-            
+                        
             TargetUtil.shouldActivateNextTarget(tmodel, targetName);
         });
         

@@ -90,7 +90,7 @@ class BaseModel {
     }
 
     initTargets() {        
-        this.originalTargetNames = Object.keys(this.targets);        
+        this.originalTargetNames = Object.keys(this.targets);
         
         if (TUtil.isDefined(this.originalId) && getDomTModelById(this.originalId)) {
             TUtil.mergeTargets(getDomTModelById(this.originalId), this);
@@ -689,25 +689,6 @@ class BaseModel {
             }
         }
     } 
-    
-    hasUpdatingChildren(originalTargetName) {
-        if (originalTargetName) {
-            let count = 0;
-            this.updatingChildrenList.forEach(child => {
-                child.updatingTargetList.forEach(target => {
-                    if (child.isTargetImperative(target) && child.targetValues[target]?.originalTargetName === originalTargetName) {
-                        count++;
-                    } else if (child.targets[target]?.originalTargetName === originalTargetName) {
-                        count++;
-                    }
-                });
-            });
-            
-            return count;
-        } else {
-            return this.updatingChildrenList.length > 0;
-        }
-    }    
     
     addToActiveChildren(child) {
         if (!this.activeChildrenMap[child.oid]) {
