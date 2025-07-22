@@ -100,9 +100,10 @@ class TModel extends BaseModel {
         this.deletedChildren.push(child);   
         this.removeFromUpdatingChildren(child);           
         this.childrenUpdateFlag = true;
+        this.getChildren();
         this.markLayoutDirty('removeChild');
            
-        getRunScheduler().schedule(1, 'removeChild-' + this.oid + "-" + child.oid);
+        getRunScheduler().schedule(1, 'removeChild-' + child.oid);
 
         return this;
     }

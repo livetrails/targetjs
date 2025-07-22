@@ -193,7 +193,7 @@ class TModelUtil {
         } else {
             return typeof toValue === 'number' ? toValue * easingStep + fromValue * (1 - easingStep) : toValue;
         }
-    }    
+    }
     
     static fixAsyncStyle(tmodel) {
         tmodel.asyncStyleTargetList.forEach(key => { 

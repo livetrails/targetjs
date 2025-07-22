@@ -193,10 +193,12 @@ class BaseModel {
         if (cleanKey !== key) {
             if (this.targets[key]) {
                 this.targets[cleanKey] = this.targets[key];
+                this.targets[cleanKey].originalName = key;
             }
             if (isInactiveKey) {
                 this.targets[cleanKey].active = false;
             }
+            
             delete this.targets[key];
             key = cleanKey;
             target = this.targets[key];
@@ -663,7 +665,7 @@ class BaseModel {
         }
     }
     
-    hasUpdatingTargets(originalTargetName) {
+    hasUpdatingImperativeTargets(originalTargetName) {
         for (const target of this.updatingTargetList) {
             if (this.isTargetImperative(target) && this.targetValues[target].originalTargetName === originalTargetName) {
                 return true;

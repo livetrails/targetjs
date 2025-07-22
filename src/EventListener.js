@@ -209,8 +209,6 @@ class EventListener {
             this.currentHandlers.blur = this.currentHandlers.focus;
         }
        
-        this.currentHandlers.start = tmodel?.canHandleEvent('onStart') ? tmodel : undefined;
-        this.currentHandlers.end = tmodel?.canHandleEvent('onEnd') ? tmodel : undefined;  
         this.currentHandlers.hover = tmodel?.canHandleEvent('onHover') ? tmodel : undefined;
         
         this.currentHandlers.click = clickHandler;
@@ -231,6 +229,7 @@ class EventListener {
         this.currentHandlers.leave = undefined;
         this.currentHandlers.justFocused = undefined;
         this.currentHandlers.blur = undefined;
+        this.currentHandlers.end = undefined;
         this.currentKey = this.currentTouch.key;
         
         if (this.eventQueue.length === 0) {
@@ -248,6 +247,11 @@ class EventListener {
         }
         
         if (lastEvent.eventType === 'end' || lastEvent.eventType === 'click') {
+            if (lastEvent.eventType === 'end') {
+                this.currentHandlers.end =  this.currentHandlers.start;
+                this.currentHandlers.end?.markLayoutDirty('end-event');
+                this.currentHandlers.start = undefined;
+            }
             this.canFindHandlers = true;
         }
         
@@ -322,6 +326,7 @@ class EventListener {
                 this.clearTouch();
 
                 this.touchCount = this.countTouches(event) || 1;
+                
 
                 if (this.preventDefault(tmodel, eventName) && event.cancelable) {
                     event.preventDefault();
@@ -333,6 +338,7 @@ class EventListener {
                 this.cursor.x = this.start0.x;
                 this.cursor.y = this.start0.y;
                 
+                this.currentHandlers.start = tmodel;
                 this.findEventHandlers(newEvent); 
                 this.canFindHandlers = false;
                
@@ -344,8 +350,8 @@ class EventListener {
                 this.detachDocumentEvents();
                 this.attachDocumentEvents();
                 
-                return;
-
+                break;
+                
             case 'mousemove':
             case 'touchmove': {
                 touch = this.getTouch(event);
@@ -382,9 +388,7 @@ class EventListener {
                 this.cursor.y = touch.y;
                 
                 this.end(event);
-                
-                this.currentHandlers.end?.markLayoutDirty('end-event');
-                
+                                
                 this.clearEnd();
                 this.touchCount = 0;
                 

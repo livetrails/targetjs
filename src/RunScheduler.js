@@ -121,7 +121,7 @@ class RunScheduler {
             return;
         }
 
-        if (this.phase === 1) {
+        if (this.phase === 1) {  
             this.runningStep = tApp.manager.analyze();
             this.phase = 2;
         }

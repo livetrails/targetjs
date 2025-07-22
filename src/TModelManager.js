@@ -60,7 +60,7 @@ class TModelManager {
         const lastVisibleMap = { ...this.visibleOidMap };
         this.clearFrameLists();
 
-        for (const tmodel of getLocationManager().hasLocationList) {
+        for (const tmodel of getLocationManager().hasLocationList) {                  
             lastVisibleMap[tmodel.oid] = undefined; 
             
             if (this.hasNoParent(tmodel)) {

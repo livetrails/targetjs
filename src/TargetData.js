@@ -404,8 +404,8 @@ class TargetData {
     };
 
     static touchEventMap = {
-        onStart: tmodel => getEvents().isStartEvent() && getEvents().isStartHandler(tmodel),
-        onEnd: tmodel => getEvents().isEndEvent() && getEvents().isEndHandler(tmodel),
+        onStart: tmodel => getEvents().isStartHandler(tmodel),
+        onEnd: tmodel => getEvents().isEndHandler(tmodel),
         onAnySwipe: () => getEvents().isSwipeEvent() && TUtil.isDefined(getEvents().swipeStartX),
         onHover: tmodel => getEvents().isMoveEvent() && getEvents().isHoverHandler(tmodel),
 

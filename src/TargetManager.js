@@ -26,7 +26,7 @@ class TargetManager {
             return;
         }
 
-        if (tmodel.isExecuted(key) && tmodel.hasUpdatingTargets(key)) {
+        if (tmodel.isExecuted(key) && tmodel.hasUpdatingImperativeTargets(key)) {
             return;
         }    
         

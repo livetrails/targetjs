@@ -111,11 +111,7 @@ class LoadingManager {
     
     isLoading(tmodel, targetName) {
         const key = this.getTModelKey(tmodel, targetName);
-        const tmodelEntry = this.tmodelKeyMap[key];
-                
-        if (tmodelEntry && tmodelEntry.accessIndex < tmodelEntry.resultCount) {
-            return true;
-        }        
+        return this.tmodelKeyMap[key];    
     }
     
     isLoadingSuccessful(tmodel, targetName) {
@@ -157,29 +153,29 @@ class LoadingManager {
         return Array.isArray(targetValue) && TUtil.isDefined(targetValue[modelEntry.activeIndex]);        
     }
     
-    getLoadingItemValue(tmodel, targetName) {
-        const target = tmodel.targets[targetName];
-        const key = this.getTModelKey(tmodel, targetName);
+    getLoadingItemValue(tmodel, prevTargetName, currentTargetName) {
+        const target = tmodel.targets[prevTargetName];
+        const key = this.getTModelKey(tmodel, prevTargetName);
         const tmodelEntry = this.tmodelKeyMap[key];
                 
         if (!tmodelEntry || !target || tmodelEntry.accessIndex >= tmodelEntry.resultCount) {
             return undefined;
         }
                 
-        const loadTargetName = this.getLoadTargetName(targetName);
+        const loadTargetName = this.getLoadTargetName(prevTargetName);
         const targetValue = tmodel.val(loadTargetName);
         let result;
 
         if (targetValue) {
-            if (target.fetchAction === 'onEnd') {
+            if (target.fetchAction === 'onEnd' || currentTargetName?.endsWith('$$')) {
                 result = targetValue.slice(tmodelEntry.accessIndex, tmodelEntry.resultCount);                
                 tmodelEntry.accessIndex += result.length;
             } else {
                 result = targetValue[tmodelEntry.accessIndex];
-                 tmodelEntry.accessIndex++; 
+                tmodelEntry.accessIndex++; 
             }
         }
-
+        
         return result;
     }
 

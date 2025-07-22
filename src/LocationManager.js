@@ -56,6 +56,7 @@ class LocationManager {
             }
         }); 
 
+        //console.log(this.locationListStats);
     }
 
     calculate() {
@@ -135,12 +136,12 @@ class LocationManager {
                 continue;
             }
  
+             viewport.setLocation();
+ 
             if (child.isIncluded() && container.manageChildTargetExecution(child, shouldCalculateChildTargets)) {
                 this.calculateTargets(child);
             }
-            
-            viewport.setLocation();
-            
+           
             if (container.getContainerOverflowMode() === 'always' 
                     || (container.getContainerOverflowMode() === 'auto' && child.getItemOverflowMode() === 'auto' && viewport.isOverflow())) {
                 viewport.overflow();
@@ -266,7 +267,7 @@ class LocationManager {
         }
         
         this.calculateCoreTargets(child);
-        
+         
         if ((!child.isTargetImperative('x') && !child.targets['x']) || !TUtil.isDefined(child.targetValues.x)) {
             child.actualValues.x =  child.x;
         }
@@ -286,9 +287,9 @@ class LocationManager {
         if (!child.excludeDefaultStyling()) {
             child.addToStyleTargetList('x');           
             child.addToStyleTargetList('y'); 
-        }  
+        }
                 
-        if (child.styleTargetList.length > 0) {
+        if (child.styleTargetList.length > 0 || child.updatingTargetList.length > 0) {          
             this.addToLocationList(child);
         }
         
