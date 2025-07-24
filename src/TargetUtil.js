@@ -113,75 +113,63 @@ class TargetUtil {
         });
     }
     
+    static shouldActivateOriginalTModel(tmodel, key, originalTModel, originalTargetName, level) {
+        if (!originalTModel) {
+            return;
+        }
+        const originalTarget = originalTModel.targets[originalTargetName];
+        const activeNextTarget = originalTarget.activateNextTarget;
+       
+        if (activeNextTarget && (!activeNextTarget.endsWith('$') || !tmodel.isTargetUpdating(key))) {
+            TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
+        }      
+    }
+    
     static shouldActivateNextTarget(tmodel, key, level = 0) { 
-        const target = tmodel.targets[key];
-                        
+                
         if (tmodel.isTargetImperative(key)) {
             const { originalTModel, originalTargetName } = tmodel.targetValues[key];
             
-            if (originalTargetName && originalTModel && !tmodel.hasUpdatingImperativeTargets(originalTargetName)) {              
-                TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
-            } 
-            
+            TargetUtil.shouldActivateOriginalTModel(tmodel, key,  originalTModel, originalTargetName, level);
             return;
-        } else if (!target?.activateNextTarget) {
-            const { originalTModel, originalTargetName } = target;
-            if (originalTargetName && originalTModel && originalTModel.targets[originalTargetName]?.activateNextTarget) {                    
-                TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
-            } 
-
-            TargetUtil.cleanupTarget(tmodel, key);                             
-
+        }
+        
+        const target = tmodel.targets[key];
+        
+        if (!target) {
+            return;
+        }
+        
+        if (!target.activateNextTarget) {
+            const { originalTModel, originalTargetName } = target;      
+            TargetUtil.shouldActivateOriginalTModel(tmodel, key,  originalTModel, originalTargetName, level);
             return;
         }
        
-        const nextTarget = target?.activateNextTarget;
+        const nextTarget = target.activateNextTarget;
         const cleanNextTarget = TargetUtil.getTargetName(nextTarget);           
-        const isEndTrigger = nextTarget?.endsWith('$');
-        const fetchAction = target?.fetchAction;
-        const childAction = target?.childAction;
+        const isEndTrigger = nextTarget.endsWith('$');
+        const fetchAction = target.fetchAction;
         
         if (fetchAction) {
-            if (fetchAction.name === 'onEnd' && TargetUtil.hasTargetEnded(tmodel, key)) {
-                tmodel.activateTarget(cleanNextTarget);
-                return;
-            } else if (fetchAction.name === 'onEach') {
-                    let activateFlag = false;
-                    while (getLoader().isNextLoadingItemSuccessful(tmodel, key)) {
-                        if (tmodel.activatedTargets.indexOf(cleanNextTarget) >= 0) {
-                            tmodel.activatedTargets.push(cleanNextTarget);
-                            activateFlag = true;
-                        } else {
-                            tmodel.activateTarget(cleanNextTarget);
-                            activateFlag = true;
-                        }
-                        getLoader().nextActiveItem(tmodel, key);
-                    }
-                    
-                    if (activateFlag) {
-                        return;
-                    }
+            if (isEndTrigger) {     
+                if (TargetUtil.hasTargetEnded(tmodel, key)) {                  
+                    tmodel.activateTarget(cleanNextTarget);
+                }
             } else {
-                TargetUtil.cleanupTarget(tmodel, key);             
+                while (getLoader().isNextLoadingItemSuccessful(tmodel, key)) {
+                    if (tmodel.activatedTargets.indexOf(cleanNextTarget) >= 0) {
+                        tmodel.activatedTargets.push(cleanNextTarget);
+                    } else {
+                        tmodel.activateTarget(cleanNextTarget);
+                    }
+                    getLoader().nextActiveItem(tmodel, key);
+                }   
             }
+        } else if ((isEndTrigger && TargetUtil.hasTargetEnded(tmodel, key)) || (!isEndTrigger)) { 
+            tmodel.activateTarget(cleanNextTarget);                
         }
-        
-        if (childAction) {
-            if (childAction.name === 'onEnd' && TargetUtil.hasTargetEnded(tmodel, key)) {
-                tmodel.activateTarget(cleanNextTarget);
-                target.childAction.name = 'inactive';
-            } else if (childAction.name === 'onEach' && !TargetUtil.hasUpdatingChildren(tmodel, key) && !tmodel.hasActiveChildren()) {             
-                tmodel.activateTarget(cleanNextTarget);
-                target.childAction.name = 'inactive';
-            }
-        }
-        
-        if (!childAction && !fetchAction && target && cleanNextTarget && !tmodel.isTargetImperative(key)) { 
-            if ((isEndTrigger && TargetUtil.hasTargetEnded(tmodel, key)) || (!isEndTrigger && !tmodel.hasUpdatingImperativeTargets(key))) { 
-                tmodel.activateTarget(cleanNextTarget);
-            }            
-        }
-            
+          
         if (TargetUtil.isTargetComplete(tmodel, key)) {                
             TargetUtil.cleanupTarget(tmodel, key);
         }
@@ -193,16 +181,14 @@ class TargetUtil {
         const childAction = target?.childAction;
         
         if (fetchAction && getLoader().isLoadingComplete(tmodel, key)) {
-            getLoader().removeFromTModelKeyMap(tmodel, key);
             const index = tmodel.fetchActionTargetList.indexOf(key);
             if (index >= 0) {
                 tmodel.fetchActionTargetList.splice(index, 1);
             }           
                 
             if (!tmodel.fetchActionTargetList.length) {    
-                delete target.fetchAction;
+                target.fetchAction = false;
             }
-            
         } 
         
         if (childAction) {
@@ -212,7 +198,7 @@ class TargetUtil {
             }
             
             if (!tmodel.childActionTargetList.length) {    
-                delete target.childAction;
+                target.childAction = false;
             }
         }
     }
@@ -247,22 +233,30 @@ class TargetUtil {
         return true;
     }
     static hasTargetEnded(tmodel, key) {
-        
-        return !TargetUtil.isTargetComplete(tmodel, key) || tmodel.hasUpdatingImperativeTargets(key) || !TargetUtil.arePreviousTargetsComplete(tmodel, key) ? false : true;
+        const result = !TargetUtil.isTargetComplete(tmodel, key) || tmodel.hasUpdatingImperativeTargets(key) || !TargetUtil.arePreviousTargetsComplete(tmodel, key) ? false : true;
+
+        return result;
     }
        
     static arePreviousTargetsComplete(tmodel, key) {
         const keyIndex = tmodel.originalTargetNames.findIndex(name => key === TargetUtil.getTargetName(name));
         
-        for (var i = 0; i < keyIndex; i++) {
-            var prevTarget = TargetUtil.getTargetName(tmodel.originalTargetNames[i]);
-            if (tmodel.isTargetImperative(prevTarget)) {
+        for (var i = keyIndex - 1; i >= 0; i--) {
+            var targetName = tmodel.originalTargetNames[i];
+            var cleanTargetName = TargetUtil.getTargetName(targetName);
+            
+            if (tmodel.isTargetImperative(cleanTargetName)) {
                 continue;
             }
                         
-            if (!TargetUtil.isTargetComplete(tmodel, prevTarget)) {
+            if (!TargetUtil.isTargetComplete(tmodel, cleanTargetName) || tmodel.hasUpdatingImperativeTargets(cleanTargetName)) {
                return false; 
             }
+
+            if (!targetName.endsWith('$')) {
+                break;
+            }
+                        
         }
         return true;
     }
@@ -286,8 +280,7 @@ class TargetUtil {
                 return false;
             }            
             
-            if (target.childAction && (TargetUtil.hasUpdatingChildren(tmodel, key) || tmodel.hasActiveChildren())) {
-                            
+            if (target.childAction && (TargetUtil.getUpdatingChildren(tmodel, key) > 0 || tmodel.hasActiveChildren())) {         
                 return false;
             }
             if (target.fetchAction && !getLoader().isLoadingSuccessful(tmodel, key)) {
@@ -298,7 +291,7 @@ class TargetUtil {
         return true;        
     }
     
-    static hasUpdatingChildren(tmodel, originalTargetName) {
+    static getUpdatingChildren(tmodel, originalTargetName) {
         let count = 0;
         tmodel.updatingChildrenList.filter(child => child.isVisible()).forEach(child => {
             child.updatingTargetList.forEach(target => {
@@ -310,7 +303,7 @@ class TargetUtil {
             });
         });
 
-        return count > 0;
+        return count;
         
     }    
         
@@ -334,14 +327,7 @@ class TargetUtil {
         const target = tmodel.targets[currentTargetName];
 
         if (typeof target === 'object') {
-            const targetName = target.activateNextTarget;
-            if (targetName?.endsWith('$')) {
-                target[actionName] =  { name: 'onEnd' };
-            } else if (targetName) {
-                target[actionName] = { name: 'onEach' };
-            } else {
-                target[actionName] = { name: 'inactive' };
-            }
+            target[actionName] = true;
 
             if (actionName === 'childAction' && !tmodel.childActionTargetList.includes(currentTargetName)) {
                 tmodel.childActionTargetList.push(currentTargetName);

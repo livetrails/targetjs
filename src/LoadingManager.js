@@ -79,14 +79,18 @@ class LoadingManager {
     addToTModelKeyMap(tmodel, targetName, fetchId, cacheId) {
         const key = this.getTModelKey(tmodel, targetName);
         const loadTargetName = this.getLoadTargetName(targetName);
-                 
-        if (!this.tmodelKeyMap[key]) {
-            this.tmodelKeyMap[key] = { fetchMap: {}, entryCount: 0, resultCount: 0, errorCount: 0, activeIndex: 0, accessIndex: 0 };
+                         
+        const loadingComplete = this.isLoadingComplete(tmodel, targetName);
+
+        if (loadingComplete || !this.tmodelKeyMap[key]) {
+            this.tmodelKeyMap[key] ??= { fetchMap: {}, entryCount: 0, resultCount: 0, errorCount: 0, activeIndex: 0, accessIndex: 0 };
         }
-        
-        if (!tmodel.val(loadTargetName)) {
-            tmodel.val(loadTargetName, []);
-        };
+
+        if (loadingComplete || !tmodel.val(loadTargetName)) {
+            if (!tmodel.val(loadTargetName)) {
+                tmodel.val(loadTargetName, []);
+            }
+        }
 
         if (!this.tmodelKeyMap[key].fetchMap[fetchId]) {
             this.tmodelKeyMap[key].fetchMap[fetchId] = {
@@ -121,7 +125,7 @@ class LoadingManager {
     
     isLoadingComplete(tmodel, targetName) {
         const key = this.getTModelKey(tmodel, targetName);
-        return this.tmodelKeyMap[key] ? this.tmodelKeyMap[key].resultCount === this.tmodelKeyMap[key].entryCount && this.tmodelKeyMap[key].activeIndex === this.tmodelKeyMap[key].entryCount : true;        
+        return this.tmodelKeyMap[key] ? this.tmodelKeyMap[key].resultCount === this.tmodelKeyMap[key].entryCount && this.tmodelKeyMap[key].activeIndex === this.tmodelKeyMap[key].entryCount : false;        
     }
     
     resetLoadingError(tmodel, targetName) {
@@ -167,7 +171,7 @@ class LoadingManager {
         let result;
 
         if (targetValue) {
-            if (target.fetchAction === 'onEnd' || currentTargetName?.endsWith('$$')) {
+            if (currentTargetName?.endsWith('$$')) {
                 result = targetValue.slice(tmodelEntry.accessIndex, tmodelEntry.resultCount);                
                 tmodelEntry.accessIndex += result.length;
             } else {

@@ -711,7 +711,11 @@ class BaseModel {
     
     hasActiveChildren() {
         return this.activeChildrenList.length > 0;
-    }    
+    } 
+    
+    hasUpdatingChildren() {
+        return this.updatingChildrenList.length > 0;
+    }   
 
     deleteTargetValue(key) {
         const targetValue = this.targetValues[key];

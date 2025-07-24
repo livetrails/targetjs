@@ -160,7 +160,7 @@ class TargetExecutor {
         
         if (TargetUtil.isChildrenTarget(key, newValue)) {
                         
-            const values = Array.isArray(newValue) ? newValue : [newValue];
+            const values = Array.isArray(newValue) ? newValue : newValue ? [newValue] : [];
 
             const tmodelChildren = values.map(child => {
                 tmodel.addChild(child);
