@@ -133,7 +133,6 @@ class DomInit {
                 delete value.$dom; 
                 delete value.id;
                 value.sourceDom = true;
-                value.shouldBeBracketed = false;
                 value.otype = value.id || (parentModel.id || App.getOid('blank').oid)  + "_";
                 value.isVisible = !TUtil.isDefined(value.isVisible) ? function() { return this.getParent().isVisible(); } : value.isVisible;
                 value.domParent = !TUtil.isDefined(value.domParent) ? function() { return this.getParent(); } : value.domParent;

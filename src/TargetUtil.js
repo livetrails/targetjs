@@ -209,7 +209,6 @@ class TargetUtil {
         return !(state.updatingTargetList?.length)
             && !(state.activeTargetList?.length)
             && TargetUtil.isFetchingComplete(tmodel)
-            && !(state.childActionTargetList?.length)
             && !(state.updatingChildrenList?.length)
             && !(state.activeChildrenList?.length)
             && !(state.lastChildrenUpdate?.deletions?.length)

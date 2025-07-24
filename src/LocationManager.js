@@ -143,6 +143,7 @@ class LocationManager {
             }
            
             if (container.getContainerOverflowMode() === 'always' 
+                    || child.getItemOverflowMode() === 'always'            
                     || (container.getContainerOverflowMode() === 'auto' && child.getItemOverflowMode() === 'auto' && viewport.isOverflow())) {
                 viewport.overflow();
                 viewport.setLocation();
@@ -190,7 +191,7 @@ class LocationManager {
                 }
                 
                 child.actualValues.isVisible = targetResult;
-            }
+            }        
                 
             child.isNowVisible = (!oldVisibilityStatus && newVisibilityStatus) || (!isVisible && child.isVisible());
                     
@@ -252,6 +253,7 @@ class LocationManager {
         viewport.setLocation();
         
         if (container.getContainerOverflowMode() === 'always' 
+                || child.getItemOverflowMode() === 'always'
                 || (container.getContainerOverflowMode() === 'auto' && child.getItemOverflowMode() === 'auto' && viewport.isOverflow())) {
             viewport.overflow();
             viewport.setLocation();
@@ -307,8 +309,8 @@ class LocationManager {
                 targetResult = !!child.targets.isVisible;
             }
 
-            child.actualValues.isVisible = targetResult;
-        }
+            child.actualValues.isVisible = targetResult;         
+        }     
 
         child.isNowVisible = (!oldVisibilityStatus && newVisibilityStatus) || (!isVisible && child.isVisible());    
 
@@ -332,10 +334,14 @@ class LocationManager {
     calculateCoreTargets(tmodel) {
         const coreTargets = tmodel.getCoreTargets();
         if (coreTargets) {
-            coreTargets.forEach(target => {
-                if (tmodel.isTargetEnabled(target) && !tmodel.isTargetUpdating(target) && !tmodel.isTargetImperative(target)) {
-                    TargetExecutor.resolveTargetValue(tmodel, target, tmodel.getTargetCycle(target));
-                    TargetExecutor.updateTarget(tmodel, tmodel.targetValues[target], target, false);                    
+            coreTargets.forEach(key => {
+                const target = tmodel.targets[key];
+                if (!target) {
+                    return;
+                }
+                if (target.active !== 'active' && tmodel.isTargetEnabled(key) && !tmodel.isTargetUpdating(key) && !tmodel.isTargetImperative(key)) {
+                    TargetExecutor.resolveTargetValue(tmodel, key, tmodel.getTargetCycle(key));
+                    TargetExecutor.updateTarget(tmodel, tmodel.targetValues[key], key, false);                    
                 }
             });
         }        

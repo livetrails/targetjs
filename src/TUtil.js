@@ -6,6 +6,11 @@ import { getLocationManager, tRoot, getScreenHeight, getScreenWidth } from "./Ap
  */
 class TUtil {
     static calcVisibility(child) {
+        //this condition is for objects that get overflow while updating their 'x'
+        if (child.isVisible() && child.isTargetUpdating('x')) {
+            return true;
+        }
+        
         const x = child.absX;
         const y = child.absY;
         const domParent = child.getDomParent();
