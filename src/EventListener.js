@@ -23,9 +23,9 @@ class EventListener {
             pinchDelta: 0,
             key: '',
             manualMomentumFlag: false,
-            orientation: "none",
-            dir: "",
-            source: ""
+            orientation: 'none',
+            dir: '',
+            source: ''
         };
         
         this.lastEvent = undefined;
@@ -43,10 +43,10 @@ class EventListener {
         this.swipeStartX = 0;
         this.swipeStartY = 0;
         
-        this.currentEventName = "";
-        this.currentEventType = "";
+        this.currentEventName = '';
+        this.currentEventType = '';
         this.currentEventTarget = undefined;
-        this.currentKey = "";
+        this.currentKey = '';
         
         this.currentHandlers = { 
             touch: null, 
@@ -179,10 +179,11 @@ class EventListener {
                 this.currentTouch.deltaY = 0;
                 this.currentTouch.deltaX = 0;
                 this.currentTouch.pinchDelta = 0;
+                this.currentTouch.dir = '';
                 this.touchTimeStamp = 0;
             }
             
-            getRunScheduler().schedule(10, "scroll decay");      
+            getRunScheduler().schedule(10, 'scroll decay');      
         }
     }
     
@@ -233,10 +234,10 @@ class EventListener {
         this.currentKey = this.currentTouch.key;
         
         if (this.eventQueue.length === 0) {
-            this.currentEventName = "";
-            this.currentEventType = "";
+            this.currentEventName = '';
+            this.currentEventType = '';
             this.currentEventTarget = undefined;
-            this.currentKey = "";
+            this.currentKey = '';
             return;
         }
         
@@ -258,7 +259,7 @@ class EventListener {
         this.currentEventName = lastEvent.eventName;
         this.currentEventType = lastEvent.eventType;
         this.currentEventTarget = lastEvent.eventTarget;
-        this.currentTouch.key = "";      
+        this.currentTouch.key = '';      
     }
     
     handleDocEvent(event) {
@@ -465,7 +466,7 @@ class EventListener {
                 break;              
         }
         
-        getRunScheduler().schedule(0, `${originalName}-${eventName}-${(event.target.tagName || "").toUpperCase()}`);
+        getRunScheduler().schedule(0, `${originalName}-${eventName}-${(event.target.tagName || '').toUpperCase()}`);
     }
     
     resizeRoot() {
@@ -511,9 +512,9 @@ class EventListener {
             pinchDelta: 0,
             key: '',
             manualMomentumFlag: false,
-            orientation: "none",
-            dir: "",
-            source: ""
+            orientation: 'none',
+            dir: '',
+            source: ''
         };
     }
 
@@ -754,14 +755,14 @@ class EventListener {
             }
             let momentum;
                         
-            if (this.currentTouch.orientation === "horizontal" && Math.abs(deltaX) > 0 && period > 0) {
+            if (this.currentTouch.orientation === 'horizontal' && Math.abs(deltaX) > 0 && period > 0) {
                 momentum = TUtil.momentum(0, deltaX, period);
                 this.touchTimeStamp = this.end0.timeStamp + momentum.duration;
                 if ((this.touchTimeStamp - TUtil.now()) > 0) {                
                     this.currentTouch.deltaX = momentum.distance;
                     this.currentTouch.manualMomentumFlag = true;
                 }
-            } else if (this.currentTouch.orientation === "vertical" && Math.abs(deltaY) > 0 && period > 0) {
+            } else if (this.currentTouch.orientation === 'vertical' && Math.abs(deltaY) > 0 && period > 0) {
                 momentum = TUtil.momentum(0, deltaY, period);
                 this.touchTimeStamp = this.end0.timeStamp + momentum.duration;
                 if ((this.touchTimeStamp - TUtil.now()) > 0) {                    
@@ -776,18 +777,18 @@ class EventListener {
         const diff = Math.abs(deltaX) - Math.abs(deltaY);
         
         if (diff >= 1) {
-            if (this.currentTouch.orientation === "none" ||
-                    (this.currentTouch.orientation === "vertical" && diff >= 2) ||
-                    this.currentTouch.orientation === "horizontal") {
-                this.currentTouch.orientation = "horizontal";
-                this.currentTouch.dir = deltaX <= -1 ? "left" : deltaX >= 1 ? "right" : this.currentTouch.dir;
+            if (this.currentTouch.orientation === 'none' ||
+                    (this.currentTouch.orientation === 'vertical' && diff >= 2) ||
+                    this.currentTouch.orientation === 'horizontal') {
+                this.currentTouch.orientation = 'horizontal';
+                this.currentTouch.dir = deltaX <= -1 ? 'left' : deltaX >= 1 ? 'right' : this.currentTouch.dir;
                 this.currentTouch.source = source;
             }
-        } else if (this.currentTouch.orientation === "none" || 
-                (this.currentTouch.orientation === "horizontal" && diff <= -2) || 
-                this.currentTouch.orientation === "vertical") {
-            this.currentTouch.orientation = "vertical";
-            this.currentTouch.dir = deltaY <= -1 ? "up" : deltaY >= 1 ? "down" : this.currentTouch.dir;
+        } else if (this.currentTouch.orientation === 'none' || 
+                (this.currentTouch.orientation === 'horizontal' && diff <= -2) || 
+                this.currentTouch.orientation === 'vertical') {
+            this.currentTouch.orientation = 'vertical';
+            this.currentTouch.dir = deltaY <= -1 ? 'up' : deltaY >= 1 ? 'down' : this.currentTouch.dir;
             this.currentTouch.source = source;
         }
         
