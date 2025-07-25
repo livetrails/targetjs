@@ -649,7 +649,6 @@ Or in HTML:
     });
   }"
       tg-populate$$="function() {
-      console.log('populate');
     if (this.prevTargetValue) {
         this.prevTargetValue.forEach(data => this.getChildByOid(data.id).setTarget('html', data.name));
     }
