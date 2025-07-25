@@ -563,66 +563,75 @@ In this example, we demonstrate a simple infinite scrolling application where ea
 
 TargetJS employs a tree-like structure to track visible branches, optimizing the scroller performance.
 
+We use the TModel class instead of a plain object to demonstrate how it can provide additional functionality and control. A plain object would also have worked in this example.
+
 If you inspect the HTML elements in the browser's developer tools, you'll notice that the scroller’s elements are not nested inside the container. This is because nesting itself is a dynamic target that determines how elements are structured. This enables efficient reuse of HTML elements and unlocks new user experiences.
 
 ![Single page app](https://targetjs.io/img/infiniteScrolling11.gif)
 
 ```javascript
-import { App, getEvents, fetch, getScreenWidth, getScreenHeight } from "targetj";
+import { App, TModel, getEvents, fetch, getScreenWidth, getScreenHeight } from "targetj";
 
-App({
-    id: "scroller",
+App(new TModel("scroller", {
     domHolder: true,
     preventDefault: true,
     containerOverflowMode: "always",
-    children() {
-        const childrenCount = this.getChildren().length;
+    children() {  
+        const childrenCount = this.getChildren().length;  
         return Array.from({ length: 20 }, (_, i) => ({
-             width: [{list: [100, 250]}, 15],
-             background: [{list: ["#FCE961", "#B388FF"]}, 15, 15],
-             height: 48,
-             color: "#C2FC61",
-             textAlign: "center",
-             lineHeight: 48,
-             bottomMargin: 2,
-             x() { return this.getCenterX(); },
-             validateVisibilityInParent: true,
-             html: childrenCount + i
-         }));
+            width: [{list: [100, 250, 100]}, 50],
+            background: [{list: ["#FCE961", "#B388FF"]}, 15, 15],
+            height: 48,
+            color: "#C2FC61",
+            textAlign: "center",
+            lineHeight: 48,
+            bottomMargin: 2,
+            x() { return this.getCenterX(); },
+            html: childrenCount + i
+        }));
     },
-    load$() {
-        this.prevTargetValue.forEach(data =>
-            fetch(this, "https://targetjs.io/api/randomUser", { id: data.oid }));
+    loadItems$$() {
+        this.visibleChildren.filter(child => !child.loaded).forEach(child => {
+            child.loaded = true;
+            fetch(this, `https://targetjs.io/api/randomUser?id=${child.oid}`);
+        });
     },
     populate$$() {
-        this.prevTargetValue.forEach((data) => this.getChildByOid(data.id).setTarget("html", data.name));
+        if (this.prevTargetValue) {
+            this.prevTargetValue.forEach(data => this.getChildByOid(data.id).setTarget('html', data.name));
+        }
     },
     onScroll() {
         this.setTarget("scrollTop", Math.max(0, this.getScrollTop() + getEvents().deltaY()));
     },
     onVisibleChildrenChange() {
-        if (getEvents().dir() === "down" && this.visibleChildren.length * 50 < this.getHeight()) {
-            this.activateTarget("children");
+        if (getEvents().dir() === 'down' && this.visibleChildren.length * 50 < this.getHeight()) {
+            this.activateTarget('children');
+        } else {
+            this.activateTarget('loadItems');
         }
     },
     width: getScreenWidth,
-    height: getScreenHeight    
-});
+    height: getScreenHeight,
+    onResize: 'width'
+}));
 ```
 
 Or in HTML:
 
 ```HTML
-<div
-  tg-domHolder="true"
-  tg-preventDefault="true"
-  tg-containerOverflowMode="always"
-  tg-width="return TargetJS.getScreenWidth();"
-  tg-height="return TargetJS.getScreenHeight();"
-  tg-children="function() {
+ <div
+      id="scroller"
+      tg-domHolder="true"
+      tg-preventDefault="true"
+      tg-background="red"
+      tg-containerOverflowMode="always"
+      tg-width="return TargetJS.getScreenWidth();"
+      tg-height="return TargetJS.getScreenHeight();"
+      tg-children="function() {
     const childrenCount = this.getChildren().length;
     return Array.from({ length: 20 }, (_, i) => ({
-      width: [{ list: [100, 250] }, 15],
+      width: [{list: [100, 250, 100]}, 50],
       background: [{ list: ['#FCE961', '#B388FF'] }, 15, 15],
       height: 48,
       color: '#C2FC61',
@@ -630,26 +639,29 @@ Or in HTML:
       lineHeight: 48,
       bottomMargin: 2,
       x: function() { return this.getCenterX(); },
-      validateVisibilityInParent: true,
       html: childrenCount + i
     }));
   }"
-  tg-load$="function() {
-    this.prevTargetValue.forEach(data =>
-      TargetJS.fetch(this, 'https://targetjs.io/api/randomUser', { id: data.oid })
-    );
+      tg-load$$="function() {
+    this.visibleChildren.filter(child => !child.loaded).forEach(child => {
+        child.loaded = true;
+        TargetJS.fetch(this, `https://targetjs.io/api/randomUser?id=${child.oid}`);
+    });
   }"
-  tg-populate$$="function() {
-    this.prevTargetValue.forEach((data) =>
-      this.getChildByOid(data.id).setTarget('html', data.name)
-    );
+      tg-populate$$="function() {
+      console.log('populate');
+    if (this.prevTargetValue) {
+        this.prevTargetValue.forEach(data => this.getChildByOid(data.id).setTarget('html', data.name));
+    }
   }"
-  tg-onScroll="function() {
+      tg-onScroll="function() {
     this.setTarget('scrollTop', Math.max(0, this.getScrollTop() + TargetJS.getEvents().deltaY()));
   }"
-  tg-onVisibleChildrenChange="function() {
+      tg-onVisibleChildrenChange="function() {
     if (TargetJS.getEvents().dir() === 'down' && this.visibleChildren.length * 50 < this.getHeight()) {
-      this.activateTarget('children');
+        this.activateTarget('children');
+    } else {
+        this.activateTarget('load');
     }
   }"
 ></div>
