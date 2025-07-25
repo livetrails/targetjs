@@ -5,12 +5,12 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework that simplifies front-end development by introducing two new key concepts: unifying methods and variables, and reactive methods. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to more compact code and allows for a stronger focus on user experience. It can be used as a full-featured framework or as a lightweight library alongside other frameworks.
+TargetJS is a modern JavaScript UI framework that simplifies front-end development by introducing key concepts: unifying methods and variables, autonomous and reactive methods, and execution flow that follows the written code. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to more compact code, introduces a new development paradigm, and prioritizes user experience. It can be used as a full-featured framework or as a lightweight library alongside other frameworks.
 Furthermore, it is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
 ## Key Innovations and Concepts
 
-1. Unifying Methods and Variables with Targets: A new construct called “targets” combines methods and variables, providing state, iteration, and timing mechanisms for both.
+1. Unifying Methods and Variables with Targets: A new construct called “targets” combines methods and variables, providing state, lifecycles, iteration, and timing mechanisms for both.
 2. Declarative Reactive Targets: Targets can explicitly declare reactive execution triggered by the run or completion of their immediately preceding targets, whether synchronous or asynchronous.
 3. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
 4. Code-Ordered Execution: The execution flow generally follows the order in which the code is written.
@@ -220,10 +220,10 @@ A target name ending with a double `$$` (e.g., `fetch$$`) will activate only aft
 
 **Via CDN**
 
-Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 44KB compressed):
+Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 47KB compressed):
 
 ```html
-<script src="https://ltstaticfiles.s3.us-east-1.amazonaws.com/targetjs.js"></script>
+<script src="https://unpkg.com/targetj@latest/dist/targetjs.js"></script>
 ```
 
 This will add `TargetJS` to the global `window` object, making it accessible throughout your JavaScript such as `TargetJS.App(YourApp)`.
