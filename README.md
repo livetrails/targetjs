@@ -169,6 +169,31 @@ The `value(cycle)` function return the same object element from the previous exa
 
 Only when all tasks initiated by children are finished will `greenify$$` runs. It then uses `this.getChildren().forEach(child => child.setTarget("background", "green", 30, 10))` to iterate over all the created child boxes and animate their backgrounds to green.
 
+
+The example above can also be implemented directly in HTML:
+   
+```html 
+
+<div
+    tg-width="500"
+    tg-children="{ cycles: 9, interval: 100 }"
+    tg-greenify$$="function() { this.getChildren().forEach(child => child.setTarget('background', 'green', 30, 10)); }"
+    >
+    <div
+        tg-baseWidth="250"
+        tg-baseHeight="125"
+        tg-background="mediumpurple"
+        tg-width="[{ list: [100, 250, 100] }, 50, 10]"
+        tg-height$="function() { return this.prevTargetValue / 2; }"
+        tg-fetch$$="function(index) { return `https://targetjs.io/api/randomUser?id=user${index}`; }"
+        tg-html$="function() { return this.prevTargetValue.name; }"
+        tg-onClick="function() { this.setTarget('background', 'orange', 30, 10); }"
+        tg-pause$$="{ interval: 2000 }"
+        tg-purpleagain$$="function() { this.setTarget('background', 'mediumpurple', 30, 10); }">  
+    </div>
+</div>
+```
+
 ## Table of Contents
 
 1. [Targets: The Building Blocks of TargetJS](#targets-the-building-blocks-of-targetjs)
@@ -448,7 +473,8 @@ In this example, we load two separate users and display two purple boxes, each c
 import { App, fetch } from "targetj";
 
 App({
-    fetch: ['https://targetjs.io/api/randomUser?id=user0', 'https://targetjs.io/api/randomUser?id=user1'],
+    fetch: ['https://targetjs.io/api/randomUser?id=user0',
+        'https://targetjs.io/api/randomUser?id=user1'],
     children$() {
       return {
         background: "mediumpurple",
@@ -462,13 +488,13 @@ App({
 Or in HTML:
 
 ```html 
-    <div tg-fetch="['https://targetjs.io/api/randomUser?id=user0',
-         'https://targetjs.io/api/randomUser?id=user1']">
+    <div tg-fetch="['https://targetjs.io/api/randomUser?id=user0', 'https://targetjs.io/api/randomUser?id=user1']">
       <div
         tg-background="mediumpurple"
+        tg-html="function(index) { return this.getParentValue('fetch')[index].name; }"
         tg-width="[{ list: [100, 250, 100] }, 50, 10]"
         tg-height$="return this.prevTargetValue / 2;"
-        tg-html="return this.getParentValueAtMyIndex('fetch')?.name;">
+        >
       </div>
     </div>
 ``` 
