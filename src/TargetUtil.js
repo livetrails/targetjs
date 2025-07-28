@@ -375,6 +375,7 @@ class TargetUtil {
     }
 
     static getValueStepsCycles(tmodel, _target, key, cycle = tmodel.getTargetCycle(key)) {
+        cycle = tmodel.getTargetCycles(key) > 0 ? cycle : tmodel.getParent()?.getChildIndex(tmodel);
         const valueOnly = _target && _target.valueOnly;
         const lastValue = tmodel.val(key);
 
