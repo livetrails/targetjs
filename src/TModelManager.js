@@ -320,18 +320,6 @@ class TModelManager {
         return `${tmodel.type}-${tmodel.getDomParent().oid}-${tmodel.getBaseElement()}`;
     }
 
-    completeDoneTModels() {
-        this.doneTargets.forEach(target => {
-            const tmodel = target.tmodel;
-            const key = target.key;
-            if (tmodel.isTargetDone(key)) {
-                tmodel.setTargetComplete(key);
-                tmodel.removeFromActiveTargets(key);
-                tmodel.removeFromUpdatingTargets(key);
-            }
-        });
-    }
-
     createDoms() {           
         if (this.lists.noDom.length === 0) { 
             return;

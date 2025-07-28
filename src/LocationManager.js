@@ -339,7 +339,7 @@ class LocationManager {
                 if (!target) {
                     return;
                 }
-                if (target.active !== 'active' && tmodel.isTargetEnabled(key) && !tmodel.isTargetUpdating(key) && !tmodel.isTargetImperative(key)) {
+                if (target.active !== false && tmodel.isTargetEnabled(key) && !tmodel.isTargetUpdating(key) && !tmodel.isTargetImperative(key)) {
                     TargetExecutor.resolveTargetValue(tmodel, key, tmodel.getTargetCycle(key));
                     TargetExecutor.updateTarget(tmodel, tmodel.targetValues[key], key, false);                    
                 }

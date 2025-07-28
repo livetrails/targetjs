@@ -378,7 +378,9 @@ class TargetData {
         onvisiblechildrenchange: 'onVisibleChildrenChange',
         onchildrenchange: 'onChildrenChange',
         isvisible: 'isVisible',
-        isinflow: 'isInFlow'
+        isinflow: 'isInFlow',
+        basewidth: 'baseWidth',
+        baseheight: 'baseHeight'
     };
     
     static targetToEventsMapping = {

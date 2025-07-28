@@ -107,10 +107,6 @@ class RunScheduler {
 
         if (this.phase === 0) {
             getEvents().captureEvents();
-            if (getManager().doneTargets.length) {
-                getManager().completeDoneTModels();
-                getManager().doneTargets.length = 0;
-            }
             tApp.targetManager.applyTargetValues(tApp.tRoot);
             getLocationManager().calculateAll();
             this.phase = 1;
