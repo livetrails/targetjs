@@ -5,12 +5,12 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework that simplifies front-end development by introducing two new key concepts: unifying methods and variables, and reactive methods. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to more compact code and allows for a stronger focus on user experience. It can be used as a full-featured framework or as a lightweight library alongside other frameworks.
+TargetJS is a modern JavaScript UI framework that simplifies front-end development by introducing key concepts: unifying methods and variables, autonomous and reactive methods, and execution flow that follows the written code. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to more compact code, introduces a new development paradigm, and prioritizes user experience. It can be used as a full-featured framework or as a lightweight library alongside other frameworks.
 Furthermore, it is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
 ## Key Innovations and Concepts
 
-1. Unifying Methods and Variables with Targets: A new construct called “targets” combines methods and variables, providing state, iteration, and timing mechanisms for both.
+1. Unifying Methods and Variables with Targets: A new construct called “targets” combines methods and variables, providing state, lifecycles, iteration, and timing mechanisms for both.
 2. Declarative Reactive Targets: Targets can explicitly declare reactive execution triggered by the run or completion of their immediately preceding targets, whether synchronous or asynchronous.
 3. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
 4. Code-Ordered Execution: The execution flow generally follows the order in which the code is written.
@@ -220,10 +220,10 @@ A target name ending with a double `$$` (e.g., `fetch$$`) will activate only aft
 
 **Via CDN**
 
-Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 44KB compressed):
+Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 47KB compressed):
 
 ```html
-<script src="https://ltstaticfiles.s3.us-east-1.amazonaws.com/targetjs.js"></script>
+<script src="https://unpkg.com/targetj@latest/dist/targetjs.js"></script>
 ```
 
 This will add `TargetJS` to the global `window` object, making it accessible throughout your JavaScript such as `TargetJS.App(YourApp)`.
@@ -563,66 +563,75 @@ In this example, we demonstrate a simple infinite scrolling application where ea
 
 TargetJS employs a tree-like structure to track visible branches, optimizing the scroller performance.
 
+We use the TModel class instead of a plain object to demonstrate how it can provide additional functionality and control. A plain object would also have worked in this example.
+
 If you inspect the HTML elements in the browser's developer tools, you'll notice that the scroller’s elements are not nested inside the container. This is because nesting itself is a dynamic target that determines how elements are structured. This enables efficient reuse of HTML elements and unlocks new user experiences.
 
 ![Single page app](https://targetjs.io/img/infiniteScrolling11.gif)
 
 ```javascript
-import { App, getEvents, fetch, getScreenWidth, getScreenHeight } from "targetj";
+import { App, TModel, getEvents, fetch, getScreenWidth, getScreenHeight } from "targetj";
 
-App({
-    id: "scroller",
+App(new TModel("scroller", {
     domHolder: true,
     preventDefault: true,
     containerOverflowMode: "always",
-    children() {
-        const childrenCount = this.getChildren().length;
+    children() {  
+        const childrenCount = this.getChildren().length;  
         return Array.from({ length: 20 }, (_, i) => ({
-             width: [{list: [100, 250]}, 15],
-             background: [{list: ["#FCE961", "#B388FF"]}, 15, 15],
-             height: 48,
-             color: "#C2FC61",
-             textAlign: "center",
-             lineHeight: 48,
-             bottomMargin: 2,
-             x() { return this.getCenterX(); },
-             validateVisibilityInParent: true,
-             html: childrenCount + i
-         }));
+            width: [{list: [100, 250, 100]}, 50],
+            background: [{list: ["#FCE961", "#B388FF"]}, 15, 15],
+            height: 48,
+            color: "#C2FC61",
+            textAlign: "center",
+            lineHeight: 48,
+            bottomMargin: 2,
+            x() { return this.getCenterX(); },
+            html: childrenCount + i
+        }));
     },
-    load$() {
-        this.prevTargetValue.forEach(data =>
-            fetch(this, "https://targetjs.io/api/randomUser", { id: data.oid }));
+    loadItems$$() {
+        this.visibleChildren.filter(child => !child.loaded).forEach(child => {
+            child.loaded = true;
+            fetch(this, `https://targetjs.io/api/randomUser?id=${child.oid}`);
+        });
     },
     populate$$() {
-        this.prevTargetValue.forEach((data) => this.getChildByOid(data.id).setTarget("html", data.name));
+        if (this.prevTargetValue) {
+            this.prevTargetValue.forEach(data => this.getChildByOid(data.id).setTarget('html', data.name));
+        }
     },
     onScroll() {
         this.setTarget("scrollTop", Math.max(0, this.getScrollTop() + getEvents().deltaY()));
     },
     onVisibleChildrenChange() {
-        if (getEvents().dir() === "down" && this.visibleChildren.length * 50 < this.getHeight()) {
-            this.activateTarget("children");
+        if (getEvents().dir() === 'down' && this.visibleChildren.length * 50 < this.getHeight()) {
+            this.activateTarget('children');
+        } else {
+            this.activateTarget('loadItems');
         }
     },
     width: getScreenWidth,
-    height: getScreenHeight    
-});
+    height: getScreenHeight,
+    onResize: 'width'
+}));
 ```
 
 Or in HTML:
 
 ```HTML
-<div
-  tg-domHolder="true"
-  tg-preventDefault="true"
-  tg-containerOverflowMode="always"
-  tg-width="return TargetJS.getScreenWidth();"
-  tg-height="return TargetJS.getScreenHeight();"
-  tg-children="function() {
+ <div
+      id="scroller"
+      tg-domHolder="true"
+      tg-preventDefault="true"
+      tg-background="red"
+      tg-containerOverflowMode="always"
+      tg-width="return TargetJS.getScreenWidth();"
+      tg-height="return TargetJS.getScreenHeight();"
+      tg-children="function() {
     const childrenCount = this.getChildren().length;
     return Array.from({ length: 20 }, (_, i) => ({
-      width: [{ list: [100, 250] }, 15],
+      width: [{list: [100, 250, 100]}, 50],
       background: [{ list: ['#FCE961', '#B388FF'] }, 15, 15],
       height: 48,
       color: '#C2FC61',
@@ -630,26 +639,28 @@ Or in HTML:
       lineHeight: 48,
       bottomMargin: 2,
       x: function() { return this.getCenterX(); },
-      validateVisibilityInParent: true,
       html: childrenCount + i
     }));
   }"
-  tg-load$="function() {
-    this.prevTargetValue.forEach(data =>
-      TargetJS.fetch(this, 'https://targetjs.io/api/randomUser', { id: data.oid })
-    );
+      tg-load$$="function() {
+    this.visibleChildren.filter(child => !child.loaded).forEach(child => {
+        child.loaded = true;
+        TargetJS.fetch(this, `https://targetjs.io/api/randomUser?id=${child.oid}`);
+    });
   }"
-  tg-populate$$="function() {
-    this.prevTargetValue.forEach((data) =>
-      this.getChildByOid(data.id).setTarget('html', data.name)
-    );
+      tg-populate$$="function() {
+    if (this.prevTargetValue) {
+        this.prevTargetValue.forEach(data => this.getChildByOid(data.id).setTarget('html', data.name));
+    }
   }"
-  tg-onScroll="function() {
+      tg-onScroll="function() {
     this.setTarget('scrollTop', Math.max(0, this.getScrollTop() + TargetJS.getEvents().deltaY()));
   }"
-  tg-onVisibleChildrenChange="function() {
+      tg-onVisibleChildrenChange="function() {
     if (TargetJS.getEvents().dir() === 'down' && this.visibleChildren.length * 50 < this.getHeight()) {
-      this.activateTarget('children');
+        this.activateTarget('children');
+    } else {
+        this.activateTarget('load');
     }
   }"
 ></div>
