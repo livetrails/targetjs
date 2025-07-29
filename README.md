@@ -508,14 +508,15 @@ Or in HTML:
 In this example, we demonstrate a simple infinite scrolling application where each item dynamically triggers an API call to fetch and display its details.
 
 - children: `children` is a special target that adds items to the container's children each time it is executed. The `onVisibleChildrenChange` event function detects changes in the visible children and activates the `children` target to add new items that fill the gaps.  
-- load: Since the target name ends with `$`, it executes for every batch of 20 newly created children and fetches their details. The result will be an array containing the 20 fetched users. TargetJS ensures that the array maintains the order in which the API calls were made, rather than the order in which their responses were received.
+Sure! Here's a clearer and more polished version:
+
+– loadItems: Since the target name ends with `$$`, it executes only after the newly created children finish their animations. It then iterates over all visible children and fetches their details. The result is an array of users. TargetJS ensures that this array preserves the order in which the API calls were made, not the order in which responses were received.
+
 - populate: Since the target name ends with `$$`, it executes only after all API calls have completed. It updates the content of each scrollable item with the name returned by the API.
 
 TargetJS employs a tree-like structure to track visible branches, optimizing the scroller performance.
 
 We use the TModel class instead of a plain object to demonstrate how it can provide additional functionality and control. A plain object would also have worked in this example.
-
-If you inspect the HTML elements in the browser's developer tools, you'll notice that the scroller’s elements are not nested inside the container. This is because nesting itself is a dynamic target that determines how elements are structured. This enables efficient reuse of HTML elements and unlocks new user experiences.
 
 ![Single page app](https://targetjs.io/img/infiniteScrolling11.gif)
 
