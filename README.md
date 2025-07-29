@@ -433,7 +433,7 @@ App({
     }
 });
 ```
-**Imperatives**
+**Other imperative ways**
 
 ```javascript
 import { App } from "targetj";
@@ -450,7 +450,18 @@ App({
  });
 ```
 
-**HTML**
+```javascript
+import { App } from "targetj";
+
+App({
+  background: "mediumpurple",
+  animate() {
+    this.setTarget({ width: 250, height: 250, opacity: 0.15 }, 30, 50);
+  },
+});
+```
+
+**or HTML**
 
 ```html 
   <div 
