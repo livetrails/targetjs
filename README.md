@@ -15,8 +15,7 @@ Furthermore, it is also a highly performant web framework, as shown in the [fram
 3. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
 4. Code-Ordered Execution: The execution flow generally follows the order in which the code is written.
 5. Autonomous Methods: Methods in TargetJS are not directly callable. Instead, they are designed to execute themselves or react dynamically to the execution or completion of preedings "Targets." This paradigm shift enables a declarative programming style and inherently supports asynchronous operations without explicit async/await keywords.
-6. Compactness: The program is
-7. Code Compactness: TargetJS allows developers to achieve rich, interactive UIs with significantly less code.
+6. Compactness: TargetJS allows developers to achieve interactive UIs with significantly less code.
 
 ## Examples
 
