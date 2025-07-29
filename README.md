@@ -419,7 +419,7 @@ App({
     opacity: [ 0.15, 30, 50]
  });
 ```
-**Imperative** (more in the next example)
+**Imperative**
 
 ```javascript
 import { App } from "targetj";
@@ -433,7 +433,7 @@ App({
     }
 });
 ```
-**Imperative Multi-Targets**
+**Imperatives**
 
 ```javascript
 import { App } from "targetj";
