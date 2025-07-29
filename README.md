@@ -515,10 +515,9 @@ Or in HTML:
 
 ### Infinite Loading and Scrolling Example
 
-In this example, we demonstrate a simple infinite scrolling application where each item dynamically triggers an API call to fetch and display its details.
+In this advanced example, we demonstrate an infinite scrolling application where each item is animated, and upon completing its animation, it dynamically triggers an API call to fetch and display its details.
 
 - children: `children` is a special target that adds items to the container's children each time it is executed. The `onVisibleChildrenChange` event function detects changes in the visible children and activates the `children` target to add new items that fill the gaps.  
-Sure! Here's a clearer and more polished version:
 
 – loadItems: Since the target name ends with `$$`, it executes only after the newly created children finish their animations. It then iterates over all visible children and fetches their details. The result is an array of users. TargetJS ensures that this array preserves the order in which the API calls were made, not the order in which responses were received.
 
