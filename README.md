@@ -229,7 +229,7 @@ Targets provide a unified interface for both variables and methods. Each Target 
 
 ## Understanding TargetJS Syntax: Reactive Postfixes
 
-TargetJS uses the postfixes `$` and `$$` appended to target names for defining reactive behaviors. While initially appearing a bit cryptic, this convention provides a compact syntax.
+TargetJS doesn't use `async/await` and rarely relies on traditional JavaScript constructs like loops or conditionals. Instead, it defines reactive behaviors using the `$` and `$$` postfixes on target names, unifying asynchronous operations such as API calls, animations, timers, and UI transitions. Although this convention may seem a bit cryptic at first, it offers a compact syntax.
 
 **`$` Postfix (Immediate Reactivity):**
 
