@@ -204,18 +204,18 @@ The example above can also be implemented directly in HTML:
 2. [Understanding TargetJS Syntax: Reactive Postfixes](#understanding-targetjs-syntax-reactive-postfixes)
 3. [📦 Installation](#-installation)
 6. [What Problems Does TargetJS Solve?](#what-problems-does-targetjs-solve)
-9. [Target Methods](#target-methods)
-10. [Target Variables](#target-variables)
 11. More Examples:
     - [Basic Example](#basic-example)
     - [Loading Two Users Example](#loading-two-users-example)
     - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
-12. [Special Target Names](#special-target-names)
-13. [How to Debug in TargetJS](#how-to-debug-in-targetjs)
-14. [Documentation](#documentation)
-15. [License](#license)
-16. [Contact](#contact)
-17. [💖 Support TargetJS](#-support-targetjs)
+12. [Target Methods](#target-methods)
+10. [Target Variables](#target-variables)
+13. [Special Target Names](#special-target-names)
+14. [How to Debug in TargetJS](#how-to-debug-in-targetjs)
+15. [Documentation](#documentation)
+16. [License](#license)
+17. [Contact](#contact)
+18. [💖 Support TargetJS](#-support-targetjs)
 
 ## Targets: The Building Blocks of TargetJS
 
@@ -291,86 +291,6 @@ TargetJS addresses several common pain points in front-end development:
 6.  **Difficult Animation Control:**  TargetJS makes animations first-class citizens with fine-grained control.
 7.  **Complicated execution flow:** TargetJS execution flow follows the order the code is written.
 8.  **Performance Bottlenecks with Large Lists:** TargetJS optimizes rendering for large lists by using a tree structure that renders only the visible branches.
-
-
-## Target Methods
-
-All methods and properties are optional, but they play integral roles in making targets useful for animation, API loading, event handling, and more:
-
-1. **value**
-If defined, value is the primary target method that will be executed. The target value will be calculated based on the result of this method.
-
-2. **Prefix `_` to the target name**
-It indicates that the target is in an inactive state and must be activated by an event or other targets.
-
-3. **active**
-This is only a property. It indicates whether the target is ready for execution. When set to false, it behaves similarly to a `_ `prefix. By default, all targets are active, so setting it to true is unnecessary.
-
-15. **Postfix `$` to the target name**
-A target name ending with $ indicates that it will be only activated when the preceding target is executed. If the preceding target involves API calls, it will be activated
-each time an API response is received, while ensuring the order of API calls is enforced. This means it will remain inactive until the first API result is received,
-then the second, and so on.
-  
-17. **Postfix `$$` to the target name**
-A target name ending with `$$` indicates indicates that it will be activated only after the preceding target has completed, along with all its imperative targets,
-and after all API results have been received.
-
-2. **enabledOn**
-Determines whether the target is eligible for execution. If enabledOn() returns false, the target remains active until it is enabled and gets executed.
-
-3. **loop**
-Controls the repetition of target execution. If loop() returns true, the target will continue to execute indefinitely. It can also be defined as a boolean instead of a method.
-
-4. **cycles**
-It works similarly to `loop`, but it specifies an explicit number of repetitions. It can also be combined with `loop`, in which case, once the specified cycles complete, they will rerun as long as `loop` returns true.
-
-6. **interval**
-It specifies the pause between each target execution or each actual value update when steps are defined.
-
-7. **steps**
-By default, the actual value is updated immediately after the target value. The steps option allows the actual value to be updated in iterations specified by the number of steps.
-
-8. **easing**
-An easing function that operates when steps are defined. It controls how the actual value is updated in relation to the steps.
-
-9. **onValueChange**
-This callback is triggered whenever there is a change returned by the target method, which is called value().
-
-10. **onStepsEnd**
-This method is invoked only after the final step of updating the actual value is completed, assuming the target has a defined steps value.
-
-11. **onImperativeStep**
-This callback tracks the progress of imperative targets defined within a declarative target. If there are multiple imperative targets, this method is called at each step,
-identifiable by their target name. You can also use `on${targetName}Step` to track individual targets with their own callbacks. For example, `onWidthStep()` is called on each update of the `width` target.
-
-13. **onImperativeEnd**
-Similar to `onImperativeStep`, but it is triggered when an imperative target completes. If multiple targets are expected to complete, you can use `on${targetName}End` instead. For example, `onWidthEnd` is called when the `width` target gets completed.
-
-13. **initialValue**
-This is only property. It defines the initial value of the actual value.
-   
-18. **onSuccess**
-An optional callback for targets that make API calls. It will be invoked for each API response received.
-
-19. **onError**
-Similar to the `onSuccess` but it will be invoked on every error.
-
-## Target Variables
-In all the target methods above, you can access the following variables:
-
-1. **this.prevTargetValue**  
-It holds the value of the preceding target. If the preceding target involves API calls, a single $ postfix means it will hold one API result at a time, as the target is
-activated with each API response. If the target is postfixed with $$, it will have the results as an array, ordered by the sequence of API calls rather than the order in
-which the responses are received.
-
-2. **this.isPrevTargetUpdated()**
-It returns `true` if the previous target has been updated. This method is useful when a target is activated externally, such as by a user event, rather than by the preceding target.
-
-3. **this.key**
-Represents the name of the current target.
-
-3. **this.value**
-Represents the current value of the target.
     
 ## More Examples
 
@@ -625,6 +545,86 @@ Or in HTML:
   }"
 ></div>
 ```
+
+## Target Methods
+
+All methods and properties are optional, but they play integral roles in making targets useful for animation, API loading, event handling, and more:
+
+1. **value**
+If defined, value is the primary target method that will be executed. The target value will be calculated based on the result of this method.
+
+2. **Prefix `_` to the target name**
+It indicates that the target is in an inactive state and must be activated by an event or other targets.
+
+3. **active**
+This is only a property. It indicates whether the target is ready for execution. When set to false, it behaves similarly to a `_ `prefix. By default, all targets are active, so setting it to true is unnecessary.
+
+15. **Postfix `$` to the target name**
+A target name ending with $ indicates that it will be only activated when the preceding target is executed. If the preceding target involves API calls, it will be activated
+each time an API response is received, while ensuring the order of API calls is enforced. This means it will remain inactive until the first API result is received,
+then the second, and so on.
+  
+17. **Postfix `$$` to the target name**
+A target name ending with `$$` indicates indicates that it will be activated only after the preceding target has completed, along with all its imperative targets,
+and after all API results have been received.
+
+2. **enabledOn**
+Determines whether the target is eligible for execution. If enabledOn() returns false, the target remains active until it is enabled and gets executed.
+
+3. **loop**
+Controls the repetition of target execution. If loop() returns true, the target will continue to execute indefinitely. It can also be defined as a boolean instead of a method.
+
+4. **cycles**
+It works similarly to `loop`, but it specifies an explicit number of repetitions. It can also be combined with `loop`, in which case, once the specified cycles complete, they will rerun as long as `loop` returns true.
+
+6. **interval**
+It specifies the pause between each target execution or each actual value update when steps are defined.
+
+7. **steps**
+By default, the actual value is updated immediately after the target value. The steps option allows the actual value to be updated in iterations specified by the number of steps.
+
+8. **easing**
+An easing function that operates when steps are defined. It controls how the actual value is updated in relation to the steps.
+
+9. **onValueChange**
+This callback is triggered whenever there is a change returned by the target method, which is called value().
+
+10. **onStepsEnd**
+This method is invoked only after the final step of updating the actual value is completed, assuming the target has a defined steps value.
+
+11. **onImperativeStep**
+This callback tracks the progress of imperative targets defined within a declarative target. If there are multiple imperative targets, this method is called at each step,
+identifiable by their target name. You can also use `on${targetName}Step` to track individual targets with their own callbacks. For example, `onWidthStep()` is called on each update of the `width` target.
+
+13. **onImperativeEnd**
+Similar to `onImperativeStep`, but it is triggered when an imperative target completes. If multiple targets are expected to complete, you can use `on${targetName}End` instead. For example, `onWidthEnd` is called when the `width` target gets completed.
+
+13. **initialValue**
+This is only property. It defines the initial value of the actual value.
+   
+18. **onSuccess**
+An optional callback for targets that make API calls. It will be invoked for each API response received.
+
+19. **onError**
+Similar to the `onSuccess` but it will be invoked on every error.
+
+## Target Variables
+In all the target methods above, you can access the following variables:
+
+1. **this.prevTargetValue**  
+It holds the value of the preceding target. If the preceding target involves API calls, a single $ postfix means it will hold one API result at a time, as the target is
+activated with each API response. If the target is postfixed with $$, it will have the results as an array, ordered by the sequence of API calls rather than the order in
+which the responses are received.
+
+2. **this.isPrevTargetUpdated()**
+It returns `true` if the previous target has been updated. This method is useful when a target is activated externally, such as by a user event, rather than by the preceding target.
+
+3. **this.key**
+Represents the name of the current target.
+
+4. **this.value**
+Represents the current value of the target.
+
 
 ## Special Target Names
 
