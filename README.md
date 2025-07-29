@@ -210,7 +210,6 @@ The example above can also be implemented directly in HTML:
 11. More Examples:
     - [Basic Example](#basic-example)
     - [Loading Two Users Example](#loading-two-users-example)
-    - [Declarative and Imperative Targets Example](#declarative-and-imperative-targets-example)
     - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
 12. [Special Target Names](#special-target-names)
 13. [How to Debug in TargetJS](#how-to-debug-in-targetjs)
@@ -503,86 +502,6 @@ Or in HTML:
       </div>
     </div>
 ``` 
-
-## Declarative and Imperative Targets Example
-
-Targets in TargetJS can be defined in two ways: declaratively or imperatively.
-
-The declarative approach offers a structured method for defining targets, as seen in the previous example. However, orchestrating multiple targets with varying speeds and timings can be challenging. For instance, tracking the completion of multiple targets to trigger a new set of targets is not easily done using only declarative targets. To address this, TargetJS provides the setTarget function, allowing you to define multiple imperative targets from within a single declarative target. Additionally, the onImperativeStep and onImperativeEnd callbacks, defined in the declarative target, enable you to track each step of the imperative targets or just their completion.
-
-By combining imperative and declarative targets with their functional pipeline, you gain a powerful toolset for designing complex interactions.
-
-The following example demonstrates both declarative and imperative approaches. In the `animateLeftToRight` target, two imperative targets move a square across the screen 
-from left to right. Once both `x` and `y` targets are completed, `animateLeftToRight` is considered complete. The `animateRightToLeft` target executes next because 
-it is postfixed with `$$`, forming a pipeline that begins once the preceding target and all its imperative targets are complete. Similarly, the `waitOneSecond` target executes when `animateLeftToRight` completes,
-introducing a 1-second pause. After that, `repeat` is executed, reactivating the animation pipeline and allowing the animation to continue indefinitely.
-
-![declarative example](https://targetjs.io/img/declarative3.gif)
-
-```javascript
-import { App, getScreenWidth, getScreenHeight } from "targetj";
-
-App({
-    children: {
-      loop() { return this.getChildren().length < 10; },
-      interval: 500,
-      value: () => ({
-          width: 50,
-          height: 50,
-          background: "brown",
-          animateLeftToRight() {
-              const width = this.getWidth();
-              const parentWidth = this.getParentValue("width");
-              this.setTarget("x", { list: [-width, parentWidth + width] }, 300);
-              this.setTarget("y", Math.floor(Math.random() * (this.getParentValue("height") - this.getHeight())), 30);
-          },
-          animateRightToLeft$$() {
-            const width = this.getWidth();
-            const parentWidth = this.getParentValue("width");
-            this.setTarget("x", { list: [parentWidth + width, -width] }, 300);
-          },
-          waitOneSecond$$: {
-            interval: 1000,
-          },
-          repeat$$() {
-            this.activateTarget('animateLeftToRight');
-          }
-        })
-    },
-    width: getScreenWidth,
-    height: getScreenHeight
-});
-```
-Or in HTML:
-
-```html 
-<div
-  tg-width="function() { return TargetJS.getScreenWidth(); }"
-  tg-height="function() { return TargetJS.getScreenHeight(); }"
-  tg-children="{ cycles: 9, interval: 500 }">
-    <div
-        tg-width="50"
-        tg-height="50"
-        tg-background="brown",
-        tg-left2right="function() {
-          const width = this.getWidth();
-          const parentWidth = this.getParentValue('width');
-          this.setTarget('x', { list: [ -width, parentWidth + width ] }, 400);
-          this.setTarget('y', Math.floor(Math.random() * (this.getParentValue('height') - this.getHeight())), 30);
-        }"
-        tg-right2left$$="function() {
-          const width = this.getWidth();
-          const parentWidth = this.getParentValue('width');
-          this.setTarget('x', { list: [ parentWidth + width, -width ] }, 400);
-        }"
-        tg-onesecond$$="{ interval: 1000 }"
-        tg-repeat$$="function() {
-          this.activateTarget('left2right');
-        }"
-    >
-    </div>
-</div>
-```
 
 ### Infinite Loading and Scrolling Example
 
