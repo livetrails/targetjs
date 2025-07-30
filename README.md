@@ -45,7 +45,7 @@ Targets execute precisely in the order they are defined:
 
 1. `background`: This target runs first, setting the element's background color to `mediumpurple`. Once the assignment is complete, its lifecycle ends.
 2. `width`: Next, the `width` target takes over. It's configured to animate through a list of values (100, 250, 100), performing 50 steps with a 10ms pause between each step, creating a grow-then-shrink effect.
-3. `height$`: Finally, the `height$` target demonstrates TargetJS's reactivity. Because its name ends with a single `$` postfix, `height$` is explicitly declared to react whenever its immediately preceding target (`width`) executes on every step. As `width` animates and changes its value, `height$` automatically re-runs, setting its value to half of width's value.
+3. `height$`: Finally, the `height$` target demonstrates TargetJS's reactivity.  its name ends with a single `$` postfix, `height$` is explicitly declared to react whenever its immediately preceding target (`width`) executes on every step. As `width` animates and changes its value, `height$` automatically re-runs, setting its value to half of width's value.
 
 The example above can also be implemented directly in HTML, utilizing tg- attributes that mirror the object literal keys used in JavaScript:
    
@@ -398,7 +398,7 @@ App({
 In this example, we load two separate users and display two purple boxes, each containing a user's name, based on our first example.
 
 - `fetch` calls two APIs to retrieve details for two users.
-- `children` is a special target that adds new items to the parent each time it executes. Because it ends with $, it executes every time an API call returns a result.
+- `children` is a special target that adds new items to the parent each time it executes. Because it ends with `$` in this example, it executes every time an API call returns a result.
 - TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, `children` will not execute until the result for user0 has been received.
   
 ![first example](https://targetjs.io/img/quick3_1.gif)
