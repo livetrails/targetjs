@@ -302,6 +302,10 @@ class EventListener {
                     const queuedEvent = this.eventQueue[i];
                     if (queuedEvent.eventItem?.eventType === eventType) {
                         if (++capacity > EventListener.MAX_EVENT_TYPE_CAPACITY) {
+                            if (this.preventDefault(tmodel, eventName)) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                            }                            
                             return;
                         }
                     } else {
@@ -781,17 +785,21 @@ class EventListener {
                     (this.currentTouch.orientation === 'vertical' && diff >= 2) ||
                     this.currentTouch.orientation === 'horizontal') {
                 this.currentTouch.orientation = 'horizontal';
-                this.currentTouch.dir = deltaX <= -1 ? 'left' : deltaX >= 1 ? 'right' : this.currentTouch.dir;
-                this.currentTouch.source = source;
             }
         } else if (this.currentTouch.orientation === 'none' || 
                 (this.currentTouch.orientation === 'horizontal' && diff <= -2) || 
                 this.currentTouch.orientation === 'vertical') {
             this.currentTouch.orientation = 'vertical';
-            this.currentTouch.dir = deltaY <= -1 ? 'up' : deltaY >= 1 ? 'down' : this.currentTouch.dir;
-            this.currentTouch.source = source;
         }
         
+        if (this.currentTouch.orientation === 'horizontal') {
+            this.currentTouch.dir = deltaX < 0 ? 'left' : deltaX > 0 ? 'right' : this.currentTouch.dir;            
+        }  else {
+            this.currentTouch.dir = deltaY < 0 ? 'up' : deltaY > 0 ? 'down' : this.currentTouch.dir;            
+        }
+        
+        this.currentTouch.source = source;
+
         // Accumulate movement deltas before they get reset in `captureEvents` to sync with the task cycle when movement is too fast
         this.currentTouch.prevDeltaX += deltaX;              
         this.currentTouch.prevDeltaY += deltaY;

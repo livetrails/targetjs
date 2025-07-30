@@ -418,7 +418,7 @@ class LocationManager {
         eventTargets.forEach(targetName => {
             const target = tmodel.targets[targetName];
             
-            if (tmodel.isTargetEnabled(targetName) &&  !tmodel.isTargetUpdating(target)) {
+            if (tmodel.isTargetEnabled(targetName) && !tmodel.isTargetUpdating(target)) {
                 TargetExecutor.prepareTarget(tmodel, targetName);
                 TargetExecutor.resolveTargetValue(tmodel, targetName, tmodel.getTargetCycle(targetName));
                 TargetExecutor.updateTarget(tmodel, tmodel.targetValues[targetName], targetName, false);

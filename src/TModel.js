@@ -265,7 +265,7 @@ class TModel extends BaseModel {
 
     removeAll() {  
         if (!this.hasChildren()) {
-            return;
+            return this;
         }
         
         this.markLayoutDirty('removeAll');
@@ -278,7 +278,7 @@ class TModel extends BaseModel {
         if (this.hasDom()) {
             this.$dom.deleteAll();
         }
-         
+        
         return this;        
     }   
     

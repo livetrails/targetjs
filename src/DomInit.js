@@ -175,7 +175,7 @@ class DomInit {
         const trimmed = rawValue.trim();
         const isFunction = /^function\s*\([\s\S]*?\)\s*\{[\s\S]*\}$/m.test(trimmed) || /^\(?[\w\s,]*\)?\s*=>\s*(\{[\s\S]*\}|\S+)/m.test(trimmed);         
         const isObject = /^(\{[\s\S]*\}|\[[\s\S]*\])$/.test(trimmed);
-        const containsCode = ['return', 'setTarget', 'TargetJS.', 'addChild', 'addSibling'].some(keyword => trimmed.includes(keyword));
+        const containsCode = ['return', 'setTarget', 'TargetJS.', 'addChild', 'addSibling', 'activateTarget', 'removeChild', 'removeAll'].some(keyword => trimmed.includes(keyword));
         
         if (!isObject && !isFunction && containsCode) {
             try {
