@@ -467,7 +467,8 @@ App(new TModel("scroller", {
             lineHeight: 48,
             bottomMargin: 2,
             x() { return this.getCenterX(); },
-            html: childrenCount + i
+            html: childrenCount + i,
+            validateVisibilityInParent: true
         }));
     },
     loadItems$$() {
@@ -485,7 +486,7 @@ App(new TModel("scroller", {
         this.setTarget("scrollTop", Math.max(0, this.getScrollTop() + getEvents().deltaY()));
     },
     onVisibleChildrenChange() {
-        if (getEvents().dir() === 'down' && this.visibleChildren.length * 50 < this.getHeight()) {
+      if (!this.visibleChildren.length || this.getLastChild().getY() < this.getHeight()) {
             this.activateTarget('children');
         } else {
             this.activateTarget('loadItems');
