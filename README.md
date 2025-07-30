@@ -511,7 +511,7 @@ We can reduce the number of API calls by triggering them only after scrolling st
         enabledOn() {
             return getEvents().deltaY() === 0;
         }
-    },
+    }
 ```
 
 Finally, in HTML:
