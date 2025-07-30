@@ -486,7 +486,7 @@ App(new TModel("scroller", {
         this.setTarget("scrollTop", Math.max(0, this.getScrollTop() + getEvents().deltaY()));
     },
     onVisibleChildrenChange() {
-      if (!this.visibleChildren.length || this.getLastChild().getY() < this.getHeight()) {
+       if (!this.visibleChildren.length || this.getLastChild().getY() < this.getHeight()) {
             this.activateTarget('children');
         } else {
             this.activateTarget('loadItems');
@@ -498,7 +498,23 @@ App(new TModel("scroller", {
 }));
 ```
 
-Or in HTML:
+We can reduce the number of API calls by triggering them only after scrolling stops as follows:
+
+```javascript
+    loadItems$$: {
+        value() {
+            this.visibleChildren.filter(child => !child.loaded).forEach(child => {
+                child.loaded = true;
+                fetch(this, `https://targetjs.io/api/randomUser?id=${child.oid}`);
+            });
+        },
+        enabledOn() {
+            return getEvents().deltaY() === 0;
+        }
+    },
+```
+
+Finally, in HTML:
 
 ```HTML
  <div
@@ -538,11 +554,11 @@ Or in HTML:
     this.setTarget('scrollTop', Math.max(0, this.getScrollTop() + TargetJS.getEvents().deltaY()));
   }"
       tg-onVisibleChildrenChange="function() {
-    if (TargetJS.getEvents().dir() === 'down' && this.visibleChildren.length * 50 < this.getHeight()) {
-        this.activateTarget('children');
-    } else {
-        this.activateTarget('load');
-    }
+       if (!this.visibleChildren.length || this.getLastChild().getY() < this.getHeight()) {
+            this.activateTarget('children');
+        } else {
+            this.activateTarget('load');
+        }
   }"
 ></div>
 ```
