@@ -486,11 +486,7 @@ App(new TModel("scroller", {
         this.setTarget("scrollTop", Math.max(0, this.getScrollTop() + getEvents().deltaY()));
     },
     onVisibleChildrenChange() {
-       if (!this.visibleChildren.length || this.getLastChild().getY() < this.getHeight()) {
-            this.activateTarget('children');
-        } else {
-            this.activateTarget('loadItems');
-        }
+       return !this.visibleChildren.length || this.getLastChild().getY() < this.getHeight() ? 'children' : 'loadItems';
     },
     width: getScreenWidth,
     height: getScreenHeight,
@@ -526,40 +522,36 @@ Finally, in HTML:
       tg-width="return TargetJS.getScreenWidth();"
       tg-height="return TargetJS.getScreenHeight();"
       tg-children="function() {
-    const childrenCount = this.getChildren().length;
-    return Array.from({ length: 20 }, (_, i) => ({
-      width: [{list: [100, 250, 100]}, 50],
-      background: [{ list: ['#FCE961', '#B388FF'] }, 15, 15],
-      height: 48,
-      color: '#C2FC61',
-      textAlign: 'center',
-      lineHeight: 48,
-      bottomMargin: 2,
-      x: function() { return this.getCenterX(); },
-      html: childrenCount + i
-    }));
-  }"
+        const childrenCount = this.getChildren().length;
+        return Array.from({ length: 20 }, (_, i) => ({
+          width: [{list: [100, 250, 100]}, 50],
+          background: [{ list: ['#FCE961', '#B388FF'] }, 15, 15],
+          height: 48,
+          color: '#C2FC61',
+          textAlign: 'center',
+          lineHeight: 48,
+          bottomMargin: 2,
+          x: function() { return this.getCenterX(); },
+          html: childrenCount + i
+        }));
+      }"
       tg-load$$="function() {
-    this.visibleChildren.filter(child => !child.loaded).forEach(child => {
-        child.loaded = true;
-        TargetJS.fetch(this, `https://targetjs.io/api/randomUser?id=${child.oid}`);
-    });
-  }"
+        this.visibleChildren.filter(child => !child.loaded).forEach(child => {
+            child.loaded = true;
+            TargetJS.fetch(this, `https://targetjs.io/api/randomUser?id=${child.oid}`);
+        });
+      }"
       tg-populate$$="function() {
-    if (this.prevTargetValue) {
-        this.prevTargetValue.forEach(data => this.getChildByOid(data.id).setTarget('html', data.name));
-    }
-  }"
-      tg-onScroll="function() {
-    this.setTarget('scrollTop', Math.max(0, this.getScrollTop() + TargetJS.getEvents().deltaY()));
-  }"
-      tg-onVisibleChildrenChange="function() {
-       if (!this.visibleChildren.length || this.getLastChild().getY() < this.getHeight()) {
-            this.activateTarget('children');
-        } else {
-            this.activateTarget('load');
+        if (this.prevTargetValue) {
+            this.prevTargetValue.forEach(data => this.getChildByOid(data.id).setTarget('html', data.name));
         }
-  }"
+      }"
+      tg-onScroll="function() {
+        this.setTarget('scrollTop', Math.max(0, this.getScrollTop() + TargetJS.getEvents().deltaY()));
+      }"
+      tg-onVisibleChildrenChange="function() {
+        return !this.visibleChildren.length || this.getLastChild().getY() < this.getHeight() ? 'children' : 'load';
+      }"
 ></div>
 ```
 
