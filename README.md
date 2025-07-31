@@ -5,7 +5,7 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework that simplifies front-end development by introducing key concepts: unifying methods and variables, autonomous and reactive methods, and execution flow that follows the written code. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to extreme compact code, introduces a new development paradigm, and prioritizes user experience. It can be used as a full-featured framework or as a lightweight library alongside other frameworks.
+TargetJS is a modern JavaScript UI framework that simplifies front-end development by introducing key concepts: unifying class methods and variables, autonomous and reactive methods, and execution flow that follows the written code. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to extreme compact code, introduces a new development paradigm, and prioritizes user experience. It can be used as a full-featured framework or as a lightweight library alongside other frameworks.
 Furthermore, it is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
 ## Key Innovations and Concepts
