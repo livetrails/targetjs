@@ -8,9 +8,21 @@
 TargetJS is a modern JavaScript UI framework that simplifies front-end development by introducing key concepts: unifying class methods and fields, autonomous and reactive methods, and execution flow that follows the written code. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to extreme compact code, introduces a new development paradigm, and prioritizes user experience. It can be used as a full-featured framework or as a lightweight library alongside other frameworks.
 Furthermore, it is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
+## The Philosophy Behind TargetJS
+
+Frameworks often promise simplicity, but frequently require extensive boilerplate and libraries as they inherit the same software approach rooted in early programming models and force it to fit building user interfaces by adding more complexity. User interfaces are dynamic and asynchronous and require a different paradigm.
+
+TargetJS adopts a new approach. First, it unifies class methods and fields into a single construct called targets. Each target is given state, lifecycles, timing, iterations, and the autonomy to execute mimicking the behavior of living cells. Targets are essentially self-contained, intelligent blocks of code.
+
+The second challenge is making these targets to fit and work together especially since UI operations are highly asynchronous. Instead of relying on traditional method calls and callbacks that don't address asynchronous nature well, TargetJS allows targets to react to the execution or completion of preceding targets. A subsequent target can run independently, execute whenever the previous one does, or wait until the previous target completes. Targets stack together like snapping Lego pieces. It can address complex asynchronous workflow yet easy to understand.
+
+For example, setting a value can implicitly define an animation, where the current value iteratively progresses until it reaches the new value. When the animation completes, the next target might initiate a fetch API call. Once the data is received, it can trigger another target that creates 10 nodes, each with its own animation and API call. A subsequent target can then be set to run only after all nodes have completed their tasks. Throughout this sequence, no direct method calls are made. Targets simply react and chain together based on how the code is written.
+
+Targets unlock a fundamentally new way of coding that simplifies everything from animation, UI updates, API calls, and state management. It also makes the code significantly more compact.
+
 ## Key Innovations and Concepts
 
-1. Unifying Methods and Variables with Targets: A new construct called “targets” combines methods and variables, providing state, lifecycles, iteration, and timing mechanisms for both.
+1. Unifying Class Methods and Fields with Targets: A new construct called “targets” combines methods and fields, providing state, lifecycles, iteration, and timing mechanisms for both.
 2. Declarative Reactive Targets: Targets can explicitly declare reactive execution triggered by the run or completion of their immediately preceding targets, whether synchronous or asynchronous.
 3. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
 4. Code-Ordered Execution: The execution flow generally follows the order in which the code is written.
@@ -205,7 +217,6 @@ The example above can also be implemented directly in HTML:
 3. [📦 Installation](#-installation)
 6. [What Problems Does TargetJS Solve?](#what-problems-does-targetjs-solve)
 11. More Examples:
-    - [Basic Example](#basic-example)
     - [Loading Two Users Example](#loading-two-users-example)
     - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
 12. [Target Methods](#target-methods)
@@ -219,7 +230,7 @@ The example above can also be implemented directly in HTML:
 
 ## Targets: The Building Blocks of TargetJS
 
-Targets provide a unified interface for both variables and methods. Each Target comes equipped with a built-in set of capabilities:
+Targets provide a unified interface for both class methods and fields. Each Target comes equipped with a built-in set of capabilities:
 
 1. State Management: Targets are inherently stateful, enabling implicit state handling across your application.
 2. Iterations: They can iterate towards defined values, making them perfect for creating animations.
@@ -293,105 +304,6 @@ TargetJS addresses several common pain points in front-end development:
 8.  **Performance Bottlenecks with Large Lists:** TargetJS optimizes rendering for large lists by using a tree structure that renders only the visible branches.
     
 ## More Examples
-
-Below are examples of various TargetJS use cases:
-
-## Basic Example
-
-The examples below demonstrate different formats for writing target constructs. In each example, the values of `width`, `height`, and `opacity` are incrementally increased over 30 steps, with a 50ms pause between each step. 
-You can view a live example here: https://targetjs.io/examples/overview.html.
-
-![first example](https://targetjs.io/img/basic1_3.gif)
-
-**Object**
-
-```javascript
-import { App } from "targetj";
-
-App({
-    background: 'mediumpurple',
-    width: {
-        value: 250,        
-        steps: 30,
-        interval: 50
-    },
-    height: {
-        value: 250,        
-        steps: 30,
-        interval: 50
-    },
-    opacity: {
-        value: 0.15,        
-        steps: 30,
-        interval: 50
-    }
- });
-```
-**Array**
-
-```javascript
-import { App } from "targetj";
-
-App({
-    background: 'mediumpurple',
-    width: [ 250, 30, 50], 
-    height: [ 250, 30, 50],
-    opacity: [ 0.15, 30, 50]
- });
-```
-**Imperative**
-
-```javascript
-import { App } from "targetj";
-
-App({
-    animate() {
-      this.setTarget('background', 'mediumpurple');
-      this.setTarget('width',[250, 30, 50]);
-      this.setTarget('height', [250, 30, 50]);
-      this.setTarget('opacity', [0.15, 30, 50]);
-    }
-});
-```
-**Other imperative ways**
-
-```javascript
-import { App } from "targetj";
-
-App({
-    animate() {
-      this.setTarget({
-         background: 'mediumpurple',
-         width: [ 250, 30, 50],
-         height: [ 250, 30, 50],
-         opacity: [ 0.15, 30, 50]
-      });
-    }
- });
-```
-
-```javascript
-import { App } from "targetj";
-
-App({
-  background: "mediumpurple",
-  animate() {
-    this.setTarget({ width: 250, height: 250, opacity: 0.15 }, 30, 50);
-  },
-});
-```
-
-**or HTML**
-
-```html 
-  <div 
-    tg-background="#fff"
-    tg-width="[120, 30, 50]"
-    tg-height="[120, 30, 50]"
-    tg-opacity="[0.15, 30, 50]"
-  >  
-  </div>
- ```
 
 ## Loading Two Users Example
 
