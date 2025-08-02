@@ -49,7 +49,7 @@ App({
 
 ![first example](https://targetjs.io/img/git1.gif)
 
-**Important Note**: As you can see, the entire UI and its behavior are defined directly within this single JavaScript file. There is no separate HTML or CSS.
+**Important Note**: As you can see, the entire UI and its behavior are defined directly within this single JavaScript file. There is no separate HTML or CSS. Targets named after HTML style properties or attributes will be mapped to the element’s styles and attributes.
 
 **Explanation**
 
