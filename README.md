@@ -31,7 +31,7 @@ Targets unlock a fundamentally new way of coding that simplifies everything from
 
 ## Examples
 
-To demostrate the power and simplicity of TargetJS, let's explore its concepts through practical examples. We'll begin with a simple animation and incrementally expand it to demonstrate API integration, event handling, and dynamic UI updates.
+To demonstrate the power and simplicity of TargetJS, let's explore how it can manage asynchronous workflows. Our first asynchronous operation is a simple animation, then we expand it to demonstrate API integration, event handling, and dynamic UI updates.
 
 ### Growing and Shrinking Box: Declarative Animation
 
