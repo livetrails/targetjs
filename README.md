@@ -70,6 +70,27 @@ The example above can also be implemented directly in HTML, utilizing tg- attrib
 ```
 Or a combination of JavaScript and HTML, linked together using the same HTML ID.
 
+Finally, here’s how the example looks in TypeScript:
+
+```TypeScript
+import { App, TModel } from 'targetj';
+
+type TargetFunctionContext = TModel & {
+    key: string;
+    value: any;
+    prevTargetValue: any;
+    isPrevTargetUpdated: () => boolean;
+};
+
+App({
+    background: 'mediumpurple',
+    width: [{ list: [100, 250, 100] }, 50, 10],
+    height$(this: TargetFunctionContext): number {
+        return this.prevTargetValue / 2;
+    }
+});
+```
+
 ### Adding an API Call
 
 Let's extend our previous example to demonstrate how TargetJS handles asynchronous operations. We'll fetch user details from an API, but we also want this API call to initiate only after the box animation has fully completed.
