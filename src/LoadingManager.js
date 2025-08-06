@@ -61,19 +61,23 @@ class LoadingManager {
         });
     }
 
-    fetchImage(tmodel, src, cacheId) {
-        const fetchId = `${tmodel.oid}_${src}`;
-        return this.fetchCommon(fetchId, cacheId, tmodel, this.fetchingImageMap, () => {
-            this.loadImage(src, this.fetchingImageMap[fetchId]);
+    fetchImage(tmodel, url, cacheId) {
+        const urls = Array.isArray(url) ? url : [url];
+        
+        urls.forEach(singleUrl => {
+            const fetchId = `${tmodel.oid}_${singleUrl}`;
+            this.fetchCommon(fetchId, cacheId, tmodel, this.fetchingImageMap, () => {
+                this.loadImage(singleUrl, this.fetchingImageMap[fetchId]);
+            });
         });
     }    
     
     getTModelKey(tmodel, targetName) {
-        return `${document.URL} ${tmodel.oid} ${targetName}`;
+        return `${document.URL} ${tmodel.oid} ${TargetUtil.getTargetName(targetName)}`;
     }
     
     getLoadTargetName(targetName) {
-        return `load-${targetName}`;
+        return `load-${TargetUtil.getTargetName(targetName)}`;
     }
 
     addToTModelKeyMap(tmodel, targetName, fetchId, cacheId) {
@@ -158,18 +162,17 @@ class LoadingManager {
     }
     
     getLoadingItemValue(tmodel, prevTargetName, currentTargetName) {
-        const target = tmodel.targets[prevTargetName];
         const key = this.getTModelKey(tmodel, prevTargetName);
         const tmodelEntry = this.tmodelKeyMap[key];
                 
-        if (!tmodelEntry || !target || tmodelEntry.accessIndex >= tmodelEntry.resultCount) {
+        if (!tmodelEntry || tmodelEntry.accessIndex >= tmodelEntry.resultCount) {
             return undefined;
         }
                 
         const loadTargetName = this.getLoadTargetName(prevTargetName);
         const targetValue = tmodel.val(loadTargetName);
         let result;
-
+        
         if (targetValue) {
             if (currentTargetName?.endsWith('$$')) {
                 result = targetValue.slice(tmodelEntry.accessIndex, tmodelEntry.resultCount);                

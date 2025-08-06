@@ -186,6 +186,17 @@ class TargetExecutor {
                 newCycles, 
                 newInterval
             );
+        } else if (TargetUtil.isFetchImageTarget(key, newValue)) {
+            getLoader().fetchImage(tmodel, newValue);
+            
+            TargetExecutor.assignSingleTarget(
+                targetValue, 
+                newValue, 
+                undefined, 
+                0, 
+                newCycles, 
+                newInterval
+            );    
         } else if (TargetUtil.isListTarget(newValue)) {
             TargetExecutor.assignListTarget(tmodel, key, targetValue, newValue.list, newValue.list[0], newSteps, newInterval, easing);
         } else {

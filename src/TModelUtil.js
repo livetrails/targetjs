@@ -1,4 +1,5 @@
 import { TUtil } from "./TUtil.js";
+import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
 import { getRunScheduler, getManager } from "./App.js";
 import { $Dom } from "./$Dom.js";
@@ -28,12 +29,29 @@ class TModelUtil {
     } 
     
     static isHeightDefined(tmodel) {
-        return TUtil.isDefined(tmodel.targets.height) || TUtil.isDefined(tmodel.targets.style?.height);
+        return TUtil.isDefined(tmodel.targets.height) || TUtil.isDefined(tmodel.targets.height$) || TUtil.isDefined(tmodel.targets.height$$) || TUtil.isDefined(tmodel.targets.style?.height);
     }
     
     static isWidthDefined(tmodel) {
-        return TUtil.isDefined(tmodel.targets.width) || TUtil.isDefined(tmodel.targets.style?.width);
-    }      
+        return TUtil.isDefined(tmodel.targets.width) || TUtil.isDefined(tmodel.targets.width$) || TUtil.isDefined(tmodel.targets.width$$) || TUtil.isDefined(tmodel.targets.style?.width);
+    } 
+    
+    static isXDefined(tmodel) {
+        const variants = ['x', 'x$', 'x$$'];
+
+        const targetDefined = variants.some(name => TUtil.isDefined(tmodel.targets[name]));
+        const valueDefined = variants.some(name => TUtil.isDefined(tmodel.targetValues[name]));
+
+        return tmodel.isTargetImperative('x') || targetDefined || valueDefined;
+    }  
+    
+    static isYDefined(tmodel) {
+        const variants = ['y', 'y$', 'y$$'];
+
+        const targetDefined = variants.some(name => TUtil.isDefined(tmodel.targets[name]));
+        const valueDefined = variants.some(name => TUtil.isDefined(tmodel.targetValues[name]));
+
+        return tmodel.isTargetImperative('y') || targetDefined || valueDefined;    }  
 
     static createDom(tmodel) {
         tmodel.$dom = new $Dom();
@@ -135,9 +153,10 @@ class TModelUtil {
 
         if (rerender || (parent && timestamp <= parent.getDimLastUpdate()) || (domParent && timestamp <= domParent.getDimLastUpdate())) {
             child.$dom.width('auto');
-            const width = child.$dom.width();
+            let width = child.$dom.width();
+            width = width > 0 && child.getHtml() ? width + 1 : width;
             child.domWidthTimestamp = TUtil.now();
-            
+                        
             child.val('width', width);  
   
             if (width > 0 || (width === 0 && child.lastVal('width') > 0)) {
@@ -177,7 +196,7 @@ class TModelUtil {
         const easing = tmodel.getTargetEasing(key);
         const easingStep = easing ? easing(tmodel.getTargetStepPercent(key, step)) : tmodel.getTargetStepPercent(key, step);
 
-        if (TargetData.colorMap[key]) {
+        if (TargetData.colorMap[TargetUtil.getTargetName(key)]) {
             const targetColors = ColorUtil.color2Integers(toValue);
             const lastColors = fromValue ? ColorUtil.color2Integers(fromValue) : ColorUtil.color2Integers('#fff');
 

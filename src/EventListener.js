@@ -279,11 +279,11 @@ class EventListener {
         }
                                 
         let { eventName, inputType, eventType, order: eventOrder, queue, rateLimit } = eventItem;
-        
+                
         const now = TUtil.now();
                 
         const tmodel = this.getTModelFromEvent(event);
-                
+                        
         tmodel?.markLayoutDirty('event');
                 
         const newEvent = { eventName, eventItem, eventType, originalName, tmodel, eventTarget, timeStamp: now };

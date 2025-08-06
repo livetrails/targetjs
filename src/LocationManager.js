@@ -161,11 +161,11 @@ class LocationManager {
             this.addToLocationList(child);
 
             this.calculateCoreTargets(child);
-            
-            if ((!child.isTargetImperative('x') && !child.targets['x']) || !TUtil.isDefined(child.targetValues.x)) {
+         
+            if (!TModelUtil.isXDefined(child)) {
                 child.actualValues.x =  child.x;
             }
-            if ((!child.isTargetImperative('y') && !child.targets['y']) || !TUtil.isDefined(child.targetValues.y)) {
+            if (!TModelUtil.isYDefined(child)) {
                 child.actualValues.y =  child.y;
             }
                 
@@ -270,10 +270,10 @@ class LocationManager {
         
         this.calculateCoreTargets(child);
          
-        if ((!child.isTargetImperative('x') && !child.targets['x']) || !TUtil.isDefined(child.targetValues.x)) {
+        if (!TModelUtil.isXDefined(child)) {
             child.actualValues.x =  child.x;
         }
-        if ((!child.isTargetImperative('y') && !child.targets['y']) || !TUtil.isDefined(child.targetValues.y)) {
+        if (!TModelUtil.isYDefined(child)) {
             child.actualValues.y =  child.y;
         }  
         

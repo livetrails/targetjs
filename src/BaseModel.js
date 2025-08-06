@@ -103,7 +103,7 @@ class BaseModel {
         this.activeTargetMap = {};
         this.activeTargetList = [];
 
-        this.originalTargetNames = Object.keys(this.targets);
+        this.originalTargetNames = Object.keys(this.targets).map(key => key.startsWith('_') ? key.slice(1) : key);
 
         const domExists = $Dom.query(`#${this.oid}`) || this.originalTargetNames.indexOf('$dom') >= 0;
 
@@ -152,7 +152,11 @@ class BaseModel {
 
         if (!TargetData.controlTargetMap[key]) {
             if (targetType !== 'object' || Array.isArray(target)) {
-                this.targets[key] = { value: target };
+                this.targets[key] = { 
+                    value: target,
+                    originalTargetName: TargetUtil.currentTargetName,
+                    originalTModel: TargetUtil.currentTModel                  
+                };
                 target = this.targets[key];
             }
         }
@@ -188,38 +192,41 @@ class BaseModel {
                 this.internalEventMap[cleanKey] = true;
                 target.active = false;
             }
-        }        
-
-        if (cleanKey !== key) {
-            if (this.targets[key]) {
-                this.targets[cleanKey] = this.targets[key];
-                this.targets[cleanKey].originalName = key;
-            }
-            if (isInactiveKey) {
-                this.targets[cleanKey].active = false;
-            }
-            
-            delete this.targets[key];
-            key = cleanKey;
-            target = this.targets[key];
         }
+        
+        if (key.startsWith('_')) {
+            const k = key.slice(1);
+            if (this.targets[key]) {
+                this.targets[k] = this.targets[key];
+            }      
 
-        if (TargetData.bypassInitialProcessingTargetMap[key]) {
+            delete this.targets[key];
+            key = k;
+            target = this.targets[k];
+        }
+        
+        if (isInactiveKey) {
+            this.targets[key].active = false;
+        }            
+
+        if (TargetData.bypassInitialProcessingTargetMap[cleanKey]) {
             return;
         }     
 
         if (TUtil.isDefined(target.initialValue)) {
-            this.val(key, target.initialValue);
+            this.val(key, target.initialValue);            
         }
-
-        this.addToStyleTargetList(key);
-
+        
+        if (target.active !== false || TUtil.isDefined(target.initialValue)) {
+            this.addToStyleTargetList(key);
+        }
+        
         if (TargetData.coreTargetMap[key] && !this.coreTargets.includes(key)) {
             this.coreTargets.push(key);
         }
         
-        if (!TargetData.mustExecuteTargets[key] && !doesNextTargetUsePrevValue && (targetType === 'string' || targetType === 'number' || targetType === 'boolean')) {          
-            this.val(key, typeof target === 'object' ? target.value : target );
+        if (!TargetData.mustExecuteTargets[cleanKey] && !doesNextTargetUsePrevValue && (targetType === 'string' || targetType === 'number' || targetType === 'boolean')) {          
+            this.val(cleanKey, typeof target === 'object' ? target.value : target );
             return;
         }
         
@@ -257,6 +264,9 @@ class BaseModel {
     }
     
     addToStyleTargetList(key, enforce) {
+        
+        key = TargetUtil.getTargetName(key);
+        
         if (!enforce && (this.excludeStyling() || this.targets[`exclude${TUtil.capitalizeFirstLetter(key)}`])) {
             return;
         }
@@ -391,14 +401,18 @@ class BaseModel {
         const step = this.getTargetStep(key);
         const steps = this.getTargetSteps(key);
 
-        if (this.isExecuted(key) && step < steps) {
-            this.targetValues[key].status = 'updating';
+        if (TargetUtil.isTargetAlreadyUpdating(this, key)) {
+            targetValue.status = 'done';
+            targetValue.step = steps;
+            targetValue.cycle = cycles;
+        } else if (this.isExecuted(key) && step < steps) {
+            targetValue.status = 'updating';
         } else if (Array.isArray(targetValue.valueList) && cycle < targetValue.valueList.length - 1) {
-            this.targetValues[key].status = 'updating';
+            targetValue.status = 'updating';
         } else if (!this.isExecuted(key) || this.isTargetInLoop(key) || cycle < cycles) {
-            this.targetValues[key].status = 'active';
+            targetValue.status = 'active';
         } else {
-            this.targetValues[key].status = 'done';
+            targetValue.status = 'done';
         }
 
         if (this.isTargetUpdating(key)) {
@@ -413,7 +427,7 @@ class BaseModel {
             tApp.manager.doneTargets.push({ tmodel: this, key: key });
         }
 
-        return this.targetValues[key].status;
+        return targetValue.status;
     }
 
     getTargetStatus(key) {

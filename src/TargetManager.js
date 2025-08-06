@@ -18,9 +18,9 @@ class TargetManager {
         }
     }
 
-    applyTargetValue(tmodel, key) {
+    applyTargetValue(tmodel, key) {        
         const target = tmodel.targets[key];
-
+        
         if (!TUtil.isDefined(target)) {
             tmodel.removeFromActiveTargets(key);
             return;
@@ -93,8 +93,13 @@ class TargetManager {
                 if (nextRun && nextRun.delay + nextRun.insertTime < lastScheduledTime + interval) {                
                     continue;
                 }
-            }            
-            
+            }  
+                        
+            if (TargetUtil.isTargetAlreadyUpdating(tmodel, key)) {
+                tmodel.updateTargetStatus(key);
+                continue;
+            }
+
             schedulePeriod = TargetUtil.scheduleExecution(tmodel, key);
 
             if (schedulePeriod > 0) {

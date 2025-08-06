@@ -427,8 +427,9 @@ class TModel extends BaseModel {
         let lastActual = this.lastActualValues;
         if (key?.startsWith('_')) {
             actual = this;
-            key = key.slice(1);
         }
+        
+        key = TargetUtil.getTargetName(key);
 
         if (arguments.length === 2) {
             lastActual[key] = actual[key];
@@ -590,7 +591,7 @@ class TModel extends BaseModel {
     }
     
     isTextOnly() {
-        return this.val('textOnly');
+        return TUtil.isDefined(this.val('textOnly')) ? this.val('textOnly') : typeof this.getHtml() === 'string' &&  this.getHtml().trim().startsWith('<') ? true : false;
     }
     
     getHtml() {
@@ -756,11 +757,11 @@ class TModel extends BaseModel {
     }
 
     getRightMargin() {
-        return this.val('rightMargin');
+        return this.val('rightMargin') + this.getParentValue('gap');
     }
 
     getBottomMargin() {
-        return this.val('bottomMargin');
+        return this.val('bottomMargin') + this.getParentValue('gap');
     }
 
     getWidth() {

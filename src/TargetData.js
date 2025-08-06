@@ -13,12 +13,13 @@ class TargetData {
             rightMargin: 0,
             topMargin: 0,
             bottomMargin: 0,
+            gap: 0,
             opacity: 1,
             scale: 1,  
             scrollLeft: 0,
             scrollTop: 0,
-            textOnly: true,
             borderRadius: 0,
+            domHolder: true,
             children: [],
             isInFlow: true,
             baseElement: 'div',
@@ -135,6 +136,7 @@ class TargetData {
         transformOrigin: true, 
         attributes: true, 
         justifyContent: true,
+        flexDirection: true,
         alignItems: true, 
         display: true, 
         cursor: true, 
@@ -145,7 +147,10 @@ class TargetData {
         textDecoration: true, 
         boxShadow: true, 
         fontWeight: true,
-        willChange: true
+        willChange: true,
+        backgroundImage: true,
+        backgroundSize: true,
+        flexWrap: true
     };
 
     static scaleMap = { 
@@ -353,6 +358,8 @@ class TargetData {
         borderradius: 'borderRadius',
         letterspacing: 'letterSpacing',
         backgroundcolor: 'backgroundColor',
+        backgroundimage: 'backgroundImage',
+        backgroundsize: 'backgroundSize',
         bordertop: 'borderTop',
         borderleft: 'borderLeft',
         borderright: 'borderRight',
@@ -361,6 +368,8 @@ class TargetData {
         transformstyle: 'transformStyle', 
         transformorigin: 'transformOrigin', 
         justifycontent: 'justifyContent',
+        flexdirection: 'flexDirection',
+        flexwrap: 'flexWrap',
         alignitems: 'alignItems', 
         fontfamily: 'fontFamily', 
         overflowx: 'overflowX',

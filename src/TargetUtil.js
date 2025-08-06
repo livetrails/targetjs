@@ -29,14 +29,17 @@ class TargetUtil {
         };
     }
             
-    static getTargetName(key) {
-        if (!key) {
+    static getTargetName(name) {
+        if (!name) {
             return;
         }
 
-        let cleanKey = key.startsWith('_') ? key.slice(1) : key;
-        cleanKey = cleanKey.endsWith('$$') ? cleanKey.slice(0, -2) : cleanKey.endsWith('$') ? cleanKey.slice(0, -1) : cleanKey;
-        return cleanKey;
+        let start = name.startsWith('_') ? 1 : 0;
+        let end = name.length;
+        while (end > start && name[end - 1] === '$') {
+            end--;
+        }
+        return name.slice(start, end);
     }
     
     static bindTarget(tmodel, key, prevKey, nextKey) {
@@ -45,7 +48,7 @@ class TargetUtil {
         const getPrevValue = () => {
             if (prevKey) { 
                 if (getLoader().isLoading(tmodel, prevKey)) {
-                    return getLoader().getLoadingItemValue(tmodel, prevKey, target.originalName);
+                    return getLoader().getLoadingItemValue(tmodel, prevKey, key);
                 } else {
                     return tmodel.val(prevKey);
                 }
@@ -71,11 +74,11 @@ class TargetUtil {
         
         target.originalTargetName = TargetUtil.currentTargetName;
         target.originalTModel = TargetUtil.currentTModel;
-        
-        const cleanKey = TargetUtil.getTargetName(key);
+                
+        const cleanKey = key.startsWith('_') ? key.slice(1) : key;
         
         if (doesNextTargetUsePrevValue && !target.activateNextTarget) {
-            target.activateNextTarget = nextKey.slice(0, -1);
+            target.activateNextTarget = nextKey;
         }  
 
         const stepPattern = /^on[A-Za-z]+Step$/;
@@ -118,9 +121,9 @@ class TargetUtil {
             return;
         }
         const originalTarget = originalTModel.targets[originalTargetName];
-        const activeNextTarget = originalTarget.activateNextTarget;
-       
-        if (!originalTModel.isTargetComplete(originalTargetName) && activeNextTarget && (!activeNextTarget.endsWith('$') || !tmodel.isTargetUpdating(key))) {
+        const originalActiveNextTarget = originalTarget.activateNextTarget;
+                
+        if (!originalTModel.isTargetComplete(originalTargetName) && originalActiveNextTarget && (!originalActiveNextTarget.endsWith('$$') || !tmodel.isTargetUpdating(key))) {
             TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
         } else {
             TargetUtil.cleanupTarget(originalTModel, originalTargetName);   
@@ -129,7 +132,7 @@ class TargetUtil {
     
     static shouldActivateNextTarget(tmodel, key, level = 0) {
         
-        if (tmodel.isTargetImperative(key)) {         
+        if (tmodel.isTargetImperative(key)) { 
             TargetUtil.cleanupTarget(tmodel, key);
             const { originalTModel, originalTargetName } = tmodel.targetValues[key];
             TargetUtil.shouldActivateOriginalTModel(tmodel, key,  originalTModel, originalTargetName, level);
@@ -143,31 +146,30 @@ class TargetUtil {
         }
       
         if (!target.activateNextTarget) {
-            const { originalTModel, originalTargetName } = target;      
+            const { originalTModel, originalTargetName } = target;                
             TargetUtil.shouldActivateOriginalTModel(tmodel, key,  originalTModel, originalTargetName, level);
         } else {
             const nextTarget = target.activateNextTarget;
-            const cleanNextTarget = TargetUtil.getTargetName(nextTarget);           
-            const isEndTrigger = nextTarget.endsWith('$');
+            const isEndTrigger = nextTarget.endsWith('$$');
             const fetchAction = target.fetchAction;
-
+            
             if (fetchAction) {
                 if (isEndTrigger) {     
                     if (TargetUtil.hasTargetEnded(tmodel, key)) {                  
-                        tmodel.activateTarget(cleanNextTarget);
+                        tmodel.activateTarget(nextTarget);
                     }
                 } else {
                     while (getLoader().isNextLoadingItemSuccessful(tmodel, key)) {
-                        if (tmodel.activatedTargets.indexOf(cleanNextTarget) >= 0) {
-                            tmodel.activatedTargets.push(cleanNextTarget);
+                        if (tmodel.activatedTargets.indexOf(nextTarget) >= 0) {
+                            tmodel.activatedTargets.push(nextTarget);
                         } else {
-                            tmodel.activateTarget(cleanNextTarget);
+                            tmodel.activateTarget(nextTarget);
                         }
                         getLoader().nextActiveItem(tmodel, key);
                     }   
                 }
             } else if ((isEndTrigger && TargetUtil.hasTargetEnded(tmodel, key)) || (!isEndTrigger)) { 
-                tmodel.activateTarget(cleanNextTarget);                
+                tmodel.activateTarget(nextTarget);                
             }
         }    
             
@@ -242,17 +244,20 @@ class TargetUtil {
     }
        
     static arePreviousTargetsComplete(tmodel, key) {
-        const keyIndex = tmodel.originalTargetNames.findIndex(name => key === TargetUtil.getTargetName(name));
+        if (!key.endsWith('$')) {
+            return true;
+        }
+        
+        const keyIndex = tmodel.originalTargetNames.findIndex(name => key === name);
         
         for (var i = keyIndex - 1; i >= 0; i--) {
             var targetName = tmodel.originalTargetNames[i];
-            var cleanTargetName = TargetUtil.getTargetName(targetName);
             
-            if (tmodel.isTargetImperative(cleanTargetName)) {
+            if (tmodel.isTargetImperative(targetName)) {
                 continue;
             }
                         
-            if (!TargetUtil.isTModelTargetComplete(tmodel, cleanTargetName) || tmodel.hasUpdatingImperativeTargets(cleanTargetName)) {
+            if (!TargetUtil.isTModelTargetComplete(tmodel, targetName) || tmodel.hasUpdatingImperativeTargets(targetName)) {
                return false; 
             }
 
@@ -307,10 +312,20 @@ class TargetUtil {
         });
 
         return count;
-        
     }    
-        
     
+    static isTargetAlreadyUpdating(tmodel, key) {
+        const cleanKey = TargetUtil.getTargetName(key);
+
+        if (key !== cleanKey) {
+            if (!tmodel.isTargetImperative(key) && tmodel.isTargetImperative(cleanKey) && !tmodel.isTargetComplete(cleanKey)) {
+                return true;
+            } 
+        }
+        
+        return false;
+    }
+        
     static activateSingleTarget(tmodel, targetName) {
         if (tmodel.targets[targetName] && tmodel.canTargetBeActivated(targetName)) {
             if (tmodel.isTargetEnabled(targetName)) {
@@ -359,11 +374,15 @@ class TargetUtil {
     }
     
     static isFetchTarget(key, value) {
-        return key === 'fetch' && (typeof value === 'string' || Array.isArray(value));
+        return TargetUtil.getTargetName(key) === 'fetch' && (typeof value === 'string' || Array.isArray(value));
     }
     
+    static isFetchImageTarget(key, value) {
+        return TargetUtil.getTargetName(key) === 'fetchImage' && (typeof value === 'string' || Array.isArray(value));
+    }    
+    
     static isObjectTarget(key, value) {
-        return key !== 'style'
+        return TargetUtil.getTargetName(key) !== 'style'
             && typeof value === 'object'
             && value !== null
             && !Array.isArray(value)
@@ -371,7 +390,7 @@ class TargetUtil {
     }
     
     static isChildrenTarget(key, value) {
-        return key === 'children' && typeof value === 'object';
+        return TargetUtil.getTargetName(key) === 'children' && typeof value === 'object';
     }
 
     static getValueStepsCycles(tmodel, _target, key, cycle = tmodel.getTargetCycle(key)) {
