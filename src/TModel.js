@@ -34,7 +34,7 @@ class TModel extends BaseModel {
         
         this.styleMap = {};
         this.transformMap = {};
-        
+                
         this.visibilityStatus = undefined;
                       
         this.hasDomNow = false;
@@ -157,6 +157,8 @@ class TModel extends BaseModel {
                 if (child.activeTargetList.length > 0) {
                     this.addToActiveChildren(child);
                 }
+                
+                child.parentTargetName = TargetUtil.currentTargetName;
             }
         }
         return this;
@@ -512,7 +514,7 @@ class TModel extends BaseModel {
             return this.val('managesOwnScroll');
         }
 
-        return this.externalEventMap['onScroll'] || this.externalEventMap['onScrollLeft'] || this.externalEventMap['onScrollTop'];
+        return this.allTargetMap['onScroll'] || this.allTargetMap['onScrollLeft'] || this.allTargetMap['onScrollTop'];
     }
     
     calcVisibility() {
@@ -591,7 +593,7 @@ class TModel extends BaseModel {
     }
     
     isTextOnly() {
-        return TUtil.isDefined(this.val('textOnly')) ? this.val('textOnly') : typeof this.getHtml() === 'string' &&  this.getHtml().trim().startsWith('<') ? true : false;
+        return TUtil.isDefined(this.val('textOnly')) ? this.val('textOnly') : typeof this.getHtml() === 'string' &&  this.getHtml().trim().startsWith('<') ? false : true;
     }
     
     getHtml() {
@@ -603,7 +605,7 @@ class TModel extends BaseModel {
     }
 
     canHandleEvent(eventName) {
-        return this.state().externalEventMap?.[eventName] ?? false;
+        return this.allTargetMap[eventName] ?? false;
     }
 
     preventDefault() {

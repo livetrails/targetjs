@@ -58,9 +58,7 @@ class BaseModel {
     get activeChildrenList() { return this.state().activeChildrenList ??= []; }
     get activeChildrenMap() { return this.state().activeChildrenMap ??= {}; }
     get externalEventList() { return this.state().externalEventList ??= []; }
-    get externalEventMap() { return this.state().externalEventMap ??= {}; }
     get internalEventList() { return this.state().internalEventList ??= []; }
-    get internalEventMap() { return this.state().internalEventMap ??= {}; }
     get coreTargets() { return this.state().coreTargets ??= []; }
     get allStyleTargetList() { return this.state().allStyleTargetList ??= []; }
     get allStyleTargetMap() { return this.state().allStyleTargetMap ??= {}; }
@@ -91,6 +89,8 @@ class BaseModel {
 
     initTargets() {        
         this.originalTargetNames = Object.keys(this.targets);
+        this.functionTargetNames = [];
+        this.allTargetMap = {};
         
         if (TUtil.isDefined(this.originalId) && getDomTModelById(this.originalId)) {
             TUtil.mergeTargets(getDomTModelById(this.originalId), this);
@@ -146,7 +146,7 @@ class BaseModel {
         
         const targetType = typeof target;
         
-        const isInactiveKey = key.startsWith('_') || (key.endsWith('$') && !target.active);
+        const isInactiveKey = key.startsWith('_') || key.endsWith('$');
         const isExternalEvent = TargetData.allEventMap[cleanKey];
         const isInternalEvent = TargetData.internalEventMap[cleanKey];
 
@@ -174,23 +174,7 @@ class BaseModel {
                 || targetType === 'object'
                 || targetType === 'function'
             ) {            
-                TargetUtil.bindTarget(this, key, prevKey, nextKey);
-            }
-        }
-
-        if (isExternalEvent) {
-            if (!this.externalEventMap[cleanKey]) {
-                this.externalEventList.push(cleanKey);
-                this.externalEventMap[cleanKey] = true;
-                target.active = false;
-            }
-        }
-        
-        if (isInternalEvent) {
-            if (!this.internalEventMap[cleanKey]) {
-                this.internalEventList.push(cleanKey);
-                this.internalEventMap[cleanKey] = true;
-                target.active = false;
+                TargetUtil.bindTarget(this, key, prevKey, nextKey, keyIndex);
             }
         }
         
@@ -204,7 +188,23 @@ class BaseModel {
             key = k;
             target = this.targets[k];
         }
+                
+        if (isExternalEvent) {
+            if (!this.allTargetMap[cleanKey]) {
+                this.externalEventList.push(cleanKey);
+                target.active = false;
+            }
+        }
         
+        if (isInternalEvent) {
+            if (!this.allTargetMap[cleanKey]) {
+                this.internalEventList.push(cleanKey);
+                target.active = false;
+            }
+        }
+        
+        this.allTargetMap[cleanKey] = key;
+
         if (isInactiveKey) {
             this.targets[key].active = false;
         }            
@@ -237,6 +237,8 @@ class BaseModel {
         if (target.active !== false && this.canTargetBeActivated(key)) {
             this.addToActiveTargets(key);
         }
+        
+        this.functionTargetNames.push(key);
     }
     
     activate(targetName) {
@@ -293,7 +295,7 @@ class BaseModel {
                 if (this.styleMap[key] === dimension) {
                     styleFlag = false;
                 }
-            } else if (TUtil.isDefined(this.val(key)) && this.styleMap[key] === this.val(key)) {
+                } else if (TUtil.isDefined(this.val(key)) && this.styleMap[key] === this.val(key)) {
                 styleFlag = false;
             }
 
@@ -616,13 +618,15 @@ class BaseModel {
         if (typeof key === 'object' && key !== null) {
             [value, steps, interval, easing] = [key, value, steps, interval, easing];
             key = '';
-        }        
+        }
         const originalTargetName = TargetUtil.currentTargetName;
         const originalTModel = TargetUtil.currentTModel;
         
         if (this.getParent() === originalTModel) {
             TargetUtil.markTargetAction(originalTModel, 'childAction');
         }
+        
+        this.parentTargetName = TargetUtil.currentTargetName;
         
         this.markLayoutDirty(key);
         
@@ -731,16 +735,10 @@ class BaseModel {
         return this.updatingChildrenList.length > 0;
     }   
 
-    deleteTargetValue(key) {
-        const targetValue = this.targetValues[key];
-        
+    deleteTargetValue(key) {        
         delete this.targetValues[key];
         this.addToActiveTargets(key);
         this.removeFromUpdatingTargets(key);
-        
-        if (targetValue) {
-            getRunScheduler().schedule(1, 'deleteTargetValue-' + this.oid + "-" + key);
-        }
         
         return this;
     }    

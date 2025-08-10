@@ -39,10 +39,13 @@ class TargetUtil {
         while (end > start && name[end - 1] === '$') {
             end--;
         }
+        if (name[end - 1] === '+') {
+            end--;
+        }
         return name.slice(start, end);
     }
     
-    static bindTarget(tmodel, key, prevKey, nextKey) {
+    static bindTarget(tmodel, key, prevKey, nextKey, keyIndex) {
         let target = tmodel.targets[key];
                 
         const getPrevValue = () => {
@@ -50,7 +53,7 @@ class TargetUtil {
                 if (getLoader().isLoading(tmodel, prevKey)) {
                     return getLoader().getLoadingItemValue(tmodel, prevKey, key);
                 } else {
-                    return tmodel.val(prevKey);
+                    return tmodel.targetValues[prevKey] ? tmodel.targetValues[prevKey].actual : tmodel.val(prevKey);
                 }
             }
         };
@@ -69,38 +72,32 @@ class TargetUtil {
             }
             return currentPrevUpdateTime !== lastPrevUpdateTime;
         };
-        
-        const doesNextTargetUsePrevValue = nextKey && nextKey.endsWith('$') ? true : false;
-        
+                
         target.originalTargetName = TargetUtil.currentTargetName;
         target.originalTModel = TargetUtil.currentTModel;
                 
         const cleanKey = key.startsWith('_') ? key.slice(1) : key;
         
-        if (doesNextTargetUsePrevValue && !target.activateNextTarget) {
-            target.activateNextTarget = nextKey;
-        }  
+        const doesNextTargetUsePrevValue = nextKey && nextKey.endsWith('$') ? true : false;
+        
+        if (!target.activateNextTarget) {
+            if (doesNextTargetUsePrevValue) {
+                target.activateNextTarget = nextKey;
+            } else {
+                target.activateNextTarget = tmodel.originalTargetNames.slice(keyIndex + 1).find(name => name.endsWith('$$'));
+            }
+        }
 
         const stepPattern = /^on[A-Za-z]+Step$/;
         const endPattern = /^on[A-Za-z]+End$/;  
         const methods = ['value', 'enabledOn', 'onStepsEnd', 'onValueChange', 'loop', 'onImperativeEnd', 'onImperativeStep', 'onSuccess', 'onError'];
 
         Object.keys(target).forEach(method => {
-            if (method === 'value') {
-                const originalMethod = target[method];                
-                target[method] = function() {
-                    TargetUtil.currentTargetName = cleanKey;
-                    TargetUtil.currentTModel = tmodel;
-                    this.key = cleanKey;      
-                    this.value = this.val(cleanKey);
-                    this.prevTargetValue = getPrevValue();         
-                    this.isPrevTargetUpdated = isPrevTargetUpdated;
-                    const result = typeof originalMethod === 'function' ? originalMethod.apply(this, arguments) : originalMethod;
-                    lastPrevUpdateTime = getPrevUpdateTime() ?? lastPrevUpdateTime;
-                    return result;
-                };
-            } else if (typeof target[method] === 'function' && (methods.includes(method) || stepPattern.test(method) || endPattern.test(method))) {
-                const originalMethod = target[method];
+            const originalMethod = target[method];
+            const shouldWrap = method === 'value' ||
+                (typeof originalMethod === 'function' && (methods.includes(method) || stepPattern.test(method) || endPattern.test(method)));
+
+            if (shouldWrap) {
                 target[method] = function() {
                     TargetUtil.currentTargetName = cleanKey;
                     TargetUtil.currentTModel = tmodel;
@@ -108,34 +105,44 @@ class TargetUtil {
                     this.value = this.val(cleanKey);
                     this.prevTargetValue = getPrevValue();         
                     this.isPrevTargetUpdated = isPrevTargetUpdated;
-                    const result = typeof originalMethod === 'function' ? originalMethod.apply(this, arguments) : originalMethod;
+                    const result = typeof originalMethod === 'function'
+                        ? originalMethod.apply(this, arguments)
+                        : originalMethod;
                     lastPrevUpdateTime = getPrevUpdateTime() ?? lastPrevUpdateTime;
                     return result;
-                };                
+                };
             }
         });
     }
     
-    static shouldActivateOriginalTModel(tmodel, key, originalTModel, originalTargetName, level) {
-        if (!originalTModel) {
+    static shouldActivateParentTModel(childTModel, childTargetName, parentTModel, parentTargetName, level) {
+        
+        if (!parentTModel || level > 3) {
             return;
         }
-        const originalTarget = originalTModel.targets[originalTargetName];
-        const originalActiveNextTarget = originalTarget.activateNextTarget;
-                
-        if (!originalTModel.isTargetComplete(originalTargetName) && originalActiveNextTarget && (!originalActiveNextTarget.endsWith('$$') || !tmodel.isTargetUpdating(key))) {
-            TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
+
+        
+        const parentTarget = parentTModel.targets[parentTargetName];
+        const parentActiveNextTarget = parentTarget.activateNextTarget;
+        
+        if (!parentTModel.isTargetComplete(parentTargetName) && parentActiveNextTarget 
+                && (parentActiveNextTarget.endsWith('$$')
+                    || (!parentActiveNextTarget.endsWith('$$') && parentActiveNextTarget.endsWith('$')))) { 
+            TargetUtil.shouldActivateNextTarget(parentTModel, parentTargetName, level + 1);
         } else {
-            TargetUtil.cleanupTarget(originalTModel, originalTargetName);   
+            TargetUtil.cleanupTarget(parentTModel, parentTargetName);   
+
+            if (parentTModel.isTargetComplete(parentTargetName) && parentTarget.originalTModel) {                    
+                const { originalTModel, originalTargetName } = parentTarget;
+                TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
+            }
         }
     }
     
     static shouldActivateNextTarget(tmodel, key, level = 0) {
-        
         if (tmodel.isTargetImperative(key)) { 
-            TargetUtil.cleanupTarget(tmodel, key);
-            const { originalTModel, originalTargetName } = tmodel.targetValues[key];
-            TargetUtil.shouldActivateOriginalTModel(tmodel, key,  originalTModel, originalTargetName, level);
+            const { originalTModel, originalTargetName } = tmodel.targetValues[key];         
+            TargetUtil.shouldActivateParentTModel(tmodel, key,  originalTModel, originalTargetName, level + 1);
             return;
         }
         
@@ -147,7 +154,7 @@ class TargetUtil {
       
         if (!target.activateNextTarget) {
             const { originalTModel, originalTargetName } = target;                
-            TargetUtil.shouldActivateOriginalTModel(tmodel, key,  originalTModel, originalTargetName, level);
+            TargetUtil.shouldActivateParentTModel(tmodel, key,  originalTModel, originalTargetName, level + 1);
         } else {
             const nextTarget = target.activateNextTarget;
             const isEndTrigger = nextTarget.endsWith('$$');
@@ -155,7 +162,7 @@ class TargetUtil {
             
             if (fetchAction) {
                 if (isEndTrigger) {     
-                    if (TargetUtil.hasTargetEnded(tmodel, key)) {                  
+                    if (TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) === true) {                  
                         tmodel.activateTarget(nextTarget);
                     }
                 } else {
@@ -166,10 +173,19 @@ class TargetUtil {
                             tmodel.activateTarget(nextTarget);
                         }
                         getLoader().nextActiveItem(tmodel, key);
-                    }   
+                    } 
                 }
-            } else if ((isEndTrigger && TargetUtil.hasTargetEnded(tmodel, key)) || (!isEndTrigger)) { 
-                tmodel.activateTarget(nextTarget);                
+            } else if (isEndTrigger && TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) === true) {
+                tmodel.activateTarget(nextTarget);
+            } else if (!isEndTrigger && !tmodel.isTargetUpdating(nextTarget)) {
+                if (tmodel.activatedTargets.indexOf(nextTarget) >= 0 && !tmodel.isTargetUpdating(key)) {
+                    tmodel.activatedTargets.push(nextTarget);
+                } else {
+                    tmodel.activateTarget(nextTarget);
+                }
+            } else if (!isEndTrigger && tmodel.isTargetDone(nextTarget)) {
+                TargetUtil.cleanupTarget(tmodel, nextTarget);
+                TargetUtil.shouldActivateNextTarget(tmodel, nextTarget);
             }
         }    
             
@@ -202,12 +218,21 @@ class TargetUtil {
             if (index >= 0) {
                 tmodel.childActionTargetList.splice(index, 1);
             }
-            
-            if (!tmodel.childActionTargetList.length) {    
-                target.childAction = false;
-            }
         }
     }
+    
+    static activateTargets(tmodel, target) {
+        while(target) {
+            if (!tmodel.isTargetActive(target) && !tmodel.isTargetUpdating(target)) {
+                tmodel.activateTarget(target);
+            }
+            
+            const activateNextTarget = tmodel.targets[target].activateNextTarget;
+            target = activateNextTarget && !activateNextTarget.endsWith('$$') && activateNextTarget.endsWith('$') ? activateNextTarget : undefined;
+        }
+        
+    }
+
     
     static isTModelComplete(tmodel) {
         const state = tmodel.state();
@@ -238,31 +263,36 @@ class TargetUtil {
         return true;
     }
     static hasTargetEnded(tmodel, key) {
-        const result = !TargetUtil.isTModelTargetComplete(tmodel, key) || tmodel.hasUpdatingImperativeTargets(key) || !TargetUtil.arePreviousTargetsComplete(tmodel, key) ? false : true;
+        let result = !tmodel.isTargetUpdating(key) && TargetUtil.isTModelTargetComplete(tmodel, key);
+        
+        if (result && !tmodel.isTargetImperative(key)) {
+             result = !tmodel.hasUpdatingImperativeTargets(key)
+        }
+        
+        if (result && key.endsWith('$$')) {
+            result = TargetUtil.arePreviousTargetsComplete(tmodel, key) === true;
+        }
 
         return result;
     }
        
     static arePreviousTargetsComplete(tmodel, key) {
-        if (!key.endsWith('$')) {
-            return true;
-        }
-        
-        const keyIndex = tmodel.originalTargetNames.findIndex(name => key === name);
-        
+       
+        const keyIndex = tmodel.functionTargetNames.findIndex(name => key === name);
+ 
         for (var i = keyIndex - 1; i >= 0; i--) {
-            var targetName = tmodel.originalTargetNames[i];
-            
+            var targetName = tmodel.functionTargetNames[i];
+
             if (tmodel.isTargetImperative(targetName)) {
                 continue;
             }
-                        
-            if (!TargetUtil.isTModelTargetComplete(tmodel, targetName) || tmodel.hasUpdatingImperativeTargets(targetName)) {
-               return false; 
+                 
+            if (!TargetUtil.isTModelTargetComplete(tmodel, targetName)) {
+               return targetName; 
             }
-
-            if (!targetName.endsWith('$')) {
-                break;
+            
+            if (tmodel.hasUpdatingImperativeTargets(targetName)) {
+                return targetName;
             }
                         
         }
@@ -302,15 +332,11 @@ class TargetUtil {
     static getUpdatingChildren(tmodel, originalTargetName) {
         let count = 0;
         tmodel.updatingChildrenList.filter(child => child.isVisible()).forEach(child => {
-            child.updatingTargetList.forEach(target => {
-                if (child.isTargetImperative(target) && child.targetValues[target]?.originalTargetName === originalTargetName) {
-                    count++;
-                } else if (child.targets[target]?.originalTargetName === originalTargetName) {
-                    count++;
-                }
-            });
+            if (child.parentTargetName === originalTargetName) {
+                count++;
+            }       
         });
-
+   
         return count;
     }    
     

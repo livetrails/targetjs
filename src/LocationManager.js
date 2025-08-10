@@ -216,12 +216,12 @@ class LocationManager {
                 }
             }
                 
-            if (!child.isTargetImperative('height') && !TModelUtil.isHeightDefined(child) && !child.val('heightFromDom') && child.getContentHeight() > 0) {
+            if (!TModelUtil.isHeightDefined(child) && !child.val('heightFromDom') && child.getContentHeight() > 0) {
                 child.actualValues.height = child.getContentHeight();
                 child.addToStyleTargetList('height');
             }
 
-            if (!child.isTargetImperative('width') && !TModelUtil.isWidthDefined(child) && !child.val('widthFromDom') && child.getContentWidth() > 0) {
+            if (!TModelUtil.isWidthDefined(child) && !child.val('widthFromDom') && child.getContentWidth() > 0) {
                 child.actualValues.width = child.getContentWidth();
                 child.addToStyleTargetList('width');
             } 
@@ -271,10 +271,10 @@ class LocationManager {
         this.calculateCoreTargets(child);
          
         if (!TModelUtil.isXDefined(child)) {
-            child.actualValues.x =  child.x;
+            child.actualValues.x = child.x;
         }
         if (!TModelUtil.isYDefined(child)) {
-            child.actualValues.y =  child.y;
+            child.actualValues.y = child.y;
         }  
         
         const absX = Math.floor(child.absX);
@@ -332,19 +332,23 @@ class LocationManager {
     }
     
     calculateCoreTargets(tmodel) {
-        const coreTargets = tmodel.getCoreTargets();
-        if (coreTargets) {
-            coreTargets.forEach(key => {
-                const target = tmodel.targets[key];
-                if (!target) {
-                    return;
-                }
-                if (target.active !== false && tmodel.isTargetEnabled(key) && !tmodel.isTargetUpdating(key) && !tmodel.isTargetImperative(key)) {
-                    TargetExecutor.resolveTargetValue(tmodel, key, tmodel.getTargetCycle(key));
-                    TargetExecutor.updateTarget(tmodel, tmodel.targetValues[key], key, false);                    
-                }
-            });
-        }        
+        if (tmodel.updatingTargetList.length === 0 && tmodel.activeTargetList.length === 0) {
+            const coreTargets = tmodel.getCoreTargets();
+            if (coreTargets) {
+                coreTargets.forEach(key => {
+                    const target = tmodel.targets[key];
+                    if (!target) {
+                        return;
+                    }
+
+                    if (target.active !== false && tmodel.isTargetEnabled(key) && !tmodel.isTargetUpdating(key) 
+                            && !tmodel.isTargetImperative(key)) {
+                        TargetExecutor.resolveTargetValue(tmodel, key, tmodel.getTargetCycle(key));
+                        TargetExecutor.updateTarget(tmodel, tmodel.targetValues[key], key, false);                    
+                    }
+                });
+            } 
+        }
     }
 
     calculateTargets(tmodel) {
@@ -389,7 +393,7 @@ class LocationManager {
         if (externalList?.length > 0) {
             for (const targetName of externalList) {
                 if (eventMap[targetName](tmodel)) {
-                    eventTargets.push(targetName);
+                    eventTargets.push(tmodel.allTargetMap[targetName]);
                 }
             }
         }
@@ -405,7 +409,7 @@ class LocationManager {
         if (internalList?.length > 0) {
             for (const targetName of internalList) {
                 if (eventMap[targetName](tmodel)) {
-                    eventTargets.push(targetName);
+                    eventTargets.push(tmodel.allTargetMap[targetName]);
                 }
             }
         }
@@ -417,7 +421,7 @@ class LocationManager {
 
         eventTargets.forEach(targetName => {
             const target = tmodel.targets[targetName];
-            
+                        
             if (tmodel.isTargetEnabled(targetName) && !tmodel.isTargetUpdating(target)) {
                 TargetExecutor.prepareTarget(tmodel, targetName);
                 TargetExecutor.resolveTargetValue(tmodel, targetName, tmodel.getTargetCycle(targetName));

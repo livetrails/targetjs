@@ -29,29 +29,20 @@ class TModelUtil {
     } 
     
     static isHeightDefined(tmodel) {
-        return TUtil.isDefined(tmodel.targets.height) || TUtil.isDefined(tmodel.targets.height$) || TUtil.isDefined(tmodel.targets.height$$) || TUtil.isDefined(tmodel.targets.style?.height);
+        return tmodel.isTargetImperative('height') || !!tmodel.allTargetMap['height'] || TUtil.isDefined(tmodel.targets.style?.height);
     }
     
     static isWidthDefined(tmodel) {
-        return TUtil.isDefined(tmodel.targets.width) || TUtil.isDefined(tmodel.targets.width$) || TUtil.isDefined(tmodel.targets.width$$) || TUtil.isDefined(tmodel.targets.style?.width);
+        return tmodel.isTargetImperative('width') || !!tmodel.allTargetMap['width'] || TUtil.isDefined(tmodel.targets.style?.width);
     } 
     
     static isXDefined(tmodel) {
-        const variants = ['x', 'x$', 'x$$'];
-
-        const targetDefined = variants.some(name => TUtil.isDefined(tmodel.targets[name]));
-        const valueDefined = variants.some(name => TUtil.isDefined(tmodel.targetValues[name]));
-
-        return tmodel.isTargetImperative('x') || targetDefined || valueDefined;
+        return tmodel.isTargetImperative('x') || !!tmodel.allTargetMap['x'] || !!tmodel.targetValues['x'];
     }  
     
     static isYDefined(tmodel) {
-        const variants = ['y', 'y$', 'y$$'];
-
-        const targetDefined = variants.some(name => TUtil.isDefined(tmodel.targets[name]));
-        const valueDefined = variants.some(name => TUtil.isDefined(tmodel.targetValues[name]));
-
-        return tmodel.isTargetImperative('y') || targetDefined || valueDefined;    }  
+        return tmodel.isTargetImperative('y') || !!tmodel.allTargetMap['y'] || !!tmodel.targetValues['y'];   
+    }  
 
     static createDom(tmodel) {
         tmodel.$dom = new $Dom();

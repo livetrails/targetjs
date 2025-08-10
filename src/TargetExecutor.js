@@ -25,19 +25,29 @@ class TargetExecutor {
     static executeDeclarativeTarget(tmodel, key, cycle) { 
         TargetExecutor.resolveTargetValue(tmodel, key, cycle);
         TargetExecutor.updateTarget(tmodel, tmodel.targetValues[key], key, false);
-
-        TargetUtil.shouldActivateNextTarget(tmodel, key); 
+        
+        if (tmodel.isTargetDone(key)) {
+            TargetUtil.shouldActivateNextTarget(tmodel, key); 
+        }
     }
-
-    static executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel) {
+    
+    static assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel) {
         tmodel.targetValues[key] = tmodel.targetValues[key] || TargetUtil.emptyValue();
         const targetValue = tmodel.targetValues[key];
         
         targetValue.isImperative = true;
         targetValue.originalTargetName = originalTargetName;
         targetValue.originalTModel = originalTModel;
+        
+        return targetValue;
+    }
 
+    static executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel) {
+        let targetValue;
+        key = key && !key.endsWith('+') && tmodel.allTargetMap[key] ? key + "+" : key;
+        
         if (TargetUtil.isListTarget(value)) {
+            targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel);
             TargetExecutor.assignListTarget(tmodel, key, targetValue, value.list, value.list[0], steps, interval, easing);
         } else if (TargetUtil.isObjectTarget(key, value)) {
             const completeValue = TargetData.cssFunctionMap[key] ? { ...TargetData.cssFunctionMap[key], ...value } : value; 
@@ -61,16 +71,20 @@ class TargetExecutor {
                     interval = TUtil.isDefined(valueArray[2]) ? valueArray[2] : interval;
                     TargetExecutor.executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel);
                 } else {
+                    targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel);
                     TargetExecutor.assignSingleTarget(targetValue, value, undefined, steps, 0, interval, easing);
                     targetValue.step = 0;                    
                 }
             } else {
+                targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel);
                 TargetExecutor.assignSingleTarget(targetValue, value, undefined, steps, 0, interval, easing);
                 targetValue.step = 0;
             }
         }
 
-        TargetExecutor.updateTarget(tmodel, targetValue, key, true);
+        if (targetValue) {
+            TargetExecutor.updateTarget(tmodel, targetValue, key, true);
+        }
     }
 
     static updateTarget(tmodel, targetValue, key, enforce) {
@@ -87,7 +101,7 @@ class TargetExecutor {
         tmodel.setTargetMethodName(key, 'value'); 
 
         tmodel.updateTargetStatus(key);
-        
+
         if (!TargetData.ignoreRerun[key] && tmodel.shouldScheduleRun(key)) {
             getRunScheduler().schedule(30, 'updateTarget2-' + tmodel.oid + "-" + key);
         }
@@ -108,6 +122,8 @@ class TargetExecutor {
 
         targetValue.step = Math.min(1, targetValue.steps);
         targetValue.cycles = 0;
+        
+        targetValue.actual = initialValue;
         
         tmodel.val(key, initialValue);
     }
@@ -137,8 +153,11 @@ class TargetExecutor {
     static snapActualToTarget(tmodel, key) {
         const oldValue = tmodel.val(key);
         const value = tmodel.targetValues[key].value;
-        tmodel.val(key, typeof value === 'function' ? value.call(tmodel) : value);
-        TargetUtil.handleValueChange(tmodel, key, tmodel.val(key), oldValue, 0, 0);
+        const newValue = typeof value === 'function' ? value.call(tmodel) : value;
+        tmodel.val(key, newValue);
+        tmodel.targetValues[key].actual = newValue;
+
+        TargetUtil.handleValueChange(tmodel, key, newValue, oldValue, 0, 0);
     }
 
     static resolveTargetValue(tmodel, key, cycle = tmodel.getTargetCycle(key)) {

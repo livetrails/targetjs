@@ -147,8 +147,12 @@ class TargetManager {
                 initialValue = TUtil.isDefined(tmodel.val(key)) ? tmodel.val(key) : typeof theValue === 'number' ? 0 : undefined;
                 tmodel.setTargetInitialValue(key, initialValue);
             }
+            
+            const newValue = TModelUtil.morph(tmodel, key, initialValue, theValue, step, steps);
 
-            tmodel.val(key, TModelUtil.morph(tmodel, key, initialValue, theValue, step, steps));
+            tmodel.val(key, newValue);
+            targetValue.actual = newValue;
+            
             tmodel.addToStyleTargetList(key);
 
             tmodel.setActualValueLastUpdate(key);
@@ -188,6 +192,7 @@ class TargetManager {
         }
 
         tmodel.val(key, theValue);
+        targetValue.actual = theValue;
         tmodel.addToStyleTargetList(key);
         
         tmodel.setActualValueLastUpdate(key);
@@ -247,6 +252,8 @@ class TargetManager {
         }
         
         tmodel.updateTargetStatus(key);
+        
+        TargetUtil.cleanupTarget(tmodel, key);
 
         TargetUtil.shouldActivateNextTarget(tmodel, key); 
 
