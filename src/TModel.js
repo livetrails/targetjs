@@ -1,5 +1,5 @@
 import { BaseModel } from "./BaseModel.js";
-import { getRunScheduler } from "./App.js";
+import { App, getRunScheduler } from "./App.js";
 import { Viewport } from "./Viewport.js";
 import { TUtil } from "./TUtil.js";
 import { SearchUtil } from "./SearchUtil.js";
@@ -115,6 +115,8 @@ class TModel extends BaseModel {
             child.domOrderIndex = index;
             child.activate();
         }
+        
+        delete App.tmodelIdMap[child.oid];
          
         this.childrenUpdateFlag = true;
         this.markLayoutDirty('moveChild');
@@ -158,7 +160,6 @@ class TModel extends BaseModel {
                     this.addToActiveChildren(child);
                 }
                 
-                child.parentTargetName = TargetUtil.currentTargetName;
             }
         }
         return this;
@@ -271,9 +272,13 @@ class TModel extends BaseModel {
         }
         
         this.markLayoutDirty('removeAll');
+        
+        this.allChildrenList.forEach(t => {
+            delete App.tmodelIdMap[t.oid];
+        })
         this.allChildrenList = [];
         this.allChildrenMap = {};
-
+        
         this.state().updatingChildrenList = [];
         this.state().updatingChildrenMap = {};
         

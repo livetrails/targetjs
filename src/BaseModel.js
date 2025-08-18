@@ -113,6 +113,9 @@ class BaseModel {
                     this.targets[key] = value;
                 }
             });
+            if (!TUtil.isDefined(this.targets['canHaveDom']) && !TUtil.isDefined(this.targets['domHolder'])) {
+                this.targets['domHolder'] = true;
+            }
         } else if (domExists && !TUtil.isDefined(this.targets['reuseDomDefinition'])) {
             this.targets['reuseDomDefinition'] = true;
             if (!TUtil.isDefined(this.targets['excludeXYCalc'])) {
@@ -159,8 +162,8 @@ class BaseModel {
                 };
                 target = this.targets[key];
             }
-        }
-
+        } 
+        
         let doesNextTargetUsePrevValue = false;
         if (TUtil.isDefined(keyIndex)) {
             const prevKey = keyIndex > 0 ? TargetUtil.getTargetName(this.originalTargetNames[keyIndex - 1]) : undefined;
@@ -262,7 +265,14 @@ class BaseModel {
     }
     
     canTargetBeActivated(key) {
-        return (Array.isArray(this.targets['onDomEvent']) && this.targets['onDomEvent'].includes(key) && !this.hasDom()) ? false : !this.activeTargetMap[key];
+        const onDomEvent = this.targets.onDomEvent;
+        if (onDomEvent) {
+            const included = Array.isArray(onDomEvent) ? onDomEvent.includes(key) : onDomEvent === key;
+            if (included && !this.hasDom()) {
+                return false;
+            }
+        }
+        return !this.activeTargetMap[key];
     }
     
     addToStyleTargetList(key, enforce) {
@@ -303,7 +313,7 @@ class BaseModel {
                 this.styleTargetList.push(key);
                 this.styleTargetMap[key] = true;                
             }
-        } else if (this.useWindowFrame(key) && !this.styleTargetMap[key]) {
+        } else if (!this.styleTargetMap[key]) {
             this.styleTargetList.push(key);
             this.styleTargetMap[key] = true;            
         } else {
@@ -318,10 +328,6 @@ class BaseModel {
    
     isStyleTarget(key) {
         return TargetData.styleTargetMap[key];
-    }
-    
-    useWindowFrame(key) {
-        return Array.isArray(this.targets['useWindowFrame']) && this.targets['useWindowFrame'].includes(key);
     }
     
     removeTarget(key) {
@@ -503,9 +509,15 @@ class BaseModel {
     }
 
     getTargetValue(key) {
-        return this.targetValues[key] ? (typeof this.targetValues[key].value === 'function' ? this.targetValues[key].value.call(this) : this.targetValues[key].value) : undefined;
-    }
+        const target = this.targetValues[key] || this.targets[key];
+        if (!target) {
+            return undefined;
+        }
 
+        const value = target.value ?? target;
+        return (typeof value === 'function') ? value.call(this) : value;
+    }
+    
     getTargetSteps(key) {
         return this.targetValues[key] ? this.targetValues[key].steps || 0 : 0;
     }
@@ -625,9 +637,7 @@ class BaseModel {
         if (this.getParent() === originalTModel) {
             TargetUtil.markTargetAction(originalTModel, 'childAction');
         }
-        
-        this.parentTargetName = TargetUtil.currentTargetName;
-        
+                
         this.markLayoutDirty(key);
         
         TargetExecutor.executeImperativeTarget(this, key, value, steps, interval, easing, originalTargetName, originalTModel);
@@ -662,6 +672,13 @@ class BaseModel {
     }
 
     addToUpdatingTargets(key) {
+
+        const oldKey = this.updatingTargetList.find(k => k !== key && TargetUtil.getTargetName(k) === TargetUtil.getTargetName(key));
+        if (oldKey) {
+            this.resetTarget(oldKey);
+            this.removeFromUpdatingTargets(oldKey);
+        }
+        
         if (!this.updatingTargetMap[key]) {
             this.markLayoutDirty(key);
             this.updatingTargetMap[key] = true;
@@ -691,6 +708,17 @@ class BaseModel {
         }
         
         return false;
+    }
+    
+    getUpdatingImperativeTargets(originalTargetName) {
+        const targets = [];
+        for (const target of this.updatingTargetList) {
+            if (this.isTargetImperative(target) && this.targetValues[target].originalTargetName === originalTargetName) {
+                targets.push(target);
+            }
+        }
+        
+        return targets;
     }
     
     addToUpdatingChildren(child) {
@@ -743,11 +771,9 @@ class BaseModel {
         return this;
     }    
  
-    resetImperative(key) {
+    resetTarget(key) {
         const targetValue = this.targetValues[key];
         
-        const isImperative = targetValue?.isImperative;
-
         if (targetValue) {
             targetValue.isImperative = false;
             targetValue.executionFlag = false;
@@ -757,12 +783,9 @@ class BaseModel {
             targetValue.steps = 0;
             targetValue.cycles = 0;
             targetValue.interval = 0;
+            targetValue.status = '';
         }
-
-        if (isImperative) {
-            getRunScheduler().schedule(1, 'resetImperative-' + this.oid + "-" + key);
-        }
-
+        
         return this;
     }
 
@@ -771,7 +794,7 @@ class BaseModel {
             if (TUtil.isDefined('value')) {
                 this.val(`__${key}`, value);
             }
-            
+           
             this.markLayoutDirty(key);
 
             const targetValue = this.targetValues[key];

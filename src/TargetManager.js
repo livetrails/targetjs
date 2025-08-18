@@ -138,7 +138,7 @@ class TargetManager {
         const oldCycle = cycle;
         let initialValue = tmodel.getTargetInitialValue(key);
         let originalTargetName, originalTarget, originalTModel;
-        const capKey = TUtil.capitalizeFirstLetter(key);
+        const capKey = TargetUtil.getTargetName(TUtil.capitalizeFirstLetter(key));
         const lastUpdateTime = tmodel.getActualValueLastUpdate(key);
         const now = TUtil.now();
         
@@ -157,7 +157,7 @@ class TargetManager {
 
             tmodel.setActualValueLastUpdate(key);
             
-            tmodel.setTargetMethodName(key, 'value');        
+            tmodel.setTargetMethodName(key, 'value'); 
 
             if (tmodel.isTargetImperative(key)) {
                 originalTargetName = targetValue.originalTargetName;
@@ -183,8 +183,8 @@ class TargetManager {
             tmodel.incrementTargetStep(key, now, lastUpdateTime, interval, steps);
 
             tmodel.updateTargetStatus(key);
-                     
-            if (tmodel.getTargetStep(key) < steps) {  
+  
+            if (tmodel.getTargetStep(key) < steps && newValue !== theValue) {  
                 TargetUtil.shouldActivateNextTarget(tmodel, key);
                 getRunScheduler().scheduleOnlyIfEarlier(interval, `${tmodel.oid}---${key}-${step}/${steps}-${cycle}-${interval}`);
                 return;
@@ -194,9 +194,10 @@ class TargetManager {
         tmodel.val(key, theValue);
         targetValue.actual = theValue;
         tmodel.addToStyleTargetList(key);
+        targetValue.step = steps;
         
         tmodel.setActualValueLastUpdate(key);
-        step = tmodel.getTargetStep(key);
+        step = steps;
 
         let scheduleTime = 1;
 

@@ -320,11 +320,11 @@ class TModelManager {
         return `${tmodel.type}-${tmodel.getDomParent().oid}-${tmodel.getBaseElement()}`;
     }
 
-    createDoms() {           
+    createDoms() {  
         if (this.lists.noDom.length === 0) { 
             return;
         }
-                
+        
         const needsDom = [];
 
         this.lists.noDom.sort((a, b) => {

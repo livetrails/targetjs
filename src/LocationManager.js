@@ -4,7 +4,7 @@ import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { TargetExecutor } from "./TargetExecutor.js";
-import { tApp } from "./App.js";
+import { tApp, getTargetManager } from "./App.js";
 
 /*
  * It calculates the locations and dimensions of all objects and triggers the calculation of all targets. 
@@ -78,10 +78,10 @@ class LocationManager {
                     
             child.activatedTargets.length = 0;
                                   
-            tApp.targetManager.applyTargetValues(child, activatedTargets);
+            getTargetManager().applyTargetValues(child, activatedTargets);
             
             if (child.updatingTargetList.length > 0) {
-                tApp.targetManager.setActualValues(child, child.updatingTargetList.filter((key => child.getTargetStep(key) === 0)));
+                getTargetManager().setActualValues(child, child.updatingTargetList.filter((key => child.getTargetStep(key) === 0)));
             }
             
             if (!this.hasLocationMap[child.oid]) {
@@ -360,8 +360,8 @@ class LocationManager {
             }
         });
         
-        tApp.targetManager.applyTargetValues(tmodel);        
-        tApp.targetManager.setActualValues(tmodel);
+        getTargetManager().applyTargetValues(tmodel);        
+        getTargetManager().setActualValues(tmodel);
 
 
         if (TModelUtil.shouldMeasureWidthFromDom(tmodel)) {

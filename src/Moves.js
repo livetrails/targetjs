@@ -68,7 +68,7 @@ class Moves {
             rotate: { list: rotations }
         };
     }
-    
+       
     static bounceSimple(tmodel, {
             from = undefined,
             to = undefined,
@@ -76,15 +76,15 @@ class Moves {
             heightStart = undefined,
             xStart = undefined,
             yStart = undefined,
-            bFactor = 0.7,
-            cFactor = 0.2
+            bFactor = 0.5,
+            cFactor = 0.7
         } = {}) 
     {
-        from = TUtil.isDefined(from) ? from : tmodel.getY();
+        from = TUtil.isDefined(from) ? from : tmodel.getY() - 70;
         to = TUtil.isDefined(to) ? to : tmodel.getY();
         widthStart = TUtil.isDefined(widthStart) ? widthStart : tmodel.getWidth();
         heightStart = TUtil.isDefined(heightStart) ? heightStart : tmodel.getHeight();
-        
+                
         yStart = TUtil.isDefined(yStart) ? yStart : tmodel.getY();
         xStart = TUtil.isDefined(xStart) ? xStart : tmodel.getX();
         

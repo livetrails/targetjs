@@ -185,6 +185,7 @@ const getLoader = () => tApp?.loader;
 const fetch = (tmodel, url, query, cacheId) => tApp?.loader?.fetch(tmodel, url, query, cacheId);
 const fetchImage = (tmodel, src, cacheId) => tApp?.loader?.fetchImage(tmodel, src, cacheId);
 const getManager = () => tApp?.manager;
+const getTargetManager = () => tApp?.targetManager;
 const getRunScheduler = () => tApp?.runScheduler;
 const getLocationManager = () => tApp?.locationManager;
 const getBrowser = () => tApp?.browser;
@@ -223,6 +224,7 @@ export {
     fetch,
     fetchImage,
     getManager,
+    getTargetManager,
     getRunScheduler,
     getLocationManager,
     getBrowser,

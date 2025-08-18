@@ -117,31 +117,37 @@ class TargetUtil {
     
     static shouldActivateParentTModel(childTModel, childTargetName, parentTModel, parentTargetName, level) {
         
-        if (!parentTModel || level > 3) {
+        if (!parentTModel) {
             return;
         }
 
-        
         const parentTarget = parentTModel.targets[parentTargetName];
         const parentActiveNextTarget = parentTarget.activateNextTarget;
-        
-        if (!parentTModel.isTargetComplete(parentTargetName) && parentActiveNextTarget 
+
+        if (!parentTModel.isTargetComplete(parentTargetName) && parentActiveNextTarget
                 && (parentActiveNextTarget.endsWith('$$')
                     || (!parentActiveNextTarget.endsWith('$$') && parentActiveNextTarget.endsWith('$')))) { 
             TargetUtil.shouldActivateNextTarget(parentTModel, parentTargetName, level + 1);
-        } else {
-            TargetUtil.cleanupTarget(parentTModel, parentTargetName);   
-
-            if (parentTModel.isTargetComplete(parentTargetName) && parentTarget.originalTModel) {                    
-                const { originalTModel, originalTargetName } = parentTarget;
-                TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
+        } else if (!parentTModel.isTargetComplete(parentTargetName)) {
+            TargetUtil.cleanupTarget(parentTModel, parentTargetName);
+            
+            if (childTModel.isTargetImperative(childTargetName)) {
+                if (parentTModel.isTargetComplete(parentTargetName) && parentTarget.originalTModel) {
+                    const { originalTModel, originalTargetName } = parentTarget;
+                    TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
+                }                
             }
+
         }
     }
     
     static shouldActivateNextTarget(tmodel, key, level = 0) {
+
+        if (level > 3) {
+            return;
+        }
         if (tmodel.isTargetImperative(key)) { 
-            const { originalTModel, originalTargetName } = tmodel.targetValues[key];         
+            const { originalTModel, originalTargetName } = tmodel.targetValues[key];
             TargetUtil.shouldActivateParentTModel(tmodel, key,  originalTModel, originalTargetName, level + 1);
             return;
         }
@@ -151,15 +157,12 @@ class TargetUtil {
         if (!target) {
             return;
         }
-      
-        if (!target.activateNextTarget) {
-            const { originalTModel, originalTargetName } = target;                
-            TargetUtil.shouldActivateParentTModel(tmodel, key,  originalTModel, originalTargetName, level + 1);
-        } else {
+        
+        if (target.activateNextTarget) {
             const nextTarget = target.activateNextTarget;
             const isEndTrigger = nextTarget.endsWith('$$');
             const fetchAction = target.fetchAction;
-            
+
             if (fetchAction) {
                 if (isEndTrigger) {     
                     if (TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) === true) {                  
@@ -175,19 +178,29 @@ class TargetUtil {
                         getLoader().nextActiveItem(tmodel, key);
                     } 
                 }
-            } else if (isEndTrigger && TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) === true) {
-                tmodel.activateTarget(nextTarget);
+            } else if (isEndTrigger) {
+                if (TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) === true)  {
+                    tmodel.removeFromActiveTargets(nextTarget);
+                    tmodel.activateTarget(nextTarget);                    
+                } if (tmodel.isTargetComplete(nextTarget)) {
+                    delete tmodel.targetValues[nextTarget];
+                }
             } else if (!isEndTrigger && !tmodel.isTargetUpdating(nextTarget)) {
                 if (tmodel.activatedTargets.indexOf(nextTarget) >= 0 && !tmodel.isTargetUpdating(key)) {
                     tmodel.activatedTargets.push(nextTarget);
                 } else {
                     tmodel.activateTarget(nextTarget);
-                }
+                }             
             } else if (!isEndTrigger && tmodel.isTargetDone(nextTarget)) {
                 TargetUtil.cleanupTarget(tmodel, nextTarget);
                 TargetUtil.shouldActivateNextTarget(tmodel, nextTarget);
             }
         }    
+        
+        if (!tmodel.updatingTargetList.length) {
+            const { originalTModel, originalTargetName } = target;                
+            TargetUtil.shouldActivateParentTModel(tmodel, key,  originalTModel, originalTargetName, level + 1); 
+        }
             
         TargetUtil.cleanupTarget(tmodel, key); 
     }
@@ -195,7 +208,7 @@ class TargetUtil {
     static cleanupTarget(tmodel, key) {
         if (tmodel.isTargetComplete(key) || !TargetUtil.hasTargetEnded(tmodel, key)) {
             return;
-        }            
+        } 
         
         tmodel.setTargetComplete(key);
         const target = tmodel.targets[key];
@@ -233,7 +246,6 @@ class TargetUtil {
         
     }
 
-    
     static isTModelComplete(tmodel) {
         const state = tmodel.state();
 
@@ -277,7 +289,6 @@ class TargetUtil {
     }
        
     static arePreviousTargetsComplete(tmodel, key) {
-       
         const keyIndex = tmodel.functionTargetNames.findIndex(name => key === name);
  
         for (var i = keyIndex - 1; i >= 0; i--) {
@@ -286,15 +297,15 @@ class TargetUtil {
             if (tmodel.isTargetImperative(targetName)) {
                 continue;
             }
-                 
-            if (!TargetUtil.isTModelTargetComplete(tmodel, targetName)) {
-               return targetName; 
+               
+                        
+            if (tmodel.hasUpdatingImperativeTargets(targetName)) {
+                return targetName;// + ": " + tmodel.hasUpdatingImperativeTargets(targetName) + ", " + tmodel.getUpdatingImperativeTargets(targetName);
             }
             
-            if (tmodel.hasUpdatingImperativeTargets(targetName)) {
-                return targetName;
-            }
-                        
+            if (!TargetUtil.isTModelTargetComplete(tmodel, targetName)) {
+               return targetName;// + ", " + tmodel.oid + ', ' + "not complete " + tmodel.getTargetStatus(targetName) + ", " + TargetUtil.getUpdatingChildren(tmodel, targetName) + ", " + tmodel.activeChildrenList.map(t => t.oid + ':' + t.activeTargetList); 
+            }            
         }
         return true;
     }
@@ -332,14 +343,18 @@ class TargetUtil {
     static getUpdatingChildren(tmodel, originalTargetName) {
         let count = 0;
         tmodel.updatingChildrenList.filter(child => child.isVisible()).forEach(child => {
-            if (child.parentTargetName === originalTargetName) {
-                count++;
-            }       
+            child.updatingTargetList.forEach(target => {
+                if (child.isTargetImperative(target) && child.targetValues[target]?.originalTargetName === originalTargetName) {
+                    count++;
+                } else if (child.targets[target]?.originalTargetName === originalTargetName) {
+                    count++;
+                }
+            });
         });
-   
+
         return count;
-    }    
-    
+    }       
+
     static isTargetAlreadyUpdating(tmodel, key) {
         const cleanKey = TargetUtil.getTargetName(key);
 
@@ -400,11 +415,11 @@ class TargetUtil {
     }
     
     static isFetchTarget(key, value) {
-        return TargetUtil.getTargetName(key) === 'fetch' && (typeof value === 'string' || Array.isArray(value));
+        return TargetUtil.getTargetName(key) === 'fetch' && value && (typeof value === 'string' || Array.isArray(value));
     }
     
     static isFetchImageTarget(key, value) {
-        return TargetUtil.getTargetName(key) === 'fetchImage' && (typeof value === 'string' || Array.isArray(value));
+        return TargetUtil.getTargetName(key) === 'fetchImage' && value && (typeof value === 'string' || Array.isArray(value));
     }    
     
     static isObjectTarget(key, value) {

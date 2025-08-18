@@ -126,15 +126,22 @@ class SearchUtil {
         return SearchUtil.foundParentWithType[indexKey];
     }
 
-    static findParentByTarget(child, targetName) {
+    static findParentByTarget(child, targetName, targetValue) {
         const indexKey = `${child.oid}__${targetName}`;
 
         if (!TUtil.isDefined(SearchUtil.foundParentWithTarget[indexKey])) {
             let parent = child.getParent();
             while (parent) {
                 if (TUtil.isDefined(parent.targets[targetName]) || TUtil.isDefined(parent.targetValues[targetName])) {
-                    SearchUtil.foundParentWithTarget[indexKey] = parent;
-                    break;
+                    if (TUtil.isDefined(targetValue)) {
+                        if (parent.getTargetValue(targetName) === targetValue) {
+                            SearchUtil.foundParentWithTarget[indexKey] = parent;
+                            break;
+                        }
+                    } else {
+                        SearchUtil.foundParentWithTarget[indexKey] = parent;
+                        break;
+                    }
                 }
                 parent = parent.getParent();
             }

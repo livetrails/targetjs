@@ -19,7 +19,6 @@ class TargetData {
             scrollLeft: 0,
             scrollTop: 0,
             borderRadius: 0,
-            domHolder: true,
             children: [],
             isInFlow: true,
             baseElement: 'div',
@@ -202,7 +201,8 @@ class TargetData {
         height: true, 
         heightFromDom: true, 
         widthFromDom: true,
-        fetch: true
+        fetch: true,
+        fetchImage: true
     };
 
     static coreTargetMap = { 
@@ -239,7 +239,6 @@ class TargetData {
         reuseDomDefinition: true,
         useWindowFrame: true,
         canDeleteDom: true,
-        domHolder: true,
         interval: true,
         onDomEvent: true,
         canHaveDom: true
