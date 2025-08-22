@@ -78,9 +78,9 @@ class TModel extends BaseModel {
         Object.assign(this.viewport, this.val('viewport') || {});
         
         for (const key in this.viewport) {
-            const prefixedKey = `viewport_${key}`;
-            if (TUtil.isDefined(this.val(prefixedKey))) {
-                this.viewport[key] = this.val(prefixedKey);
+            const override = this.val(`viewport_${key}`);
+            if (TUtil.isDefined(override)) {
+                this.viewport[key] = override;
             }
         }
         
@@ -148,7 +148,7 @@ class TModel extends BaseModel {
                 }
             }
         
-            if (!child.toDiscard) {
+            if (!child.toDiscard) {            
                 this.addedChildren.push({ index, child });
                 child.parent = this;
                 child.markLayoutDirty('addChild');
@@ -279,9 +279,11 @@ class TModel extends BaseModel {
         })
         this.allChildrenList = [];
         this.allChildrenMap = {};
-        
-        this.state().updatingChildrenList = [];
-        this.state().updatingChildrenMap = {};
+       
+        this.updatingChildrenList.length = 0;
+        for (const k in this.updatingChildrenMap) {
+            delete this.updatingChildrenMap[k];
+        }        
         
         if (this.hasDom()) {
             this.$dom.deleteAll();
@@ -453,7 +455,7 @@ class TModel extends BaseModel {
     }
 
     floorVal(key) {
-        return Math.floor(this.val(key));
+        return Math.floor(this.val(key) ?? 0);
     }
 
     getDomParent() {
@@ -508,7 +510,7 @@ class TModel extends BaseModel {
     }
     
     makeInvisible() {
-        this.val('isVisible', true);
+        this.val('isVisible', false);
         this.targets.isVisible = false;        
     }
     
@@ -686,12 +688,14 @@ class TModel extends BaseModel {
     }
     
     getTransformX() {
-        return this.absX - this.getDomParent()?.absX;
+        const p = this.getDomParent()?.absX ?? 0;
+        return this.absX - p;
     }
     
     getTransformY() {
-        return this.absY - this.getDomParent()?.absY;
-    }    
+        const p = this.getDomParent()?.absY ?? 0;
+        return this.absY - p;
+    } 
    
     getZ() {
         return this.val('z');

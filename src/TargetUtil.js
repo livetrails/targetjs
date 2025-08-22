@@ -164,7 +164,7 @@ class TargetUtil {
                         tmodel.activateTarget(nextTarget);  
                         nextTargetActivated = true;
 
-                    } if (tmodel.isTargetComplete(nextTarget)) {
+                    } if (tmodel.isTargetComplete(nextTarget) || tmodel.isTargetDone(nextTarget)) {
                         delete tmodel.targetValues[nextTarget];
                     }
                 } else if (!isEndTrigger && !tmodel.isTargetUpdating(nextTarget)) {
@@ -282,11 +282,11 @@ class TargetUtil {
             }
                    
             if (tmodel.hasUpdatingImperativeTargets(targetName)) {
-                return targetName;// + ": " + tmodel.hasUpdatingImperativeTargets(targetName) + ", " + tmodel.getUpdatingImperativeTargets(targetName);
+                return targetName + ": " + tmodel.hasUpdatingImperativeTargets(targetName) + ", " + tmodel.getUpdatingImperativeTargets(targetName);
             }
             
             if (!TargetUtil.isTModelTargetComplete(tmodel, targetName)) {
-               return targetName;// + ", " + tmodel.oid + ', ' + "not complete " + tmodel.getTargetStatus(targetName) + ", " + TargetUtil.getUpdatingChildren(tmodel, targetName) + ", " + tmodel.activeChildrenList.map(t => t.oid + ':' + t.activeTargetList); 
+               return targetName + ", " + tmodel.oid + ', ' + "not complete " + tmodel.getTargetStatus(targetName) + ", " + TargetUtil.getUpdatingChildren(tmodel, targetName) + ", " + tmodel.activeChildrenList.map(t => t.oid + ':' + t.activeTargetList); 
             }            
         }
         return true;

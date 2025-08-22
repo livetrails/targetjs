@@ -8,8 +8,8 @@ import { Bracket } from "./Bracket.js";
 class BracketGenerator {
 
     static bracketMap = {};
-    static pageMap = {}
-    static all = {}
+    static pageMap = {};
+    static all = {};
 
     static generate(page, regenerate = false) {
         let brackets = BracketGenerator.bracketMap[page.oid];
@@ -243,6 +243,12 @@ class BracketGenerator {
         BracketGenerator.all[bracket.oid] = bracket;
 
         return bracket;
+    }
+    
+    static reset() {
+        BracketGenerator.bracketMap = {};
+        BracketGenerator.pageMap = {};
+        BracketGenerator.all = {};
     }
 }
 

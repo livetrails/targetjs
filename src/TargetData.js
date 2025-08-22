@@ -13,7 +13,6 @@ class TargetData {
             rightMargin: 0,
             topMargin: 0,
             bottomMargin: 0,
-            gap: 0,
             opacity: 1,
             scale: 1,  
             scrollLeft: 0,

@@ -66,7 +66,7 @@ class BaseModel {
     get asyncStyleTargetList() { return this.state().asyncStyleTargetList ??= []; }
     get asyncStyleTargetMap() { return this.state().asyncStyleTargetMap ??= {}; }
     get activatedTargets() { return this.state().activatedTargets ??= []; }
-    get targetMethodMap() { return this.state().targetMethodMap ??= []; }
+    get targetMethodMap() { return this.state().targetMethodMap ??= {}; }
     get targetExecutionCount() { return this.state().targetExecutionCount ??= 0; }
     set targetExecutionCount(val) { this.state().targetExecutionCount = val; }
     get addedChildren() { return this.state().addedChildren ??= []; }
@@ -123,7 +123,7 @@ class BaseModel {
             if (!TUtil.isDefined(this.targets['x'])) {
                 this.targets['excludeX'] = true;
             }
-            if (!TUtil.isDefined(!this.targets['y'])) {
+            if (!TUtil.isDefined(this.targets['y'])) {
                 this.targets['excludeY'] = true;                
             }
             if (!TUtil.isDefined(this.targets['position'])) {
@@ -796,7 +796,7 @@ class BaseModel {
 
     activateTarget(key, value) {
         if (this.canTargetBeActivated(key)) {
-            if (TUtil.isDefined('value')) {
+            if (TUtil.isDefined(value)) {
                 this.val(`___${key}`, value);
             }
            
@@ -840,7 +840,7 @@ class BaseModel {
             return explicit;
         }
 
-        return this.state().coreTargets;
+        return this.coreTargets;
     }
 
     setTargetMethodName(targetName, methodName) {

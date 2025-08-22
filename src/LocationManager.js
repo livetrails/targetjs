@@ -123,7 +123,7 @@ class LocationManager {
         }
                         
         container.visibleChildren.length = 0;
-        
+       
         for (const child of allChildrenList) {
             if (!child) {
                 continue;
