@@ -102,6 +102,14 @@ class Bracket extends TModel {
         return this.realParent;
     }
     
+    getRightMargin() {
+        return 0;
+    }
+    
+    getBottomMargin() {
+        return 0; 
+    }
+    
     calcAbsolutePosition(x, y) {
         this.absX = x + this.getRealParent().absX;
         this.absY = y + this.getRealParent().absY;

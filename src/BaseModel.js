@@ -4,7 +4,6 @@ import { TUtil } from "./TUtil.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
-import { SearchUtil } from "./SearchUtil.js";
 import { $Dom } from "./$Dom.js";
 
 /**
@@ -820,10 +819,6 @@ class BaseModel {
         }
 
         return this;
-    }
-    
-    activateAncestorTarget(key) {
-        SearchUtil.findParentByTarget(this, key)?.activateTarget(key);
     }
     
     manageChildTargetExecution(child, shouldCalculateChildTargets) {

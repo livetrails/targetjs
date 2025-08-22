@@ -762,11 +762,11 @@ class TModel extends BaseModel {
     }
 
     getRightMargin() {
-        return this.val('rightMargin') + this.getParentValue('gap');
+        return this.val('rightMargin') + (this.getParentValue('gap') ?? 0);
     }
 
     getBottomMargin() {
-        return this.val('bottomMargin') + this.getParentValue('gap');
+        return this.val('bottomMargin') + (this.getParentValue('gap') ?? 0);
     }
 
     getWidth() {
