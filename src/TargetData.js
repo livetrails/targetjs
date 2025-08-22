@@ -100,6 +100,10 @@ class TargetData {
         lineHeight: true,
         borderRadius: true,
         padding: true,
+        paddingLeft: true,
+        paddingRight: true,
+        paddingTop: true,
+        paddingBottom: true,
         left: true,
         top: true,
         letterSpacing: true
@@ -149,7 +153,8 @@ class TargetData {
         willChange: true,
         backgroundImage: true,
         backgroundSize: true,
-        flexWrap: true
+        flexWrap: true,
+        userSelect: true,
     };
 
     static scaleMap = { 
@@ -170,9 +175,9 @@ class TargetData {
 
     static attributeTargetMap = {
         lang: true, 
-        autofocus: true, 
+        autoFocus: true, 
         placeholder: true, 
-        autocomplete: true, 
+        autoComplete: true, 
         name: true,
         type: true, 
         src: true, 
@@ -180,8 +185,8 @@ class TargetData {
         method: true, 
         size: true, 
         value: true,
-        maxlength: true, 
-        minlength: true, 
+        maxLength: true, 
+        minLength: true, 
         max: true, 
         min: true, 
         readonly: true,
@@ -193,7 +198,8 @@ class TargetData {
         selected: true, 
         rows: true, 
         cols: true, 
-        tabindex: true
+        tabIndex: true,
+        role: true
     };
 
     static mustExecuteTargets = {
@@ -388,7 +394,12 @@ class TargetData {
         isvisible: 'isVisible',
         isinflow: 'isInFlow',
         basewidth: 'baseWidth',
-        baseheight: 'baseHeight'
+        baseheight: 'baseHeight',
+        paddingleft: 'paddingLeft',
+        paddingright: 'paddingRight',
+        paddingtop: 'paddingTop',
+        paddingbottom: 'paddingBottom',
+        userselect: 'userSelect'
     };
     
     static targetToEventsMapping = {

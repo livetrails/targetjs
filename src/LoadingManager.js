@@ -54,7 +54,7 @@ class LoadingManager {
         const urls = Array.isArray(url) ? url : [url];
 
         urls.forEach(singleUrl => {
-            const fetchId = query ? `${tmodel.oid}_${singleUrl}_${JSON.stringify(query)}` : `${tmodel.oid}_${singleUrl}`;
+            const fetchId = this.getFetchKey(tmodel, singleUrl, query);
             this.fetchCommon(fetchId, cacheId, tmodel, this.fetchingAPIMap, () => {
                 this.ajaxAPI(singleUrl, query, this.fetchingAPIMap[fetchId]);
             });
@@ -65,12 +65,16 @@ class LoadingManager {
         const urls = Array.isArray(url) ? url : [url];
         
         urls.forEach(singleUrl => {
-            const fetchId = `${tmodel.oid}_${singleUrl}`;
+            const fetchId = this.getFetchKey(tmodel, singleUrl);
             this.fetchCommon(fetchId, cacheId, tmodel, this.fetchingImageMap, () => {
                 this.loadImage(singleUrl, this.fetchingImageMap[fetchId]);
             });
         });
-    }    
+    }
+    
+    getFetchKey(tmodel, url, query) {
+        return query ? `${tmodel.oid}_${url}_${tmodel.getTargetCycle(tmodel.key)}_${JSON.stringify(query)}` : `${tmodel.oid}_${url}_${tmodel.getTargetCycle(tmodel.key)}`;
+    }
     
     getTModelKey(tmodel, targetName) {
         return `${document.URL} ${tmodel.oid} ${TargetUtil.getTargetName(targetName)}`;
@@ -206,7 +210,7 @@ class LoadingManager {
             success: true,
             result
         };
-                
+        
         targets.forEach(({ tmodel, targetName }) => {
             const key = this.getTModelKey(tmodel, targetName);
             const tmodelEntry = this.tmodelKeyMap[key];
@@ -231,6 +235,7 @@ class LoadingManager {
                         
             tmodel.val(targetName, targetResults?.length === 1 ? targetResults[0] : targetResults);
 
+            tmodel.updateTargetStatus(targetName);
             TargetUtil.shouldActivateNextTarget(tmodel, targetName);
         });
         
@@ -278,7 +283,8 @@ class LoadingManager {
             tmodelEntry.errorCount++;
 
             this.callOnErrorHandler(tmodel, targetName);
-                        
+           
+            tmodel.updateTargetStatus(targetName);
             TargetUtil.shouldActivateNextTarget(tmodel, targetName);
         });
         

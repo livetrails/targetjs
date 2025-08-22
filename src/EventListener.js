@@ -45,7 +45,7 @@ class EventListener {
         
         this.currentEventName = '';
         this.currentEventType = '';
-        this.currentEventTarget = undefined;
+        this.currentOriginalEvent = undefined;
         this.currentKey = '';
         
         this.currentHandlers = { 
@@ -236,7 +236,7 @@ class EventListener {
         if (this.eventQueue.length === 0) {
             this.currentEventName = '';
             this.currentEventType = '';
-            this.currentEventTarget = undefined;
+            this.currentOriginalEvent = undefined;
             this.currentKey = '';
             return;
         }
@@ -258,7 +258,7 @@ class EventListener {
         
         this.currentEventName = lastEvent.eventName;
         this.currentEventType = lastEvent.eventType;
-        this.currentEventTarget = lastEvent.eventTarget;
+        this.currentOriginalEvent = lastEvent.originalEvent;
         this.currentTouch.key = '';      
     }
     
@@ -271,7 +271,7 @@ class EventListener {
             return;
         }
 
-        const { type: originalName, target: eventTarget } = event; 
+        const { type: originalName } = event; 
         const eventItem = this.allEvents[originalName];
                         
         if (!eventItem) {
@@ -286,7 +286,7 @@ class EventListener {
                         
         tmodel?.markLayoutDirty('event');
                 
-        const newEvent = { eventName, eventItem, eventType, originalName, tmodel, eventTarget, timeStamp: now };
+        const newEvent = { eventName, eventItem, eventType, originalName, tmodel, originalEvent: event, timeStamp: now };
 
         if (this.lastEvent?.eventItem) {
             const { eventItem: lastEventItem, timeStamp: lastTimeStamp } = this.lastEvent;
@@ -412,7 +412,7 @@ class EventListener {
                                         
                     if (clickHandler && clickHandler === this.currentHandlers.click && (clickHandler !== this.currentHandlers.swipe || this.getSwipeDistance() < 5)) {
                         this.eventQueue.length = 0;
-                        this.eventQueue.push({ eventName, eventItem, eventType, originalName, tmodel, eventTarget, timeStamp: now });
+                        this.eventQueue.push({ eventName, eventItem, eventType, originalName, tmodel, originalEvent: event, timeStamp: now });
                     }
                 }
                         
@@ -632,8 +632,8 @@ class EventListener {
         return this.currentEventName;
     }
     
-    getEventTarget() {
-        return this.currentEventTarget;
+    getCurrentOriginalEvent() {
+        return this.currentOriginalEvent;
     }
     
     getEventType() {

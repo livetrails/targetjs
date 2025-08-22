@@ -135,7 +135,7 @@ class TModel extends BaseModel {
             if (!(child instanceof TModel)) {   
                 
                 const foundKey = Object.keys(this.actualValues).find(key => this.actualValues[key] === child);
-
+                
                 if (foundKey) {
                     child = new TModel(child.id || foundKey, child);
                     this.actualValues[foundKey] = child;
@@ -147,7 +147,7 @@ class TModel extends BaseModel {
                     child = new TModel(`${this.oid}_`, child);                    
                 }
             }
-                        
+        
             if (!child.toDiscard) {
                 this.addedChildren.push({ index, child });
                 child.parent = this;
@@ -274,6 +274,7 @@ class TModel extends BaseModel {
         this.markLayoutDirty('removeAll');
         
         this.allChildrenList.forEach(t => {
+            t.$dom = undefined;
             delete App.tmodelIdMap[t.oid];
         })
         this.allChildrenList = [];
@@ -432,10 +433,7 @@ class TModel extends BaseModel {
     val(key, value) {
         let actual = this.actualValues;
         let lastActual = this.lastActualValues;
-        if (key?.startsWith('_')) {
-            actual = this;
-        }
-        
+
         key = TargetUtil.getTargetName(key);
 
         if (arguments.length === 2) {

@@ -1,4 +1,4 @@
-import { tApp, App, getRunScheduler, getLocationManager, getDomTModelById } from "./App.js";
+import { tApp, App, getRunScheduler, getLocationManager, getDomTModelById, getLoader } from "./App.js";
 import { TargetExecutor } from "./TargetExecutor.js";
 import { TUtil } from "./TUtil.js";
 import { TModelUtil } from "./TModelUtil.js";
@@ -166,7 +166,7 @@ class BaseModel {
         
         let doesNextTargetUsePrevValue = false;
         if (TUtil.isDefined(keyIndex)) {
-            const prevKey = keyIndex > 0 ? TargetUtil.getTargetName(this.originalTargetNames[keyIndex - 1]) : undefined;
+            const prevKey = keyIndex > 0 ? this.originalTargetNames[keyIndex - 1] : undefined;
             const nextKey = keyIndex < this.originalTargetNames.length - 1 ? this.originalTargetNames[keyIndex + 1] : undefined;
             doesNextTargetUsePrevValue = nextKey && nextKey.endsWith('$') ? true : false;
             
@@ -419,11 +419,17 @@ class BaseModel {
             targetValue.status = 'updating';
         } else if (!this.isExecuted(key) || this.isTargetInLoop(key) || cycle < cycles) {
             targetValue.status = 'active';
+        } else if (this.targets[key]?.fetchAction && !getLoader().isLoadingSuccessful(this, key)) {
+            targetValue.status = 'fetching';
         } else {
             targetValue.status = 'done';
         }
 
-        if (this.isTargetUpdating(key)) {
+        if (targetValue.status === 'fetching') {
+            this.removeFromActiveTargets(key);
+            this.removeFromUpdatingTargets(key);            
+           this.getParent().addToActiveChildren(this); 
+        } else if (this.isTargetUpdating(key)) {
             this.addToUpdatingTargets(key);
             this.removeFromActiveTargets(key);   
         } else if (this.isTargetActive(key)) {
@@ -455,9 +461,9 @@ class BaseModel {
     }
 
     isTargetComplete(key) {
-        return this.targetValues[key] && this.targetValues[key].status === 'complete';
+        return this.targetValues[key]?.status === 'complete' ? true : this.targetValues[key] === undefined ? undefined : false;
     }
-
+    
     isExecuted(key) {
         return this.targetValues[key] && this.targetValues[key].executionFlag;
     }
@@ -664,11 +670,11 @@ class BaseModel {
             const index = this.activeTargetList.indexOf(key);
             if (index >= 0) {
                 this.activeTargetList.splice(index, 1);
-            }
-            if (this.activeTargetList.length === 0) {
-                this.getParent()?.removeFromActiveChildren(this);
-            }            
+            }           
         }
+        if (this.activeTargetList.length === 0) {
+            this.getParent()?.removeFromActiveChildren(this);
+        }         
     }
 
     addToUpdatingTargets(key) {
@@ -694,10 +700,10 @@ class BaseModel {
             if (index >= 0) {
                 this.updatingTargetList.splice(index, 1);
             }
-            if (this.updatingTargetList.length === 0) {
-                this.getParent()?.removeFromUpdatingChildren(this);
-            }
         }
+        if (this.updatingTargetList.length === 0) {
+            this.getParent()?.removeFromUpdatingChildren(this);
+        }        
     }
     
     hasUpdatingImperativeTargets(originalTargetName) {
@@ -792,7 +798,7 @@ class BaseModel {
     activateTarget(key, value) {
         if (this.canTargetBeActivated(key)) {
             if (TUtil.isDefined('value')) {
-                this.val(`__${key}`, value);
+                this.val(`___${key}`, value);
             }
            
             this.markLayoutDirty(key);
