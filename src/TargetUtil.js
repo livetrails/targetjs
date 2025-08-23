@@ -137,8 +137,8 @@ class TargetUtil {
         
         let nextTargetActivated = false;
 
-        if (nextTarget) {
-            if (!isEndTrigger || level === 0 || (isEndTrigger && level > 0 && !tmodel.isTargetComplete(nextTarget) && !tmodel.isTargetDone(nextTarget))) {
+        if (nextTarget) {   
+            if (!isEndTrigger || level === 0 || (isEndTrigger && level > 0 && !tmodel.isTargetComplete(nextTarget))) {
                 const fetchAction = target.fetchAction;
 
                 if (fetchAction) {
@@ -181,8 +181,10 @@ class TargetUtil {
         }
         
         if (!nextTargetActivated && !tmodel.updatingTargetList.length && !tmodel.activeTargetList.length) {
-            const { originalTModel, originalTargetName } = target;  
-            TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
+            const { originalTModel, originalTargetName } = target; 
+            if (!originalTModel?.isTargetComplete(originalTargetName)) {
+                TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
+            }
         }
         
         TargetUtil.cleanupTarget(tmodel, key);      
@@ -196,7 +198,6 @@ class TargetUtil {
         tmodel.setTargetComplete(key);
         const target = tmodel.targets[key];
         const fetchAction = target?.fetchAction;
-        const childAction = target?.childAction;
         
         if (fetchAction && getLoader().isLoadingComplete(tmodel, key)) {
             const index = tmodel.fetchActionTargetList.indexOf(key);
@@ -208,13 +209,6 @@ class TargetUtil {
                 target.fetchAction = false;
             }
         } 
-        
-        if (childAction) {
-            const index = tmodel.childActionTargetList.indexOf(key);
-            if (index >= 0) {
-                tmodel.childActionTargetList.splice(index, 1);
-            }
-        }
     }
     
     static activateTargets(tmodel, target) {
@@ -303,7 +297,7 @@ class TargetUtil {
                 return true;
             }
 
-            if (!target.childAction && !target.fetchAction && (targetType === 'string' || targetType === 'number' || targetType === 'boolean')) {
+            if (!target.fetchAction && (targetType === 'string' || targetType === 'number' || targetType === 'boolean')) {
                 return true;
             } 
             
@@ -380,9 +374,7 @@ class TargetUtil {
         if (typeof target === 'object') {
             target[actionName] = true;
 
-            if (actionName === 'childAction' && !tmodel.childActionTargetList.includes(currentTargetName)) {
-                tmodel.childActionTargetList.push(currentTargetName);
-            } else if (actionName === 'fetchAction' && !tmodel.fetchActionTargetList.includes(currentTargetName)) {
+            if (actionName === 'fetchAction' && !tmodel.fetchActionTargetList.includes(currentTargetName)) {
                 tmodel.fetchActionTargetList.push(currentTargetName);                
             }
         }        

@@ -50,7 +50,6 @@ class BaseModel {
     get activeTargetMap() { return this.state().activeTargetMap ??= {}; }
     get updatingTargetList() { return this.state().updatingTargetList ??= []; }
     get updatingTargetMap() { return this.state().updatingTargetMap ??= {}; }
-    get childActionTargetList() { return this.state().childActionTargetList ??= []; }
     get fetchActionTargetList() { return this.state().fetchActionTargetList ??= []; }    
     get updatingChildrenList() { return this.state().updatingChildrenList ??= []; }
     get updatingChildrenMap() { return this.state().updatingChildrenMap ??= {}; }
@@ -149,8 +148,8 @@ class BaseModel {
         const targetType = typeof target;
         
         const isInactiveKey = key.startsWith('_') || key.endsWith('$');
-        const isExternalEvent = TargetData.allEventMap[cleanKey];
-        const isInternalEvent = TargetData.internalEventMap[cleanKey];
+        const isExternalEvent = !!TargetData.allEventMap[cleanKey];
+        const isInternalEvent = !!TargetData.internalEventMap[cleanKey];
 
         if (!TargetData.controlTargetMap[key]) {
             if (targetType !== 'object' || Array.isArray(target)) {
@@ -197,7 +196,7 @@ class BaseModel {
                 target.active = false;
             }
         }
-        
+
         if (isInternalEvent) {
             if (!this.allTargetMap[cleanKey]) {
                 this.internalEventList.push(cleanKey);
