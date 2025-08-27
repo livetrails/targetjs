@@ -29,11 +29,11 @@ class TModelUtil {
     } 
     
     static isHeightDefined(tmodel) {
-        return tmodel.isTargetImperative('height') || !!tmodel.allTargetMap['height'] || TUtil.isDefined(tmodel.targets.style?.height);
+        return tmodel.isTargetImperative('height') || !!tmodel.allTargetMap['height'] || !!tmodel.allTargetMap['dim'] || TUtil.isDefined(tmodel.targets.style?.height);
     }
     
     static isWidthDefined(tmodel) {
-        return tmodel.isTargetImperative('width') || !!tmodel.allTargetMap['width'] || TUtil.isDefined(tmodel.targets.style?.width);
+        return tmodel.isTargetImperative('width') || !!tmodel.allTargetMap['width'] || !!tmodel.allTargetMap['dim'] || TUtil.isDefined(tmodel.targets.style?.width);
     } 
     
     static isXDefined(tmodel) {
@@ -73,9 +73,9 @@ class TModelUtil {
         let value;
         
         if (key === 'x') {
-            value = tmodel.getTransformX();
+            value = Math.floor(tmodel.getTransformX());
         } else if (key === 'y') {
-            value = tmodel.getTransformY();
+            value = Math.floor(tmodel.getTransformY());
         } else if (TargetData.transformMap[key]) {
             value = TargetData.rotate3D[key]
                 ? tmodel.val(key)
@@ -89,13 +89,24 @@ class TModelUtil {
 
     static fixStyle(tmodel) {        
         let transformUpdate = false;
-        tmodel.styleTargetList.forEach(key => {          
+        tmodel.styleTargetList.forEach(key => { 
             if (TargetData.transformMap[key]) {
                 const value = TModelUtil.getTransformValue(tmodel, key);
                 if (tmodel.transformMap[key] !== value) {
                     tmodel.transformMap[key] = value;
                     transformUpdate = true;
-                }          
+                }  
+            } else if (key === 'dim') {
+                const dim = Math.floor(tmodel.val('dim'));
+
+                if (tmodel.$dom.getStyleValue('height') !== dim) {
+                    tmodel.styleMap['height'] = dim; 
+                    tmodel.$dom.height(dim);                  
+                }  
+                if (tmodel.$dom.getStyleValue('width') !== dim) {
+                    tmodel.styleMap['width'] = dim; 
+                    tmodel.$dom.width(dim); 
+                }                    
             } else if (key === 'width') {
                 const width = Math.floor(tmodel.getWidth());
 

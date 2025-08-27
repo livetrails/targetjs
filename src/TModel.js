@@ -132,8 +132,7 @@ class TModel extends BaseModel {
         if (typeof child === 'object') {
             this.childrenUpdateFlag = true;
             
-            if (!(child instanceof TModel)) {   
-                
+            if (!(child instanceof TModel)) {
                 const foundKey = Object.keys(this.actualValues).find(key => this.actualValues[key] === child);
                 
                 if (foundKey) {
@@ -672,11 +671,11 @@ class TModel extends BaseModel {
     }
     
     getCenterX() {
-        return TUtil.isDefined(this.getParentValue('width')) ?  (this.getParentValue('width') - this.getWidth()) / 2 : 0;
+        return (this.parent.getWidth() - this.getWidth()) / 2;
     }
     
     getCenterY() {
-        return TUtil.isDefined(this.getParentValue('height')) ?  (this.getParentValue('height') - this.getHeight()) / 2 : 0;
+        return (this.parent.getHeight() - this.getHeight()) / 2;
     }    
 
     getX() {
@@ -750,7 +749,7 @@ class TModel extends BaseModel {
     }      
 
     getMeasuringScale() {
-        return this.val('scale');
+        return this.val('measuringScale') ?? 1;
     }
 
     getZIndex() {
@@ -774,11 +773,27 @@ class TModel extends BaseModel {
     }
 
     getWidth() {
-        return this.val('width');
+        if (TUtil.isDefined(this.targets.width) || TUtil.isDefined(this.targetValues.width)) {
+            return this.val("width");
+        }
+
+        if (TUtil.isDefined(this.targets.dim) || TUtil.isDefined(this.targetValues.dim)) {
+            return this.val("dim");
+        }
+
+        return this.val("width");
     }
 
     getHeight() {
-        return this.val('height');
+        if (TUtil.isDefined(this.targets.height) || TUtil.isDefined(this.targetValues.height)) {
+            return this.val("height");
+        }
+
+        if (TUtil.isDefined(this.targets.dim) || TUtil.isDefined(this.targetValues.dim)) {
+            return this.val("dim");
+        }
+
+        return this.val("height");
     }
 
     getScrollTop() {

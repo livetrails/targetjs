@@ -47,7 +47,7 @@ class DomInit {
                 for (let attr of attrs) {
                     if (attr.name.startsWith("tg-")) {
                         const rawKey = attr.name.slice(3);
-                        const key = TargetData.attributesToTargets[rawKey] || rawKey;
+                        const key = TargetData.toCanonicalKey(rawKey);
                         
                         const rawValue = attr.value.trim();
                         

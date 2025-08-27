@@ -1,7 +1,7 @@
 import { getLoader, getEvents } from "./App.js";
 import { TUtil } from "./TUtil.js";
+import { TargetParser } from "./TargetParser.js";
 import { TargetData } from "./TargetData.js";
-
 
 /**
  * It provides helper functions for target management, such as deriving the values for steps, intervals, and cycles from targets.
@@ -88,14 +88,9 @@ class TargetUtil {
             }
         }
 
-        const stepPattern = /^on[A-Za-z]+Step$/;
-        const endPattern = /^on[A-Za-z]+End$/;  
-        const methods = ['value', 'enabledOn', 'onStepsEnd', 'onValueChange', 'loop', 'onImperativeEnd', 'onImperativeStep', 'onSuccess', 'onError'];
-
         Object.keys(target).forEach(method => {
             const originalMethod = target[method];
-            const shouldWrap = method === 'value' ||
-                (typeof originalMethod === 'function' && (methods.includes(method) || stepPattern.test(method) || endPattern.test(method)));
+            const shouldWrap = method === 'value' || (typeof originalMethod === 'function' && TargetData.isLifeCycleMethod(method));
 
             if (shouldWrap) {
                 target[method] = function() {
@@ -380,43 +375,6 @@ class TargetUtil {
         }        
     }
 
-    static isValueStepsCycleArray(arr) {
-        if (arr.length > 4 || arr.length === 0) {
-            return false;
-        }
-
-        for (let i = 1; i < arr.length; i++) {
-            if (typeof arr[i] !== 'number') {
-                return false;
-            }
-        }
-
-        return arr.length >= 2 && (typeof arr[0] === 'number' || TargetUtil.isListTarget(arr[0]) || typeof arr[0] === 'string');
-    }
-
-    static isListTarget(value) {
-        return typeof value === 'object' && value !== null && Array.isArray(value.list);
-    }
-    
-    static isFetchTarget(key, value) {
-        return TargetUtil.getTargetName(key) === 'fetch' && value && (typeof value === 'string' || Array.isArray(value));
-    }
-    
-    static isFetchImageTarget(key, value) {
-        return TargetUtil.getTargetName(key) === 'fetchImage' && value && (typeof value === 'string' || Array.isArray(value));
-    }    
-    
-    static isObjectTarget(key, value) {
-        return TargetUtil.getTargetName(key) !== 'style'
-            && typeof value === 'object'
-            && value !== null
-            && !Array.isArray(value)
-            && Object.getPrototypeOf(value) === Object.prototype;
-    }
-    
-    static isChildrenTarget(key, value) {
-        return TargetUtil.getTargetName(key) === 'children' && typeof value === 'object';
-    }
 
     static getValueStepsCycles(tmodel, _target, key, cycle = tmodel.getTargetCycle(key)) {
         cycle = tmodel.getTargetCycles(key) > 0 ? cycle : tmodel.getParent()?.getChildIndex(tmodel);
@@ -427,7 +385,7 @@ class TargetUtil {
 
         function getValue(target) {
             if (Array.isArray(target)) {
-                if (valueOnly || !TargetUtil.isValueStepsCycleArray(target)) {
+                if (valueOnly || !TargetParser.isValueStepsCycleArray(target)) {
                     return [target, steps, interval, cycles];
                 } else if (Array.isArray(_target)) {
                     return _target;
@@ -527,10 +485,21 @@ class TargetUtil {
     }
 
     static handleValueChange(tmodel, key, newValue, lastValue, step, cycle) {
-        if (typeof tmodel.targets[key] === 'object' && typeof tmodel.targets[key].onValueChange === 'function') {
-            const valueChanged = !TUtil.areEqual(newValue, lastValue, tmodel.targets[key].deepEquality);
+        let target = tmodel.targets[key];
+        const cleanKey = TargetUtil.getTargetName(key);
+        
+        if (!target) {
+            target = tmodel.targets[cleanKey];
+        }
+        
+        if (!target) {
+            target = tmodel.targets[tmodel.styleTargetList[cleanKey]];
+        }
+
+        if (typeof target === 'object' && typeof target.onValueChange === 'function') {
+            const valueChanged = !TUtil.areEqual(newValue, lastValue, target.deepEquality);
             if (valueChanged) {
-                tmodel.targets[key].onValueChange.call(tmodel, newValue, lastValue, cycle);
+                target.onValueChange.call(tmodel, newValue, lastValue, cycle);
                 tmodel.setTargetMethodName(key, 'onValueChange');
             }
         }

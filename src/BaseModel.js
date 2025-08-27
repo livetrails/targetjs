@@ -280,7 +280,7 @@ class BaseModel {
         if (!enforce && (this.excludeStyling() || this.targets[`exclude${TUtil.capitalizeFirstLetter(key)}`])) {
             return;
         }
-               
+        
         const isAsyncStyleTarget = TargetData.asyncStyleTargetMap[key];
         const isAttributeTarget = TargetData.attributeTargetMap[key];
 
@@ -295,7 +295,7 @@ class BaseModel {
                 if (this.getParent()) {
                     this.calcAbsolutePosition(this.getX(), this.getY());
                 }
-                if (TModelUtil.getTransformValue(this, key) === this.transformMap[key]) {
+                if (TModelUtil.getTransformValue(this, key) === Math.floor(this.transformMap[key])) {
                     styleFlag = false;
                 }
             } else if (key === 'width' || key === 'height') {
@@ -303,9 +303,13 @@ class BaseModel {
                 if (this.styleMap[key] === dimension) {
                     styleFlag = false;
                 }
-                } else if (TUtil.isDefined(this.val(key)) && this.styleMap[key] === this.val(key)) {
+            } else if (key === 'dim') {
+                if (this.styleMap[key] === Math.floor(this.val('dim'))) {
+                    styleFlag = false;
+                }
+            } else if (TUtil.isDefined(this.val(key)) && this.styleMap[key] === this.val(key)) {
                 styleFlag = false;
-            }
+            } 
 
             if (styleFlag && !this.styleTargetMap[key]) {
                 this.styleTargetList.push(key);
@@ -318,7 +322,7 @@ class BaseModel {
             return;
         }
 
-        if (!this.allStyleTargetMap[key]) {
+        if (TargetData.styleSet.has(key) && !this.allStyleTargetMap[key]) {
             this.allStyleTargetList.push(key);
             this.allStyleTargetMap[key] = true;
         }
@@ -554,10 +558,11 @@ class BaseModel {
     
     getDimLastUpdate() {
         return Math.max(
-            this.getActualValueLastUpdate('width') || 0,
-            this.getActualValueLastUpdate('height') || 0,
-            this.domHeightTimestamp,
-            this.domWidthTimestamp
+            this.getActualValueLastUpdate('width') ?? 0,
+            this.getActualValueLastUpdate('height') ?? 0,
+            this.getActualValueLastUpdate('size') ?? 0,
+            this.domHeightTimestamp ?? 0,
+            this.domWidthTimestamp ?? 0
         );
     }
 
@@ -799,7 +804,9 @@ class BaseModel {
                 this.val(`___${key}`, value);
             }
            
-            this.markLayoutDirty(key);
+            if (this.isVisible()) {
+                this.markLayoutDirty(key);
+            }
 
             const targetValue = this.targetValues[key];
             
@@ -813,8 +820,8 @@ class BaseModel {
                 this.updateTargetStatus(key);
             } else {
                 this.addToActiveTargets(key);
-            }           
-            this.activate(key);            
+            } 
+            this.activate(key);           
         }
 
         return this;

@@ -116,28 +116,45 @@ class EventListener {
     
     attachTargetEvents(tmodel, targetName) {
         const targetKey = `${tmodel.oid} ${targetName}`;
-        
-        if (!tmodel.hasDom() || (this.eventTargetMap[targetKey] && this.eventTargetMap[targetKey] === tmodel.$dom)) {
-            return;
-        }
-        this.eventTargetMap[targetKey] = tmodel.$dom;
-        
-        const events = TargetData.targetToEventsMapping[targetName];
-        events.forEach(event => {
-            
-            const eventMap = TargetData.events[event];
 
+        const events = TargetData.targetToEventsMapping[targetName];
+        if (!events || !Array.isArray(events) || events.length === 0) {         
+            return undefined;
+        }
+        
+        events.forEach(eventName => {
+            
+            const eventMap = TargetData.events[eventName];
+            
+            if (!eventMap) {
+                return undefined;
+            }
+            
             Object.keys(eventMap).forEach(key => {
-                const eventKey = `${tmodel.oid} ${key}`;
-                const eventItem = eventMap[key];
-                const $dom = eventItem.windowEvent ? tApp.$window : tmodel.$dom;
-                $dom.detachEvent(key, this.bindedHandleEvent);
-                $dom.addEvent(key, this.bindedHandleEvent);
-                this.attachedEventMap[eventKey] = { $dom, event: key };
-            }); 
+                const eventSpec = eventMap[key];
+                const isWindow = !!eventSpec.windowEvent;
+                const $dom = isWindow ? tApp.$window : (tmodel.hasDom() ? tmodel.$dom : null);
+                
+                if (!$dom) {
+                    return false;
+                }
+
+                const attachMarkerKey = `${targetKey} ${isWindow ? 'win' : 'dom'}`;
+                const alreadyMarked = this.eventTargetMap[attachMarkerKey] === $dom;
+                const attachedKey = `${tmodel.oid} ${key} ${isWindow ? 'win' : 'dom'}`;
+                
+                const alreadyAttached = this.attachedEventMap[attachedKey] && this.attachedEventMap[attachedKey].$dom === $dom;
+                
+                if (!alreadyMarked || !alreadyAttached) {
+                    $dom.detachEvent(key, this.bindedHandleEvent);
+                    $dom.addEvent(key, this.bindedHandleEvent);
+                    this.eventTargetMap[attachMarkerKey] = $dom;
+                    this.attachedEventMap[attachedKey] = {$dom, event: key};
+                }
+            });
         });
     }
-    
+
     detachAll() {
         const eventKeys = Object.keys(this.attachedEventMap);
         eventKeys.forEach(eventKey => {

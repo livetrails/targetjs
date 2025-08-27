@@ -1,5 +1,7 @@
 import { TargetUtil } from "./TargetUtil.js";
+import { TargetParser } from "./TargetParser.js";
 import { TargetData } from "./TargetData.js";
+import { TModel } from "./TModel.js";
 import { TUtil } from "./TUtil.js";
 import { Easing } from "./Easing.js";
 import { getEvents, getLoader, getRunScheduler } from "./App.js";
@@ -46,14 +48,14 @@ class TargetExecutor {
         let targetValue;
         key = key && !key.endsWith('+') && tmodel.allTargetMap[key] ? key + "+" : key;
         
-        if (TargetUtil.isListTarget(value)) {
+        if (TargetParser.isListTarget(value)) {
             targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel);
             TargetExecutor.assignListTarget(tmodel, key, targetValue, value.list, value.list[0], steps, interval, easing);
-        } else if (TargetUtil.isObjectTarget(key, value)) {
+        } else if (TargetParser.isObjectTarget(key, value)) {
             const completeValue = TargetData.cssFunctionMap[key] ? { ...TargetData.cssFunctionMap[key], ...value } : value; 
             Object.keys(completeValue).forEach(objectKey => {
                 let newValue = completeValue[objectKey];
-                if (typeof newValue === 'object'  && !TargetUtil.isListTarget(newValue)) {
+                if (typeof newValue === 'object'  && !TargetParser.isListTarget(newValue)) {
                     const valueArray = TargetUtil.getValueStepsCycles(tmodel, completeValue[objectKey], key);
                     newValue = valueArray[0];
                     steps = TUtil.isDefined(valueArray[1]) ? valueArray[1] : steps;
@@ -63,7 +65,7 @@ class TargetExecutor {
                 TargetExecutor.executeImperativeTarget(tmodel, objectKey, newValue, steps, interval, easing, originalTargetName, originalTModel);
             });
         } else {
-            if (typeof value === 'object' && !TargetUtil.isListTarget(value)) {
+            if (typeof value === 'object' && !TargetParser.isListTarget(value)) {
                 const valueArray = TargetUtil.getValueStepsCycles(tmodel, value, key);
                 if (value !== valueArray[0]) {
                     value = valueArray[0];
@@ -83,7 +85,7 @@ class TargetExecutor {
         }
 
         if (targetValue) {
-            TargetExecutor.updateTarget(tmodel, targetValue, key, true);
+            TargetExecutor.updateTarget(tmodel, targetValue, key, true);      
         }
     }
 
@@ -93,7 +95,7 @@ class TargetExecutor {
                 
         tmodel.setActualValueLastUpdate(key);
 
-        if (tmodel.getTargetSteps(key) === 0) {
+        if (tmodel.getTargetSteps(key) === 0 && targetValue.executionFlag) {
             TargetExecutor.snapActualToTarget(tmodel, key);
         }
         
@@ -177,7 +179,7 @@ class TargetExecutor {
         tmodel.targetValues[key] = targetValue;
         const easing = TUtil.isDefined(tmodel.targets[key].easing) ? tmodel.targets[key].easing : undefined;
         
-        if (TargetUtil.isChildrenTarget(key, newValue)) {
+        if (TargetParser.isChildrenTarget(key, newValue)) {
                         
             const values = Array.isArray(newValue) ? newValue : newValue ? [newValue] : [];
 
@@ -194,7 +196,20 @@ class TargetExecutor {
                 newCycles, 
                 newInterval
             );
-        } else if (TargetUtil.isFetchTarget(key, newValue)) {
+        } else if (TargetParser.isChildrenObjectTarget(key, tmodel.targets[key])) {
+                        
+            const child = new TModel(key, tmodel.targets[key]);
+            tmodel.addChild(child);
+
+            TargetExecutor.assignSingleTarget(
+                targetValue, 
+                child,
+                undefined, 
+                0, 
+                newCycles, 
+                newInterval
+            );
+        } else if (TargetParser.isFetchTarget(key, newValue)) {
             getLoader().fetch(tmodel, newValue);
             
             TargetExecutor.assignSingleTarget(
@@ -205,7 +220,7 @@ class TargetExecutor {
                 newCycles, 
                 newInterval
             );
-        } else if (TargetUtil.isFetchImageTarget(key, newValue)) {
+        } else if (TargetParser.isFetchImageTarget(key, newValue)) {
             getLoader().fetchImage(tmodel, newValue);
             
             TargetExecutor.assignSingleTarget(
@@ -216,7 +231,7 @@ class TargetExecutor {
                 newCycles, 
                 newInterval
             );    
-        } else if (TargetUtil.isListTarget(newValue)) {
+        } else if (TargetParser.isListTarget(newValue)) {
             TargetExecutor.assignListTarget(tmodel, key, targetValue, newValue.list, newValue.list[0], newSteps, newInterval, easing);
         } else {
             if (newSteps > 0 && !TUtil.areEqual(tmodel.val(key), newValue, tmodel.targets[key]?.deepEquality ?? false)) {

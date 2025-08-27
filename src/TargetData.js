@@ -2,7 +2,7 @@ import { getEvents, getResizeLastUpdate } from "./App.js";
 import { TUtil } from "./TUtil.js";
 
 class TargetData {
-    
+
     static defaultActualValues() {
         return {
             x: 0,
@@ -14,7 +14,7 @@ class TargetData {
             topMargin: 0,
             bottomMargin: 0,
             opacity: 1,
-            scale: 1,  
+            scale: 1,
             scrollLeft: 0,
             scrollTop: 0,
             borderRadius: 0,
@@ -25,18 +25,18 @@ class TargetData {
             isIncluded: true,
             bracketThreshold: 10,
             bracketSize: 5,
-            preventDefault: undefined,            
+            preventDefault: undefined,
             canDeleteDom: undefined
         };
     }
-    
+
     static transformOrder = {
         perspective: 0,
         translateX: 1,
         translateY: 1,
         translateZ: 1,
         translate: 1,
-        translate3d: 1,        
+        translate3d: 1,
         rotate: 2,
         rotateX: 2,
         rotateY: 2,
@@ -44,7 +44,7 @@ class TargetData {
         rotate3d: 2,
         skew: 3,
         skewX: 3,
-        skewY: 3,        
+        skewY: 3,
         scale: 4,
         scaleX: 4,
         scaleY: 4,
@@ -53,14 +53,14 @@ class TargetData {
         scale3DY: 4,
         scale3DZ: 4
     };      
-    
+
     static defaultTargetStyles = {
-        position: 'absolute', 
-        left: 0, 
+        position: 'absolute',
+        left: 0,
         top: 0,
         zIndex: 1
     };
-    
+
     static transformMap = {
         x: true,
         y: true,
@@ -88,12 +88,13 @@ class TargetData {
         skewX: true,
         skewY: true
     };
-  
+
     static dimMap = {
         width: true,
-        height: true
+        height: true,
+        dim: true
     };
-    
+
     static styleWithUnitMap = {
         fontSize: true,
         lineHeight: true,
@@ -113,7 +114,7 @@ class TargetData {
         background: true,
         backgroundColor: true
     };
-    
+
     static styleTargetMap = {
         ...TargetData.transformMap,
         ...TargetData.dimMap,
@@ -127,99 +128,101 @@ class TargetData {
         borderRight: true,
         borderBottom: true
     };
-    
+
     static asyncStyleTargetMap = {
-        position: true, 
-        css: true, 
-        style: true, 
-        textAlign: true, 
+        position: true,
+        css: true,
+        style: true,
+        textAlign: true,
         boxSizing: true,
-        transformStyle: true, 
-        transformOrigin: true, 
-        attributes: true, 
+        transformStyle: true,
+        transformOrigin: true,
+        attributes: true,
         justifyContent: true,
         flexDirection: true,
-        alignItems: true, 
-        display: true, 
-        cursor: true, 
-        fontFamily: true, 
+        alignItems: true,
+        display: true,
+        cursor: true,
+        fontFamily: true,
         overflow: true,
         overflowX: true,
         overflowY: true,
-        textDecoration: true, 
-        boxShadow: true, 
+        textDecoration: true,
+        boxShadow: true,
         fontWeight: true,
         willChange: true,
         backgroundImage: true,
         backgroundSize: true,
         flexWrap: true,
         userSelect: true,
+        ariaLabel: true,
+        ariaCurrent: true
     };
 
-    static scaleMap = { 
-        scale: true, 
-        scaleX: true, 
-        scaleY: true, 
-        scaleZ: true, 
-        scale3DX: true, 
-        scale3DY: true, 
-        scale3DZ: true 
+    static scaleMap = {
+        scale: true,
+        scaleX: true,
+        scaleY: true,
+        scaleZ: true,
+        scale3DX: true,
+        scale3DY: true,
+        scale3DZ: true
     };
 
-    static rotate3D = { 
-        rotate3DX: true, 
-        rotate3DY: true, 
-        rotate3DZ: true 
+    static rotate3D = {
+        rotate3DX: true,
+        rotate3DY: true,
+        rotate3DZ: true
     };
 
     static attributeTargetMap = {
-        lang: true, 
-        autoFocus: true, 
-        placeholder: true, 
-        autoComplete: true, 
+        lang: true,
+        autoFocus: true,
+        placeholder: true,
+        autoComplete: true,
         name: true,
-        type: true, 
-        src: true, 
-        href: true, 
-        method: true, 
-        size: true, 
+        type: true,
+        src: true,
+        href: true,
+        method: true,
+        size: true,
         value: true,
-        maxLength: true, 
-        minLength: true, 
-        max: true, 
-        min: true, 
+        maxLength: true,
+        minLength: true,
+        max: true,
+        min: true,
         readonly: true,
-        required: true, 
-        alt: true, 
-        disabled: true, 
-        action: true, 
+        required: true,
+        alt: true,
+        disabled: true,
+        action: true,
         accept: true,
-        selected: true, 
-        rows: true, 
-        cols: true, 
+        selected: true,
+        rows: true,
+        cols: true,
         tabIndex: true,
         role: true
     };
 
     static mustExecuteTargets = {
-        width: true, 
-        height: true, 
-        heightFromDom: true, 
+        width: true,
+        height: true,
+        heightFromDom: true,
         widthFromDom: true,
         fetch: true,
         fetchImage: true
     };
 
-    static coreTargetMap = { 
-        x: true, 
-        y: true 
+    static coreTargetMap = {
+        x: true,
+        y: true
     };
-    
+
     static ignoreRerun = {
         ...TargetData.coreTargetMap,
-        isVisible: true        
+        isVisible: true
     };
-        
+
     static ignoreTargetMethodNameMap = {
         ...TargetData.coreTargetMap,
         isVisible: true
@@ -233,11 +236,11 @@ class TargetData {
     };
 
     static bypassInitialProcessingTargetMap = {
-        onChildrenChange: true, 
-        onVisibleChildrenChange: true, 
+        onChildrenChange: true,
+        onVisibleChildrenChange: true,
         onPageClose: true
     };
-    
+
     static controlTargetMap = {
         defaultStyling: true,
         styling: true,
@@ -248,7 +251,7 @@ class TargetData {
         onDomEvent: true,
         canHaveDom: true
     };
-    
+
     static events = {
         mouseStart: {
             pointerdown: { eventName: 'mousedown', inputType: 'pointer', eventType: 'start', order: 2, windowEvent: false, queue: true, rateLimit: 0 },
@@ -283,45 +286,49 @@ class TargetData {
             keydown: { eventName: 'keydown', inputType: '', eventType: 'keydown', order: 1, windowEvent: true, queue: true, rateLimit: 50 },            
             blur: { eventName: 'blur', inputType: 'mouse', eventType: 'cancel', order: 2, windowEvent: true, queue: true, rateLimit: 0 },
             resize: { eventName: 'resize', inputType: '', eventType: 'resize', order: 1, windowEvent: true, queue: true, rateLimit: 50 },
-            orientationchange: { eventName: 'resize', inputType: '', eventType: 'resize', order: 1, windowEvent: true, queue: true, rateLimit: 50 }
+            orientationchange: { eventName: 'resize', inputType: '', eventType: 'resize', order: 1, windowEvent: true, queue: true, rateLimit: 50 },
         },
 
         windowScroll: {
-            scroll: { eventName: 'scroll', inputType: '', eventType: 'windowScroll', order: 1, windowEvent: true, queue: true, rateLimit: 50 }
+            scroll: {eventName: 'scroll', inputType: '', eventType: 'windowScroll', order: 1, windowEvent: true, queue: true, rateLimit: 50}
+        },
+        
+        popState: {
+            popstate: { eventName: 'popstate', inputType: '', eventType: 'popstate', order: 1, windowEvent: true, queue: true, rateLimit: 0 }
         },
 
         leaveEvents: {
-            pointerleave: { eventName: 'mouseleave', inputType: 'pointer', eventType: 'leave', order: 2, windowEvent: false, queue: true, rateLimit: 0 },
-            mouseleave: { eventName: 'mouseleave', inputType: 'mouse', eventType: 'leave', order: 3, windowEvent: false, queue: true, rateLimit: 0 }
+            pointerleave: {eventName: 'mouseleave', inputType: 'pointer', eventType: 'leave', order: 2, windowEvent: false, queue: true, rateLimit: 0},
+            mouseleave: {eventName: 'mouseleave', inputType: 'mouse', eventType: 'leave', order: 3, windowEvent: false, queue: true, rateLimit: 0}
         },
 
         enterEvents: {
-            pointerenter: { eventName: 'mouseenter', inputType: 'pointer', eventType: 'enter', order: 2, windowEvent: false, queue: true, rateLimit: 0 },
-            mouseenter: { eventName: 'mouseenter', inputType: 'mouse', eventType: 'enter', order: 3, windowEvent: false, queue: true, rateLimit: 0 }
+            pointerenter: {eventName: 'mouseenter', inputType: 'pointer', eventType: 'enter', order: 2, windowEvent: false, queue: true, rateLimit: 0},
+            mouseenter: {eventName: 'mouseenter', inputType: 'mouse', eventType: 'enter', order: 3, windowEvent: false, queue: true, rateLimit: 0}
         },
 
         moveEvents: {
-            touchmove: { eventName: 'touchmove', inputType: 'touch', eventType: 'move', order: 1, windowEvent: false, queue: true, rateLimit: 50 },
-            pointermove: { eventName: 'mousemove', inputType: 'pointer', eventType: 'move', order: 2, windowEvent: false, queue: true, rateLimit: 50 },
-            mousemove: { eventName: 'mousemove', inputType: 'mouse', eventType: 'move', order: 3, windowEvent: false, queue: true, rateLimit: 50 }
+            touchmove: {eventName: 'touchmove', inputType: 'touch', eventType: 'move', order: 1, windowEvent: false, queue: true, rateLimit: 50},
+            pointermove: {eventName: 'mousemove', inputType: 'pointer', eventType: 'move', order: 2, windowEvent: false, queue: true, rateLimit: 50},
+            mousemove: {eventName: 'mousemove', inputType: 'mouse', eventType: 'move', order: 3, windowEvent: false, queue: true, rateLimit: 50}
         },
 
         documentEvents: {
-            touchmove: { eventName: 'touchmove', inputType: 'touch', eventType: 'move', order: 1, windowEvent: false, queue: true, rateLimit: 50 },
-            pointermove: { eventName: 'mousemove', inputType: 'pointer', eventType: 'move', order: 2, windowEvent: false, queue: true, rateLimit: 50 },
-            mousemove: { eventName: 'mousemove', inputType: 'mouse', eventType: 'move', order: 3, windowEvent: false, queue: true, rateLimit: 50 },
-            mouseleave: { eventName: 'mouseleave', inputType: 'mouse', eventType: 'leave', order: 3, windowEvent: false, queue: true, rateLimit: 50 },
-            pointerup: { eventName: 'mouseup', inputType: 'pointer', eventType: 'end', order: 2, windowEvent: false, queue: true, rateLimit: 0 },
-            mouseup: { eventName: 'mouseup', inputType: 'mouse', eventType: 'end', order: 3, windowEvent: false, queue: true, rateLimit: 0 },
-            touchend: { eventName: 'touchend', inputType: 'touch', eventType: 'end', order: 1, windowEvent: false, queue: true, rateLimit: 0 }
+            touchmove: {eventName: 'touchmove', inputType: 'touch', eventType: 'move', order: 1, windowEvent: false, queue: true, rateLimit: 50},
+            pointermove: {eventName: 'mousemove', inputType: 'pointer', eventType: 'move', order: 2, windowEvent: false, queue: true, rateLimit: 50},
+            mousemove: {eventName: 'mousemove', inputType: 'mouse', eventType: 'move', order: 3, windowEvent: false, queue: true, rateLimit: 50},
+            mouseleave: {eventName: 'mouseleave', inputType: 'mouse', eventType: 'leave', order: 3, windowEvent: false, queue: true, rateLimit: 50},
+            pointerup: {eventName: 'mouseup', inputType: 'pointer', eventType: 'end', order: 2, windowEvent: false, queue: true, rateLimit: 0},
+            mouseup: {eventName: 'mouseup', inputType: 'mouse', eventType: 'end', order: 3, windowEvent: false, queue: true, rateLimit: 0},
+            touchend: {eventName: 'touchend', inputType: 'touch', eventType: 'end', order: 1, windowEvent: false, queue: true, rateLimit: 0}
         },
 
         wheelEvents: {
-            wheel: { eventName: 'wheel', inputType: '', eventType: 'wheel', order: 1, windowEvent: false, queue: true, rateLimit: 50 },
-            mousewheel: { eventName: 'wheel', inputType: '', eventType: 'wheel', order: 1, windowEvent: false, queue: true, rateLimit: 50 }
+            wheel: {eventName: 'wheel', inputType: '', eventType: 'wheel', order: 1, windowEvent: false, queue: true, rateLimit: 50},
+            mousewheel: {eventName: 'wheel', inputType: '', eventType: 'wheel', order: 1, windowEvent: false, queue: true, rateLimit: 50}
         }
     };
-    
+
     static attributesToTargets = {
         onstart: 'onStart',
         onend: 'onEnd',
@@ -332,7 +339,7 @@ class TargetData {
         onanyclick: 'onAnyClick',
         onhover: 'onHover',
         onswipe: 'onSwipe',
-        onanyswipe: 'onAnySwipe',        
+        onanyswipe: 'onAnySwipe',
         onpinch: 'onPinch',
         onenter: 'onEnter',
         onleave: 'onLeave',
@@ -340,8 +347,9 @@ class TargetData {
         onfocus: 'onFocus',
         onscroll: 'onScroll',
         onscrollleft: 'onScrollLeft',
-        onscrolltop: 'onScrollTop',        
+        onscrolltop: 'onScrollTop',
         onwindowscroll: 'onWindowScroll',
+        onpopstate: 'onPopState',
         onvisible: 'onVisible',
         onresize: 'onResize',
         textalign: 'textAlign',
@@ -369,17 +377,17 @@ class TargetData {
         borderright: 'borderRight',
         borderbottom: 'borderBottom',
         boxsizing: 'boxSizing',
-        transformstyle: 'transformStyle', 
-        transformorigin: 'transformOrigin', 
+        transformstyle: 'transformStyle',
+        transformorigin: 'transformOrigin',
         justifycontent: 'justifyContent',
         flexdirection: 'flexDirection',
         flexwrap: 'flexWrap',
-        alignitems: 'alignItems', 
-        fontfamily: 'fontFamily', 
+        alignitems: 'alignItems',
+        fontfamily: 'fontFamily',
         overflowx: 'overflowX',
         overflowy: 'overflowY',
-        textdecoration: 'textDecoration', 
-        boxshadow: 'boxShadow', 
+        textdecoration: 'textDecoration',
+        boxshadow: 'boxShadow',
         fontweight: 'fontWeight',
         willchange: 'willChange',
         domholder: 'domHolder',
@@ -398,29 +406,32 @@ class TargetData {
         paddingright: 'paddingRight',
         paddingtop: 'paddingTop',
         paddingbottom: 'paddingBottom',
-        userselect: 'userSelect'
+        userselect: 'userSelect',
+        arialabel: 'ariaLabel',
+        ariacurrent: 'ariaCurrent'
     };
-    
+
     static targetToEventsMapping = {
-        onStart: [ 'touchStart', 'mouseStart' ],
-        onEnd: [ ],
-        onKey: [ ],
-        onKeyDown: [ ],
-        onAnyKey: [ ],
-        onBlur: [ ],
-        onFocus: [ ],
-        onClick: [ 'clickEvents', 'touchStart', 'mouseStart' ],
-        onAnyClick: [ 'clickEvents', 'touchStart', 'mouseStart' ],
-        onHover: [ 'moveEvents' ],
-        onSwipe: [ 'touchStart', 'mouseStart' ],
-        onAnySwipe: [ 'touchStart', 'mouseStart' ],        
-        onPinch: [ 'touchStart' ],
-        onEnter: [ 'enterEvents' ],
-        onLeave: [ 'leaveEvents' ],
-        onScroll: [ 'touchStart', 'mouseStart', 'wheelEvents' ],
-        onScrollLeft: [ 'touchStart', 'mouseStart', 'wheelEvents' ],
-        onScrollTop: [ 'touchStart', 'mouseStart', 'wheelEvents' ],        
-        onWindowScroll: [ 'windowScroll' ]
+        onStart: ['touchStart', 'mouseStart'],
+        onEnd: [],
+        onKey: [],
+        onKeyDown: [],
+        onAnyKey: [],
+        onBlur: [],
+        onFocus: [],
+        onClick: ['clickEvents', 'touchStart', 'mouseStart'],
+        onAnyClick: ['clickEvents', 'touchStart', 'mouseStart'],
+        onHover: ['moveEvents'],
+        onSwipe: ['touchStart', 'mouseStart'],
+        onAnySwipe: ['touchStart', 'mouseStart'],
+        onPinch: ['touchStart'],
+        onEnter: ['enterEvents'],
+        onLeave: ['leaveEvents'],
+        onScroll: ['touchStart', 'mouseStart', 'wheelEvents'],
+        onScrollLeft: ['touchStart', 'mouseStart', 'wheelEvents'],
+        onScrollTop: ['touchStart', 'mouseStart', 'wheelEvents'],
+        onWindowScroll: ['windowScroll'],
+        onPopState: ['popState']
     };
 
     static touchEventMap = {
@@ -432,24 +443,24 @@ class TargetData {
         onClick: tmodel => getEvents().isClickEvent() && getEvents().isClickHandler(tmodel),
         onAnyClick: () => getEvents().isClickEvent(),
         onEnter: tmodel => getEvents().isEnterHandler(tmodel),
-        onLeave: tmodel => getEvents().isLeaveHandler(tmodel),        
-        onSwipe: tmodel => getEvents().isSwipeHandler(tmodel) && getEvents().isSwipeEvent() && TUtil.isDefined(getEvents().swipeStartX) 
+        onLeave: tmodel => getEvents().isLeaveHandler(tmodel),
+        onSwipe: tmodel => getEvents().isSwipeHandler(tmodel) && getEvents().isSwipeEvent() && TUtil.isDefined(getEvents().swipeStartX)
     };
 
     static internalEventMap = {
         onDomEvent: tmodel => tmodel.hasDomNow,
         onVisible: tmodel => tmodel.isNowVisible,
-        onResize: tmodel => {            
+        onResize: tmodel => {
             const lastUpdate = tmodel.getDimLastUpdate();
             const parent = tmodel.getParent();
             const resizeLastUpdate = parent ? Math.max(parent.getDimLastUpdate(), getResizeLastUpdate()) : getResizeLastUpdate();
             return lastUpdate > 0 && resizeLastUpdate > lastUpdate;
-        }       
+        }
     };
 
     static allEventMap = {
         ...TargetData.touchEventMap,
-      
+
         onFocus: tmodel => getEvents().onFocus(tmodel),
         onBlur: tmodel => getEvents().onBlur(tmodel),
         onPinch: tmodel => getEvents().isPinchHandler(tmodel),
@@ -457,10 +468,58 @@ class TargetData {
         onKeyDown: tmodel => getEvents().getEventType() === 'keydown' && getEvents().currentKey && getEvents().currentHandlers.focus === tmodel && getEvents().currentHandlers.justFocused !== tmodel,
         onAnyKey: () => getEvents().getEventType() === 'key' && getEvents().currentKey,
         onScroll: tmodel => (getEvents().isScrollLeftHandler(tmodel) && getEvents().deltaX()) || (getEvents().isScrollTopHandler(tmodel) && getEvents().deltaY()),
-        onScrollTop: tmodel => getEvents().getOrientation() !== 'horizontal' && getEvents().isScrollTopHandler(tmodel) && getEvents().deltaY(), 
+        onScrollTop: tmodel => getEvents().getOrientation() !== 'horizontal' && getEvents().isScrollTopHandler(tmodel) && getEvents().deltaY(),
         onScrollLeft: tmodel => getEvents().getOrientation() !== 'vertical' && getEvents().isScrollLeftHandler(tmodel) && getEvents().deltaX(),
-        onWindowScroll: () => getEvents().getEventType() === 'windowScroll'        
+        onWindowScroll: () => getEvents().getEventType() === 'windowScroll',
+        onPopState: () => getEvents().getEventType() === 'popState'
     };
+
+    static lifecycleMethodSet = new Set([
+        'value', 'enabledOn', 'loop', 'onValueChange',
+        'onImperativeEnd', 'onImperativeStep', 'onStepsEnd',
+        'onSuccess', 'onError',
+    ]);
+
+    static lifecyclePatterns = {
+        step: /^on[A-Za-z]+Step$/,
+        end: /^on[A-Za-z]+End$/,
+    };
+
+    static eventSet = new Set([
+        ...Object.keys(TargetData.allEventMap),
+        ...Object.keys(TargetData.internalEventMap),
+    ]);
+
+    static styleSet = new Set([
+        ...Object.keys(TargetData.styleTargetMap),
+        ...Object.keys(TargetData.asyncStyleTargetMap),
+        ...Object.keys(TargetData.attributeTargetMap)
+    ]);
+
+    static reservedKeywordSet = new Set([
+        ...TargetData.styleSet,
+        ...Object.keys(TargetData.defaultActualValues()),
+        ...Object.keys(TargetData.allEventMap),
+        ...Object.keys(TargetData.internalEventMap),        
+        'html', 'isInFlow', 'domHolder', 'domParent', 'gap'
+    ]);
+    
+    static activationKeywordSet = new Set([
+        'originalTModel', 'originalTargetName', 'activateNextTarget'
+    ]);
+
+    static toCanonicalKey(key) {
+        const k = String(key);
+        const lb = k.toLowerCase();
+        return TargetData.attributesToTargets[lb] ?? k;
+    }
+
+    static isLifeCycleMethod(name) {
+        return TargetData.lifecycleMethodSet.has(name) ||
+                TargetData.lifecyclePatterns.step.test(name) ||
+                TargetData.lifecyclePatterns.end.test(name);
+    }    
+
 }
 
 export { TargetData };
