@@ -18,13 +18,14 @@ class TargetUtil {
             interval: 0,
             initialValue: undefined,
             scheduleTimeStamp: undefined,
-            actualValueLastUpdate: 0,
+            lastUpdate: 0,
             status: '',
             executionCount: 0,
             executionFlag: false,
             isImperative: false,
             originalTargetName: undefined,
             easing: undefined,
+            activationTime: TUtil.now(),
             creationTime: TUtil.now()
         };
     }
@@ -33,7 +34,6 @@ class TargetUtil {
         if (!name) {
             return;
         }
-
         let start = name.startsWith('_') ? 1 : 0;
         let end = name.length;
         while (end > start && name[end - 1] === '$') {
@@ -58,9 +58,9 @@ class TargetUtil {
             }
         };
         
-        let lastPrevUpdateTime = prevKey !== undefined ? tmodel.getActualValueLastUpdate(prevKey) : undefined;
+        let lastPrevUpdateTime = prevKey !== undefined ? tmodel.getLastUpdate(prevKey) : undefined;
 
-        const getPrevUpdateTime = () => prevKey !== undefined ? tmodel.getActualValueLastUpdate(prevKey) : undefined;
+        const getPrevUpdateTime = () => prevKey !== undefined ? tmodel.getLastUpdate(prevKey) : undefined;
 
         const isPrevTargetUpdated = () => {
             const currentPrevUpdateTime = getPrevUpdateTime();
@@ -117,7 +117,8 @@ class TargetUtil {
         }
         if (tmodel.isTargetImperative(key)) { 
             const { originalTModel, originalTargetName } = tmodel.targetValues[key];
-            TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1, true);
+            originalTModel.setLastUpdate(originalTargetName);
+            TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
             return;
         }
         
@@ -129,17 +130,22 @@ class TargetUtil {
         
         const nextTarget = target.activateNextTarget;
         const isEndTrigger = nextTarget?.endsWith('$$') ?? false;
-        
+        const fetchAction = target.fetchAction;
+
         let nextTargetActivated = false;
 
-        if (nextTarget) {   
-            if (!isEndTrigger || level === 0 || (isEndTrigger && level > 0 && !tmodel.isTargetComplete(nextTarget))) {
-                const fetchAction = target.fetchAction;
+        if (nextTarget) { 
+            const timingAfter = tmodel.getLastUpdate(key) > tmodel.getTargetActivationTime(nextTarget);
+            
+            if (nextTarget === 'setButtonBackground$') {
+                //console.log('next: ' + tmodel.oid + ", " + key + ", " + tmodel.getLastUpdate(key) + ":" + tmodel.getTargetActivationTime(nextTarget) + " => " + nextTarget + ", " + tmodel.isTargetComplete(nextTarget) + ", " + TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) + ", " + (tmodel.getLastUpdate(key) > tmodel.getTargetActivationTime(nextTarget)));
+            }
+            if (timingAfter && (!isEndTrigger || level === 0 || (isEndTrigger && level > 0 && !tmodel.isTargetComplete(nextTarget)))) {
 
                 if (fetchAction) {
                     if (isEndTrigger) {
                         if (TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) === true) {                  
-                            tmodel.activateTarget(nextTarget);
+                            TargetUtil.activateTarget(tmodel, nextTarget);
                             nextTargetActivated = true;
                         }
                     } else {
@@ -147,7 +153,7 @@ class TargetUtil {
                             if (tmodel.activatedTargets.indexOf(nextTarget) >= 0) {
                                 tmodel.activatedTargets.push(nextTarget);                            
                             } else {
-                                tmodel.activateTarget(nextTarget);
+                                TargetUtil.activateTarget(tmodel, nextTarget);
                             }
                             getLoader().nextActiveItem(tmodel, key);
                             nextTargetActivated = true;
@@ -156,7 +162,7 @@ class TargetUtil {
                 } else if (isEndTrigger) {
                     if (TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) === true)  {
                         tmodel.removeFromActiveTargets(nextTarget);
-                        tmodel.activateTarget(nextTarget);  
+                        TargetUtil.activateTarget(tmodel, nextTarget); 
                         nextTargetActivated = true;
 
                     } if (tmodel.isTargetComplete(nextTarget) || tmodel.isTargetDone(nextTarget)) {
@@ -166,7 +172,7 @@ class TargetUtil {
                     if (tmodel.activatedTargets.indexOf(nextTarget) >= 0 && !tmodel.isTargetUpdating(key)) {
                         tmodel.activatedTargets.push(nextTarget);
                     } else {
-                        tmodel.activateTarget(nextTarget);
+                        TargetUtil.activateTarget(tmodel, nextTarget);
                         nextTargetActivated = true;
                     }             
                 }
@@ -174,10 +180,12 @@ class TargetUtil {
                 TargetUtil.cleanupTarget(tmodel, nextTarget);
             }
         }
-        
+       
         if (!nextTargetActivated && !tmodel.updatingTargetList.length && !tmodel.activeTargetList.length) {
-            const { originalTModel, originalTargetName } = target; 
-            if (!originalTModel?.isTargetComplete(originalTargetName)) {
+            const { originalTModel, originalTargetName, activateNextTarget } = target;
+            if (activateNextTarget && !fetchAction) {
+                TargetUtil.shouldActivateNextTarget(tmodel, activateNextTarget, level);
+            } else if (originalTModel) {
                 TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, level + 1);
             }
         }
@@ -209,13 +217,16 @@ class TargetUtil {
     static activateTargets(tmodel, target) {
         while(target) {
             if (!tmodel.isTargetActive(target) && !tmodel.isTargetUpdating(target)) {
-                tmodel.activateTarget(target);
+                TargetUtil.activateTarget(tmodel, target);
             }
             
             const activateNextTarget = tmodel.targets[target].activateNextTarget;
             target = activateNextTarget && !activateNextTarget.endsWith('$$') && activateNextTarget.endsWith('$') ? activateNextTarget : undefined;
         }
-        
+    }
+    
+    static activateTarget(tmodel, target) {
+        tmodel.activateTarget(target);
     }
 
     static isTModelComplete(tmodel) {
@@ -275,7 +286,7 @@ class TargetUtil {
             }
             
             if (!TargetUtil.isTModelTargetComplete(tmodel, targetName)) {
-               return targetName + ", " + tmodel.oid + ', ' + "not complete " + tmodel.getTargetStatus(targetName) + ", " + TargetUtil.getUpdatingChildren(tmodel, targetName) + ", " + tmodel.activeChildrenList.map(t => t.oid + ':' + t.activeTargetList); 
+               return targetName + ", " + tmodel.oid + ', ' + "not complete " + tmodel.getTargetStatus(targetName) + " - " + TargetUtil.getUpdatingChildren(tmodel, targetName) + " - " + tmodel.activeChildrenList.map(t => t.oid + ':' + t.activeTargetList); 
             }            
         }
         return true;
@@ -377,7 +388,6 @@ class TargetUtil {
 
 
     static getValueStepsCycles(tmodel, _target, key, cycle = tmodel.getTargetCycle(key)) {
-        cycle = tmodel.getTargetCycles(key) > 0 ? cycle : tmodel.getParent()?.getChildIndex(tmodel);
         const valueOnly = _target && _target.valueOnly;
         const lastValue = tmodel.val(key);
 
@@ -420,7 +430,7 @@ class TargetUtil {
     static runTargetValue(tmodel, target, key, cycle, lastValue) {
         const cleanKey = TargetUtil.getTargetName(key);  
         const isExternalEvent = TargetData.allEventMap[cleanKey];
-        
+
         if (isExternalEvent) {
             return typeof target.value === 'function' ? target.value.call(tmodel, getEvents().getCurrentOriginalEvent(), cycle, lastValue) : TUtil.isDefined(target.value) ? target.value : target;        
         } else if (tmodel.val(`___${key}`)) {
@@ -486,14 +496,15 @@ class TargetUtil {
 
     static handleValueChange(tmodel, key, newValue, lastValue, step, cycle) {
         let target = tmodel.targets[key];
-        const cleanKey = TargetUtil.getTargetName(key);
         
         if (!target) {
-            target = tmodel.targets[cleanKey];
+            key = TargetUtil.getTargetName(key);
+            target = tmodel.targets[key];
         }
         
         if (!target) {
-            target = tmodel.targets[tmodel.styleTargetList[cleanKey]];
+            key = tmodel.styleTargetList[key];
+            target = tmodel.targets[key];
         }
 
         if (typeof target === 'object' && typeof target.onValueChange === 'function') {

@@ -97,16 +97,16 @@ class Moves {
         return bounce;
     }
     
-    static shake(tmodel, {
+    static shake(tmodel, width = tmodel.getWidth(), height = tmodel.getHeight(), {
             bFactor = 0.6, 
             cFactor = 0.3,
             strength = 20
         } = {}) 
     {
-        const xStart = (tmodel.getParentValue('width') - tmodel.getWidth()) / 2;
+        const xStart = (tmodel.getParentValue('width') - width) / 2;
         const yStart = tmodel.getY();            
-        const widthStart = tmodel.getWidth();
-        const heightStart = tmodel.getHeight();
+        const widthStart = width;
+        const heightStart = height;
            
         const bounce = Moves.bounce(yStart - strength, yStart, {
             xStart, widthStart, heightStart, bFactor, cFactor 

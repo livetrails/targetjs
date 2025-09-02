@@ -139,7 +139,7 @@ class TargetManager {
         let initialValue = tmodel.getTargetInitialValue(key);
         let originalTargetName, originalTarget, originalTModel;
         const capKey = TargetUtil.getTargetName(TUtil.capitalizeFirstLetter(key));
-        const lastUpdateTime = tmodel.getActualValueLastUpdate(key);
+        const lastUpdateTime = tmodel.getLastUpdate(key);
         const now = TUtil.now();
         
         if (step <= steps) {
@@ -155,7 +155,7 @@ class TargetManager {
             
             tmodel.addToStyleTargetList(key);
 
-            tmodel.setActualValueLastUpdate(key);
+            tmodel.setLastUpdate(key);
             
             tmodel.setTargetMethodName(key, 'value'); 
 
@@ -196,7 +196,7 @@ class TargetManager {
         tmodel.addToStyleTargetList(key);
         targetValue.step = steps;
         
-        tmodel.setActualValueLastUpdate(key);
+        tmodel.setLastUpdate(key);
         step = steps;
 
         let scheduleTime = 1;

@@ -115,10 +115,13 @@ class TModelManager {
                 tmodel.deactivate();
             }
 
-            if ((visible || tmodel.requiresDom()) &&
-                (tmodel.canHaveDom() && !tmodel.hasDom() && tmodel.isIncluded() && !this.noDomMap[tmodel.oid])) {
-                this.lists.noDom.push(tmodel);
-                this.noDomMap[tmodel.oid] = true;
+            if (visible || tmodel.requiresDom()) {
+                if (tmodel.canHaveDom() && !tmodel.hasDom() && tmodel.isIncluded() && !this.noDomMap[tmodel.oid]) {
+                    if (tmodel.getDomHolder(tmodel)?.exists() || this.noDomMap[tmodel.getDomParent()?.oid]) {
+                        this.lists.noDom.push(tmodel);
+                        this.noDomMap[tmodel.oid] = true;
+                    }
+                } 
             }
         }
         
@@ -253,7 +256,7 @@ class TModelManager {
     renderTModels() {
         for (const tmodel of this.lists.rerender) {
             tmodel.isTextOnly() ? tmodel.$dom?.text(tmodel.getHtml()) : tmodel.$dom?.html(tmodel.getHtml());
-            tmodel.setActualValueLastUpdate('html');
+            tmodel.setLastUpdate('html');
             tmodel.domHeightTimestamp = 0;
             tmodel.domWidthTimestamp = 0;
         }
@@ -324,7 +327,7 @@ class TModelManager {
         if (this.lists.noDom.length === 0) { 
             return;
         }
-                
+                                
         const needsDom = [];
 
         this.lists.noDom.sort((a, b) => {
@@ -345,6 +348,7 @@ class TModelManager {
         
         for (const tmodel of needsDom) {
             if (tmodel.getDomHolder(tmodel)?.exists()) {
+                tmodel.$dom = undefined;
                 if (tmodel.val('$dom')) {
                     tmodel.$dom = tmodel.val('$dom');
                     if (!tmodel.hasDom()) {
@@ -389,7 +393,7 @@ class TModelManager {
             }
         }
         
-        getEvents().attachEvents(this.lists.noDom);
+        getEvents().attachEvents(this.lists.noDom.filter(t => (t.state().externalEventList?.length) > 0));
     }        
 }
 

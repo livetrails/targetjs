@@ -155,6 +155,7 @@ class TargetData {
         backgroundSize: true,
         flexWrap: true,
         userSelect: true,
+        outline: true,
         ariaLabel: true,
         ariaCurrent: true
     };
@@ -247,7 +248,6 @@ class TargetData {
         reuseDomDefinition: true,
         useWindowFrame: true,
         canDeleteDom: true,
-        interval: true,
         onDomEvent: true,
         canHaveDom: true
     };
@@ -291,6 +291,18 @@ class TargetData {
 
         windowScroll: {
             scroll: {eventName: 'scroll', inputType: '', eventType: 'windowScroll', order: 1, windowEvent: true, queue: true, rateLimit: 50}
+        },
+        
+        inputEvents: {
+            input: { eventName: 'input',  inputType: '', eventType: 'input',  order: 1, windowEvent: false, queue: true,  rateLimit: 50 }
+        },
+
+        changeEvents: {
+            change: { eventName: 'change', inputType: '', eventType: 'change', order: 1, windowEvent: false, queue: true,  rateLimit: 0 }
+        },
+        
+        submitEvents: {
+            submit: { eventName:'submit', inputType:'form', eventType:'submit', order:1, windowEvent:false, queue:true, rateLimit:0 }
         },
         
         popState: {
@@ -431,20 +443,10 @@ class TargetData {
         onScrollLeft: ['touchStart', 'mouseStart', 'wheelEvents'],
         onScrollTop: ['touchStart', 'mouseStart', 'wheelEvents'],
         onWindowScroll: ['windowScroll'],
-        onPopState: ['popState']
-    };
-
-    static touchEventMap = {
-        onStart: tmodel => getEvents().isStartHandler(tmodel),
-        onEnd: tmodel => getEvents().isEndHandler(tmodel),
-        onAnySwipe: () => getEvents().isSwipeEvent() && TUtil.isDefined(getEvents().swipeStartX),
-        onHover: tmodel => getEvents().isMoveEvent() && getEvents().isHoverHandler(tmodel),
-
-        onClick: tmodel => getEvents().isClickEvent() && getEvents().isClickHandler(tmodel),
-        onAnyClick: () => getEvents().isClickEvent(),
-        onEnter: tmodel => getEvents().isEnterHandler(tmodel),
-        onLeave: tmodel => getEvents().isLeaveHandler(tmodel),
-        onSwipe: tmodel => getEvents().isSwipeHandler(tmodel) && getEvents().isSwipeEvent() && TUtil.isDefined(getEvents().swipeStartX)
+        onPopState: ['popState'],
+        onChange: ['changeEvents'],
+        onInput: ['inputEvents'],
+        onSubmit: ['submitEvents']
     };
 
     static internalEventMap = {
@@ -459,8 +461,17 @@ class TargetData {
     };
 
     static allEventMap = {
-        ...TargetData.touchEventMap,
+        onStart: tmodel => getEvents().isStartHandler(tmodel),
+        onEnd: tmodel => getEvents().isEndHandler(tmodel),
+        onAnySwipe: () => getEvents().isSwipeEvent() && TUtil.isDefined(getEvents().swipeStartX),
+        onHover: tmodel => getEvents().isMoveEvent() && getEvents().isHoverHandler(tmodel),
 
+        onClick: tmodel => getEvents().isClickEvent() && getEvents().isClickHandler(tmodel),
+        onAnyClick: () => getEvents().isClickEvent(),
+        onEnter: tmodel => getEvents().isEnterHandler(tmodel),
+        onLeave: tmodel => getEvents().isLeaveHandler(tmodel),
+        onSwipe: tmodel => getEvents().isSwipeHandler(tmodel) && getEvents().isSwipeEvent() && TUtil.isDefined(getEvents().swipeStartX),
+        
         onFocus: tmodel => getEvents().onFocus(tmodel),
         onBlur: tmodel => getEvents().onBlur(tmodel),
         onPinch: tmodel => getEvents().isPinchHandler(tmodel),
@@ -471,8 +482,18 @@ class TargetData {
         onScrollTop: tmodel => getEvents().getOrientation() !== 'horizontal' && getEvents().isScrollTopHandler(tmodel) && getEvents().deltaY(),
         onScrollLeft: tmodel => getEvents().getOrientation() !== 'vertical' && getEvents().isScrollLeftHandler(tmodel) && getEvents().deltaX(),
         onWindowScroll: () => getEvents().getEventType() === 'windowScroll',
-        onPopState: () => getEvents().getEventType() === 'popState'
+        onPopState: () => getEvents().getEventType() === 'popstate',
+        onChange: tmodel => getEvents().getEventType() === 'change' && getEvents().isFormHandler(tmodel),
+        onInput: tmodel => getEvents().getEventType() === 'input' &&  getEvents().isFormHandler(tmodel),
+        onSubmit: () => getEvents().getEventType() === 'submit'
     };
+
+
+    static excludedTargetKeys = new Set([
+            'originalTargetName',
+            'originalTModel',
+            'activateNextTarget'
+    ]);
 
     static lifecycleMethodSet = new Set([
         'value', 'enabledOn', 'loop', 'onValueChange',
@@ -484,7 +505,7 @@ class TargetData {
         step: /^on[A-Za-z]+Step$/,
         end: /^on[A-Za-z]+End$/,
     };
-
+    
     static eventSet = new Set([
         ...Object.keys(TargetData.allEventMap),
         ...Object.keys(TargetData.internalEventMap),
@@ -501,7 +522,10 @@ class TargetData {
         ...Object.keys(TargetData.defaultActualValues()),
         ...Object.keys(TargetData.allEventMap),
         ...Object.keys(TargetData.internalEventMap),        
-        'html', 'isInFlow', 'domHolder', 'domParent', 'gap'
+        'html', 'isInFlow', 'domHolder', 'domParent', 'gap', 'widthFromDom', 'heightFromDom',
+        'requiresDom', 'preventDefault', 'canDeleteDom', 'textOnly', 'styling', '$dom',
+        'defaultStyling', 'reuseDomDefinition', 'canHaveDom', 'excludeXYCalc', 'excludeX', 'excludeY',
+        'containerOverflowMode', 'itemOverflowMode'
     ]);
     
     static activationKeywordSet = new Set([

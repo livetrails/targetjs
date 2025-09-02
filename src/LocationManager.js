@@ -215,7 +215,7 @@ class LocationManager {
                     child.removeLayoutDirty(child);
                 }
             }
-                
+            
             if (!TModelUtil.isHeightDefined(child) && !child.val('heightFromDom') && child.getContentHeight() > 0) {
                 child.actualValues.height = child.getContentHeight();
                 child.addToStyleTargetList('height');
@@ -343,7 +343,7 @@ class LocationManager {
 
                     if (target.active !== false && tmodel.isTargetEnabled(key) && !tmodel.isTargetUpdating(key) 
                             && !tmodel.isTargetImperative(key)) {
-                        TargetExecutor.resolveTargetValue(tmodel, key, tmodel.getTargetCycle(key));
+                        TargetExecutor.resolveTargetValue(tmodel, key);
                         TargetExecutor.updateTarget(tmodel, tmodel.targetValues[key], key, false);                    
                     }
                 });
@@ -424,7 +424,7 @@ class LocationManager {
                         
             if (tmodel.isTargetEnabled(targetName) && !tmodel.isTargetUpdating(target)) {
                 TargetExecutor.prepareTarget(tmodel, targetName);
-                TargetExecutor.resolveTargetValue(tmodel, targetName, tmodel.getTargetCycle(targetName));
+                TargetExecutor.resolveTargetValue(tmodel, targetName);
                 TargetExecutor.updateTarget(tmodel, tmodel.targetValues[targetName], targetName, false);
 
                 const result = tmodel.val(targetName);

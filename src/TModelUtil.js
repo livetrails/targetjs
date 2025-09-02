@@ -55,7 +55,7 @@ class TModelUtil {
         tmodel.$dom.setId(tmodel.oid);
         tmodel.$dom.attr('tgjs', 'true');
         tmodel.isTextOnly() ? tmodel.$dom.text(tmodel.getHtml()) : tmodel.$dom.html(tmodel.getHtml());
-        tmodel.setActualValueLastUpdate('html');
+        tmodel.setLastUpdate('html');
         tmodel.domHeightTimestamp = 0;
         tmodel.domWidthTimestamp = 0;        
         tmodel.transformMap = {};

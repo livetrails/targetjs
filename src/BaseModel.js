@@ -86,7 +86,8 @@ class BaseModel {
     }
 
     initTargets() {        
-        this.originalTargetNames = Object.keys(this.targets);
+        this.originalTargetNames = Object.keys(this.targets).filter(key => !TargetData.excludedTargetKeys.has(key));
+
         this.functionTargetNames = [];
         this.allTargetMap = {};
         
@@ -101,7 +102,7 @@ class BaseModel {
         this.activeTargetMap = {};
         this.activeTargetList = [];
 
-        this.originalTargetNames = Object.keys(this.targets).map(key => key.startsWith('_') ? key.slice(1) : key);
+        this.originalTargetNames = Object.keys(this.targets).filter(key => !TargetData.excludedTargetKeys.has(key)).map(key => key.startsWith('_') ? key.slice(1) : key);
 
         const domExists = $Dom.query(`#${this.oid}`) || this.originalTargetNames.indexOf('$dom') >= 0;
 
@@ -130,7 +131,7 @@ class BaseModel {
             }            
         }
 
-        Object.keys(this.targets).forEach((key, keyIndex) => {
+        Object.keys(this.targets).filter(key => !TargetData.excludedTargetKeys.has(key)).forEach((key, keyIndex) => {
             this.processNewTarget(key, keyIndex);
         });
     }
@@ -156,7 +157,7 @@ class BaseModel {
                 this.targets[key] = { 
                     value: target,
                     originalTargetName: TargetUtil.currentTargetName,
-                    originalTModel: TargetUtil.currentTModel                  
+                    originalTModel: TargetUtil.currentTModel
                 };
                 target = this.targets[key];
             }
@@ -257,6 +258,11 @@ class BaseModel {
     deactivate() {
         this.currentStatus = undefined;
     }
+    
+
+    excludeDefaultStyling() {
+        return this.targets['defaultStyling'] === false || this.excludeStyling() || (this.reuseDomDefinition() && this.allStyleTargetList.length === 0);
+    }    
    
     shouldExecuteCyclesInParallel(key) {
         return this.targets[key]?.parallel === true;
@@ -552,18 +558,22 @@ class BaseModel {
         return this.targetValues[key]?.initialValue;
     }
 
-    getActualValueLastUpdate(key) {
-        return this.targetValues[key]?.actualValueLastUpdate;
+    getLastUpdate(key) {
+        return this.targetValues[key]?.lastUpdate;
     }
     
     getDimLastUpdate() {
         return Math.max(
-            this.getActualValueLastUpdate('width') ?? 0,
-            this.getActualValueLastUpdate('height') ?? 0,
-            this.getActualValueLastUpdate('size') ?? 0,
+            this.getLastUpdate('width') ?? 0,
+            this.getLastUpdate('height') ?? 0,
+            this.getLastUpdate('size') ?? 0,
             this.domHeightTimestamp ?? 0,
             this.domWidthTimestamp ?? 0
         );
+    }
+    
+    getTargetActivationTime(key) {
+        return this.targetValues[key]?.activationTime ?? 0;
     }
 
     getTargetCreationTime(key) {
@@ -620,9 +630,9 @@ class BaseModel {
         }
     }
 
-    setActualValueLastUpdate(key) {
+    setLastUpdate(key) {
         if (this.targetValues[key]) {
-            this.targetValues[key].actualValueLastUpdate = TUtil.now();
+            this.targetValues[key].lastUpdate = TUtil.now();
         }
     }
 
@@ -808,19 +818,22 @@ class BaseModel {
                 this.markLayoutDirty(key);
             }
 
-            const targetValue = this.targetValues[key];
+            const targetValue = this.targetValues[key] || TargetUtil.emptyValue();
             
-            if (targetValue) {
+            if (this.targetValues[key]) {
+                targetValue.activationTime = TUtil.now();
+                targetValue.lastUpdate = TUtil.now();
                 targetValue.isImperative = false;
                 targetValue.executionFlag = false;
                 targetValue.scheduleTimeStamp = undefined;
                 targetValue.step = 0;
                 targetValue.cycle = Array.isArray(targetValue.valueList) ? 1 : 0;
-
-                this.updateTargetStatus(key);
             } else {
-                this.addToActiveTargets(key);
-            } 
+                this.targetValues[key] = targetValue;
+            }
+                            
+            this.updateTargetStatus(key);
+
             this.activate(key);           
         }
 

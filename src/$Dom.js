@@ -311,11 +311,11 @@ class $Dom {
         }
     }
 
-    addEvent(type, fn) {
+    addEvent(type, fn, capture, passive) {
         if (!this.element.addEventListener) {
             this.element.attachEvent(`on${type}`, fn);
         } else {
-            this.element.addEventListener(type, fn, { capture: false, passive: false });
+            this.element.addEventListener(type, fn, { capture: !!capture, passive: !!passive });
         }
     }
 

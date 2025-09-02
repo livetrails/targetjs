@@ -24,8 +24,8 @@ class TargetExecutor {
         }
     }
     
-    static executeDeclarativeTarget(tmodel, key, cycle) { 
-        TargetExecutor.resolveTargetValue(tmodel, key, cycle);
+    static executeDeclarativeTarget(tmodel, key) { 
+        TargetExecutor.resolveTargetValue(tmodel, key);
         TargetExecutor.updateTarget(tmodel, tmodel.targetValues[key], key, false);
         
         if (tmodel.isTargetDone(key)) {
@@ -46,7 +46,7 @@ class TargetExecutor {
 
     static executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel) {
         let targetValue;
-        key = key && !key.endsWith('+') && tmodel.allTargetMap[key] ? key + "+" : key;
+        key = typeof key === 'string' && !key.endsWith('+') && tmodel.allTargetMap[key] ? key + "+" : key;
         
         if (TargetParser.isListTarget(value)) {
             targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel);
@@ -90,14 +90,15 @@ class TargetExecutor {
     }
 
     static updateTarget(tmodel, targetValue, key, enforce) {
-        targetValue.executionCount++;
-        targetValue.executionFlag = true;
                 
-        tmodel.setActualValueLastUpdate(key);
+        tmodel.setLastUpdate(key);
 
-        if (tmodel.getTargetSteps(key) === 0 && targetValue.executionFlag) {
+        if (tmodel.getTargetSteps(key) === 0) {
             TargetExecutor.snapActualToTarget(tmodel, key);
         }
+        
+        targetValue.executionCount++;
+        targetValue.executionFlag = true;
         
         tmodel.addToStyleTargetList(key, enforce);
         tmodel.setTargetMethodName(key, 'value'); 
@@ -154,10 +155,11 @@ class TargetExecutor {
 
     static snapActualToTarget(tmodel, key) {
         const oldValue = tmodel.val(key);
-        const value = tmodel.targetValues[key].value;
+        const targetValue = tmodel.targetValues[key];
+        const value = targetValue.value;
         const newValue = typeof value === 'function' ? value.call(tmodel) : value;
         tmodel.val(key, newValue);
-        tmodel.targetValues[key].actual = newValue;
+        targetValue.actual = newValue;
 
         TargetUtil.handleValueChange(tmodel, key, newValue, oldValue, 0, 0);
     }
@@ -175,6 +177,10 @@ class TargetExecutor {
         const newCycles = valueArray[3] || 0;
         
         const targetValue = tmodel.targetValues[key] || TargetUtil.emptyValue();
+        
+        if (key === 'imageCaption$$') {
+            console.log('we found it: ' + tmodel.oid + ", " + key + ", " + TargetParser.isChildrenObjectTarget(key, tmodel.targets[key]));
+        }
 
         tmodel.targetValues[key] = targetValue;
         const easing = TUtil.isDefined(tmodel.targets[key].easing) ? tmodel.targets[key].easing : undefined;
@@ -197,6 +203,9 @@ class TargetExecutor {
                 newInterval
             );
         } else if (TargetParser.isChildrenObjectTarget(key, tmodel.targets[key])) {
+            
+            TargetUtil.currentTargetName = key;
+            TargetUtil.currentTModel = tmodel;
                         
             const child = new TModel(key, tmodel.targets[key]);
             tmodel.addChild(child);

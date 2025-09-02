@@ -105,18 +105,18 @@ class EventListener {
     
     attachEvents(tmodels) {
         for (const tmodel of tmodels) {
-            const externalList = tmodel.state().externalEventList;
-            if (externalList?.length > 0) {
-                for (const targetName of externalList) {
-                    this.attachTargetEvents(tmodel, targetName);
-                }
+            if (!tmodel.state().externalEventList) {
+                continue;
+            }
+            for (const targetName of tmodel.state().externalEventList) {
+                this.attachTargetEvents(tmodel, targetName);
             }
         }
     }
     
     attachTargetEvents(tmodel, targetName) {
         const targetKey = `${tmodel.oid} ${targetName}`;
-
+        
         const events = TargetData.targetToEventsMapping[targetName];
         if (!events || !Array.isArray(events) || events.length === 0) {         
             return undefined;
@@ -125,7 +125,7 @@ class EventListener {
         events.forEach(eventName => {
             
             const eventMap = TargetData.events[eventName];
-            
+
             if (!eventMap) {
                 return undefined;
             }
@@ -147,11 +147,11 @@ class EventListener {
                 
                 if (!alreadyMarked || !alreadyAttached) {
                     $dom.detachEvent(key, this.bindedHandleEvent);
-                    $dom.addEvent(key, this.bindedHandleEvent);
+                    $dom.addEvent(key, this.bindedHandleEvent, eventSpec.capture, eventSpec.passive);
                     this.eventTargetMap[attachMarkerKey] = $dom;
                     this.attachedEventMap[attachedKey] = {$dom, event: key};
                 }
-            });
+            }); 
         });
     }
 
@@ -171,8 +171,7 @@ class EventListener {
         if (this.currentTouch.deltaY || this.currentTouch.deltaX || this.currentTouch.pinchDelta) {
             const diff = this.touchTimeStamp - TUtil.now();
                                                 
-            if (diff > 100) {
-                                                
+            if (diff > 100) {                         
                 this.currentTouch.deltaY *= 0.95;
                 this.currentTouch.deltaX *= 0.95;
                 this.currentTouch.pinchDelta *= 0.95;
@@ -186,7 +185,6 @@ class EventListener {
                 if (Math.abs(this.currentTouch.pinchDelta) < 0.1) {
                     this.currentTouch.pinchDelta = 0;
                 }                
-    
                 if (this.currentTouch.deltaX === 0 && this.currentTouch.deltaY === 0 && this.currentTouch.pinchDelta === 0) { 
                     this.touchTimeStamp = 0;
                 }                
@@ -257,9 +255,9 @@ class EventListener {
             this.currentKey = '';
             return;
         }
-        
+
         const lastEvent = this.eventQueue.shift();
-                   
+                           
         if (this.canFindHandlers) {
             this.findEventHandlers(lastEvent);
         }
@@ -290,7 +288,7 @@ class EventListener {
 
         const { type: originalName } = event; 
         const eventItem = this.allEvents[originalName];
-                        
+                                
         if (!eventItem) {
             return;
         }
@@ -333,7 +331,7 @@ class EventListener {
         }
                       
         this.lastEvent = newEvent;
-                                
+                                        
         if (queue) {
             this.eventQueue.push(this.lastEvent);
         }
@@ -711,6 +709,13 @@ class EventListener {
 
     isCurrentSource(source) {
         return this.currentTouch.source === source;
+    }
+    
+    isFormHandler(tmodel) {
+        const ev = this.currentOriginalEvent;
+        const el = tmodel.$dom?.element;
+        const tgt = ev?.target;
+        return !!(el && tgt && (tgt === el || el.contains?.(tgt)));
     }
     
     getOrientation() {

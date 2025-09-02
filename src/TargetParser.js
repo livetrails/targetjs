@@ -33,7 +33,7 @@ class TargetParser {
         let c = 0;
         let t = 0;
         for (const key in object) {
-            if (TargetData.defaultTargetStyles[key]) {
+            if (TargetData.defaultTargetStyles[key] || TargetData.excludedTargetKeys.has(key) || key === 'active') {
                 continue;
             }
             if (TargetParser.hasTargetSuffix(key)) {
@@ -44,20 +44,20 @@ class TargetParser {
                 t++;
             }
         }
-        return c > t && c >= 2;
+        return c - t >= 1;
     }
 
     static classifyEntry(key, value) {
         if (!TargetParser.isPlainObject(value)) {
-            return 'target';
+            return 'target1';
         }
         
         if (TargetParser.isTargetKey(key)) {
-            return 'target';
+            return 'target2';
         }
         
         if (key === 'originalTModel') {
-            return 'target';
+            return 'target3';
         }
         
         if (value instanceof TModel) {
@@ -67,18 +67,18 @@ class TargetParser {
         if (TargetParser.isListTarget(value)
                 || TargetParser.isFetchTarget(key, value)
                 || TargetParser.isFetchImageTarget(key, value)) {
-            return 'target';
+            return 'target4';
         }
 
         if (this.hasLifecycle(value)) {
-            return 'target';
+            return 'target5';
         }
 
         if (this.scoreChild(value)) {
             return 'children';
         }
 
-        return 'target';
+        return 'target6';
     }
 
     static isChildrenTarget(key, value) {
@@ -88,6 +88,10 @@ class TargetParser {
     static isChildrenObjectTarget(key, value) {
         if (TargetParser.classifyEntry(key, value) === 'children') {
             return true;
+        } else {
+            if (key === 'imageCaption$$') {
+                console.log("isChildrenObjectTarget: " + key + ", " + TargetParser.classifyEntry(key, value) + ", " + Object.keys(value));
+            }            
         }
         
         return false;

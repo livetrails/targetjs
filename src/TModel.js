@@ -405,8 +405,11 @@ class TModel extends BaseModel {
     }
 
     getParentValue(targetName) {
-        const parent = SearchUtil.findParentByTarget(this, targetName);
-        return parent ? parent.val(targetName) : this.getParent()?.val(targetName);
+        return this.parent.val(targetName);
+    }
+    
+    pval(targetName) {
+        return this.getParentValue(targetName);
     }
     
     getParentValueAtMyIndex(targetName) {
@@ -623,10 +626,6 @@ class TModel extends BaseModel {
     requiresDom() {
         return TUtil.isDefined(this.val('requiresDom')) ? this.val('requiresDom') : this.reuseDomDefinition();
     }
-
-    excludeDefaultStyling() {
-        return this.targets['defaultStyling'] === false || this.excludeStyling() || (this.reuseDomDefinition() && this.allStyleTargetList.length === 0);
-    }
     
     excludeStyling() {
         return this.targets['styling'] === false;
@@ -663,7 +662,7 @@ class TModel extends BaseModel {
     }
     
     getBaseElement() {
-        return this.val('baseElement');
+        return this.val('baseElement') || this.$dom?.element?.tagName?.toLowerCase();
     }
 
     getOpacity() {
@@ -826,6 +825,11 @@ class TModel extends BaseModel {
     
     getInputValue() {
         return this.hasDom() ? this.$dom.value() : undefined;
+    }
+    
+    isFormControl() {
+        const t = this.getBaseElement();
+        return t === 'input' || t === 'select' || t === 'textarea' || (this.$dom?.element?.isContentEditable);
     }
     
     isOverflowHidden() {

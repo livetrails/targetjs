@@ -30,11 +30,6 @@ const AppFn = () => {
         my.browser.setup();
 
         my.$window = new $Dom(window);
-        my.$window.addEvent("popstate", function(event) {
-            if (event.state) {
-                tApp.pager.openLinkFromHistory(event.state);
-            }
-        });
 
         my.loader = new LoadingManager();
         my.pager = new PageManager();
