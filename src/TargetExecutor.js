@@ -178,10 +178,6 @@ class TargetExecutor {
         
         const targetValue = tmodel.targetValues[key] || TargetUtil.emptyValue();
 
-        if (key === 'imageCaption$$') {
-            console.log('we found it: ' + tmodel.oid + ", " + key + ", " + TargetParser.isChildrenObjectTarget(key, tmodel.targets[key]));
-        }
-
         tmodel.targetValues[key] = targetValue;
         const easing = TUtil.isDefined(tmodel.targets[key].easing) ? tmodel.targets[key].easing : undefined;
         

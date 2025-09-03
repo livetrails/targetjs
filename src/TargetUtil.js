@@ -135,9 +135,8 @@ class TargetUtil {
         let nextTargetActivated = false;
 
         if (nextTarget) { 
-            const timingAfter = tmodel.getLastUpdate(key) > tmodel.getTargetActivationTime(nextTarget);
-
-            if (timingAfter && (!isEndTrigger || level === 0 || (isEndTrigger && level > 0 && !tmodel.isTargetComplete(nextTarget)))) {
+            const timingAfter = tmodel.getLastUpdate(key) >= tmodel.getTargetActivationTime(nextTarget);
+            if (timingAfter && (!isEndTrigger || level === 0 || (isEndTrigger && level > 0))) {
 
                 if (fetchAction) {
                     if (isEndTrigger) {

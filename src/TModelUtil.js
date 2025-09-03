@@ -54,7 +54,7 @@ class TModelUtil {
         tmodel.$dom.setSelector(`#${tmodel.oid}`);
         tmodel.$dom.setId(tmodel.oid);
         tmodel.$dom.attr('tgjs', 'true');
-        tmodel.isTextOnly() ? tmodel.$dom.text(tmodel.getHtml()) : tmodel.$dom.html(tmodel.getHtml());
+        tmodel.isTextOnly() ? tmodel.$dom.text(tmodel.getHtml() ?? "") : tmodel.$dom.html(tmodel.getHtml() ?? "");
         tmodel.setLastUpdate('html');
         tmodel.domHeightTimestamp = 0;
         tmodel.domWidthTimestamp = 0;        

@@ -155,9 +155,7 @@ class TargetData {
         backgroundSize: true,
         flexWrap: true,
         userSelect: true,
-        outline: true,
-        ariaLabel: true,
-        ariaCurrent: true
+        outline: true
     };
 
     static scaleMap = {
@@ -202,7 +200,9 @@ class TargetData {
         rows: true,
         cols: true,
         tabIndex: true,
-        role: true
+        role: true,
+        ariaLabel: true,
+        ariaCurrent: true
     };
 
     static mustExecuteTargets = {
@@ -362,6 +362,9 @@ class TargetData {
         onscrolltop: 'onScrollTop',
         onwindowscroll: 'onWindowScroll',
         onpopstate: 'onPopState',
+        onchange: 'onChange',
+        oninput: 'onInput',
+        onsubmit: 'onSubmit',
         onvisible: 'onVisible',
         onresize: 'onResize',
         textalign: 'textAlign',
@@ -378,6 +381,7 @@ class TargetData {
         scale3dz: 'scale3DZ',
         skewx: 'skewX',
         skewy: 'skewY',
+        lineheight: 'lineHeight',
         fontsize: 'fontSize',
         borderradius: 'borderRadius',
         letterspacing: 'letterSpacing',

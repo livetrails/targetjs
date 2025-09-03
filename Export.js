@@ -4,6 +4,7 @@ export * from "./build/Moves.js";
 export * from "./build/SearchUtil.js";
 export * from "./build/TargetData.js";
 export * from "./build/TargetUtil.js";
+export * from "./build/TargetParser.js";
 export * from "./build/TModelUtil.js";
 export * from "./build/TUtil.js";
 export * from "./build/DomInit.js"
@@ -20,6 +21,7 @@ import * as Moves from './build/Moves.js';
 import * as SearchUtil from './build/SearchUtil.js';
 import * as TargetData from './build/TargetData.js';
 import * as TargetUtil from './build/TargetUtil.js';
+import * as TargetParser from './build/TargetParser.js';
 import * as TModelUtil from './build/TModelUtil.js';
 import * as TUtil from './build/TUtil.js';
 import * as DomInit from './build/DomInit.js';

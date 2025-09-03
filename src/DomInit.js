@@ -50,7 +50,7 @@ class DomInit {
                         const key = TargetData.toCanonicalKey(rawKey);
                         
                         const rawValue = attr.value.trim();
-                        
+                                                
                         let value = DomInit.parseString(rawValue);
                                                 
                         attributeSet[key] = value;                                           

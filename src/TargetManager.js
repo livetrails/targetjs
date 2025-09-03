@@ -50,35 +50,8 @@ class TargetManager {
 
         tmodel.resetScheduleTimeStamp(key);
 
-        if (tmodel.shouldExecuteCyclesInParallel(key)) {
-            let cycles = 0;
-            if (tmodel.isExecuted(key)) {
-                cycles = tmodel.getTargetCycles(key);
-            } else {
-                cycles = typeof target.cycles === 'function' ? target.cycles.call(tmodel, 0) : target.cycles || 0;
-            }
-
-            const promises = [];
-            for (let cycle = 0; cycle <= cycles; cycle++) {
-                promises.push(
-                    new Promise(resolve => {
-                        TargetExecutor.executeDeclarativeTarget(tmodel, key, cycle);
-                        resolve();
-                    })
-                );
-            }
-            
-            Promise.all(promises).then(() => {
-                tmodel.targetValues[key].cycle = cycles;
-                tmodel.updateTargetStatus(key);
-                if (tmodel.shouldScheduleRun(key)) {
-                    getRunScheduler().schedule(tmodel.getTargetInterval(key), `targetSchedule__${tmodel.oid}__${key}_rerun`);
-                }            
-            });
-        } else {        
-            TargetExecutor.prepareTarget(tmodel, key);
-            TargetExecutor.executeDeclarativeTarget(tmodel, key);       
-        }
+        TargetExecutor.prepareTarget(tmodel, key);
+        TargetExecutor.executeDeclarativeTarget(tmodel, key); 
     }
     
     setActualValues(tmodel, updatingList = tmodel.updatingTargetList.slice(0)) {

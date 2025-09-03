@@ -264,10 +264,6 @@ class BaseModel {
     excludeDefaultStyling() {
         return this.targets['defaultStyling'] === false || this.excludeStyling() || (this.reuseDomDefinition() && this.allStyleTargetList.length === 0);
     }    
-   
-    shouldExecuteCyclesInParallel(key) {
-        return this.targets[key]?.parallel === true;
-    }
     
     canTargetBeActivated(key) {
         const onDomEvent = this.targets.onDomEvent;
