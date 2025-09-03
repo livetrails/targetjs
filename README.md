@@ -419,7 +419,7 @@ App(new TModel("scroller", {
         this.setTarget("scrollTop", Math.max(0, this.getScrollTop() + getEvents().deltaY()));
     },
     onVisibleChildrenChange() {
-       return !this.visibleChildren.length || this.getLastChild().getY() < this.getHeight() ? 'children' : 'loadItems';
+       return !this.visibleChildren.length || this.getLastChild().getY() < this.getHeight() ? 'children' : 'loadItems$$';
     },
     width: getScreenWidth,
     height: getScreenHeight,
@@ -483,7 +483,7 @@ Finally, in HTML:
         this.setTarget('scrollTop', Math.max(0, this.getScrollTop() + TargetJS.getEvents().deltaY()));
       }"
       tg-onVisibleChildrenChange="function() {
-        return !this.visibleChildren.length || this.getLastChild().getY() < this.getHeight() ? 'children' : 'load';
+        return !this.visibleChildren.length || this.getLastChild().getY() < this.getHeight() ? 'children' : 'load$$';
       }"
 ></div>
 ```
