@@ -393,13 +393,13 @@ App(new TModel("scroller", {
         const childrenCount = this.getChildren().length;  
         return Array.from({ length: 20 }, (_, i) => ({
             width: [{list: [100, 250, 100]}, 50],
+            x$() { return this.getCenterX(); },
             background: [{list: ["#FCE961", "#B388FF"]}, 15, 15],
             height: 48,
             color: "#C2FC61",
             textAlign: "center",
             lineHeight: 48,
             bottomMargin: 2,
-            x() { return this.getCenterX(); },
             html: childrenCount + i,
             validateVisibilityInParent: true
         }));
@@ -458,13 +458,13 @@ Finally, in HTML:
         const childrenCount = this.getChildren().length;
         return Array.from({ length: 20 }, (_, i) => ({
           width: [{list: [100, 250, 100]}, 50],
+          x$() { return this.getCenterX(); },
           background: [{ list: ['#FCE961', '#B388FF'] }, 15, 15],
           height: 48,
           color: '#C2FC61',
           textAlign: 'center',
           lineHeight: 48,
           bottomMargin: 2,
-          x: function() { return this.getCenterX(); },
           html: childrenCount + i
         }));
       }"
