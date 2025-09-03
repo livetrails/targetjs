@@ -469,7 +469,7 @@ class TModel extends BaseModel {
     }
 
     getDomParent() {
-        return this.val('domParent') || SearchUtil.findParentByTarget(this, 'domHolder');
+        return this.val('domParent') || SearchUtil.findParentByTarget(this, 'domHolder', true);
     }
    
     getDomHolder(tmodel) {

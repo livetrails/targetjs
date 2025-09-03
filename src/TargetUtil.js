@@ -319,8 +319,9 @@ class TargetUtil {
     }
     
     static getUpdatingChildren(tmodel, originalTargetName) {
-        let count = 0;  
-        tmodel.updatingChildrenList.filter(child => child.isVisible()).forEach(child => {
+        let count = 0; 
+                
+        tmodel.updatingChildrenList.filter(child => child.isVisible() || !child.visibilityStatus).forEach(child => {
             child.updatingTargetList.forEach(target => {
                 if (child.isTargetImperative(target)) {
                     const imperativeOriginalTarget = child.targetValues[target]?.originalTargetName;
