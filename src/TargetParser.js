@@ -88,10 +88,6 @@ class TargetParser {
     static isChildrenObjectTarget(key, value) {
         if (TargetParser.classifyEntry(key, value) === 'children') {
             return true;
-        } else {
-            if (key === 'imageCaption$$') {
-                console.log("isChildrenObjectTarget: " + key + ", " + TargetParser.classifyEntry(key, value) + ", " + Object.keys(value));
-            }            
         }
         
         return false;

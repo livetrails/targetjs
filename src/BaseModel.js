@@ -15,8 +15,9 @@ class BaseModel {
             targets = type;
             type = "";
         }
-        this.type = type || 'blank';
         this.targets = Object.assign({}, targets);
+        oid = oid || this.targets.id;
+        this.type = type || oid || 'blank';
         
         if (!TUtil.isDefined(oid)) {
             const uniqueId = App.getOid(this.type);
@@ -147,22 +148,18 @@ class BaseModel {
         }
         
         const targetType = typeof target;
-        
+
         const isInactiveKey = key.startsWith('_') || key.endsWith('$');
+
+        let needsTargetExecution = TargetData.mustExecuteTargets[cleanKey] || isInactiveKey || (targetType !== 'string' && targetType !== 'number' && targetType !== 'boolean');          
+
         const isExternalEvent = !!TargetData.allEventMap[cleanKey];
         const isInternalEvent = !!TargetData.internalEventMap[cleanKey];
 
-        if (!TargetData.controlTargetMap[key]) {
-            if (targetType !== 'object' || Array.isArray(target)) {
-                this.targets[key] = { 
-                    value: target,
-                    originalTargetName: TargetUtil.currentTargetName,
-                    originalTModel: TargetUtil.currentTModel
-                };
-                target = this.targets[key];
-            }
-        } 
-        
+        if ((targetType !== 'object' || Array.isArray(target)) && needsTargetExecution) {
+            target = TargetUtil.wrapTarget(this, target, key);
+        }
+
         let doesNextTargetUsePrevValue = false;
         if (TUtil.isDefined(keyIndex)) {
             const prevKey = keyIndex > 0 ? this.originalTargetNames[keyIndex - 1] : undefined;
@@ -175,7 +172,11 @@ class BaseModel {
                 || isInternalEvent 
                 || targetType === 'object'
                 || targetType === 'function'
-            ) {            
+            ) { 
+                if (!needsTargetExecution) {
+                    needsTargetExecution = true;
+                    target = TargetUtil.wrapTarget(this, target, key);
+                }
                 TargetUtil.bindTarget(this, key, prevKey, nextKey, keyIndex);
             }
         }
@@ -227,7 +228,7 @@ class BaseModel {
             this.coreTargets.push(key);
         }
         
-        if (!TargetData.mustExecuteTargets[cleanKey] && !doesNextTargetUsePrevValue && (targetType === 'string' || targetType === 'number' || targetType === 'boolean')) {          
+        if (!needsTargetExecution) {          
             this.val(cleanKey, typeof target === 'object' ? target.value : target );
             return;
         }

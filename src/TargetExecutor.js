@@ -177,7 +177,7 @@ class TargetExecutor {
         const newCycles = valueArray[3] || 0;
         
         const targetValue = tmodel.targetValues[key] || TargetUtil.emptyValue();
-        
+
         if (key === 'imageCaption$$') {
             console.log('we found it: ' + tmodel.oid + ", " + key + ", " + TargetParser.isChildrenObjectTarget(key, tmodel.targets[key]));
         }

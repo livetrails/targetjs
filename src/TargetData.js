@@ -525,7 +525,7 @@ class TargetData {
         'html', 'isInFlow', 'domHolder', 'domParent', 'gap', 'widthFromDom', 'heightFromDom',
         'requiresDom', 'preventDefault', 'canDeleteDom', 'textOnly', 'styling', '$dom',
         'defaultStyling', 'reuseDomDefinition', 'canHaveDom', 'excludeXYCalc', 'excludeX', 'excludeY',
-        'containerOverflowMode', 'itemOverflowMode'
+        'containerOverflowMode', 'itemOverflowMode', 'baseElement'
     ]);
     
     static activationKeywordSet = new Set([

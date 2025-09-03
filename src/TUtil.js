@@ -32,6 +32,7 @@ class TUtil {
         const parentY = validateInParent ? Math.max(domParent.absY, parent.absY) : 0;
         const parentWidth = validateInParent ? Math.min(domParent.getWidth(), parent.getWidth()) : getScreenWidth();
         const parentHeight = validateInParent ? Math.min(domParent.getHeight(), parent.getHeight()) : getScreenHeight();
+        const validatingParent = validateInParent ? parent : "screen";
 
         status.right = x <= parentX + parentWidth;
         status.left = x + maxWidth >= parentX;
@@ -44,6 +45,7 @@ class TUtil {
         status.x = x;
         status.y = y;
         status.isVisible = status.left && status.right && status.top && status.bottom;
+        status.parent = validatingParent;
 
         child.actualValues.isVisible = status.isVisible;
 

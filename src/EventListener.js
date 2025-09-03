@@ -402,10 +402,6 @@ class EventListener {
                 if (this.preventDefault(tmodel, eventName) && event.cancelable) {
                     event.preventDefault();
                 }
-                                
-                touch = this.getTouch(event);
-                this.cursor.x = touch.x;
-                this.cursor.y = touch.y;
                 
                 this.end(event);
                                 

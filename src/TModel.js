@@ -88,8 +88,16 @@ class TModel extends BaseModel {
     }
 
     calcAbsolutePosition(x, y) {
+        
+        const absX = Math.floor(this.absX);
+        const absY = Math.floor(this.absY);     
+        
         this.absX = TUtil.isDefined(this.val('absX')) ? this.val('absX') : this.getParent().absX + x;
         this.absY = TUtil.isDefined(this.val('absY')) ? this.val('absY') : this.getParent().absY + y;
+        
+        if (absX !== Math.floor(this.absX) || absY !== Math.floor(this.absY)) {
+            this.markLayoutDirty('absXY');
+        }           
     }
       
     removeChild(child) {

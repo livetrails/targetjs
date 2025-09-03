@@ -245,6 +245,7 @@ class LoadingManager {
             tmodel.val(targetName, targetResults?.length === 1 ? targetResults[0] : targetResults);
 
             tmodel.updateTargetStatus(targetName);
+            tmodel.setLastUpdate(targetName);
             TargetUtil.shouldActivateNextTarget(tmodel, targetName);
         });
 
@@ -294,6 +295,7 @@ class LoadingManager {
             this.callOnErrorHandler(tmodel, targetName);
 
             tmodel.updateTargetStatus(targetName);
+            tmodel.setLastUpdate(targetName);            
             TargetUtil.shouldActivateNextTarget(tmodel, targetName);
         });
 

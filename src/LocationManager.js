@@ -168,9 +168,9 @@ class LocationManager {
             if (!TModelUtil.isYDefined(child)) {
                 child.actualValues.y =  child.y;
             }
-                
+                            
             child.calcAbsolutePosition(child.getX(), child.getY());
-            
+
             if (!child.excludeDefaultStyling()) {
                 child.addToStyleTargetList('x');           
                 child.addToStyleTargetList('y'); 
@@ -276,15 +276,8 @@ class LocationManager {
         if (!TModelUtil.isYDefined(child)) {
             child.actualValues.y = child.y;
         }  
-        
-        const absX = Math.floor(child.absX);
-        const absY = Math.floor(child.absY);
-        
-        child.calcAbsolutePosition(child.getX(), child.getY());
-        
-        if (absX !== Math.floor(child.absX) || absY !== Math.floor(child.absY)) {
-            child.markLayoutDirty('absXY');
-        }
+
+        child.calcAbsolutePosition(child.getX(), child.getY());      
 
         if (!child.excludeDefaultStyling()) {
             child.addToStyleTargetList('x');           

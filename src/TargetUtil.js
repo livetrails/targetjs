@@ -136,10 +136,7 @@ class TargetUtil {
 
         if (nextTarget) { 
             const timingAfter = tmodel.getLastUpdate(key) > tmodel.getTargetActivationTime(nextTarget);
-            
-            if (nextTarget === 'setButtonBackground$') {
-                //console.log('next: ' + tmodel.oid + ", " + key + ", " + tmodel.getLastUpdate(key) + ":" + tmodel.getTargetActivationTime(nextTarget) + " => " + nextTarget + ", " + tmodel.isTargetComplete(nextTarget) + ", " + TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) + ", " + (tmodel.getLastUpdate(key) > tmodel.getTargetActivationTime(nextTarget)));
-            }
+
             if (timingAfter && (!isEndTrigger || level === 0 || (isEndTrigger && level > 0 && !tmodel.isTargetComplete(nextTarget)))) {
 
                 if (fetchAction) {
@@ -386,6 +383,18 @@ class TargetUtil {
         }        
     }
 
+    static wrapTarget(tmodel, target, key) {
+        if (!TargetData.controlTargetMap[key]) {
+                tmodel.targets[key] = { 
+                    value: target,
+                    originalTargetName: TargetUtil.currentTargetName,
+                    originalTModel: TargetUtil.currentTModel
+                };
+                target = tmodel.targets[key];
+        } 
+        
+        return target;
+    }
 
     static getValueStepsCycles(tmodel, _target, key, cycle = tmodel.getTargetCycle(key)) {
         const valueOnly = _target && _target.valueOnly;
