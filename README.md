@@ -450,7 +450,6 @@ Finally, in HTML:
       id="scroller"
       tg-domHolder="true"
       tg-preventDefault="true"
-      tg-background="red"
       tg-containerOverflowMode="always"
       tg-width="return TargetJS.getScreenWidth();"
       tg-height="return TargetJS.getScreenHeight();"
