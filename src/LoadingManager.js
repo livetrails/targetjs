@@ -22,7 +22,7 @@ class LoadingManager {
     }
 
     fetchCommon(fetchId, cacheId, tmodel, fetchMap, fetchFn) {
-        TargetUtil.markTargetAction(tmodel, 'fetchAction');
+        TargetUtil.markFetchAction(tmodel);
 
         if (!this.isFetched(cacheId)) {
             if (!fetchMap[fetchId]) {

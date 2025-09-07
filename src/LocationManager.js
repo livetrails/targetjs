@@ -4,7 +4,7 @@ import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { TargetExecutor } from "./TargetExecutor.js";
-import { tApp, getTargetManager } from "./App.js";
+import { App, tApp, getTargetManager } from "./App.js";
 
 /*
  * It calculates the locations and dimensions of all objects and triggers the calculation of all targets. 
@@ -90,7 +90,7 @@ class LocationManager {
         }
     }
 
-    getChildren(container) {
+    calcChildren(container) {
         container.getChildren();
         
         if (container.shouldBeBracketed()) {
@@ -109,7 +109,7 @@ class LocationManager {
     }
     
     calculateContainer(container, shouldCalculateChildTargets = true) {
-        const allChildrenList = this.getChildren(container);
+        const allChildrenList = this.calcChildren(container);
         const viewport = container.createViewport();
         if (container.childrenUpdateFlag) {
             container.childrenUpdateFlag = false;
@@ -207,10 +207,9 @@ class LocationManager {
                 this.calculateContainer(child, shouldCalculateChildTargets && container.shouldCalculateChildTargets() !== false);
             }
             
-            if (child.getDirtyLayout() && TargetUtil.isTModelComplete(child)) {
-
+            if (child.getDirtyLayout() && (TargetUtil.isTModelComplete(child) || !App.tmodelIdMap[child.oid])) {
                 if (!child.hasChildren()) {
-                    child.removeLayoutDirty(child, Object.keys(child.dirtyLayout.oids));
+                    child.removeLayoutDirty(child, child.dirtyLayout.oids ? Object.keys(child.dirtyLayout.oids) : undefined);
                 } else {
                     child.removeLayoutDirty(child);
                 }
@@ -346,7 +345,7 @@ class LocationManager {
 
     calculateTargets(tmodel) {
         this.checkInternalEvents(tmodel);
-        
+                
         tmodel.activatedTargets.forEach(target => {
             if (tmodel.activeTargetMap[target]) {
                 tmodel.removeFromActiveTargets(target);
@@ -361,7 +360,7 @@ class LocationManager {
             if (tmodel.hasDom()) {
                 TModelUtil.setWidthFromDom(tmodel);
             } else {           
-                tmodel.addToActiveTargets('width'); 
+                tmodel.markLayoutDirty('width'); 
             }
         }
         
@@ -369,7 +368,7 @@ class LocationManager {
             if (tmodel.hasDom()) {
                 TModelUtil.setHeightFromDom(tmodel);
             } else {    
-                tmodel.addToActiveTargets('height'); 
+                tmodel.markLayoutDirty('height'); 
             }
         }        
         

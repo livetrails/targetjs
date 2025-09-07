@@ -29,18 +29,21 @@ class TargetParser {
         return TargetData.reservedKeywordSet.has(key);
     }
 
-    static scoreChild(object) {
+    static scoreChild(targetValue) {
         let c = 0;
         let t = 0;
-        for (const key in object) {
+        for (const key in targetValue) {
+            const value = targetValue[key];
             if (TargetData.defaultTargetStyles[key] || TargetData.excludedTargetKeys.has(key) || key === 'active') {
                 continue;
             }
             if (TargetParser.hasTargetSuffix(key)) {
                 return true;
+            } else if (this.hasLifecycle(value)) {
+                return true;
             } else if (TargetParser.isTargetKey(key)) {
                 c++;
-            } else if (!TargetData.activationKeywordSet.has(key) && !(typeof object[key] === 'function')) {
+            } else if (!TargetData.activationKeywordSet.has(key) && !(typeof targetValue[key] === 'function')) {
                 t++;
             }
         }
@@ -85,12 +88,12 @@ class TargetParser {
         return TargetUtil.getTargetName(key) === 'children' && typeof value === 'object';
     }
     
-    static isChildrenObjectTarget(key, value) {
-        if (TargetParser.classifyEntry(key, value) === 'children') {
-            return true;
+    static isChildObjectTarget(key, targetValue) {
+        if (TargetParser.classifyEntry(key, targetValue) !== 'children') {
+            return false;
         }
         
-        return false;
+        return true;
     }
 
     static isValueStepsCycleArray(arr) {

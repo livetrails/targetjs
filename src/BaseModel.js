@@ -17,25 +17,23 @@ class BaseModel {
         }
         this.targets = Object.assign({}, targets);
         oid = oid || this.targets.id;
-        this.type = type || oid || 'blank';
         
         if (!TUtil.isDefined(oid)) {
+            this.type = type || this.targets.otype || 'blank';
+            
             const uniqueId = App.getOid(this.type);
             this.oid = uniqueId.oid;
             this.oidNum = uniqueId.num;
         } else {
             App.getOid(oid);
+            this.type = oid;
             this.oid = oid;
             this.oidNum = 0;
         }
-        
+                
         if (!targets?.sourceDom && TUtil.isDefined(oid)) {
             this.originalId = oid;
         }        
-        
-        if (!App.tmodelIdMap[this.oid]) {
-            App.tmodelIdMap[this.oid] = this;
-        }
         
         this._state = {};
     }
@@ -51,7 +49,7 @@ class BaseModel {
     get activeTargetMap() { return this.state().activeTargetMap ??= {}; }
     get updatingTargetList() { return this.state().updatingTargetList ??= []; }
     get updatingTargetMap() { return this.state().updatingTargetMap ??= {}; }
-    get fetchActionTargetList() { return this.state().fetchActionTargetList ??= []; }    
+    get fetchActionTargetList() { return this.state().fetchActionTargetList ??= []; } 
     get updatingChildrenList() { return this.state().updatingChildrenList ??= []; }
     get updatingChildrenMap() { return this.state().updatingChildrenMap ??= {}; }
     get activeChildrenList() { return this.state().activeChildrenList ??= []; }
@@ -469,6 +467,26 @@ class BaseModel {
         return this.targetValues[key]?.status === 'complete' ? true : this.targetValues[key] === undefined ? undefined : false;
     }
     
+    isTargetCompleteDeep(key) {
+        return TargetUtil.isTargetCompleteDeep(this, key);
+    }
+    
+    isTargetFullyCompleted(key) {
+        return TargetUtil.isTargetFullyCompleted(this, key);
+    }
+    
+    arePreviousTargetsComplete(key) {
+        return TargetUtil.arePreviousTargetsComplete(this, key);
+    }
+    
+    cleanupTarget(key) {
+        TargetUtil.cleanupTarget(this, key);
+    }
+    
+    isComplete() {
+        return TargetUtil.isTModelComplete(this);
+    }
+    
     isExecuted(key) {
         return this.targetValues[key] && this.targetValues[key].executionFlag;
     }
@@ -649,9 +667,9 @@ class BaseModel {
         }
         const originalTargetName = TargetUtil.currentTargetName;
         const originalTModel = TargetUtil.currentTModel;
-        
+            
         if (this.getParent() === originalTModel) {
-            TargetUtil.markTargetAction(originalTModel, 'childAction');
+            TargetUtil.markChildAction(originalTModel, this);
         }
                 
         this.markLayoutDirty(key);
@@ -755,14 +773,14 @@ class BaseModel {
     } 
     
     addToActiveChildren(child) {
-        if (!this.activeChildrenMap[child.oid]) {
+        if (!this.activeChildrenMap[child.oid]) {              
             this.activeChildrenMap[child.oid] = true;
             this.activeChildrenList.push(child);
         }
     }
     
     removeFromActiveChildren(child) {
-        if (this.activeChildrenMap[child.oid]) {
+        if (this.activeChildrenMap[child.oid]) {         
             delete this.activeChildrenMap[child.oid];
             const index = this.activeChildrenList.indexOf(child);
             if (index >= 0) {

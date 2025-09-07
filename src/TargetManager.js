@@ -12,7 +12,7 @@ class TargetManager {
     applyTargetValues(tmodel, activeList = tmodel.activeTargetList.slice(0)) {
 
         for (const key of activeList) {
-            if (!tmodel.isTargetImperative(key)) {
+            if (!tmodel.isTargetImperative(key)) {               
                 this.applyTargetValue(tmodel, key);
             }
         }
@@ -227,8 +227,6 @@ class TargetManager {
         
         tmodel.updateTargetStatus(key);
         
-        TargetUtil.cleanupTarget(tmodel, key);
-
         TargetUtil.shouldActivateNextTarget(tmodel, key); 
 
         getRunScheduler().scheduleOnlyIfEarlier(scheduleTime, `${tmodel.oid}---${key}-${step}/${steps}-${cycle}-${scheduleTime}`);

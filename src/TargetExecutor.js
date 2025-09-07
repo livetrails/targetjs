@@ -12,6 +12,9 @@ import { getEvents, getLoader, getRunScheduler } from "./App.js";
 class TargetExecutor {
     
     static prepareTarget(tmodel, key) {
+        TargetUtil.currentTargetName = key;
+        TargetUtil.currentTModel = tmodel;
+        
         if (tmodel.isExecuted(key) && tmodel.getTargetCycles(key) > 0) {
 
             if (tmodel.getTargetCycle(key) < tmodel.getTargetCycles(key)) {
@@ -85,7 +88,10 @@ class TargetExecutor {
         }
 
         if (targetValue) {
-            TargetExecutor.updateTarget(tmodel, targetValue, key, true);      
+            TargetExecutor.updateTarget(tmodel, targetValue, key, true);
+            if (tmodel.isTargetDone(key)) {
+                TargetUtil.shouldActivateNextTarget(tmodel, key); 
+            }
         }
     }
 
@@ -198,14 +204,12 @@ class TargetExecutor {
                 newCycles, 
                 newInterval
             );
-        } else if (TargetParser.isChildrenObjectTarget(key, tmodel.targets[key])) {
+        } else if (TargetParser.isChildObjectTarget(key, tmodel.targets[key])) {
             
-            TargetUtil.currentTargetName = key;
-            TargetUtil.currentTModel = tmodel;
-                        
+                                    
             const child = new TModel(key, tmodel.targets[key]);
             tmodel.addChild(child);
-
+           
             TargetExecutor.assignSingleTarget(
                 targetValue, 
                 child,

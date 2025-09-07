@@ -1,5 +1,5 @@
 import { BaseModel } from "./BaseModel.js";
-import { App, getRunScheduler } from "./App.js";
+import { App, getLocationManager, getRunScheduler } from "./App.js";
 import { Viewport } from "./Viewport.js";
 import { TUtil } from "./TUtil.js";
 import { SearchUtil } from "./SearchUtil.js";
@@ -105,12 +105,14 @@ class TModel extends BaseModel {
             return;
         }
             
+        TargetUtil.resetBeforeDeletion(child);
         this.deletedChildren.push(child);   
-        this.removeFromUpdatingChildren(child);           
+        this.removeFromUpdatingChildren(child);
+        this.removeFromActiveChildren(child);
         this.childrenUpdateFlag = true;
-        this.getChildren();
+        getLocationManager().calcChildren(this);
         this.markLayoutDirty('removeChild');
-           
+                   
         getRunScheduler().schedule(1, 'removeChild-' + child.oid);
 
         return this;
@@ -134,9 +136,7 @@ class TModel extends BaseModel {
         return this;
     }
     
-    addChild(child, index = this.addedChildren.length + this.allChildrenList.length) {
-        TargetUtil.markTargetAction(this, 'childAction');
-        
+    addChild(child, index = this.addedChildren.length + this.allChildrenList.length) {        
         if (typeof child === 'object') {
             this.childrenUpdateFlag = true;
             
@@ -145,17 +145,15 @@ class TModel extends BaseModel {
                 
                 if (foundKey) {
                     child = new TModel(child.id || foundKey, child);
-                    this.actualValues[foundKey] = child;
-                } else if (TUtil.isDefined(child.otype)) {
-                    child = new TModel(child.otype, child);                     
-                } else if (TUtil.isDefined(child.id)) {     
-                    child = new TModel(child.id, child, child.id);                   
                 } else {
                     child = new TModel(`${this.oid}_`, child);                    
                 }
             }
         
-            if (!child.toDiscard) {            
+            if (!child.toDiscard) { 
+                
+                App.tmodelIdMap[child.oid] = child;
+                
                 this.addedChildren.push({ index, child });
                 child.parent = this;
                 child.markLayoutDirty('addChild');
@@ -166,7 +164,8 @@ class TModel extends BaseModel {
                 if (child.activeTargetList.length > 0) {
                     this.addToActiveChildren(child);
                 }
-                
+                        
+                TargetUtil.markChildAction(this, child);
             }
         }
         return this;
@@ -266,7 +265,7 @@ class TModel extends BaseModel {
                 const deleteIndex = this.allChildrenList.indexOf(child, fromIndex);
                 this.allChildrenList.splice(deleteIndex, 1);
             });
-            
+           
             this.movedChildren.length = 0;
         }
         
@@ -281,8 +280,8 @@ class TModel extends BaseModel {
         this.markLayoutDirty('removeAll');
         
         this.allChildrenList.forEach(t => {
+            TargetUtil.resetBeforeDeletion(t);
             t.$dom = undefined;
-            delete App.tmodelIdMap[t.oid];
         })
         this.allChildrenList = [];
         this.allChildrenMap = {};
@@ -290,7 +289,12 @@ class TModel extends BaseModel {
         this.updatingChildrenList.length = 0;
         for (const k in this.updatingChildrenMap) {
             delete this.updatingChildrenMap[k];
-        }        
+        }  
+        
+        this.activeChildrenList.length = 0;
+        for (const k in this.activeChildrenMap) {
+            delete this.activeChildrenMap[k];
+        }         
         
         if (this.hasDom()) {
             this.$dom.deleteAll();
@@ -670,7 +674,7 @@ class TModel extends BaseModel {
     }
     
     getBaseElement() {
-        return this.val('baseElement') || this.$dom?.element?.tagName?.toLowerCase();
+        return this.val('baseElement') || this.val('element') || this.$dom?.element?.tagName?.toLowerCase();
     }
 
     getOpacity() {

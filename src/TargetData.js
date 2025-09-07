@@ -20,7 +20,7 @@ class TargetData {
             borderRadius: 0,
             children: [],
             isInFlow: true,
-            baseElement: 'div',
+            element: 'div',
             canHaveDom: true,
             isIncluded: true,
             bracketThreshold: 10,
@@ -529,7 +529,7 @@ class TargetData {
         'html', 'isInFlow', 'domHolder', 'domParent', 'gap', 'widthFromDom', 'heightFromDom',
         'requiresDom', 'preventDefault', 'canDeleteDom', 'textOnly', 'styling', '$dom',
         'defaultStyling', 'reuseDomDefinition', 'canHaveDom', 'excludeXYCalc', 'excludeX', 'excludeY',
-        'containerOverflowMode', 'itemOverflowMode', 'baseElement'
+        'containerOverflowMode', 'itemOverflowMode', 'baseElement', 'element', 'otype'
     ]);
     
     static activationKeywordSet = new Set([

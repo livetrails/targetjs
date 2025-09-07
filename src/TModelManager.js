@@ -1,6 +1,6 @@
 import { $Dom } from "./$Dom.js";
 import { TUtil } from "./TUtil.js";
-import { getLocationManager, getEvents } from "./App.js";
+import { App, getLocationManager, getEvents } from "./App.js";
 import { TModelUtil } from "./TModelUtil.js";
 
 /**
@@ -63,7 +63,7 @@ class TModelManager {
         for (const tmodel of getLocationManager().hasLocationList) {                  
             lastVisibleMap[tmodel.oid] = undefined; 
             
-            if (this.hasNoParent(tmodel)) {
+            if (!App.tmodelIdMap[tmodel.oid]) {
                 if (tmodel.hasDom()) {
                     this.addToInvisibleDom(tmodel);
                 }
@@ -127,8 +127,8 @@ class TModelManager {
         
         Object.values(lastVisibleMap).filter(v => v !== undefined).forEach(tmodel => {
             if (tmodel.hasDom()) {
-
-                if (this.hasNoParent(tmodel) || !tmodel.isIncluded()) {
+                
+                if (!App.tmodelIdMap[tmodel.oid] || !tmodel.isIncluded()) {                    
                     this.addToInvisibleDom(tmodel);
                 } else if (tmodel.canDeleteDom() && this.isBracketVisible(tmodel) === false) {
                     this.addToInvisibleDom(tmodel);
@@ -163,19 +163,6 @@ class TModelManager {
         }
         
         return true;
-    }
-    
-    hasNoParent(tmodel, level = 0) {
-        if (tmodel.getParent()) {
-            if (!tmodel.getParent().allChildrenMap[tmodel.oid]) {
-                return true;
-            }
-            if (level <= 1) {
-                return this.hasNoParent(tmodel.getParent(), level + 1);
-            }
-        } else {
-            return false;
-        }
     }
     
     addToRecursiveInvisibleDom(tmodel) {

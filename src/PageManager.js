@@ -26,10 +26,10 @@ class PageManager {
         link = TUtil.getFullLink(link);
 
         if (!this.pageCache[link]) {
-            tApp.tRoot.$dom.innerHTML("");            
-            tApp.tRoot = tApp.tRootFactory();
+            tApp.tRoot.$dom.innerHTML(""); 
             App.oids = {};
-            App.tmodelIdMap = {};
+            App.tmodelIdMap = {};            
+            tApp.tRoot = tApp.tRootFactory();
             tApp.pageIsEmpty = true;
             this.lastLink = link;
                         
