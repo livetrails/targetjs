@@ -218,6 +218,19 @@ class TargetExecutor {
                 newCycles, 
                 newInterval
             );
+        } else if (typeof newValue === 'object' && newValue.mount === 'child') {
+            const child = new TModel(key, newValue);
+            tmodel.addChild(child);
+                       
+            TargetExecutor.assignSingleTarget(
+                targetValue, 
+                child,
+                undefined, 
+                0, 
+                newCycles, 
+                newInterval
+            );            
+            
         } else if (TargetParser.isFetchTarget(key, newValue)) {
             getLoader().fetch(tmodel, newValue);
             

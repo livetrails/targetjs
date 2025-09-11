@@ -315,7 +315,7 @@ class TModelManager {
         if (this.lists.noDom.length === 0) { 
             return;
         }
-        
+                
         const needsDom = [];
 
         this.lists.noDom.sort((a, b) => {
@@ -328,7 +328,8 @@ class TModelManager {
                 $dom = new $Dom(`#${tmodel.oid}`);
                 tmodel.$dom = $dom;
                 tmodel.hasDomNow = true;
-                this.needsRestyle(tmodel);
+                this.needsRerender(tmodel);
+                this.needsRestyle(tmodel);                
             } else {                
                 needsDom.push(tmodel);
             }
@@ -365,7 +366,7 @@ class TModelManager {
                             tmodel.styleMap = invisible.styleMap;
                             tmodel.transformMap = invisible.transformMap;
                             tmodel.$dom = invisible.$dom; 
-                            
+                                                        
                             TModelUtil.patchDom(tmodel);
                             this.resetTModelDom(invisible);
                         }

@@ -220,7 +220,7 @@ class BaseModel {
             this.val(key, target.initialValue);            
         }
         
-        if (target.active !== false || TUtil.isDefined(target.initialValue)) {
+        if (target.active !== false || TUtil.isDefined(target.initialValue)) {  
             this.addToStyleTargetList(key);
         }
         

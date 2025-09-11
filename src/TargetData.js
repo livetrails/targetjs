@@ -424,7 +424,8 @@ class TargetData {
         paddingbottom: 'paddingBottom',
         userselect: 'userSelect',
         arialabel: 'ariaLabel',
-        ariacurrent: 'ariaCurrent'
+        ariacurrent: 'ariaCurrent',
+        tabindex: 'tabIndex'
     };
 
     static targetToEventsMapping = {
