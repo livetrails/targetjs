@@ -23,7 +23,6 @@ const AppFn = () => {
     my.debugLevel = 0;
     my.runningFlag = false;
     my.resizeLastUpdate = 0;
-    my.pageIsEmpty = false;
 
     my.init = function() {
         my.browser = new Browser();
