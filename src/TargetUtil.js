@@ -94,6 +94,11 @@ class TargetUtil {
 
             if (shouldWrap) {
                 target[method] = function() {
+                    if (!TargetData.lifecycleCoreSet.has(method)) {
+                        TargetUtil.currentTargetName = key;
+                        TargetUtil.currentTModel = tmodel;
+                    }
+                    
                     this.key = cleanKey;
                     this.value = this.val(cleanKey);
                     this.prevTargetValue = getPrevValue();         
@@ -425,7 +430,7 @@ class TargetUtil {
         }        
     }
 
-    static wrapTarget(tmodel, target, key) {
+    static wrapTarget(tmodel, target, key) {      
         if (!TargetData.controlTargetMap[key]) {
                 tmodel.targets[key] = { 
                     value: target,

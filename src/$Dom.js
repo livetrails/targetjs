@@ -61,6 +61,10 @@ class $Dom {
         this.attr('id', id[0] === '#' ? id.slice(1) : id);
     }
     
+    getId() {
+        return this.attr('id');
+    }
+    
     focus() {
         this.element.focus();
     }

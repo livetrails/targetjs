@@ -30,7 +30,6 @@ class PageManager {
             App.oids = {};
             App.tmodelIdMap = {};            
             tApp.tRoot = tApp.tRootFactory();
-            tApp.pageIsEmpty = true;
             this.lastLink = link;
                         
             tApp.start();

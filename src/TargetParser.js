@@ -1,5 +1,6 @@
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from './TargetData.js';
+import { TUtil } from './TUtil.js';
 import { TModel } from "./TModel.js";
 
 /**
@@ -138,6 +139,14 @@ class TargetParser {
                 && value !== null
                 && !Array.isArray(value)
                 && Object.getPrototypeOf(value) === Object.prototype;
+    }
+    
+    static isIntervalTarget(target) {
+        
+        return TUtil.isDefined(target.interval) 
+                && !TUtil.isDefined(target.steps) 
+                && !TUtil.isDefined(target.cycles) 
+                && !TUtil.isDefined(target.value);
     }
 }
 

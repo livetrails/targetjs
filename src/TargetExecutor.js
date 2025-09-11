@@ -209,7 +209,7 @@ class TargetExecutor {
                                     
             const child = new TModel(key, tmodel.targets[key]);
             tmodel.addChild(child);
-           
+                       
             TargetExecutor.assignSingleTarget(
                 targetValue, 
                 child,

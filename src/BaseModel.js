@@ -2,6 +2,7 @@ import { tApp, App, getRunScheduler, getLocationManager, getDomTModelById, getLo
 import { TargetExecutor } from "./TargetExecutor.js";
 import { TUtil } from "./TUtil.js";
 import { TModelUtil } from "./TModelUtil.js";
+import { TargetParser } from "./TargetParser" ;
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
 import { $Dom } from "./$Dom.js";
@@ -104,18 +105,19 @@ class BaseModel {
         this.originalTargetNames = Object.keys(this.targets).filter(key => !TargetData.excludedTargetKeys.has(key)).map(key => key.startsWith('_') ? key.slice(1) : key);
 
         const domExists = $Dom.query(`#${this.oid}`) || this.originalTargetNames.indexOf('$dom') >= 0;
-
+        
         if (!domExists && !this.excludeDefaultStyling()) {
             Object.entries(TargetData.defaultTargetStyles).forEach(([key, value]) => {
                 if (!(key in this.targets)) {
                     this.targets[key] = value;
                 }
             });
-            if (!TUtil.isDefined(this.targets['canHaveDom']) && !TUtil.isDefined(this.targets['domHolder'])) {
+            if (this.targets['canHaveDom'] !== false && !TUtil.isDefined(this.targets['domHolder'])) {
                 this.targets['domHolder'] = true;
             }
         } else if (domExists && !TUtil.isDefined(this.targets['reuseDomDefinition'])) {
             this.targets['reuseDomDefinition'] = true;
+            this.targets['domHolder'] = true;
             if (!TUtil.isDefined(this.targets['excludeXYCalc'])) {
                 this.targets['excludeXYCalc'] = true;                
             } 
@@ -171,7 +173,7 @@ class BaseModel {
                 || targetType === 'object'
                 || targetType === 'function'
             ) { 
-                if (!needsTargetExecution) {
+                if (!target.value && !TargetParser.isChildObjectTarget(key, target) && !TargetParser.isIntervalTarget(target)) {
                     needsTargetExecution = true;
                     target = TargetUtil.wrapTarget(this, target, key);
                 }
@@ -231,7 +233,7 @@ class BaseModel {
             return;
         }
         
-        if (TUtil.isDefined(target.interval) && !TUtil.isDefined(target.steps) && !TUtil.isDefined(target.cycles) && !TUtil.isDefined(target.value)) {
+        if (TargetParser.isIntervalTarget(target)) {
             target.cycles = 1;
         }
         
@@ -843,6 +845,7 @@ class BaseModel {
                 targetValue.scheduleTimeStamp = undefined;
                 targetValue.step = 0;
                 targetValue.cycle = Array.isArray(targetValue.valueList) ? 1 : 0;
+                targetValue.initialValue = undefined;
             } else {
                 this.targetValues[key] = targetValue;
             }

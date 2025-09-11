@@ -111,13 +111,13 @@ class LoadingManager {
 
         if (!this.tmodelKeyMap[key].fetchMap[fetchId]) {
             this.tmodelKeyMap[key].fetchMap[fetchId] = {
-                fetchId,
-                order: this.tmodelKeyMap[key].entryCount
+                fetchId
             };
-
-            this.tmodelKeyMap[key].entryCount++;
-            tmodel.val(loadTargetName).push(undefined);
         }
+        
+        this.tmodelKeyMap[key].fetchMap[fetchId].order = this.tmodelKeyMap[key].entryCount;
+        this.tmodelKeyMap[key].entryCount++;
+        tmodel.val(loadTargetName).push(undefined);        
 
         if (cacheId && this.isFetched(cacheId)) {
             this.fetchingAPIMap[fetchId].startTime = TUtil.now();
@@ -190,7 +190,7 @@ class LoadingManager {
             if (currentTargetName?.endsWith('$$')) {
                 result = targetValue.slice(tmodelEntry.accessIndex, tmodelEntry.resultCount);
                 tmodelEntry.accessIndex += result.length;
-            } else {
+            } else if (TUtil.isDefined(targetValue[tmodelEntry.accessIndex])) {
                 result = targetValue[tmodelEntry.accessIndex];
                 tmodelEntry.accessIndex++;
             }
