@@ -499,15 +499,23 @@ class TargetData {
             'activateNextTarget'
     ]);
 
-    static lifecycleMethodSet = new Set([
-        'value', 'enabledOn', 'loop', 'onValueChange',
-        'onImperativeEnd', 'onImperativeStep', 'onStepsEnd',
-        'onSuccess', 'onError',
+    static lifecycleCallbackSet = new Set([
+        'onValueChange', 'onImperativeEnd', 'onImperativeStep', 'onStepsEnd',
+        'onSuccess', 'onError'
     ]);
+    
+    static lifecycleCoreSet = new Set([
+        'value', 'steps', 'cycles', 'enabledOn', 'loop', 'interval'
+    ]);    
+    
+    static lifecycleMethodSet = new Set([
+        ...TargetData.lifecycleCallbackSet,        
+        ...TargetData.lifecycleCoreSet       
+    ]);    
 
     static lifecyclePatterns = {
         step: /^on[A-Za-z]+Step$/,
-        end: /^on[A-Za-z]+End$/,
+        end: /^on[A-Za-z]+End$/
     };
     
     static eventSet = new Set([
@@ -529,7 +537,8 @@ class TargetData {
         'html', 'isInFlow', 'domHolder', 'domParent', 'gap', 'widthFromDom', 'heightFromDom',
         'requiresDom', 'preventDefault', 'canDeleteDom', 'textOnly', 'styling', '$dom',
         'defaultStyling', 'reuseDomDefinition', 'canHaveDom', 'excludeXYCalc', 'excludeX', 'excludeY',
-        'containerOverflowMode', 'itemOverflowMode', 'baseElement', 'element', 'otype'
+        'containerOverflowMode', 'itemOverflowMode', 'baseElement', 'element', 'otype',
+        'calculateChildren'
     ]);
     
     static activationKeywordSet = new Set([
