@@ -224,7 +224,7 @@ class TargetExecutor {
                        
             TargetExecutor.assignSingleTarget(
                 targetValue, 
-                child,
+                newValue,
                 undefined, 
                 0, 
                 newCycles, 
