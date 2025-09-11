@@ -209,10 +209,14 @@ class TargetExecutor {
                                     
             const child = new TModel(key, tmodel.targets[key]);
             tmodel.addChild(child);
-                       
+            
+            const filteredValue = Object.fromEntries(
+                Object.entries(newValue).filter(([k]) => !TargetData.excludedTargetKeys.has(k))
+            );
+                                  
             TargetExecutor.assignSingleTarget(
                 targetValue, 
-                child,
+                filteredValue,
                 undefined, 
                 0, 
                 newCycles, 

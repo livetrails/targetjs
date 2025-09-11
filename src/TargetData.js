@@ -497,7 +497,10 @@ class TargetData {
     static excludedTargetKeys = new Set([
             'originalTargetName',
             'originalTModel',
-            'activateNextTarget'
+            'activateNextTarget',
+            'active',
+            'childAction',
+            'fetchAction'
     ]);
 
     static lifecycleCallbackSet = new Set([

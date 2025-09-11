@@ -393,7 +393,7 @@ class TModel extends BaseModel {
     }
     
     getChild(index) {
-        return this.getChildren()[index];
+        return typeof index === 'number' ? this.getChildren()[index] : this.getChildByOid(index);
     }
     
     getChildIndex(child) {
@@ -413,6 +413,7 @@ class TModel extends BaseModel {
     }
     
     getChildByOid(oid) {
+        this.getChildren();
         return this.allChildrenMap[oid];
     }
 
