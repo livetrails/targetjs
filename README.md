@@ -25,211 +25,249 @@ Targets unlock a fundamentally new way of coding that simplifies everything from
 1. Unifying Class Methods and Fields with Targets: A new construct called “targets” combines methods and fields, providing state, lifecycles, iteration, and timing mechanisms for both.
 2. Declarative Reactive Targets: Targets can explicitly declare reactive execution triggered by the run or completion of their immediately preceding targets, whether synchronous or asynchronous.
 3. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
-4. Code-Ordered Execution: The execution flow generally follows the order in which the code is written.
-5. Autonomous Methods: Methods in TargetJS are not directly callable. Instead, they are designed to execute themselves or react dynamically to the execution or completion of preedings "Targets." This paradigm shift enables a declarative programming style and inherently supports asynchronous operations without explicit async/await keywords.
+4. Code-Ordered Execution: Targets are chained top to bottom and the execution flow generally follows the order in which the code is written.
+5. Autonomous Methods: Methods in TargetJS are not directly callable. Instead, they are designed to execute themselves or react dynamically to the execution or completion of preedings "Targets." This paradigm shift enables a declarative programming style and inherently supports asynchronous operations without explicit plumbing like using async/await keywords.
 6. Compactness: TargetJS allows developers to achieve interactive UIs with significantly less code.
 
-## Examples
 
-To demonstrate the power and simplicity of TargetJS, let's explore how it can manage asynchronous workflows. Our first asynchronous operation is a simple animation, then we expand it to demonstrate API integration, event handling, and dynamic UI updates.
+## Examples: From like button → animated like + API (in 7 steps)
 
-### Growing and Shrinking Box: Declarative Animation
+> **Postfixes**
+>
+> * **`$`** = *reactive*: runs every time the **immediately previous** target updates (per step/result).
+> * **`$$`** = *deferred*: runs **after all prior** targets complete (animations, pauses, fetches).
+>
+> **Reordering**
+> Targets execute in the order they’re written—reorder them like LEGO bricks to change the flow. `$$` steps automatically follow the new sequence.
+
+---
+
+## 1) Like button (view only)
+
+**What this shows:** One object defines a UI element without separate HTML/CSS. Static targets map directly to DOM styles/attributes.
 
 ```javascript
-import { App } from 'targetj';
+import { App } from "targetj";
 
 App({
-    background: 'mediumpurple',
-    width: [{ list: [100, 250, 100] }, 50, 10], // width animates through 100 → 250 → 100, over 50 steps with 10ms interval
-    height$() { // `$` creates a reactive target: `height` executes each time `width` updates
-      return this.prevTargetValue / 2;
-    } 
+  width: 220,
+  height: 60,
+  lineHeight: 60,
+  textAlign: "center",
+  borderRadius: 10,
+  background: "#f5f5f5",
+  html: "♡ Like"
 });
 ```
 
-![first example](https://targetjs.io/img/git1.gif)
+---
 
-**Important Note**: As you can see, the entire UI and its behavior are defined directly within this single JavaScript file. There is no separate HTML or CSS. Targets named after HTML style properties or attributes will be mapped to the element’s styles and attributes.
 
-**Explanation**
+## 2) animation
 
-Targets execute precisely in the order they are defined:
-
-1. `background`: This target runs first, setting the element's background color to `mediumpurple`. Once the assignment is complete, its lifecycle ends.
-2. `width`: Next, the `width` target takes over. It's configured to animate through a list of values (100, 250, 100), performing 50 steps with a 10ms pause between each step, creating a grow-then-shrink effect.
-3. `height$`: Finally, the `height$` target demonstrates TargetJS's reactivity.  its name ends with a single `$` postfix, `height$` is explicitly declared to react whenever its immediately preceding target (`width`) executes on every step. As `width` animates and changes its value, `height$` automatically re-runs, setting its value to half of width's value.
-
-The example above can also be implemented directly in HTML, utilizing tg- attributes that mirror the object literal keys used in JavaScript:
-   
-```html 
-<div
-   tg-background="mediumpurple"
-   tg-width="[{ list: [100, 250, 100] }, 50, 10]"
-   tg-height$="return this.prevTargetValue / 2;">
-</div>
-```
-Or a combination of JavaScript and HTML, linked together using the same HTML ID.
-
-Finally, here’s how the example looks in TypeScript:
-
-```TypeScript
-import { App, TModel } from 'targetj';
-
-type TargetFunctionContext = TModel & {
-    key: string;
-    value: any;
-    prevTargetValue: any;
-    isPrevTargetUpdated: () => boolean;
-};
+**What this shows:** A mount-time animation that scales and changes the background over 12 steps, with 12ms pauses between steps.
+```javascript
+import { App } from "targetj";
 
 App({
-    background: 'mediumpurple',
-    width: [{ list: [100, 250, 100] }, 50, 10],
-    height$(this: TargetFunctionContext): number {
-        return this.prevTargetValue / 2;
+  width: 220,
+  height: 60,
+  lineHeight: 60,
+  textAlign: "center",
+  borderRadius: 10, 
+  html: "♡ Like",
+  scale: [ { list: [1.2, 1] }, 8, 12 ],
+  background: [ { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12 ]
+});
+```
+
+## 3) Click → animation (imperative `setTarget`)
+
+**What this shows:** Clicking plays the animations from the previous step and swaps the text.
+
+```javascript
+import { App } from "targetj";
+
+App({
+  width: 220, height: 60, lineHeight: 60, textAlign: "center",
+  borderRadius: 10, background: "#f5f5f5",
+  cursor: "pointer", userSelect: "none",
+  html: "♡ Like",
+
+  onClick() {
+    this.setTarget("scale",      { list: [1.2, 1] }, 8, 12);
+    this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
+    this.setTarget("html", "♥ Liked");
+  }
+});
+```
+
+---
+
+## 4) Sequencing with `$$`: small heart
+
+**What this shows:** A `$$` target (deferred) runs only after all prior targets finish (including `onClick` and animations). Here it adds a new heart element and runs its fly motion only once the click sequence has completed.
+
+
+```javascript
+import { App } from "targetj";
+
+App({
+  width: 220, height: 60, lineHeight: 60, textAlign: "center",
+  borderRadius: 10, background: "#f5f5f5", cursor: "pointer", userSelect: "none",
+  html: "♡ Like",
+  onClick() {
+    this.setTarget("scale",      { list: [1.2, 1] }, 8, 12);
+    this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
+    this.setTarget("html", "♥ Liked");
+  },
+  heart$$: {
+    html: "♥", color: "crimson", fontSize: 20,
+    fly() {
+      const cx = this.getCenterX(), cy = this.getCenterY();
+      this.setTarget({
+        opacity: { list: [0, 1, 1, 0.8, 0.1] },
+        scale:   { list: [0.8, 1.4, 1.1, 0.9, 0.8] },
+        rotate:  { list: [0, 12, -8, 6, 0] },
+        x:       { list: [cx, cx + 22, cx - 16, cx + 10, cx] },
+        y:       { list: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150] }
+      }, 20);
     }
+  }
 });
 ```
 
-### Adding an API Call
+---
 
-Let's extend our previous example to demonstrate how TargetJS handles asynchronous operations. We'll fetch user details from an API, but we also want this API call to initiate only after the box animation has fully completed.
+## 5) Another `$$`: big heart, different motion
+
+**What this shows:** **Chained `$$`**. `bigHeart$$` waits for `heart$$` to finish, then runs its own, distinct animation.
 
 ```javascript
-import { App } from 'targetj';
+import { App } from "targetj";
 
 App({
-    background: 'mediumpurple',
-    width: [{ list: [100, 250, 100] }, 50, 10],
-    height$() { return this.prevTargetValue / 2; },
-    fetch$$: 'https://targetjs.io/api/randomUser?id=user0', // `$$` ensures this runs only after width and height animation is complete
-    html$() { // `$` ensures this runs when the API response is resolved
-        return this.prevTargetValue.name; // `prevTargetValue` holds the result from the previous target (i.e., the API response)
+  width: 220, height: 60, lineHeight: 60, textAlign: "center",
+  borderRadius: 10, background: "#f5f5f5", cursor: "pointer", userSelect: "none",
+  html: "♡ Like",
+
+  onClick() {
+    this.setTarget("scale",      { list: [1.2, 1] }, 8, 12);
+    this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
+    this.setTarget("html", "♥ Liked");
+  },
+
+  heart$$: {
+    html: "♥", color: "crimson", fontSize: 20,
+    fly() {
+      const cx = this.getCenterX(), cy = this.getCenterY();
+      this.setTarget({
+        opacity: { list: [0, 1, 1, 0.8, 0.1] },
+        scale:   { list: [0.8, 1.4, 1.1, 0.9, 0.8] },
+        rotate:  { list: [0, 12, -8, 6, 0] },
+        x:       { list: [cx, cx + 22, cx - 16, cx + 10, cx] },
+        y:       { list: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150] }
+      }, 20);
     }
-});
-```
-
-![second example](https://targetjs.io/img/git2.gif)
-
-**Explanation**
-
-This example introduces two new targets:
-
-1. `fetch$$`: `fetch` target is a specialized target designed to retrieve data when given a URL string. Since its name ends with a `$$` postfix, as previously discussed, this indicates that `fetch$$` will activate only after preceding targets fully completed all of its operations. This guarantees the API call is initiated just after the animation finishes.
-
-2.  `html$`: Following `fetch$$`, the `html` target is responsible for setting the text content of the `div` element to the fetched user's name. The `$` postfix here signifies that `html$` is a reactive target that executes each time its immediately preceding target (`fetch$$`) provides a result. In this context, `this.prevTargetValue` will hold the resolved data from the API call, allowing `html$` to dynamically display the user's name as soon as it's available.
-
-Together, these targets orchestrate the flow: animation completes, then the API call happens, then the UI updates with the fetched data, all managed declaratively and in code order.
-
-### Attaching a Click Handler
-
-Let's expand our box further by adding a click handler. The goal is to change the box's background color to orange when clicked, pause for two seconds, and then revert the background back to its original mediumpurple.
-
-```javascript
-import { App } from 'targetj';
-
-App({
-    background: 'mediumpurple',
-    width: [{ list: [100, 250, 100] }, 50, 10],
-    height$() { return this.prevTargetValue / 2; },
-    fetch$$: 'https://targetjs.io/api/randomUser?id=user0',
-    html$() { return this.prevTargetValue.name; },
-    onClick() { // Special target that runs when the element is clicked
-        this.setTarget('background', 'orange', 30, 10); // Animates background to orange over 30 steps
-    },
-    pause$$: { interval: 2000 }, // `$$` ensures this runs only after the preceding 'onClick' animation is fully complete
-    purpleAgain$$() { // `$$` ensures this runs only after `pause$$` completes (2-second interval)
-        this.setTarget('background', 'mediumpurple', 30, 10); // Animates background back to mediumpurple
+  },
+  bigHeart$$: {
+    html: "♥", color: "blue", fontSize: 100,
+    fly() {
+      const cx = this.getCenterX(), cy = this.getCenterY();
+      this.setTarget({
+        opacity: { list: [0, 1, 1, 0.85, 0.6, 0.1] },
+        scale:   { list: [0.4, 1.9, 1.2, 1.6, 1.0, 0.95] },
+        rotate:  { list: [0, 4, -3, 4, -2, 0] },
+        x:       { list: [cx, cx + 14, cx + 10, cx - 6, cx - 14, cx] },
+        y:       { list: [cy, cy - 30, cy - 55, cy - 80, cy - 100, cy - 130] }
+      }, 30);
     }
+  }
 });
 ```
 
-![third example](https://targetjs.io/img/git3.gif)
+---
 
-**Explanation:**
+## 6) `fetch$$`
 
-1. `onClick`: This is a special TargetJS function that automatically runs whenever the associated element is clicked. Inside, `this.setTarget('background', 'orange', 30, 10)` imperatively triggers a new animation, changing the background color to orange over 30 steps.
-2. `pause$$`: Notice the `$$` postfix. This `pause$$` target is configured with an interval of 2000 milliseconds (2 seconds). Crucially, its `$$` postfix means it will only begin its 2-second pause after its immediately preceding target (onClick) has fully completed its animation of changing the background to orange.
-3. `purpleAgain$$`: Also ending with `$$`, this target executes only after the `pause$$` target has finished its 2-second execution. It then uses this.setTarget again to animate the background color back to `mediumpurple`.
-
-This sequence demonstrates how TargetJS allows you to define complex, timed flow with a guaranteeing execution order.
-
-### Let's Make it More Complicated :)
-
-Let’s expand the previous example by creating 10 boxes instead of just one. Each box will be added with a slight delay (100ms) and undergo its own task from the previous example. Once all these individual box processes (creation, animation, and API calls) are complete, we'll trigger a final collective action: changing all their backgrounds to green.
+**What this shows:** Networking is just another target. The POST happens **only after** all prior visual steps complete.
 
 ```javascript
-import { App } from 'targetj';
-
 App({
-    width: 500,
-    children: { // A special target that adds a new list of childen each time it executes.
-        cycles: 9, // Creates 10 children (from cycle 0 to 9)
-        interval: 100, // Adds a new child every 100 milliseconds
-        value(cycle) {
-            return {
-                baseWidth: 250,
-                baseHeight: 125,
-                background: 'mediumpurple',
-                width: [{ list: [100, 250, 100] }, 50, 10],
-                height$() { return this.prevTargetValue / 2; },
-                fetch$$: `https://targetjs.io/api/randomUser?id=user${cycle}`,
-                html$() { return this.prevTargetValue.name; },
-                onClick() { this.setTarget('background', 'orange', 30, 10); },
-                pause$$: { interval: 2000 },
-                purpleAgain$$() { this.setTarget('background', 'mediumpurple', 30, 10); }
-            };
-        }
-    },
-    greenify$$() { // `$$` ensures this runs only after all children have completed all their tasks
-        this.getChildren().forEach(child => child.setTarget("background", "green", 30, 10)); // Iterates and animates each child's background
-    } 
+  // …same as step 4…
+
+  fetch$$: { method: "POST", id: 123, url: "/api/like" }
 });
 ```
 
-![first example](https://targetjs.io/img/git4_1.gif)
+---
 
-**Explanation:**
+## 7) Final version with a cleanup utility (`removeHearts$$`) + keyboard
 
-This advanced example demonstrates TargetJS's capability to manage complex, dynamic UI scenarios:
+**What this shows:** Post-chain cleanup as a `$$` target, and basic accessibility with `role`/`tabIndex` + Enter key.
 
-1. `children`: A special target construct used to create a collection of child objects. Each time it executes, a new list objects is added to the parent. The `cycles` property specifies that the value function will run 10 times (from `cycle` 0 to 9), thus creating 10 individual box objects.
-The `interval` property ensures that each new box is created and added to the UI every 100 milliseconds.
-The `value(cycle)` function return the same object element from the previous example.
+```javascript
+import { App } from "targetj";
 
-2. `greenify$$`: This target demonstrates the `$$` postfix's full completion reactivity at a higher level. The `greenify$$` target will execute only after the entire children target has comprehensively completed all of its work. This includes:
+App({
+  width: 220, height: 60, lineHeight: 60, textAlign: "center",
+  borderRadius: 10, background: "#f5f5f5", cursor: "pointer", userSelect: "none",
+  role: "button", tabIndex: 0,
+  html: "♡ Like",
 
-- The creation of all 10 child boxes.
-- The completion of each individual child's width animation.
-- The successful return of all 10 API calls (`fetch`) for each child.
-- The population of all user names (`html`) for each child.
+  x() { return this.getCenterX(); },
+  y() { return this.getCenterY(); },
 
-Only when all tasks initiated by children are finished will `greenify$$` runs. It then uses `this.getChildren().forEach(child => child.setTarget("background", "green", 30, 10))` to iterate over all the created child boxes and animate their backgrounds to green.
+  onClick() {
+    this.setTarget("scale",      { list: [1.2, 1] }, 8, 12);
+    this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
+    this.setTarget("html", "♥ Liked");
+  },
 
+  heart$$: {
+    html: "♥", color: "crimson", fontSize: 20,
+    fly() {
+      const cx = this.getCenterX(), cy = this.getCenterY();
+      this.setTarget({
+        opacity: { list: [0, 1, 1, 0.8, 0.1] },
+        scale:   { list: [0.8, 1.4, 1.1, 0.9, 0.8] },
+        rotate:  { list: [0, 12, -8, 6, 0] },
+        x:       { list: [cx, cx + 22, cx - 16, cx + 10, cx] },
+        y:       { list: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150] }
+      }, 20);
+    }
+  },
 
-The example above can also be implemented directly in HTML:
-   
-```html 
+  bigHeart$$: {
+    html: "♥", color: "blue", fontSize: 100,
+    fly() {
+      const cx = this.getCenterX(), cy = this.getCenterY();
+      this.setTarget({
+        opacity: { list: [0, 1, 1, 0.85, 0.6, 0.1] },
+        scale:   { list: [0.4, 1.9, 1.2, 1.6, 1.0, 0.95] },
+        rotate:  { list: [0, 4, -3, 4, -2, 0] },
+        x:       { list: [cx, cx + 14, cx + 10, cx - 6, cx - 14, cx] },
+        y:       { list: [cy, cy - 30, cy - 55, cy - 80, cy - 100, cy - 130] }
+      }, 30);
+    }
+  },
 
-<div
-    tg-width="500"
-    tg-children="{ cycles: 9, interval: 100 }"
-    tg-greenify$$="function() { this.getChildren().forEach(child => child.setTarget('background', 'green', 30, 10)); }"
-    >
-    <div
-        tg-baseWidth="250"
-        tg-baseHeight="125"
-        tg-background="mediumpurple"
-        tg-width="[{ list: [100, 250, 100] }, 50, 10]"
-        tg-height$="function() { return this.prevTargetValue / 2; }"
-        tg-fetch$$="function(index) { return `https://targetjs.io/api/randomUser?id=user${index}`; }"
-        tg-html$="function() { return this.prevTargetValue.name; }"
-        tg-onClick="function() { this.setTarget('background', 'orange', 30, 10); }"
-        tg-pause$$="{ interval: 2000 }"
-        tg-purpleagain$$="function() { this.setTarget('background', 'mediumpurple', 30, 10); }">  
-    </div>
-</div>
+  fetch$$: { method: "POST", id: 123, url: "/api/like" },
+
+  removeHearts$$() { this.removeAll(); },
+
+  onKey(e) { if (e.key === "Enter") this.activateTarget("onClick"); }
+});
 ```
+
+---
+
+## Final takeaway
+
+TargetJS treats time as a first-class concept. Instead of wiring callbacks and effects, you write a sequence of targets. 
+$ reacts to the previous step; $$ defers until all prior steps finish. Animations, API calls, and child creation are all the same kind of thing: targets. 
+So complex flows read top-to-bottom, no glue code.
+
 
 ## Table of Contents
 
