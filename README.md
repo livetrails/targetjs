@@ -5,8 +5,8 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework that simplifies front-end development by introducing key concepts: unifying class methods and fields, autonomous and reactive methods, and execution flow that follows the written code. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to extreme compact code, introduces a new development paradigm, and prioritizes user experience. It can be used as a full-featured framework or as a lightweight library alongside other frameworks.
-Furthermore, it is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
+TargetJS is a modern JavaScript UI framework that simplifies front-end development by introducing key concepts: unifying class methods and fields, autonomous and reactive methods, and execution flow that follows the written code. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to extreme compact code and an introduction of a new development paradigm. 
+It can be used as a full-featured framework or as a lightweight library alongside other frameworks. It is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
 ## The Philosophy Behind TargetJS
 
@@ -14,9 +14,9 @@ Frameworks often promise simplicity, but frequently require extensive boilerplat
 
 TargetJS adopts a new approach. First, it unifies class methods and fields into a single construct called targets. Each target is given state, lifecycles, timing, iterations, and the autonomy to execute mimicking the behavior of living cells. Targets are essentially self-contained, intelligent blocks of code.
 
-The second challenge is making these targets to fit and work together especially since UI operations are highly asynchronous. Instead of relying on traditional method calls and callbacks that don't address asynchronous nature well, TargetJS allows targets to react to the execution or completion of preceding targets. A subsequent target can run independently, execute whenever the previous one does, or wait until the previous target completes. Targets stack together like snapping Lego pieces. It can address complex asynchronous workflow yet easy to understand.
+The second challenge is making these targets to fit and work together especially since UI operations are highly asynchronous. Instead of relying on traditional method calls and callbacks that don't address asynchronous nature well, TargetJS allows targets to react to the execution or completion of preceding targets. A subsequent target can run independently, execute whenever the previous one does, or wait until the previous target completes. Targets stack together like Lego pieces. It can address complex asynchronous workflow yet easy to understand.
 
-For example, setting a value can implicitly define an animation, where the current value iteratively progresses until it reaches the new value. When the animation completes, the next target might initiate a fetch API call. Once the data is received, it can trigger another target that creates 10 nodes, each with its own animation and API call. A subsequent target can then be set to run only after all nodes have completed their tasks. Throughout this sequence, no direct method calls are made. Targets simply react and chain together based on how the code is written.
+For example, setting a value can implicitly define an animation, where the current value iteratively progresses until it reaches the new value. When the animation completes, the next target might initiate a fetch API call. Once the data is received, it can trigger another target that creates 10 new elements, each with its own animation and API call. A subsequent target can then be set to run only after all elements have completed their tasks. Throughout this sequence, no direct method calls are made. Targets simply react and chain together based on how the code is written.
 
 Targets unlock a fundamentally new way of coding that simplifies everything from animation, UI updates, API calls, and state management. It also makes the code significantly more compact.
 
@@ -26,7 +26,7 @@ Targets unlock a fundamentally new way of coding that simplifies everything from
 2. Declarative Reactive Targets: Targets can explicitly declare reactive execution triggered by the run or completion of their immediately preceding targets, whether synchronous or asynchronous.
 3. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
 4. Code-Ordered Execution: Targets are chained top to bottom and the execution flow generally follows the order in which the code is written.
-5. Autonomous Methods: Methods in TargetJS are not directly callable. Instead, they are designed to execute themselves or react dynamically to the execution or completion of preedings "Targets." This paradigm shift enables a declarative programming style and inherently supports asynchronous operations without explicit plumbing like using async/await keywords.
+5. Autonomous Methods: Methods in TargetJS are not directly callable. Instead, they are designed to execute themselves or react dynamically to the execution or completion of preedings targets. This paradigm shift enables a declarative programming style and inherently supports asynchronous operations without explicit plumbing like using async/await keywords.
 6. Compactness: TargetJS allows developers to achieve interactive UIs with significantly less code.
 
 
@@ -34,11 +34,11 @@ Targets unlock a fundamentally new way of coding that simplifies everything from
 
 > **Postfixes**
 >
-> * **`$`** = *reactive*: runs every time the **immediately previous** target updates (per step/result).
-> * **`$$`** = *deferred*: runs **after all prior** targets complete (animations, pauses, fetches).
+> * **`$`** = *reactive*: runs every time the **immediately previous** target updates.
+> * **`$$`** = *deferred*: runs after all prior targets complete including animations and fetches.
 >
 > **Reordering**
-> Targets execute in the order they’re written—reorder them like LEGO bricks to change the flow. `$$` steps automatically follow the new sequence.
+> Targets execute in the order they’re written. You can reorder them like LEGO bricks to change the flow. `$$` automatically follow the new sequence.
 
 ---
 
@@ -63,7 +63,7 @@ App({
 ---
 
 
-## 2) animation
+## 2) Animation
 
 **What this shows:** A mount-time animation that scales and changes the background over 12 steps, with 12ms pauses between steps.
 ```javascript
@@ -204,59 +204,54 @@ App({
 
 ## 7) Final version with a cleanup utility (`removeHearts$$`) + keyboard
 
-**What this shows:** Post-chain cleanup as a `$$` target, and basic accessibility with `role`/`tabIndex` + Enter key.
+**What this shows:** A like button component that encapsulates the previous steps, adds a post-chain cleanup target. It also ncludes basic accessibility (role, tabIndex, and Enter to activate).
 
 ```javascript
 import { App } from "targetj";
 
 App({
-  width: 220, height: 60, lineHeight: 60, textAlign: "center",
-  borderRadius: 10, background: "#f5f5f5", cursor: "pointer", userSelect: "none",
-  role: "button", tabIndex: 0,
-  html: "♡ Like",
-
-  x() { return this.getCenterX(); },
-  y() { return this.getCenterY(); },
-
-  onClick() {
-    this.setTarget("scale",      { list: [1.2, 1] }, 8, 12);
-    this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
-    this.setTarget("html", "♥ Liked");
-  },
-
-  heart$$: {
-    html: "♥", color: "crimson", fontSize: 20,
-    fly() {
-      const cx = this.getCenterX(), cy = this.getCenterY();
-      this.setTarget({
-        opacity: { list: [0, 1, 1, 0.8, 0.1] },
-        scale:   { list: [0.8, 1.4, 1.1, 0.9, 0.8] },
-        rotate:  { list: [0, 12, -8, 6, 0] },
-        x:       { list: [cx, cx + 22, cx - 16, cx + 10, cx] },
-        y:       { list: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150] }
-      }, 20);
-    }
-  },
-
-  bigHeart$$: {
-    html: "♥", color: "blue", fontSize: 100,
-    fly() {
-      const cx = this.getCenterX(), cy = this.getCenterY();
-      this.setTarget({
-        opacity: { list: [0, 1, 1, 0.85, 0.6, 0.1] },
-        scale:   { list: [0.4, 1.9, 1.2, 1.6, 1.0, 0.95] },
-        rotate:  { list: [0, 4, -3, 4, -2, 0] },
-        x:       { list: [cx, cx + 14, cx + 10, cx - 6, cx - 14, cx] },
-        y:       { list: [cy, cy - 30, cy - 55, cy - 80, cy - 100, cy - 130] }
-      }, 30);
-    }
-  },
-
-  fetch$$: { method: "POST", id: 123, url: "/api/like" },
-
-  removeHearts$$() { this.removeAll(); },
-
-  onKey(e) { if (e.key === "Enter") this.activateTarget("onClick"); }
+  likeButton: {
+    width: 220, height: 60, lineHeight: 60, textAlign: "center",
+    borderRadius: 10, background: "#f5f5f5", cursor: "pointer", userSelect: "none",
+    role: "button", tabIndex: 0,
+    html: "♡ Like",
+    onClick() {
+      this.setTarget("scale",      { list: [1.2, 1] }, 8, 12);
+      this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
+      this.setTarget("html", "♥ Liked");
+    },
+  
+    heart$$: {
+      html: "♥", color: "crimson", fontSize: 20,
+      fly() {
+        const cx = this.getCenterX(), cy = this.getCenterY();
+        this.setTarget({
+          opacity: { list: [0, 1, 1, 0.8, 0.1] },
+          scale:   { list: [0.8, 1.4, 1.1, 0.9, 0.8] },
+          rotate:  { list: [0, 12, -8, 6, 0] },
+          x:       { list: [cx, cx + 22, cx - 16, cx + 10, cx] },
+          y:       { list: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150] }
+        }, 20);
+      }
+    },
+  
+    bigHeart$$: {
+      html: "♥", color: "blue", fontSize: 100,
+      fly() {
+        const cx = this.getCenterX(), cy = this.getCenterY();
+        this.setTarget({
+          opacity: { list: [0, 1, 1, 0.85, 0.6, 0.1] },
+          scale:   { list: [0.4, 1.9, 1.2, 1.6, 1.0, 0.95] },
+          rotate:  { list: [0, 4, -3, 4, -2, 0] },
+          x:       { list: [cx, cx + 14, cx + 10, cx - 6, cx - 14, cx] },
+          y:       { list: [cy, cy - 30, cy - 55, cy - 80, cy - 100, cy - 130] }
+        }, 30);
+      }
+    },  
+    fetch$$: { method: "POST", id: 123, url: "/api/like" },
+    removeHearts$$() { this.removeAll(); },
+    onKey(e) { if (e.key === "Enter") this.activateTarget("onClick"); }
+  }
 });
 ```
 
@@ -619,7 +614,7 @@ In addition to styles and attribute names, we have the following special names:
 1. **html**: Sets the content of the object, interpreted as text by default.
 2. **children**: Adds new items to the parent each time it executes. Items can be either plain objects or instances of TModel for greater control.
 4. **css**: A string that sets the CSS of the object.
-5. **baseElement**: Sets the HTML tag of the object, defaulting to `div`.
+5. **element**: Sets the HTML tag of the object, defaulting to `div`.
 6. **shouldBeBracketed**: A boolean flag that, when set to true (the default), enables the creation of an optimization tree for a container with more items than the `bracketThreshold` (another target with a default value of 10). This optimization ensures only the visible branch receives updates and get executed.
 7. **x** and **y**: Sets the location of the object.
 8. **scrollLeft** and **scrollTop**: Control the scrolling position of the object.
