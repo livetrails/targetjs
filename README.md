@@ -427,7 +427,7 @@ In this example, we load two separate users and display two purple boxes, each c
 ![first example](https://targetjs.io/img/quick3_1.gif)
 
 ```javascript
-import { App, fetch } from "targetj";
+import { App } from "targetj";
 
 App({
     fetch: ['https://targetjs.io/api/randomUser?id=user0',
@@ -467,6 +467,7 @@ Or in HTML:
 
 It can be written this way if you want to fetch users once per second rather than all at once. This example also shows a slightly different approach to animating the user elements.
 
+```javascript
 App({
     width: 100,
     fetch: {
@@ -488,6 +489,7 @@ App({
         };
     }
 });
+```
 
 ### Infinite Loading and Scrolling Example
 
