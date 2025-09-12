@@ -187,18 +187,30 @@ class TargetExecutor {
         tmodel.targetValues[key] = targetValue;
         const easing = TUtil.isDefined(tmodel.targets[key].easing) ? tmodel.targets[key].easing : undefined;
         
-        if (TargetParser.isChildrenTarget(key, newValue)) {
+        
+        if (TargetParser.isChildTarget(key, newValue)) {
+                        
+            tmodel.addChild(newValue);
+
+            TargetExecutor.assignSingleTarget(
+                targetValue, 
+                newValue,
+                undefined, 
+                0, 
+                newCycles, 
+                newInterval
+            );        
+        } else if (TargetParser.isChildrenTarget(key, newValue)) {
                         
             const values = Array.isArray(newValue) ? newValue : newValue ? [newValue] : [];
 
-            const tmodelChildren = values.map(child => {
+            values.forEach(child => {
                 tmodel.addChild(child);
-                return tmodel.addedChildren.at(-1).child;
             });
 
             TargetExecutor.assignSingleTarget(
                 targetValue, 
-                Array.isArray(newValue) ? tmodelChildren : tmodelChildren[0], 
+                newValue, 
                 undefined, 
                 0, 
                 newCycles, 
@@ -222,7 +234,7 @@ class TargetExecutor {
                 newCycles, 
                 newInterval
             );
-        } else if (typeof newValue === 'object' && newValue.mount === 'child') {
+        } else if (typeof newValue === 'object' && newValue.asChild === true) {
             const child = new TModel(key, newValue);
             tmodel.addChild(child);
                        

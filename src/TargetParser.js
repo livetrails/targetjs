@@ -89,6 +89,10 @@ class TargetParser {
         return TargetUtil.getTargetName(key) === 'children' && typeof value === 'object';
     }
     
+    static isChildTarget(key, value) {
+        return TargetUtil.getTargetName(key) === 'child' && typeof value === 'object';        
+    }
+    
     static isChildObjectTarget(key, targetValue) {
         if (TargetParser.classifyEntry(key, targetValue) !== 'children') {
             return false;
