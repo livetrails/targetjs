@@ -416,12 +416,12 @@ TargetJS addresses several common pain points in front-end development:
     
 ## More Examples
 
-## Loading Two Users Example
+## Loading Five Users Example
 
 In this example, we load two separate users and display two purple boxes, each containing a user's name, based on our first example.
 
 - `fetch` calls two APIs to retrieve details for two users.
-- `children` is a special target that adds new items to the parent each time it executes. Because it ends with `$` in this example, it executes every time an API call returns a result.
+- `child` is a special target that adds a new item to the parent each time it executes. Because it ends with `$` in this example, it executes every time an API call returns a result.
 - TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, `children` will not execute until the result for user0 has been received.
   
 ![first example](https://targetjs.io/img/quick3_1.gif)
@@ -431,8 +431,12 @@ import { App, fetch } from "targetj";
 
 App({
     fetch: ['https://targetjs.io/api/randomUser?id=user0',
-        'https://targetjs.io/api/randomUser?id=user1'],
-    children$() {
+        'https://targetjs.io/api/randomUser?id=user1',
+        'https://targetjs.io/api/randomUser?id=user2',
+        'https://targetjs.io/api/randomUser?id=user3'
+        'https://targetjs.io/api/randomUser?id=user4'
+    ],
+    child$() {
       return {
         background: "mediumpurple",
         html: this.prevTargetValue.name,
@@ -445,7 +449,12 @@ App({
 Or in HTML:
 
 ```html 
-    <div tg-fetch="['https://targetjs.io/api/randomUser?id=user0', 'https://targetjs.io/api/randomUser?id=user1']">
+    <div tg-fetch="['https://targetjs.io/api/randomUser?id=user0',
+      'https://targetjs.io/api/randomUser?id=user1',
+      'https://targetjs.io/api/randomUser?id=user2',
+      'https://targetjs.io/api/randomUser?id=user3',
+      'https://targetjs.io/api/randomUser?id=user4'
+    ]">
       <div
         tg-background="mediumpurple"
         tg-html="function(index) { return this.getParentValue('fetch')[index].name; }"
@@ -456,11 +465,35 @@ Or in HTML:
     </div>
 ``` 
 
+It can be written this way if you want to fetch users once per second rather than all at once. This example also shows a slightly different approach to animating the user elements.
+
+App({
+    width: 100,
+    fetch: {
+        interval: 1000,
+        cycles: 4,
+        value(i) { return `https://targetjs.io/api/randomUser?id=user${i}`; }
+    },
+    child$() {   
+        return {
+            asChild: true,
+            width: [200, 50, 30],
+            height: 30,
+            lineHeight: 30,
+            bottomMargin: 5,
+            html: this.prevTargetValue.name,
+            textAlign: 'center',
+            backgroundColor: 'mediumpurple',
+            overflow: 'hidden'
+        };
+    }
+});
+
 ### Infinite Loading and Scrolling Example
 
 In this advanced example, we demonstrate an infinite scrolling application where each item is animated, and upon completing its animation, it dynamically triggers an API call to fetch and display its details.
 
-- children: `children` is a special target that adds items to the container's children each time it is executed. The `onVisibleChildrenChange` event function detects changes in the visible children and activates the `children` target to add new items that fill the gaps.  
+- children: `children` is a special target that adds several items to the container's children each time it is executed. The `onVisibleChildrenChange` event function detects changes in the visible children and activates the `children` target to add new items that fill the gaps.  
 
 – loadItems: Since the target name ends with `$$`, it executes only after the newly created children finish their animations. It then iterates over all visible children and fetches their details. The result is an array of users. TargetJS ensures that this array preserves the order in which the API calls were made, not the order in which responses were received.
 
