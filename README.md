@@ -255,6 +255,63 @@ App({
 });
 ```
 
+Or in HTML (no JavaScript required), using tg- attributes that mirror object literal keys:
+
+```html
+  <div
+    id="likeButton"
+    tg-width="220"
+    tg-height="60"
+    tg-lineHeight="60"
+    tg-textAlign="center"
+    tg-borderRadius="10"
+    tg-background="#f5f5f5"
+    tg-cursor="pointer"
+    tg-userSelect="none"
+    tg-role="button"
+    tg-html="♡ Like"
+    tg-tabIndex="0"
+    tg-onClick="function() {
+      this.setTarget('scale', { list: [1.2, 1] }, 8, 12);
+      this.setTarget('background', { list: ['#ffe8ec', '#f5f5f5'] }, 12, 12);
+      this.setTarget('html', '♥ Liked');
+    }"
+    tg-heart$$="{ 
+      html: '♥',
+      color: 'crimson',
+      fontSize: 20,
+      fly() {
+        const cx = this.getCenterX(), cy = this.getCenterY();
+        this.setTarget({
+          opacity: { list: [0, 1, 1, 0.8, 0.1] },
+          scale:   { list: [0.8, 1.4, 1.1, 0.9, 0.8] },
+          rotate:  { list: [0, 12, -8, 6, 0] },
+          x:       { list: [cx, cx + 22, cx - 16, cx + 10, cx] },
+          y:       { list: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150] }
+        }, 20);
+      }
+    }"
+    tg-bigHeart$$="{
+      html: '♥',
+      color: 'blue',
+      fontSize: 100,
+      fly() {
+        const cx = this.getCenterX(), cy = this.getCenterY();
+        this.setTarget({
+          opacity: { list: [0, 1, 1, 0.85, 0.6, 0.1] },
+          scale:   { list: [0.4, 1.9, 1.2, 1.6, 1.0, 0.95] },
+          rotate:  { list: [0, 4, -3, 4, -2, 0] },
+          x:       { list: [cx, cx + 14, cx + 10, cx - 6, cx - 14, cx] },
+          y:       { list: [cy, cy - 30, cy - 55, cy - 80, cy - 100, cy - 130] }
+        }, 30);
+      }
+    }"
+    tg-fetch$$='{"method":"POST","id":123,"url":"/api/like"}'
+    tg-removeHearts$$="function() { this.removeAll(); }"
+    tg-onKey="function(e) { if (e.key === 'Enter') this.activateTarget('onClick'); }"  
+  /></div>
+```
+
 ---
 
 ## Final takeaway
