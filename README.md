@@ -416,7 +416,7 @@ In this example, we load five separate users and display five purple boxes, each
 - `child` is a special target that adds a new item to the parent each time it executes. Because it ends with `$` in this example, it executes every time an API call returns a result.
 - TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, `child` will not execute until the result for user0 has been received.
   
-![first example](https://targetjs.io/img/quick3_1.gif)
+![first example](https://targetjs.io/img/fetch-5-users.gif)
 
 ```javascript
 import { App } from "targetj";
