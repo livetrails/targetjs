@@ -143,6 +143,8 @@ App({
 
 **What this shows:** Deferred adding of new elements using $$. `bigHeart$$` waits for `heart$$` to finish its , then runs its own, distinct animation.
 
+  <img src="https://targetjs.io/img/likeButton8.gif" width="130" />
+
 ```javascript
 import { App } from "targetj";
 
