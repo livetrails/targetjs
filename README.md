@@ -32,14 +32,6 @@ Targets unlock a fundamentally new way of coding that simplifies everything from
 
 ## Examples: From like button → animated like + API (in 7 steps)
 
-> **Postfixes**
->
-> * **`$`** = *reactive*: runs every time the **immediately previous** target updates.
-> * **`$$`** = *deferred*: runs after all prior targets complete including animations and fetches.
->
-> **Reordering**
-> Targets execute in the order they’re written. You can reorder them like LEGO bricks to change the flow. `$$` automatically follow the new sequence.
-
 ---
 
 ## 1) Like button (view only)
@@ -83,7 +75,7 @@ App({
 
 ## 3) Click → animation (imperative `setTarget`)
 
-**What this shows:** Clicking plays the animations from the previous step and swaps the text.
+**What this shows:** Clicking plays the animations from the previous step using imperative `setTarget`.
 
 ```javascript
 import { App } from "targetj";
@@ -106,7 +98,7 @@ App({
 
 ## 4) Sequencing with `$$`: small heart
 
-**What this shows:** A `$$` target (deferred) runs only after all prior targets finish (including `onClick` and animations). Here it adds a new heart element and runs its fly motion only once the click sequence has completed.
+**What this shows:** A `$$` target (deferred) runs only after all prior targets finish (including `onClick()` and its animations). Here it adds a new heart element and runs its fly motion only once the click sequence has completed.
 
 
 ```javascript
@@ -141,7 +133,7 @@ App({
 
 ## 5) Another `$$`: big heart, different motion
 
-**What this shows:** **Chained `$$`**. `bigHeart$$` waits for `heart$$` to finish, then runs its own, distinct animation.
+**What this shows:** Deferred adding of new elements using $$. `bigHeart$$` waits for `heart$$` to finish its , then runs its own, distinct animation.
 
 ```javascript
 import { App } from "targetj";
@@ -204,7 +196,7 @@ App({
 
 ## 7) Final version with a cleanup utility (`removeHearts$$`) + keyboard
 
-**What this shows:** A like button component that encapsulates the previous steps, adds a post-chain cleanup target. It also ncludes basic accessibility (role, tabIndex, and Enter to activate).
+**What this shows:** A Like button that consolidates the previous steps into a single component. After the POST completes, a cleanup `removeHearts$$` target runs to remove the two heart elements. The button also includes basic accessibility (role, tabIndex, and Enter to activate).
 
 ```javascript
 import { App } from "targetj";
