@@ -449,7 +449,7 @@ App({
 });
 ```
 
-It can be written this way if you want to fetch users once per second rather than all at once.
+It can also be written using target’s `interval` and `cycles` properties/methods to fetch users at one-second intervals instead of in a single batch.
 
   <img src="https://targetjs.io/img/fetch-5-users2.gif" width="130" />
 
