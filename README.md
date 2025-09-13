@@ -422,46 +422,38 @@ In this example, we load five separate users and display five purple boxes, each
 import { App } from "targetj";
 
 App({
+    gap: 10,
     fetch: ['https://targetjs.io/api/randomUser?id=user0',
         'https://targetjs.io/api/randomUser?id=user1',
         'https://targetjs.io/api/randomUser?id=user2',
-        'https://targetjs.io/api/randomUser?id=user3'
+        'https://targetjs.io/api/randomUser?id=user3',
         'https://targetjs.io/api/randomUser?id=user4'
     ],
     child$() {
-      return {
-        background: "mediumpurple",
-        html: this.prevTargetValue.name,
-        width: [{ list: [100, 250, 100] }, 50, 10],
-        height$() { return this.prevTargetValue / 2; },
-      };
+        const user = this.prevTargetValue;
+        return {
+            width: 200,
+            height: 65,
+            borderRadius: 10,
+            boxSizing: "border-box",
+            padding: 10,
+            fontSize: 14,
+            background: "#f0f0f0",
+            scale: [{ list: [0.8, 1] }, 14, 12],
+            html$() {
+              return `<div style="font-weight:600">${user.name}</div>
+                <div style="opacity:.65">${user.email}</div>`;
+            },
+        };
     }
 });
 ```
-Or in HTML:
 
-```html 
-    <div tg-fetch="['https://targetjs.io/api/randomUser?id=user0',
-      'https://targetjs.io/api/randomUser?id=user1',
-      'https://targetjs.io/api/randomUser?id=user2',
-      'https://targetjs.io/api/randomUser?id=user3',
-      'https://targetjs.io/api/randomUser?id=user4'
-    ]">
-      <div
-        tg-background="mediumpurple"
-        tg-html="function(index) { return this.getParentValue('fetch')[index].name; }"
-        tg-width="[{ list: [100, 250, 100] }, 50, 10]"
-        tg-height$="return this.prevTargetValue / 2;"
-        >
-      </div>
-    </div>
-``` 
-
-It can be written this way if you want to fetch users once per second rather than all at once. This example also shows a slightly different approach to animating the user elements.
+It can be written this way if you want to fetch users once per second rather than all at once.
 
 ```javascript
 App({
-    width: 100,
+    gap: 10,
     fetch: {
         interval: 1000,
         cycles: 4,
@@ -469,15 +461,7 @@ App({
     },
     child$() {   
         return {
-            asChild: true,
-            width: [200, 50, 30],
-            height: 30,
-            lineHeight: 30,
-            bottomMargin: 5,
-            html: this.prevTargetValue.name,
-            textAlign: 'center',
-            backgroundColor: 'mediumpurple',
-            overflow: 'hidden'
+          // …same as the previous example…
         };
     }
 });
