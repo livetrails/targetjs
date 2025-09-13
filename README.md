@@ -481,7 +481,7 @@ TargetJS employs a tree-like structure to track visible branches, optimizing the
 
 We use the TModel class instead of a plain object to demonstrate how it can provide additional functionality and control. A plain object would also have worked in this example.
 
-![Single page app](https://targetjs.io/img/infiniteScrolling11.gif)
+![Single page app](https://targetjs.io/img/infiniteScrolling.gif)
 
 ```javascript
 import { App, TModel, getEvents, fetch, getScreenWidth, getScreenHeight } from "targetj";
