@@ -107,6 +107,7 @@ App({
 
 **What this shows:** A `$$` target (deferred) runs only after all prior targets finish (including `onClick()` and its animations). Here it adds a new heart element and runs its fly motion only once the click sequence has completed.
 
+  <img src="https://targetjs.io/img/likeButton7.gif" width="130" />
 
 ```javascript
 import { App } from "targetj";
