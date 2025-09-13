@@ -415,8 +415,8 @@ In this example, we load five separate users and display five purple boxes, each
 - `fetch` calls five APIs to retrieve details for five users.
 - `child` is a special target that adds a new item to the parent each time it executes. Because it ends with `$` in this example, it executes every time an API call returns a result.
 - TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, `child` will not execute until the result for user0 has been received.
-  
-![first example](https://targetjs.io/img/fetch-5-users.gif)
+
+  <img src="https://targetjs.io/img/fetch-5-users.gif" width="130" />
 
 ```javascript
 import { App } from "targetj";
@@ -473,7 +473,7 @@ In this advanced example, we demonstrate an infinite scrolling application where
 
 - children: `children` is a special target that adds several items to the container's children each time it is executed. The `onVisibleChildrenChange` event function detects changes in the visible children and activates the `children` target to add new items that fill the gaps.  
 
-– loadItems: Since the target name ends with `$$`, it executes only after the newly created children finish their animations. It then iterates over all visible children and fetches their details. The result is an array of users. TargetJS ensures that this array preserves the order in which the API calls were made, not the order in which responses were received.
+- loadItems: Since the target name ends with `$$`, it executes only after the newly created children finish their animations. It then iterates over all visible children and fetches their details. The result is an array of users. TargetJS ensures that this array preserves the order in which the API calls were made, not the order in which responses were received.
 
 - populate: Since the target name ends with `$$`, it executes only after all API calls have completed. It updates the content of each scrollable item with the name returned by the API.
 
@@ -481,7 +481,8 @@ TargetJS employs a tree-like structure to track visible branches, optimizing the
 
 We use the TModel class instead of a plain object to demonstrate how it can provide additional functionality and control. A plain object would also have worked in this example.
 
-![Single page app](https://targetjs.io/img/infiniteScrolling.gif)
+  <img src="https://targetjs.io/img/infiniteScrolling.gif" width="130" />
+
 
 ```javascript
 import { App, TModel, getEvents, fetch, getScreenWidth, getScreenHeight } from "targetj";
