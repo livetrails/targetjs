@@ -308,11 +308,11 @@ Or in HTML (no JavaScript required), using tg- attributes that mirror object lit
 
 ## Final takeaway
 
-TargetJS treats time as a first-class concept. Instead of wiring callbacks and effects, you write a sequence of targets. 
+- TargetJS treats time as a first-class concept. Instead of wiring callbacks and effects, you write a sequence of targets. 
 $ reacts to the previous step; $$ defers until all prior steps finish. Animations, API calls, and child creation are all the same kind of thing: targets. 
 So complex flows read top-to-bottom, no glue code.
-
-
+- Minimal plumbing yet full control to manage a flow of complex asynchronous operations.
+  
 ## Table of Contents
 
 1. [Targets: The Building Blocks of TargetJS](#targets-the-building-blocks-of-targetjs)
@@ -410,11 +410,11 @@ TargetJS addresses several common pain points in front-end development:
 
 ## Loading Five Users Example
 
-In this example, we load two separate users and display two purple boxes, each containing a user's name, based on our first example.
+In this example, we load five separate users and display five purple boxes, each containing a user's name, based on our first example.
 
-- `fetch` calls two APIs to retrieve details for two users.
+- `fetch` calls five APIs to retrieve details for five users.
 - `child` is a special target that adds a new item to the parent each time it executes. Because it ends with `$` in this example, it executes every time an API call returns a result.
-- TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, `children` will not execute until the result for user0 has been received.
+- TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, `child` will not execute until the result for user0 has been received.
   
 ![first example](https://targetjs.io/img/quick3_1.gif)
 
