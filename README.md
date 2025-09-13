@@ -451,6 +451,9 @@ App({
 
 It can be written this way if you want to fetch users once per second rather than all at once.
 
+  <img src="https://targetjs.io/img/fetch-5-users2.gif" width="130" />
+
+
 ```javascript
 App({
     gap: 10,
