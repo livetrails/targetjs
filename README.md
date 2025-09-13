@@ -61,7 +61,7 @@ App({
 
 **What this shows:** A mount-time animation that scales and changes the background over 12 steps, with 12ms pauses between steps.
 
-  <img src="https://targetjs.io/img/likeButton2.gif" width="130" />
+  <img src="https://targetjs.io/img/likeButton6.gif" width="130" />
 
 ```javascript
 import { App } from "targetj";
@@ -81,6 +81,8 @@ App({
 ## 3) Click → animation (imperative `setTarget`)
 
 **What this shows:** Clicking plays the animations from the previous step using imperative `setTarget`.
+
+  <img src="https://targetjs.io/img/likeButton4.gif" width="130" />
 
 ```javascript
 import { App } from "targetj";
