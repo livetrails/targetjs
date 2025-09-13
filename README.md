@@ -38,6 +38,8 @@ Targets unlock a fundamentally new way of coding that simplifies everything from
 
 **What this shows:** One object defines a UI element without separate HTML/CSS. Static targets map directly to DOM styles/attributes.
 
+  <img src="https://targetjs.io/img/likeButton.png" width="130" />
+
 ```javascript
 import { App } from "targetj";
 
@@ -58,6 +60,9 @@ App({
 ## 2) Animation
 
 **What this shows:** A mount-time animation that scales and changes the background over 12 steps, with 12ms pauses between steps.
+
+  <img src="https://targetjs.io/img/likeButton2.gif" width="130" />
+
 ```javascript
 import { App } from "targetj";
 
