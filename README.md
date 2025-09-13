@@ -96,7 +96,7 @@ App({
 
 ---
 
-## 4) Sequencing with `$$`: small heart
+## 4) Sequencing with `$$`: Adding a small heart after click
 
 **What this shows:** A `$$` target (deferred) runs only after all prior targets finish (including `onClick()` and its animations). Here it adds a new heart element and runs its fly motion only once the click sequence has completed.
 
