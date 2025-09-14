@@ -173,7 +173,7 @@ class BaseModel {
                 || targetType === 'object'
                 || targetType === 'function'
             ) { 
-                if (!target.value && !TargetParser.isChildObjectTarget(key, target) && !TargetParser.isIntervalTarget(target)) {
+                if (!TUtil.isDefined(target.value) && !TargetParser.isChildObjectTarget(key, target) && !TargetParser.isIntervalTarget(target)) {
                     needsTargetExecution = true;
                     target = TargetUtil.wrapTarget(this, target, key);
                 }
