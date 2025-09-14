@@ -192,7 +192,7 @@ App({
 
 ## 6) `fetch$$`
 
-**What this shows:** Networking is just another target. The POST happens **only after** all prior visual steps complete.
+**What this shows:** Networking is just another target. The POST happens **only after** all prior visual steps complete, since the target is postfixed with $$
 
 ```javascript
 App({
