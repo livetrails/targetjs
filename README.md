@@ -422,7 +422,7 @@ TargetJS addresses several common pain points in front-end development:
 
 ## Loading Five Users Example
 
-In this example, we load five separate users and display five purple boxes, each containing a user's name, based on our first example.
+In this example, we load five separate users and display five boxes, each containing a user's name and email.
 
 - `fetch` calls five APIs to retrieve details for five users.
 - `child` is a special target that adds a new item to the parent each time it executes. Because it ends with `$` in this example, it executes every time an API call returns a result.
@@ -461,7 +461,7 @@ App({
 });
 ```
 
-It can also be written using target’s `interval` and `cycles` properties/methods to fetch users at one-second intervals instead of in a single batch.
+It can also be written using a target’s `cycles` and `intervals` properties/methods to fetch users at intervals instead of in a single batch. In this example, we set interval to 1000, making the API call once every second.
 
   <img src="https://targetjs.io/img/fetch-5-users2.gif" width="130" />
 
@@ -497,7 +497,6 @@ TargetJS employs a tree-like structure to track visible branches, optimizing the
 We use the TModel class instead of a plain object to demonstrate how it can provide additional functionality and control. A plain object would also have worked in this example.
 
   <img src="https://targetjs.io/img/infiniteScrolling.gif" width="130" />
-
 
 ```javascript
 import { App, TModel, getEvents, fetch, getScreenWidth, getScreenHeight } from "targetj";
