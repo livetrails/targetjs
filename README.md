@@ -73,7 +73,7 @@ App({
   textAlign: "center",
   borderRadius: 10, 
   html: "♡ Like",
-  scale: [ { list: [1.2, 1] }, 8, 12 ],
+  scale: [ { list: [1.2, 1] }, 12, 12 ],
   background: [ { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12 ]
 });
 ```
@@ -94,7 +94,7 @@ App({
   html: "♡ Like",
 
   onClick() {
-    this.setTarget("scale",      { list: [1.2, 1] }, 8, 12);
+    this.setTarget("scale",      { list: [1.2, 1] }, 12, 12);
     this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
     this.setTarget("html", "♥ Liked");
   }
@@ -117,7 +117,7 @@ App({
   borderRadius: 10, background: "#f5f5f5", cursor: "pointer", userSelect: "none",
   html: "♡ Like",
   onClick() {
-    this.setTarget("scale",      { list: [1.2, 1] }, 8, 12);
+    this.setTarget("scale",      { list: [1.2, 1] }, 12, 12);
     this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
     this.setTarget("html", "♥ Liked");
   },
@@ -154,7 +154,7 @@ App({
   html: "♡ Like",
 
   onClick() {
-    this.setTarget("scale",      { list: [1.2, 1] }, 8, 12);
+    this.setTarget("scale",      { list: [1.2, 1] }, 12, 12);
     this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
     this.setTarget("html", "♥ Liked");
   },
@@ -220,7 +220,7 @@ App({
     role: "button", tabIndex: 0,
     html: "♡ Like",
     onClick() {
-      this.setTarget("scale",      { list: [1.2, 1] }, 8, 12);
+      this.setTarget("scale",      { list: [1.2, 1] }, 12, 12);
       this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
       this.setTarget("html", "♥ Liked");
     },
@@ -276,7 +276,7 @@ Or in HTML (no JavaScript required), using tg- attributes that mirror object lit
     tg-html="♡ Like"
     tg-tabIndex="0"
     tg-onClick="function() {
-      this.setTarget('scale', { list: [1.2, 1] }, 8, 12);
+      this.setTarget('scale', { list: [1.2, 1] }, 12, 12);
       this.setTarget('background', { list: ['#ffe8ec', '#f5f5f5'] }, 12, 12);
       this.setTarget('html', '♥ Liked');
     }"
