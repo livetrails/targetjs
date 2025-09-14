@@ -26,7 +26,7 @@ Targets unlock a fundamentally new way of coding that simplifies everything from
 2. Declarative Reactive Targets: Targets can explicitly declare reactive execution triggered by the run or completion of their immediately preceding targets, whether synchronous or asynchronous.
 3. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
 4. Code-Ordered Execution: Targets are chained top to bottom and the execution flow generally follows the order in which the code is written.
-5. Autonomous Methods: Methods in TargetJS are not directly callable. Instead, they are designed to execute themselves or react dynamically to the execution or completion of preedings targets. This paradigm shift enables a declarative programming style and inherently supports asynchronous operations without explicit plumbing like using async/await keywords.
+5. Autonomous Methods: Methods in TargetJS are not directly callable. Instead, they are designed to execute themselves or react dynamically to the execution or completion of preedings targets. This enables declarative programming that inherently supports asynchronous operations without explicit plumbing like using async/await keywords.
 6. Compactness: TargetJS allows developers to achieve interactive UIs with significantly less code.
 
 
@@ -59,7 +59,7 @@ App({
 
 ## 2) Animation
 
-**What this shows:** A mount-time animation that scales and changes the background over 12 steps, with 12ms pauses between steps.
+**What this shows:** A mount-time animation that scales and changes the background over 12 steps, with 12ms pauses between steps. Targets without (`$`, `$$`, `_`) execute immediately in the order they are defined.
 
   <img src="https://targetjs.io/img/likeButton6.gif" width="130" />
 
@@ -192,7 +192,7 @@ App({
 
 ## 6) `fetch$$`
 
-**What this shows:** Networking is just another target. The POST happens **only after** all prior visual steps complete, since the target is postfixed with $$
+**What this shows:** Networking is just another target. The POST happens **only after** all prior visual steps complete, since the target is postfixed with `$$`.
 
 ```javascript
 App({
@@ -322,7 +322,7 @@ Or in HTML (no JavaScript required), using tg- attributes that mirror object lit
 
 - TargetJS treats time as a first-class concept. Instead of wiring callbacks and effects, you write a sequence of targets. 
 $ reacts to the previous step; $$ defers until all prior steps finish. Animations, API calls, and child creation are all the same kind of thing: targets. 
-So complex flows read top-to-bottom, no glue code.
+So complex flows read top-to-bottom.
 - Minimal plumbing yet full control to manage a flow of complex asynchronous operations.
   
 ## Table of Contents
