@@ -141,7 +141,7 @@ App({
 
 ## 5) Another `$$`: big heart, different motion
 
-**What this shows:** Deferred adding of new elements using $$. `bigHeart$$` waits for `heart$$` to finish its , then runs its own animation.
+**What this shows:** Deferred addition of a new element using $$. `bigHeart$$` waits for `heart$$` to complete its animation, then adds a larger heart and runs its own animation.
 
   <img src="https://targetjs.io/img/likeButton8.gif" width="130" />
 
