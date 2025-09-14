@@ -196,7 +196,7 @@ App({
 
 ```javascript
 App({
-  // …same as step 4…
+  // …same as step 5…
 
   fetch$$: { method: "POST", id: 123, url: "/api/like" }
 });
