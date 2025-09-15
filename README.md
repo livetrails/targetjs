@@ -617,19 +617,17 @@ All methods and properties are optional, but they play integral roles in making 
 
 1. **value**
 If defined, value is the primary target method that will be executed. The target value will be calculated based on the result of this method.
+`Value` can also be defined as a property.
 
-2. **Prefix `_` to the target name**
+3. **Prefix `_` to the target name** (Inactive): 
 It indicates that the target is in an inactive state and must be activated by an event or other targets.
 
-3. **active**
-This is only a property. It indicates whether the target is ready for execution. When set to false, it behaves similarly to a `_ `prefix. By default, all targets are active, so setting it to true is unnecessary.
-
-15. **Postfix `$` to the target name**
+15. **Postfix `$` to the target name** (Reactive): 
 A target name ending with $ indicates that it will be only activated when the preceding target is executed. If the preceding target involves API calls, it will be activated
 each time an API response is received, while ensuring the order of API calls is enforced. This means it will remain inactive until the first API result is received,
 then the second, and so on.
   
-17. **Postfix `$$` to the target name**
+17. **Postfix `$$` to the target name** (Deferred): 
 A target name ending with `$$` indicates indicates that it will be activated only after the preceding target has completed, along with all its imperative targets,
 and after all API results have been received.
 
@@ -640,7 +638,7 @@ Determines whether the target is eligible for execution. If enabledOn() returns 
 Controls the repetition of target execution. If loop() returns true, the target will continue to execute indefinitely. It can also be defined as a boolean instead of a method.
 
 4. **cycles**
-It works similarly to `loop`, but it specifies an explicit number of repetitions. It can also be combined with `loop`, in which case, once the specified cycles complete, they will rerun as long as `loop` returns true.
+It works similarly to `loop`, but it specifies an explicit number of repetitions. It can also be combined with `loop`, in which case, once the specified cycles complete, they will rerun as long as `loop` returns true. In other words, `loop` functions as an outer loop for `cycles`.
 
 6. **interval**
 It specifies the pause between each target execution or each actual value update when steps are defined.
@@ -652,7 +650,7 @@ By default, the actual value is updated immediately after the target value. The 
 An easing function that operates when steps are defined. It controls how the actual value is updated in relation to the steps.
 
 9. **onValueChange**
-This callback is triggered whenever there is a change returned by the target method, which is called value().
+This callback is triggered whenever there is a change returned by the target method/property `value`.
 
 10. **onStepsEnd**
 This method is invoked only after the final step of updating the actual value is completed, assuming the target has a defined steps value.
@@ -666,6 +664,9 @@ Similar to `onImperativeStep`, but it is triggered when an imperative target com
 
 13. **initialValue**
 This is only property. It defines the initial value of the actual value.
+
+3. **active**
+This is only a property. It indicates whether the target is ready for execution. When set to false, it behaves similarly to a `_ `prefix. By default, all targets are active, so setting it to true is unnecessary.
    
 18. **onSuccess**
 An optional callback for targets that make API calls. It will be invoked for each API response received.
@@ -704,6 +705,7 @@ In addition to styles and attribute names, we have the following special names:
 
 1. **html**: Sets the content of the object, interpreted as text by default.
 2. **children**: Adds new items to the parent each time it executes. Items can be either plain objects or instances of TModel for greater control.
+3. **Child**: Similar to `children` but adds only one item.
 4. **css**: A string that sets the CSS of the object.
 5. **element**: Sets the HTML tag of the object, defaulting to `div`.
 6. **shouldBeBracketed**: A boolean flag that, when set to true (the default), enables the creation of an optimization tree for a container with more items than the `bracketThreshold` (another target with a default value of 10). This optimization ensures only the visible branch receives updates and get executed.
