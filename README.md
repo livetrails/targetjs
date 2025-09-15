@@ -206,7 +206,7 @@ App({
 
 ## 7) Final version
 
-**What this shows:** A Like button that consolidates the previous steps into a single component. After the POST completes, a cleanup `removeHearts$$` target runs to remove the two heart elements. The button also includes basic accessibility (role, tabIndex, and Enter to activate).
+**What this shows:** A Like button that consolidates the previous steps into a single component. After the POST completes, a cleanup `removeHearts$$` target runs to remove the two heart elements. The button also includes basic accessibility (role, tabIndex, and Enter to activate). Demo: [Like button](https://targetj.io/examples/quick.html).
 
   <img src="https://targetjs.io/img/likeButton9.gif" width="130" />
 
