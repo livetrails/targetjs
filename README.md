@@ -141,7 +141,7 @@ App({
 
 ## 5) Another `$$`: Adding a big heart
 
-**What this shows:** Deferred addition of a new element using $$. `bigHeart$$` waits for `heart$$` to complete its animation, then adds a larger heart and runs its own animation.
+**What this shows:** Deferred addition of a new element using $$. `bigHeart$$` waits for `heart$$` to complete its animation, then adds a larger heart and runs its own happy animation.
 
   <img src="https://targetjs.io/img/likeButton8.gif" width="130" />
 
@@ -174,7 +174,7 @@ App({
   },
   bigHeart$$: {
     html: "♥", color: "blue", fontSize: 100,
-    fly() {
+    happyFly() {
       const cx = this.getCenterX(), cy = this.getCenterY();
       this.setTarget({
         opacity: { list: [0, 1, 1, 0.85, 0.6, 0.1] },
@@ -241,7 +241,7 @@ App({
   
     bigHeart$$: {
       html: "♥", color: "blue", fontSize: 100,
-      fly() {
+      happyFly() {
         const cx = this.getCenterX(), cy = this.getCenterY();
         this.setTarget({
           opacity: { list: [0, 1, 1, 0.85, 0.6, 0.1] },
@@ -299,7 +299,7 @@ Or in HTML (no JavaScript required), using tg- attributes that mirror object lit
       html: '♥',
       color: 'blue',
       fontSize: 100,
-      fly() {
+      happyFly() {
         const cx = this.getCenterX(), cy = this.getCenterY();
         this.setTarget({
           opacity: { list: [0, 1, 1, 0.85, 0.6, 0.1] },
@@ -321,8 +321,8 @@ Or in HTML (no JavaScript required), using tg- attributes that mirror object lit
 ## Final takeaway
 
 - TargetJS treats time as a first-class concept. Instead of wiring callbacks and effects, you write a sequence of targets. 
-$ reacts to the previous step; $$ defers until all prior steps finish. Animations, API calls, and child creation are all the same kind of thing: targets. 
-So complex flows read top-to-bottom.
+$ reacts to the previous step; $$ defers until all prior steps finish. Animations, API calls, and child creation are all the same kind of thing: targets.
+Complex flows read top-to-bottom.
 - Minimal plumbing yet full control to manage a flow of complex asynchronous operations.
   
 ## Table of Contents
