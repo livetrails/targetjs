@@ -139,7 +139,7 @@ App({
 
 ---
 
-## 5) Another `$$`: big heart, different motion
+## 5) Another `$$`: Adding a big heart
 
 **What this shows:** Deferred addition of a new element using $$. `bigHeart$$` waits for `heart$$` to complete its animation, then adds a larger heart and runs its own animation.
 
