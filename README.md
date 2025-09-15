@@ -510,7 +510,6 @@ We use the TModel class instead of a plain object to demonstrate how it can prov
 import { App, TModel, getEvents, fetch, getScreenWidth, getScreenHeight } from "targetj";
 
 App(new TModel("scroller", {
-    domHolder: true,
     preventDefault: true,
     containerOverflowMode: "always",
     children() {  
