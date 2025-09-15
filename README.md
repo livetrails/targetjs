@@ -103,7 +103,7 @@ App({
 
 ---
 
-## 4) Sequencing with `$$`: Adding a small heart after click
+## 4) Sequencing with `$$`: Adding a small heart after click animation (first async step)
 
 **What this shows:** A `$$` target (deferred) runs only after all prior targets finish (including `onClick()` and its animations). Here it adds a new heart element and runs its fly motion only once the click sequence has completed. Repeated clicks will delay adding the heart.
 
@@ -139,7 +139,7 @@ App({
 
 ---
 
-## 5) Another `$$`: Adding a big heart
+## 5) Another `$$`: Adding a big heart (second async step)
 
 **What this shows:** Deferred addition of a new element using $$. `bigHeart$$` waits for `heart$$` and the click sequence to complete their animation, then adds a larger heart and runs its own happy animation.
 
@@ -190,7 +190,7 @@ App({
 
 ---
 
-## 6) `fetch$$`
+## 6) `fetch$$` (third  async step)
 
 **What this shows:** Networking is just another target. The POST happens **only after** all prior visual steps complete, since the target is postfixed with `$$`.
 
@@ -206,7 +206,7 @@ App({
 
 ## 7) Final version
 
-**What this shows:** A Like button that consolidates the previous steps into a single component. After the POST completes, a cleanup `removeHearts$$` target runs to remove the two heart elements. The button also includes basic accessibility (role, tabIndex, and Enter to activate). Demo: [Like button](https://targetj.io/examples/quick.html).
+**What this shows:** A Like button that consolidates the previous steps into a single component. After the POST completes, a cleanup `removeHearts$$` target (forth  async step) runs to remove the two heart elements. The button also includes basic accessibility (role, tabIndex, and Enter to activate). Demo: [Like button](https://targetj.io/examples/quick.html).
 
   <img src="https://targetjs.io/img/likeButton9.gif" width="130" />
 
