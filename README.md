@@ -36,7 +36,7 @@ Targets unlock a fundamentally new way of coding that simplifies everything from
 
 ## 1) Like button (view only)
 
-**What this shows:** One object defines a UI element without separate HTML/CSS. Static targets map directly to DOM styles/attributes.
+**What this shows:** One object defines a UI element without separate HTML/CSS. Static targets map directly to DOM styles/attributes. You can still use CSS if wanted.
 
   <img src="https://targetjs.io/img/likeButton.png" width="130" />
 
