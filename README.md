@@ -461,7 +461,7 @@ App({
 });
 ```
 
-It can also be written using a target’s `cycles` and `intervals` properties/methods to fetch users at intervals instead of in a single batch. In this example, we set interval to 1000, making the API call once every second.
+It can also be written using a target’s `cycles` and `interval` properties/methods to fetch users at intervals instead of in a single batch. In this example, we set interval to 1000, making the API call once every second.
 
   <img src="https://targetjs.io/img/fetch-5-users2.gif" width="130" />
 
@@ -484,7 +484,15 @@ App({
 
 ### Infinite Loading and Scrolling Example
 
-In this advanced example, we demonstrate an infinite scrolling application where each item is animated, and upon completing its animation, it dynamically triggers an API call to fetch and display its details.
+In this advanced example, we implement an infinite-scrolling application. The asynchronous flow that we want to acheive:
+1. Insert new items, and animate their width and background.
+2. On animation completion, trigger the API request for the visible items.
+3. Await for all API responses of all the items and then populate their names.
+
+This example could use other flows such as calling the API as soon as items are added, or populating each item’s name as its result arrives instead of waiting for all visible items. 
+All of these are doable, but we chose the above to showcase a more complex, sequential async flow.
+
+**Expalanation:**
 
 - children: `children` is a special target that adds several items to the container's children each time it is executed. The `onVisibleChildrenChange` event function detects changes in the visible children and activates the `children` target to add new items that fill the gaps.  
 
