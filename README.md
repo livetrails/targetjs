@@ -510,9 +510,6 @@ All methods and properties are optional, but they play integral roles in making 
 If defined, value is the primary target method that will be executed. The target value will be calculated based on the result of this method.
 `Value` can also be defined as a property.
 
-1. **Prefix `_` to the target name** (Inactive): 
-indicates that the target is in an inactive state and must be activated by an event or other targets.
-
 1. **Postfix `$` to the target name** (Reactive): 
 A target name ending with $ indicates that it will be only activated when the preceding target is executed. If the preceding target involves API calls, it will be activated
 each time an API response is received, while ensuring the order of API calls is enforced. This means it will remain inactive until the first API result is received,
@@ -521,6 +518,9 @@ then the second, and so on.
 1. **Postfix `$$` to the target name** (Deferred): 
 A target name ending with `$$` indicates that it will be activated only after all the preceding target has completed, along with all its imperative targets,
 and after all API results have been received.
+
+1. **Prefix `_` to the target name** (Inactive): 
+It indicates that the target is in an inactive state and must be activated by an event or other targets.
 
 1. **enabledOn**
 Determines whether the target is eligible for execution. If enabledOn() returns false, the target remains active until it is enabled and gets executed.
