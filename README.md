@@ -5,7 +5,7 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework that simplifies front-end development with a Rebol-like style, code-ordered reactivity model. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to extreme compact code and an introduction of a new development paradigm. 
+TargetJS is a modern JavaScript UI framework that simplifies front-end development with code-ordered reactivity model and  Rebol-like style. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to extreme compact code and an introduction of a new development paradigm. 
 It can be used as a full-featured framework or as a lightweight library alongside other frameworks. It is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
 ## The Philosophy Behind TargetJS
@@ -26,7 +26,7 @@ It also adopts a Rebol-like style to make the code much more compact.
 
 1.  Reactive Targets: A new construct called “targets” unifies methods and fields. Targets are self-contained units of code with their own state, lifecycles, and timing. They are designed to execute themselves or react dynamically to the run or completion of preceding targets. This enables the declarative programming of complex asynchronous flows without explicit callbacks.
 2. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
-3. Rebol-like style, Code-Ordered Execution: less code and more readable code.
+3. Code-Ordered Execution with Rebol-like style: less code and more readable code.
 
 ## Examples: From like button → animated like + API (in 7 steps)
 
@@ -256,64 +256,6 @@ App({
   }
 });
 ```
-
-Or in HTML (no JavaScript required), using tg- attributes that mirror object literal keys:
-
-```html
-  <div
-    id="likeButton"
-    tg-width="220"
-    tg-height="60"
-    tg-lineHeight="60"
-    tg-textAlign="center"
-    tg-borderRadius="10"
-    tg-background="#f5f5f5"
-    tg-cursor="pointer"
-    tg-userSelect="none"
-    tg-role="button"
-    tg-html="♡ Like"
-    tg-tabIndex="0"
-    tg-onClick="function() {
-      this.setTarget('scale', { list: [1.2, 1] }, 12, 12);
-      this.setTarget('background', { list: ['#ffe8ec', '#f5f5f5'] }, 12, 12);
-      this.setTarget('html', '♥ Liked');
-    }"
-    tg-heart$$="{ 
-      html: '♥',
-      color: 'crimson',
-      fontSize: 20,
-      fly() {
-        const cx = this.getCenterX(), cy = this.getCenterY();
-        this.setTarget({
-          opacity: { list: [0, 1, 1, 0.8, 0.1] },
-          scale:   { list: [0.8, 1.4, 1.1, 0.9, 0.8] },
-          rotate:  { list: [0, 12, -8, 6, 0] },
-          x:       { list: [cx, cx + 22, cx - 16, cx + 10, cx] },
-          y:       { list: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150] }
-        }, 20);
-      }
-    }"
-    tg-bigHeart$$="{
-      html: '♥',
-      color: 'blue',
-      fontSize: 100,
-      happyFly() {
-        const cx = this.getCenterX(), cy = this.getCenterY();
-        this.setTarget({
-          opacity: { list: [0, 1, 1, 0.85, 0.6, 0.1] },
-          scale:   { list: [0.4, 1.9, 1.2, 1.6, 1.0, 0.95] },
-          rotate:  { list: [0, 4, -3, 4, -2, 0] },
-          x:       { list: [cx, cx + 14, cx + 10, cx - 6, cx - 14, cx] },
-          y:       { list: [cy, cy - 30, cy - 55, cy - 80, cy - 100, cy - 130] }
-        }, 30);
-      }
-    }"
-    tg-fetch$$='{"method":"POST","id":123,"url":"/api/like"}'
-    tg-removeHearts$$="function() { this.removeAll(); }"
-    tg-onKey="function(e) { if (e.key === 'Enter') this.activateTarget('onClick'); }"  
-  /></div>
-```
-
 ---
 
 ## Final takeaway
@@ -370,6 +312,20 @@ A target name ending with a double `$$` (e.g., `fetch$$`) will activate only aft
 
 ## **📦 Installation**
 
+**Via package manager**
+
+Install TargetJS via npm (note: there's no "s" at the end):
+
+```bash
+npm install targetj
+```
+
+Then import it into your JavaScript code:
+
+```javascript
+import { App } from "targetj";
+```
+
 **Via CDN**
 
 Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 67KB):
@@ -387,20 +343,6 @@ You can also use it directly in your HTML with custom attributes:
    tg-width="[100, 50, 10]"
    tg-height="[100, 50, 10]">
 </div>
-```
-
-**Via package manager**
-
-Install TargetJS via npm (note: there's no "s" at the end):
-
-```bash
-npm install targetj
-```
-
-Then import it into your JavaScript code:
-
-```javascript
-import { App } from "targetj";
 ```
 
 ## What Problems Does TargetJS Solve?
@@ -500,14 +442,13 @@ All of these are doable, but we chose the above to showcase a more complex, sequ
 
 TargetJS employs a tree-like structure to track visible branches, optimizing the scroller performance.
 
-We use the TModel class instead of a plain object to demonstrate how it can provide additional functionality and control. A plain object would also have worked in this example.
 
   <img src="https://targetjs.io/img/infiniteScrolling.gif" width="130" />
 
 ```javascript
 import { App, TModel, getEvents, fetch, getScreenWidth, getScreenHeight } from "targetj";
 
-App(new TModel("scroller", {
+App({
     preventDefault: true,
     containerOverflowMode: "always",
     children() {  
@@ -545,7 +486,7 @@ App(new TModel("scroller", {
     width: getScreenWidth,
     height: getScreenHeight,
     onResize: 'width'
-}));
+});
 ```
 
 We can reduce the number of API calls by triggering them only after scrolling stops as follows:
@@ -562,49 +503,6 @@ We can reduce the number of API calls by triggering them only after scrolling st
             return getEvents().deltaY() === 0;
         }
     }
-```
-
-Finally, in HTML:
-
-```HTML
- <div
-      id="scroller"
-      tg-preventDefault="true"
-      tg-containerOverflowMode="always"
-      tg-width="return TargetJS.getScreenWidth();"
-      tg-height="return TargetJS.getScreenHeight();"
-      tg-children="function() {
-        const childrenCount = this.getChildren().length;
-        return Array.from({ length: 20 }, (_, i) => ({
-          width: [{list: [100, 250, 100]}, 50],
-          x$() { return this.getCenterX(); },
-          background: [{ list: ['#FCE961', '#B388FF'] }, 15, 15],
-          height: 48,
-          color: '#C2FC61',
-          textAlign: 'center',
-          lineHeight: 48,
-          bottomMargin: 2,
-          html: childrenCount + i
-        }));
-      }"
-      tg-load$$="function() {
-        this.visibleChildren.filter(child => !child.loaded).forEach(child => {
-            child.loaded = true;
-            TargetJS.fetch(this, `https://targetjs.io/api/randomUser?id=${child.oid}`);
-        });
-      }"
-      tg-populate$$="function() {
-        if (this.prevTargetValue) {
-            this.prevTargetValue.forEach(data => this.getChildByOid(data.id).setTarget('html', data.name));
-        }
-      }"
-      tg-onScroll="function() {
-        this.setTarget('scrollTop', Math.max(0, this.getScrollTop() + TargetJS.getEvents().deltaY()));
-      }"
-      tg-onVisibleChildrenChange="function() {
-        return !this.visibleChildren.length || this.getLastChild().getY() < this.getHeight() ? 'children' : 'load$$';
-      }"
-></div>
 ```
 
 ## Target Methods
