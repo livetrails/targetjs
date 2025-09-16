@@ -374,7 +374,7 @@ A target name ending with a double `$$` (e.g., `fetch$$`) will activate only aft
 
 **Via CDN**
 
-Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 47KB compressed):
+Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 67KB):
 
 ```html
 <script src="https://unpkg.com/targetj@latest/dist/targetjs.js"></script>
