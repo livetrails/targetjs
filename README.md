@@ -557,7 +557,7 @@ Similar to `onImperativeStep`, but it is triggered when an imperative target com
 This is only a property. It defines the initial value of the actual value.
 
 3. **active**
-This is only a property. It indicates whether the target is ready for execution. When set to false, it behaves similarly to a `_ `prefix. By default, all targets are active, so setting it to true is unnecessary.
+This is only a property. It indicates whether the target is ready for execution. When set to false, it behaves similarly to a `_` prefix. By default, all targets are active, so setting it to true is unnecessary.
    
 18. **onSuccess**
 An optional callback for targets that make API calls. It will be invoked for each API response received.
