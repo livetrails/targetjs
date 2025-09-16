@@ -1,4 +1,4 @@
-# TargetJS: A Novel JavaScript UI Framework for Simplified Development and Enhanced User Experience
+# TargetJS: JavaScript UI Framework for Simplified Development and Enhanced User Experience
 
 **[targetjs.io](https://targetjs.io)** 
 [![MIT LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/livetrails/targetjs/blob/main/LICENSE) 
@@ -18,9 +18,7 @@ The second challenge is making these targets fit and work together especially si
 
 For example, setting a value can implicitly define an animation, where the current value iteratively progresses until it reaches the new value. When the animation completes, the next target might initiate a fetch API call. Once the data is received, it can trigger another target that creates 10 new elements, each with its own animation and API call. A subsequent target can then be set to run only after all elements have completed their tasks. Throughout this sequence, no direct method calls are made. Targets simply react and chain together based on how the code is written.
 
-Targets unlock a fundamentally new way of coding that simplifies everything from animation, UI updates, API calls, and state management. 
-
-It also adopts a Rebol-like style to make the code much more compact.
+TargetJS also adopts a Rebol-like style to make the code much more compact.
 
 ## Key Innovations and Concepts
 
