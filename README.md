@@ -5,7 +5,7 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework that simplifies front-end development by introducing key concepts: unifying class methods and fields, autonomous and reactive methods, and execution flow that follows the written code. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to extreme compact code and an introduction of a new development paradigm. 
+TargetJS is a modern JavaScript UI framework that simplifies front-end development with a Rebol-like style, code-ordered reactivity model. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to extreme compact code and an introduction of a new development paradigm. 
 It can be used as a full-featured framework or as a lightweight library alongside other frameworks. It is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
 ## The Philosophy Behind TargetJS
@@ -18,17 +18,15 @@ The second challenge is making these targets to fit and work together especially
 
 For example, setting a value can implicitly define an animation, where the current value iteratively progresses until it reaches the new value. When the animation completes, the next target might initiate a fetch API call. Once the data is received, it can trigger another target that creates 10 new elements, each with its own animation and API call. A subsequent target can then be set to run only after all elements have completed their tasks. Throughout this sequence, no direct method calls are made. Targets simply react and chain together based on how the code is written.
 
-Targets unlock a fundamentally new way of coding that simplifies everything from animation, UI updates, API calls, and state management. It also makes the code significantly more compact.
+Targets unlock a fundamentally new way of coding that simplifies everything from animation, UI updates, API calls, and state management. 
+
+It also adopts a REBOL-like style to make the code much more compact.
 
 ## Key Innovations and Concepts
 
-1. Unifying Class Methods and Fields with Targets: A new construct called “targets” combines methods and fields, providing state, lifecycles, iteration, and timing mechanisms for both.
-2. Declarative Reactive Targets: Targets can explicitly declare reactive execution triggered by the run or completion of their immediately preceding targets, whether synchronous or asynchronous.
-3. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
-4. Code-Ordered Execution: Targets are chained top to bottom and the execution flow generally follows the order in which the code is written.
-5. Autonomous Methods: Methods in TargetJS are not directly callable. Instead, they are designed to execute themselves or react dynamically to the execution or completion of preedings targets. This enables declarative programming that inherently supports asynchronous operations without explicit plumbing like using async/await keywords.
-6. Compactness: TargetJS allows developers to achieve interactive UIs with significantly less code.
-
+1.  Reactive Targets: A new construct called “targets” unifies methods and fields. Targets are self-contained units of code with their own state, lifecycles, and timing. They are designed to execute themselves or react dynamically to the run or completion of preceding targets. This enables the declarative programming of complex asynchronous flows without explicit callbacks.
+2. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
+3. Rebol-like style, Code-Ordered Execution: write less, more readable code.
 
 ## Examples: From like button → animated like + API (in 7 steps)
 
