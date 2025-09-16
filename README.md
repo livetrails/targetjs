@@ -5,7 +5,7 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework that simplifies front-end development with code-ordered reactivity model and  Rebol-like style. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to extreme compact code and an introduction of a new development paradigm. 
+TargetJS is a modern JavaScript UI framework that simplifies front-end development with code-ordered reactivity model and  Rebol-like style. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to extremely compact code and an introduction of a new development paradigm. 
 It can be used as a full-featured framework or as a lightweight library alongside other frameworks. It is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
 ## The Philosophy Behind TargetJS
@@ -14,7 +14,7 @@ Frameworks often promise simplicity, but frequently require extensive boilerplat
 
 TargetJS adopts a new approach. First, it unifies class methods and fields into a single construct called targets. Each target is given state, lifecycles, timing, iterations, and the autonomy to execute mimicking the behavior of living cells. Targets are essentially self-contained, intelligent blocks of code.
 
-The second challenge is making these targets to fit and work together especially since UI operations are highly asynchronous. Instead of relying on traditional method calls and callbacks that don't address asynchronous nature well, TargetJS allows targets to react to the execution or completion of preceding targets. A subsequent target can run independently, execute whenever the previous one does, or wait until the previous target completes. Targets stack together like Lego pieces. It can address complex asynchronous workflow yet easy to understand.
+The second challenge is making these targets fit and work together especially since UI operations are highly asynchronous. Instead of relying on traditional method calls and callbacks that don't address asynchronous nature well, TargetJS allows targets to react to the execution or completion of preceding targets. A subsequent target can run independently, execute whenever the previous one does, or wait until the previous target completes. Targets stack together like Lego pieces. It can address complex asynchronous workflow yet easy to understand.
 
 For example, setting a value can implicitly define an animation, where the current value iteratively progresses until it reaches the new value. When the animation completes, the next target might initiate a fetch API call. Once the data is received, it can trigger another target that creates 10 new elements, each with its own animation and API call. A subsequent target can then be set to run only after all elements have completed their tasks. Throughout this sequence, no direct method calls are made. Targets simply react and chain together based on how the code is written.
 
@@ -204,7 +204,7 @@ App({
 
 ## 7) Final version
 
-**What this shows:** A Like button that consolidates the previous steps into a single component. After the POST completes, a cleanup `removeHearts$$` target (forth  async step) runs to remove the two heart elements. The button also includes basic accessibility (role, tabIndex, and Enter to activate). Demo: [Like button](https://targetj.io/examples/quick.html).
+**What this shows:** A Like button that consolidates the previous steps into a single component. After the POST completes, a cleanup `removeHearts$$` target (fourth  async step) runs to remove the two heart elements. The button also includes basic accessibility (role, tabIndex, and Enter to activate). Demo: [Like button](https://targetj.io/examples/quick.html).
 
   <img src="https://targetjs.io/img/likeButton9.gif" width="130" />
 
@@ -349,8 +349,8 @@ You can also use it directly in your HTML with custom attributes:
 
 TargetJS addresses several common pain points in front-end development:
 
-1.  **Scattered State Management:** Many frameworks require separate libraries or complex patterns for state management. In TargetJS, state management is inherently handled throught its core concept of “targets”.
-2.  **Complexity of Asynchronous Operations:**  Traditional JavaScript often involves complex handling of asynchronous operations (Promises, callbacks, `async/await`). TargetJS addresses this by providing a delactive reactive targets and synchronous execution flow.
+1.  **Scattered State Management:** Many frameworks require separate libraries or complex patterns for state management. In TargetJS, state management is inherently handled through its core concept of “targets”.
+2.  **Complexity of Asynchronous Operations:**  Traditional JavaScript often involves complex handling of asynchronous operations (Promises, callbacks, `async/await`). TargetJS addresses this by providing a declarative reactive targets and synchronous execution flow.
 3.  **Disjointed Development Workflow:**  Developers often juggle multiple tools and concepts (UI libraries, animation libraries, event handlers). TargetJS provides a unified solution.
 4.  **Rigid Static Layer of HTML:** Many frameworks use HTML as the primary medium for generating the user interface. TargetJS makes JavaScript the primary driver.  
 5.  **Boilerplate and Verbosity:** TargetJS aims to reduce boilerplate code. The code is compact and follows a predictable execution flow.
@@ -423,7 +423,7 @@ App({
 
 ### Infinite Loading and Scrolling Example
 
-In this advanced example, we implement an infinite-scrolling application. The asynchronous flow that we want to acheive:
+In this advanced example, we implement an infinite-scrolling application. The asynchronous flow that we want to achieve:
 1. Insert new items, and animate their width and background.
 2. On animation completion, trigger the API request for the visible items.
 3. Await for all API responses of all the items and then populate their names.
@@ -431,7 +431,7 @@ In this advanced example, we implement an infinite-scrolling application. The as
 This example could use other flows such as calling the API as soon as items are added, or populating each item’s name as its result arrives instead of waiting for all visible items. 
 All of these are doable, but we chose the above to showcase a more complex, sequential async flow.
 
-**Expalanation:**
+**Explanation:**
 
 - children: `children` is a special target that adds several items to the container's children each time it is executed. The `onVisibleChildrenChange` event function detects changes in the visible children and activates the `children` target to add new items that fill the gaps.  
 
@@ -521,7 +521,7 @@ each time an API response is received, while ensuring the order of API calls is 
 then the second, and so on.
   
 17. **Postfix `$$` to the target name** (Deferred): 
-A target name ending with `$$` indicates indicates that it will be activated only after the preceding target has completed, along with all its imperative targets,
+A target name ending with `$$` indicates that it will be activated only after the preceding target has completed, along with all its imperative targets,
 and after all API results have been received.
 
 2. **enabledOn**
@@ -556,7 +556,7 @@ identifiable by their target name. You can also use `on${targetName}Step` to tra
 Similar to `onImperativeStep`, but it is triggered when an imperative target completes. If multiple targets are expected to complete, you can use `on${targetName}End` instead. For example, `onWidthEnd` is called when the `width` target gets completed.
 
 13. **initialValue**
-This is only property. It defines the initial value of the actual value.
+This is only a property. It defines the initial value of the actual value.
 
 3. **active**
 This is only a property. It indicates whether the target is ready for execution. When set to false, it behaves similarly to a `_ `prefix. By default, all targets are active, so setting it to true is unnecessary.
@@ -664,7 +664,7 @@ TargetJS.tApp.throttle; //Slows down execution (in ms)
 TargetJS.tApp.debugLevel = 1; // Logs cycle execution
 ```
 - Use `t()` in the browser console to find an object by its oid.
-- Use `t(oid).bug()` to inspect all the vital properities.
+- Use `t(oid).bug()` to inspect all the vital properties.
 - Use `t(oid).logTree()` to inspect the UI structure.
 
 ## Documentation
@@ -678,7 +678,7 @@ Ahmad Wasfi - wasfi2@gmail.com
 
 ## 💖 Support TargetJS
 
-I have spent alot of time on this project, if you would like to show some appreciation:
+I have spent a lot of time on this project. If you would like to show some appreciation:
 
 - ⭐ Star this repo on GitHub to show your support!
 - 🐛 Report issues & suggest features.
