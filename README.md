@@ -26,7 +26,8 @@ TargetJS also adopts a Rebol-like style to make the code much more compact.
 2. All-in-One solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
 3. Code-ordered execution, Rebol-like style: less code and more readable code.
 
-## Examples: From like button → animated like + API (in 7 steps)
+
+## Examples: Like Button → Animated Like with 4 Async Ops (7 Steps)
 
 ---
 
@@ -99,7 +100,7 @@ App({
 
 ---
 
-## 4) Sequencing with `$$`: Adding a small heart after click animation (first async step)
+## 4) Sequencing with `$$`: Adding a small heart after click animation (first async op)
 
 **What this shows:** A `$$` target (deferred) runs only after all prior targets finish (including `onClick()` and its animations). Here it adds a new heart element and runs its fly motion only once the click sequence has completed. Repeated clicks will delay adding the heart.
 
@@ -135,7 +136,7 @@ App({
 
 ---
 
-## 5) Another `$$`: Adding a big heart (second async step)
+## 5) Another `$$`: Adding a big heart (second async op)
 
 **What this shows:** Deferred addition of a new element using $$. `bigHeart$$` waits for `heart$$` and the click sequence to complete their animation, then adds a larger heart and runs its own happy animation.
 
@@ -186,7 +187,7 @@ App({
 
 ---
 
-## 6) `fetch$$` (third async step)
+## 6) `fetch$$` (third async op)
 
 **What this shows:** Networking is just another target. The POST happens **only after** all prior visual steps complete, since the target is postfixed with `$$`.
 
@@ -202,7 +203,7 @@ App({
 
 ## 7) Final version
 
-**What this shows:** A Like button that consolidates the previous steps into a single component. After the POST completes, a cleanup `removeHearts$$` target (fourth  async step) runs to remove the two heart elements. The button also includes basic accessibility (role, tabIndex, and Enter to activate). Demo: [Like button](https://targetj.io/examples/quick.html).
+**What this shows:** A Like button that consolidates the previous steps into a single component. After the POST completes, a cleanup `removeHearts$$` target (fourth  async op) runs to remove the two heart elements. The button also includes basic accessibility (role, tabIndex, and Enter to activate). Demo: [Like button](https://targetj.io/examples/quick.html).
 
   <img src="https://targetjs.io/img/likeButton9.gif" width="130" />
 
@@ -307,6 +308,7 @@ A target name ending with a double `$$` (e.g., `fetch$$`) will activate only aft
 - The completion and return of results from all associated API calls.
 - The finalization of all tasks, animations, and API calls initiated by any dependent child targets that were themselves triggered by a preceding target.
 
+---
 
 ## **📦 Installation**
 
@@ -343,6 +345,8 @@ You can also use it directly in your HTML with custom attributes:
 </div>
 ```
 
+---
+
 ## What Problems Does TargetJS Solve?
 
 TargetJS addresses several common pain points in front-end development:
@@ -354,10 +358,12 @@ TargetJS addresses several common pain points in front-end development:
 5.  **Boilerplate and Verbosity:** TargetJS aims to reduce boilerplate code. The code is compact and follows a predictable execution flow.
 6.  **Difficult Animation Control:**  TargetJS makes animations first-class citizens with fine-grained control.
 8.  **Performance Bottlenecks with Large Lists:** TargetJS optimizes rendering for large lists by using a tree structure that renders only the visible branches.
-    
+
+---
+
 ## More Examples
 
-## Loading Five Users Example
+### Loading Five Users Example
 
 In this example, we load five separate users and display five boxes, each containing a user's name and email.
 
@@ -501,6 +507,7 @@ We can reduce the number of API calls by triggering them only after scrolling st
         }
     }
 ```
+---
 
 ## Target Methods
 
