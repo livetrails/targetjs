@@ -5,16 +5,16 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework that simplifies front-end development with code-ordered reactivity model and  Rebol-like style. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling.
+TargetJS is a modern JavaScript UI framework that simplifies front-end development with a code-ordered reactivity model and  Rebol-like style. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling.
 It can be used as a full-featured framework or as a lightweight library alongside other frameworks. It is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
 ## The Philosophy Behind TargetJS
 
-Frameworks often promise simplicity, but frequently require extensive boilerplate and libraries as they inherit the same software approach rooted in early programming models and force it to fit building user interfaces by adding more complexity. User interfaces are dynamic and asynchronous and require a different paradigm.
+Frameworks often promise simplicity, but frequently require extensive boilerplate and libraries as they inherit the same software approach rooted in early programming models and try to force it to fit UI development by adding more complexity. User interfaces are dynamic and asynchronous and require a different paradigm.
 
 TargetJS adopts a new approach. First, it unifies class methods and fields into a single construct called targets. Each target is given state, lifecycles, timing, iterations, and the autonomy to execute mimicking the behavior of living cells. Targets are essentially self-contained, intelligent blocks of code.
 
-The second challenge is making these targets fit and work together especially since UI operations are highly asynchronous. Instead of relying on traditional method calls and callbacks that don't address asynchronous nature well, TargetJS allows targets to react to the execution or completion of preceding targets. A subsequent target can run independently, execute whenever the previous one does, or wait until the previous target completes. Targets stack together like Lego pieces. It can address complex asynchronous workflow yet easy to understand.
+The second challenge is making these targets fit and work together especially since UI operations are highly asynchronous. Instead of relying on traditional method calls and callbacks that don't address asynchronous nature well, TargetJS allows targets to react to the execution or completion of preceding targets. A subsequent target can run independently, execute whenever the previous one does, or wait until the previous target completes. Targets stack together like Lego pieces. It can address complex asynchronous workflow while remaining easy to understand.
 
 For example, setting a value can implicitly define an animation, where the current value iteratively progresses until it reaches the new value. When the animation completes, the next target might initiate a fetch API call. Once the data is received, it can trigger another target that creates 10 new elements, each with its own animation and API call. A subsequent target can then be set to run only after all elements have completed their tasks. Throughout this sequence, no direct method calls are made. Targets simply react and chain together based on how the code is written.
 
@@ -22,9 +22,9 @@ TargetJS also adopts a Rebol-like style to make the code much more compact.
 
 ## Key Innovations and Concepts
 
-1.  Reactive Targets: A new construct called “targets” unifies class methods and fields. Targets are self-contained units of code with their own state, lifecycles, and timing. They are designed to execute themselves or react dynamically to the run or completion of preceding targets. This enables the declarative programming of complex asynchronous flows without explicit callbacks.
-2. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
-3. Code-Ordered Execution with Rebol-like style: less code and more readable code.
+1.  Reactive targets: A new construct called “targets” unifies class methods and fields. Targets are self-contained units of code with their own state, lifecycles, and timing. They are designed to execute themselves or react dynamically to the run or completion of preceding targets. This enables the declarative programming of complex asynchronous flows without explicit callbacks.
+2. All-in-One solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
+3. Code-ordered execution, Rebol-like style: less code and more readable code.
 
 ## Examples: From like button → animated like + API (in 7 steps)
 
@@ -186,7 +186,7 @@ App({
 
 ---
 
-## 6) `fetch$$` (third  async step)
+## 6) `fetch$$` (third async step)
 
 **What this shows:** Networking is just another target. The POST happens **only after** all prior visual steps complete, since the target is postfixed with `$$`.
 
@@ -266,20 +266,20 @@ Complex flows read top-to-bottom.
 ## Table of Contents
 
 1. [Targets: The Building Blocks of TargetJS](#targets-the-building-blocks-of-targetjs)
-2. [Understanding TargetJS Syntax: Reactive Postfixes](#understanding-targetjs-syntax-reactive-postfixes)
-3. [📦 Installation](#-installation)
-6. [What Problems Does TargetJS Solve?](#what-problems-does-targetjs-solve)
-11. More Examples:
-    - [Loading Two Users Example](#loading-two-users-example)
+1. [Understanding TargetJS Syntax: Reactive Postfixes](#understanding-targetjs-syntax-reactive-postfixes)
+1. [📦 Installation](#-installation)
+1. [What Problems Does TargetJS Solve?](#what-problems-does-targetjs-solve)
+1. More Examples:
+    - [Loading Five Users Example](#loading-two-users-example)
     - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
-12. [Target Methods](#target-methods)
-10. [Target Variables](#target-variables)
-13. [Special Target Names](#special-target-names)
-14. [How to Debug in TargetJS](#how-to-debug-in-targetjs)
-15. [Documentation](#documentation)
-16. [License](#license)
-17. [Contact](#contact)
-18. [💖 Support TargetJS](#-support-targetjs)
+1. [Target Methods](#target-methods)
+1. [Target Variables](#target-variables)
+1. [Special Target Names](#special-target-names)
+1. [How to Debug in TargetJS](#how-to-debug-in-targetjs)
+1. [Documentation](#documentation)
+1. [License](#license)
+1. [Contact](#contact)
+1. [💖 Support TargetJS](#-support-targetjs)
 
 ## Targets: The Building Blocks of TargetJS
 
