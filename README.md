@@ -20,7 +20,7 @@ For example, setting a value can implicitly define an animation, where the curre
 
 Targets unlock a fundamentally new way of coding that simplifies everything from animation, UI updates, API calls, and state management. 
 
-It also adopts a REBOL-like style to make the code much more compact.
+It also adopts a Rebol-like style to make the code much more compact.
 
 ## Key Innovations and Concepts
 
