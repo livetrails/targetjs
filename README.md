@@ -24,7 +24,7 @@ It also adopts a Rebol-like style to make the code much more compact.
 
 ## Key Innovations and Concepts
 
-1.  Reactive Targets: A new construct called “targets” unifies methods and fields. Targets are self-contained units of code with their own state, lifecycles, and timing. They are designed to execute themselves or react dynamically to the run or completion of preceding targets. This enables the declarative programming of complex asynchronous flows without explicit callbacks.
+1.  Reactive Targets: A new construct called “targets” unifies class methods and fields. Targets are self-contained units of code with their own state, lifecycles, and timing. They are designed to execute themselves or react dynamically to the run or completion of preceding targets. This enables the declarative programming of complex asynchronous flows without explicit callbacks.
 2. All-in-One Solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
 3. Code-Ordered Execution with Rebol-like style: less code and more readable code.
 
