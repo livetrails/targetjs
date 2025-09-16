@@ -510,59 +510,59 @@ All methods and properties are optional, but they play integral roles in making 
 If defined, value is the primary target method that will be executed. The target value will be calculated based on the result of this method.
 `Value` can also be defined as a property.
 
-3. **Prefix `_` to the target name** (Inactive): 
-It indicates that the target is in an inactive state and must be activated by an event or other targets.
+1. **Prefix `_` to the target name** (Inactive): 
+indicates that the target is in an inactive state and must be activated by an event or other targets.
 
-15. **Postfix `$` to the target name** (Reactive): 
+1. **Postfix `$` to the target name** (Reactive): 
 A target name ending with $ indicates that it will be only activated when the preceding target is executed. If the preceding target involves API calls, it will be activated
 each time an API response is received, while ensuring the order of API calls is enforced. This means it will remain inactive until the first API result is received,
 then the second, and so on.
   
-17. **Postfix `$$` to the target name** (Deferred): 
-A target name ending with `$$` indicates that it will be activated only after the preceding target has completed, along with all its imperative targets,
+1. **Postfix `$$` to the target name** (Deferred): 
+A target name ending with `$$` indicates that it will be activated only after all the preceding target has completed, along with all its imperative targets,
 and after all API results have been received.
 
-2. **enabledOn**
+1. **enabledOn**
 Determines whether the target is eligible for execution. If enabledOn() returns false, the target remains active until it is enabled and gets executed.
 
-3. **loop**
+1. **loop**
 Controls the repetition of target execution. If loop() returns true, the target will continue to execute indefinitely. It can also be defined as a boolean instead of a method.
 
-4. **cycles**
+1. **cycles**
 It works similarly to `loop`, but it specifies an explicit number of repetitions. It can also be combined with `loop`, in which case, once the specified cycles complete, they will rerun as long as `loop` returns true. In other words, `loop` functions as an outer loop for `cycles`.
 
-6. **interval**
+1. **interval**
 It specifies the pause between each target execution or each actual value update when steps are defined.
 
-7. **steps**
+1. **steps**
 By default, the actual value is updated immediately after the target value. The steps option allows the actual value to be updated in iterations specified by the number of steps.
 
-8. **easing**
+1. **easing**
 An easing function that operates when steps are defined. It controls how the actual value is updated in relation to the steps.
 
-9. **onValueChange**
+1. **onValueChange**
 This callback is triggered whenever there is a change returned by the target method/property `value`.
 
-10. **onStepsEnd**
+1. **onStepsEnd**
 This method is invoked only after the final step of updating the actual value is completed, assuming the target has a defined steps value.
 
-11. **onImperativeStep**
+1. **onImperativeStep**
 This callback tracks the progress of imperative targets defined within a declarative target. If there are multiple imperative targets, this method is called at each step,
 identifiable by their target name. You can also use `on${targetName}Step` to track individual targets with their own callbacks. For example, `onWidthStep()` is called on each update of the `width` target.
 
-13. **onImperativeEnd**
+1. **onImperativeEnd**
 Similar to `onImperativeStep`, but it is triggered when an imperative target completes. If multiple targets are expected to complete, you can use `on${targetName}End` instead. For example, `onWidthEnd` is called when the `width` target gets completed.
 
-13. **initialValue**
+1. **initialValue**
 This is only a property. It defines the initial value of the actual value.
 
-3. **active**
+1. **active**
 This is only a property. It indicates whether the target is ready for execution. When set to false, it behaves similarly to a `_` prefix. By default, all targets are active, so setting it to true is unnecessary.
    
-18. **onSuccess**
+1. **onSuccess**
 An optional callback for targets that make API calls. It will be invoked for each API response received.
 
-19. **onError**
+1. **onError**
 Similar to the `onSuccess` but it will be invoked on every error.
 
 ## Target Variables
@@ -656,10 +656,10 @@ Here are all the event targets:
 TargetJS provides built-in debugging tools:
 
 ```bash
-TargetJS.tApp.stop(); //Stops the application.
-TargetJS.tApp.start(); //Restarts the application
-TargetJS.tApp.throttle; //Slows down execution (in ms)
-TargetJS.tApp.debugLevel = 1; // Logs cycle execution
+TargetJS.tApp.stop(); // Stop the application.
+TargetJS.tApp.start(); // Restart the application
+TargetJS.tApp.throttle = 0; // Slow down execution (milliseconds between cycles)
+TargetJS.tApp.debugLevel = 1; // Log cycle execution
 ```
 - Use `t()` in the browser console to find an object by its oid.
 - Use `t(oid).bug()` to inspect all the vital properties.
