@@ -5,7 +5,7 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework that simplifies front-end development with code-ordered reactivity model and  Rebol-like style. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling. This integrated approach leads to extremely compact code and an introduction of a new development paradigm. 
+TargetJS is a modern JavaScript UI framework that simplifies front-end development with code-ordered reactivity model and  Rebol-like style. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling.
 It can be used as a full-featured framework or as a lightweight library alongside other frameworks. It is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
 ## The Philosophy Behind TargetJS
@@ -295,7 +295,7 @@ Targets provide a unified interface for both class methods and fields. Each Targ
 
 ## Understanding TargetJS Syntax: Reactive Postfixes
 
-TargetJS doesn't use `async/await` and rarely relies on traditional JavaScript constructs like loops or conditionals. Instead, it defines reactive behaviors using the `$` and `$$` postfixes on target names, unifying asynchronous operations such as API calls, animations, timers, and UI transitions. Although this convention may seem a bit cryptic at first, it offers a compact syntax.
+TargetJS defines reactive behaviors using the `$` and `$$` postfixes on target names, unifying asynchronous operations such as API calls, animations, timers, and UI transitions. Although this convention may seem a bit cryptic at first, it offers a compact syntax.
 
 **`$` Postfix (Immediate Reactivity):**
 
@@ -303,7 +303,7 @@ A target name ending with a single `$` (e.g., `height$`) indicates that this tar
 
 **`$$` Postfix (Full Completion Reactivity):**
 
-A target name ending with a double `$$` (e.g., `fetch$$`) will activate only after its immediately preceding targets have fully and comprehensively completed all of their operations. This includes:
+A target name ending with a double `$$` (e.g., `fetch$$`) will activate only after all the preceding targets have fully and comprehensively completed all of their operations. This includes:
 
 - The successful resolution of any timed sequences, such as animations.
 - The completion and return of results from all associated API calls.
