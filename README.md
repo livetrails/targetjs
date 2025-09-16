@@ -677,6 +677,9 @@ Distributed under the MIT License. See LICENSE for more information.
 Ahmad Wasfi - wasfi2@gmail.com
 
 ## 💖 Support TargetJS
+
+I have spent alot of time on this project, if you would like to show some appreciation:
+
 - ⭐ Star this repo on GitHub to show your support!
 - 🐛 Report issues & suggest features.
 - 📢 Share TargetJS with your network.
