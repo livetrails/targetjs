@@ -26,10 +26,11 @@ Furthermore, TargetJS adopts a Rebol-like style to make the code more compact.
 2. All-in-One solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
 3. Code-ordered execution, Rebol-like style: less code and more readable code.
 
+---
 
 ## Examples: Like Button → Animated Like with 4 Async Ops (in 7 Steps)
 
----
+This example demonstrates how to run four asynchronous operations in a strict sequential sequence, where each new step waits for the previous one to complete. Any restart or delay in an operation delays the ones that follow. This is to showcase managing async operations rather than focusing on the user experience. We will show the example in 7 steps.
 
 ### 1) Like button (view only)
 
