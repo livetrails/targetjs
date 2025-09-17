@@ -30,7 +30,7 @@ Furthermore, TargetJS adopts a Rebol-like style to make the code more compact.
 
 ## Examples: Like Button → Animated Like with 4 Async Ops (in 7 Steps)
 
-This example demonstrates how to run four asynchronous operations in a strict sequential sequence, where each step waits for the previous ones to complete. Any restart or delay in an operation delays the ones that follow. This is to showcase managing async operations rather than focusing on the user experience. We will show the example in 7 steps.
+The example demonstrates how to run four asynchronous operations in a strict sequential sequence, where each step waits for the previous ones to complete. Any restart or delay in an operation delays the ones that follow. This is to showcase managing async operations rather than focusing on the user experience. We will show the example in 7 steps.
 
 ### 1) Like button (view only)
 
