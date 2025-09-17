@@ -298,7 +298,7 @@ TargetJS defines reactive behaviors using the `$` and `$$` postfixes on target n
 
 A target name ending with a single `$` (e.g., `height$`) indicates that this target will execute every time its immediately preceding target runs or emits a new value. If the preceding target involves an asynchronous operation like an API call, the reactive target activates when the response is received. If there are multiple API calls made, `$` postfix ensures that the target reacts to the first API result when it becomes available, then the second, and so on, maintaining a strict, code-ordered sequence of operations.
 
-**`$$` Postfix (Full Completion Reactivity):**
+**`$$` Postfix (Deferred Reactivity):**
 
 A target name ending with a double `$$` (e.g., `fetch$$`) will activate only after all the preceding targets have fully and comprehensively completed all of their operations. This includes:
 
