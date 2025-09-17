@@ -525,7 +525,7 @@ A target name ending with `$$` indicates that it will be activated only after al
 and after all API results have been received.
 
 1. **Prefix `_` to the target name** (Inactive): 
-It indicates that the target is in an inactive state and must be activated by an event or other targets.
+It indicates that the target is in an inactive state and must be activated by an event or other targets explicitly.
 
 1. **enabledOn**
 Determines whether the target is eligible for execution. If enabledOn() returns false, the target remains active until it is enabled and gets executed.
