@@ -335,7 +335,7 @@ Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 
 ```
 
 This will add `TargetJS` to the global `window` object, making it accessible throughout your JavaScript such as `TargetJS.App(YourApp)`.
-You can also use it directly in your HTML with custom attributes:
+You can also use it directly in your HTML with `tg-` attributes:
 
 ```html
 <div
