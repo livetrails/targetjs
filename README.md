@@ -31,7 +31,7 @@ TargetJS also adopts a Rebol-like style to make the code much more compact.
 
 ---
 
-## 1) Like button (view only)
+### 1) Like button (view only)
 
 **What this shows:** One object defines a UI element without separate HTML/CSS. Static targets map directly to DOM styles/attributes. You can still use CSS if wanted.
 
@@ -54,7 +54,7 @@ App({
 ---
 
 
-## 2) Animation
+### 2) Animation
 
 **What this shows:** A mount-time animation that scales and changes the background over 12 steps, with 12ms pauses between steps. Targets without (`$`, `$$`, `_`) execute immediately in the order they are defined.
 
@@ -75,7 +75,7 @@ App({
 });
 ```
 
-## 3) Click → animation (imperative `setTarget`)
+### 3) Click → animation (imperative `setTarget`)
 
 **What this shows:** Clicking plays the animations from the previous step using imperative `setTarget`.
 
@@ -100,7 +100,7 @@ App({
 
 ---
 
-## 4) Sequencing with `$$`: Adding a small heart after click animation (first async op)
+### 4) Sequencing with `$$`: Adding a small heart after click animation (first async op)
 
 **What this shows:** A `$$` target (deferred) runs only after all prior targets finish (including `onClick()` and its animations). Here it adds a new heart element and runs its fly motion only once the click sequence has completed. Repeated clicks will delay adding the heart.
 
@@ -136,7 +136,7 @@ App({
 
 ---
 
-## 5) Another `$$`: Adding a big heart (second async op)
+### 5) Another `$$`: Adding a big heart (second async op)
 
 **What this shows:** Deferred addition of a new element using $$. `bigHeart$$` waits for `heart$$` and the click sequence to complete their animation, then adds a larger heart and runs its own happy animation.
 
@@ -187,9 +187,9 @@ App({
 
 ---
 
-## 6) `fetch$$` (third async op)
+### 6) `fetch$$` (third async op)
 
-**What this shows:** Networking is just another target. The POST happens **only after** all prior visual steps complete, since the target is postfixed with `$$`.
+**What this shows:** Networking is just another target. The POST happens **only after** all prior visual steps complete, since the target is postfixed with `$$`. Similarly, repeated clicks delay `fetch$$`.
 
 ```javascript
 App({
@@ -201,7 +201,7 @@ App({
 
 ---
 
-## 7) Final version
+### 7) Final version
 
 **What this shows:** A Like button that consolidates the previous steps into a single component. After the POST completes, a cleanup `removeHearts$$` target (fourth  async op) runs to remove the two heart elements. The button also includes basic accessibility (role, tabIndex, and Enter to activate). Demo: [Like button](https://targetj.io/examples/quick.html).
 
@@ -257,11 +257,9 @@ App({
 ```
 ---
 
-## Final takeaway
+### Final takeaway
 
-- Instead of wiring callbacks and effects, you write a sequence of targets. 
-`$` reacts to the previous step; `$$` defers until all prior steps finish. Animations, API calls, and child creation are all the same kind of thing: targets.
-Complex flows read top-to-bottom.
+- Instead of wiring callbacks and effects, you write a sequence of targets. `$$` defers until all prior steps finish. Animations, API calls, and child creation are all the same kind of thing: targets.
 - Minimal plumbing yet full control to manage a flow of complex asynchronous operations.
   
 ## Table of Contents
