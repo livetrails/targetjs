@@ -681,7 +681,7 @@ Ahmad Wasfi - wasfi2@gmail.com
 
 ## 💖 Support TargetJS
 
-I have spent a lot of time on this project. If you would like to show some appreciation:
+If you would like to show some appreciation:
 
 - ⭐ Star this repo on GitHub to show your support!
 - 🐛 Report issues & suggest features.
