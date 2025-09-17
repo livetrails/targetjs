@@ -5,7 +5,7 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework that simplifies front-end development with a code-ordered reactivity model and  Rebol-like style. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling.
+TargetJS is a modern JavaScript UI framework that simplifies front-end development with a code-ordered reactivity model and a compact, Rebol-inspired syntax. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling.
 It can be used as a full-featured framework or as a lightweight library alongside other frameworks. It is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
 ## The Philosophy Behind TargetJS
@@ -18,7 +18,7 @@ The second challenge is making these targets fit and work together especially si
 
 For example, setting a value can implicitly define an animation, where the current value iteratively progresses until it reaches the new value. When the animation completes, the next target might initiate a fetch API call. Once the data is received, it can trigger another target that creates 10 new elements, each with its own animation and API call. A subsequent target can then be set to run only after all 10 elements have completed their tasks. Targets simply react and chain together based on how the code is written.
 
-Futhermore, TargetJS also adopts a Rebol-like style to make the code much more compact.
+Furthermore, TargetJS adopts a Rebol-like style to make the code more compact.
 
 ## Key Innovations and Concepts
 
