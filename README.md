@@ -27,7 +27,7 @@ TargetJS also adopts a Rebol-like style to make the code much more compact.
 3. Code-ordered execution, Rebol-like style: less code and more readable code.
 
 
-## Examples: Like Button → Animated Like with 4 Async Ops (7 Steps)
+## Examples: Like Button → Animated Like with 4 Async Ops (in 7 Steps)
 
 ---
 
@@ -259,8 +259,8 @@ App({
 
 ## Final takeaway
 
-- TargetJS treats time as a first-class concept. Instead of wiring callbacks and effects, you write a sequence of targets. 
-$ reacts to the previous step; $$ defers until all prior steps finish. Animations, API calls, and child creation are all the same kind of thing: targets.
+- Instead of wiring callbacks and effects, you write a sequence of targets. 
+`$` reacts to the previous step; `$$` defers until all prior steps finish. Animations, API calls, and child creation are all the same kind of thing: targets.
 Complex flows read top-to-bottom.
 - Minimal plumbing yet full control to manage a flow of complex asynchronous operations.
   
