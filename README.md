@@ -16,9 +16,9 @@ TargetJS adopts a new approach. First, it unifies class methods and fields into 
 
 The second challenge is making these targets fit and work together especially since UI operations are highly asynchronous. Instead of relying on traditional method calls and callbacks that don't address asynchronous nature well, TargetJS allows targets to react to the execution or completion of preceding targets. A subsequent target can run independently, execute whenever the previous one does, or wait until the previous target completes. Targets stack together like Lego pieces. It can address complex asynchronous workflow while remaining easy to understand.
 
-For example, setting a value can implicitly define an animation, where the current value iteratively progresses until it reaches the new value. When the animation completes, the next target might initiate a fetch API call. Once the data is received, it can trigger another target that creates 10 new elements, each with its own animation and API call. A subsequent target can then be set to run only after all elements have completed their tasks. Throughout this sequence, no direct method calls are made. Targets simply react and chain together based on how the code is written.
+For example, setting a value can implicitly define an animation, where the current value iteratively progresses until it reaches the new value. When the animation completes, the next target might initiate a fetch API call. Once the data is received, it can trigger another target that creates 10 new elements, each with its own animation and API call. A subsequent target can then be set to run only after all 10 elements have completed their tasks. Targets simply react and chain together based on how the code is written.
 
-TargetJS also adopts a Rebol-like style to make the code much more compact.
+Futhermore, TargetJS also adopts a Rebol-like style to make the code much more compact.
 
 ## Key Innovations and Concepts
 
