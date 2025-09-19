@@ -1,5 +1,5 @@
 import { TUtil } from "./TUtil.js";
-import { tApp } from "./App.js";
+import { tRoot } from "./App.js";
 
 /**
  * It provides search functions to find an object by a specific target, type, or oid
@@ -128,7 +128,7 @@ class SearchUtil {
 
     static findParentByTarget(child, targetName, targetValue) {
         const indexKey = `${child.oid}__${targetName}`;
-
+       
         if (!TUtil.isDefined(SearchUtil.foundParentWithTarget[indexKey])) {
             let parent = child.getParent();
             while (parent) {
@@ -169,7 +169,7 @@ class SearchUtil {
                 }
             };
 
-            const tmodel = search(tApp.tRoot);
+            const tmodel = search(tRoot());
             if (tmodel) {
                 SearchUtil.foundTypeMap[type] = tmodel;
             }
@@ -197,7 +197,7 @@ class SearchUtil {
                 }
             };
 
-            const tmodel = search(tApp.tRoot);
+            const tmodel = search(tRoot());
             if (tmodel) {
                 SearchUtil.foundTargetMap[target] = tmodel;
             }
@@ -225,7 +225,7 @@ class SearchUtil {
                 }
             };
 
-            const tmodel = search(tApp.tRoot);
+            const tmodel = search(tRoot());
             if (tmodel) {
                 SearchUtil.foundOids[oid] = tmodel;
             }

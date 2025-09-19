@@ -124,7 +124,7 @@ const AppFn = () => {
         return my;
     };
 
-    my.reset = function() {
+    my.reset = async function() {
         my.manager.getVisibles().forEach(tmodel => { 
             tmodel.transformMap = {};
             tmodel.styleMap = {};
@@ -134,6 +134,8 @@ const AppFn = () => {
                 }
             });             
         });
+        await my.runScheduler.resetRuns();
+        
         my.manager.clearAll();
         my.locationManager.clear();
         SearchUtil.clear();

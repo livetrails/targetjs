@@ -21,7 +21,7 @@ class PageManager {
 
     async openPage(link) {        
         await tApp.stop();
-        tApp.reset();
+        await tApp.reset();
                 
         link = TUtil.getFullLink(link);
 
@@ -40,7 +40,7 @@ class PageManager {
             
             tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
             tApp.tRoot.$dom.innerHTML(this.pageCache[link].html);
-   
+            
             const visibles = Object.values(this.pageCache[link].visibleOidMap);
             DomInit.initCacheDoms(visibles);
             visibles.forEach(tmodel => {
@@ -48,8 +48,8 @@ class PageManager {
             });
 
             tApp.manager.visibleOidMap = { ...this.pageCache[link].visibleOidMap };
-            this.lastLink = link;           
-            tApp.start();        
+            this.lastLink = link;  
+            tApp.start();    
         }
     }
 

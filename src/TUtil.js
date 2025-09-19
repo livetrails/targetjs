@@ -146,7 +146,7 @@ class TUtil {
     }
 
     static now() {
-        return Date.now();
+        return performance.now();
     }
 
     static log(condition) {
@@ -178,7 +178,7 @@ class TUtil {
     }
 
     static logTree(tmodel = tRoot(), tab = '') {
-        const list = getLocationManager().getChildren(tmodel);
+        const list = getLocationManager().calcChildren(tmodel);
         for (const g of list) {
             const gtab = g.isVisible() ? tab + '|  ' : tab + 'x  ';
             if (g.type === 'BI') {

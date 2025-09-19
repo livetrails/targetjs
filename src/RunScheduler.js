@@ -1,5 +1,5 @@
 import { TUtil } from "./TUtil.js";
-import { tApp, getEvents, getManager, getLocationManager } from "./App.js";
+import { tApp, getEvents, getManager, getLocationManager, tRoot } from "./App.js";
 
 /**
  *  It is responsible for scheduling and managing the execution of TargetJ process cycle. 
@@ -31,6 +31,7 @@ class RunScheduler {
         this.activeStartTime = undefined;
         this.phase = 0;
         this.runningStep = -1;
+        this.sliceQueued = false;
 
     }
 
@@ -55,6 +56,7 @@ class RunScheduler {
         this.activeStartTime = undefined;
         this.phase = 0;
         this.runningStep = -1;
+        this.sliceQueued = false;
     }
 
     scheduleOnlyIfEarlier(delay, runId) {
@@ -67,19 +69,17 @@ class RunScheduler {
         
         this.schedule(delay, runId);
     }
-
+    
     schedule(delay, runId) {
-        if (!tApp.isRunning() || this.resetting || (delay === 0 && this.rerunId)) {
+        if (!tApp.isRunning() || this.resetting) {
             return;
         }
 
-        if (delay === 0 && tApp.throttle === 0) {
-            this.run(delay, runId);
-        } else {
-            this.delayRun(tApp.throttle === 0 ? delay || 0 : tApp.throttle, runId, this.runStartTime);
-        }
+        const effectiveDelay = (tApp.throttle === 0) ? (delay ?? 0) : tApp.throttle;
+        const insertTime = TUtil.now();
+        this.delayRun(effectiveDelay, runId, insertTime);
     }
-    
+
     timeSchedule(delay, runId) {
         if (!tApp.isRunning() || this.resetting) {
             return;
@@ -88,7 +88,7 @@ class RunScheduler {
     }    
     
 
-    run(delay, runId) {
+    async run(delay, runId) {
         if (!tApp.isRunning() || this.resetting) {
             return;
         }
@@ -107,13 +107,14 @@ class RunScheduler {
 
         if (this.phase === 0) {
             getEvents().captureEvents();
-            tApp.targetManager.applyTargetValues(tApp.tRoot);
-            getLocationManager().calculateAll();
+            tApp.targetManager.applyTargetValues(tRoot());
+            await getLocationManager().calculateAll();
             this.phase = 1;
         }
-
+        
         if (TUtil.now() - this.runStartTime > FRAME_BUDGET_MS) {
-            this.defer(runId);
+            this.runningFlag = false;
+            this.requestNextSlice(runId);
             return;
         }
 
@@ -123,10 +124,11 @@ class RunScheduler {
         }
 
         if (TUtil.now() - this.runStartTime > FRAME_BUDGET_MS) {
-            this.defer(runId);
+            this.runningFlag = false;
+            this.requestNextSlice(runId);
             return;
         }
-
+        
         if (this.phase === 2) {
             getLocationManager().calculateActivated();
             tApp.events.resetEventsOnTimeout();
@@ -134,7 +136,8 @@ class RunScheduler {
         }
 
         if (TUtil.now() - this.runStartTime > FRAME_BUDGET_MS) {
-            this.defer(runId);
+            this.runningFlag = false;
+            this.requestNextSlice(runId);
             return;
         }
 
@@ -160,52 +163,55 @@ class RunScheduler {
         }
     }
 
-    defer(runId) {
-        this.rerunId = `slice-${runId}`;
+    requestNextSlice(runId) {
+        if (this.sliceQueued) {
+            return;
+        }
         
+        this.sliceQueued = true;
         requestAnimationFrame(() => {
-            this.runningFlag = false;
-            this.run(0, this.rerunId);
+            this.sliceQueued = false;
+            this.delayRun(0, `slice-${runId}`, TUtil.now());
         });
     }
-
     needsRerun() {
         this.phase = 0;
         this.runningFlag = false;
         
         if (this.rerunId) {
-            this.defer(`rerun-${this.rerunId}`);
-        } else {
-            const newDelay = this.nextRuns.length > 0 ? this.nextRuns[0].delay - (TUtil.now() - this.nextRuns[0].insertTime) : undefined;
-                        
-            if (newDelay === undefined 
-                    || getManager().lists.activeTModels.length > 0 
-                    || getManager().lists.updatingTModels.length > 0
-                    || getLocationManager().activatedList.length > 0) {
-                if (getEvents().eventQueue.length > 0) {
-                    this.schedule(15, `events-${getEvents().eventQueue.length}`);
-                } else if (getLocationManager().activatedList.length > 0) {
-                    this.schedule(15, `getManager-locationManager-activatedList`); 
-                } else if (getManager().lists.updatingTModels.length > 0) {
-                    this.schedule(15, `getManager-needsRerun-updatingTModels`);
-                } else if (getManager().lists.activeTModels.length > 0) {
-                    const activeTModel = getManager().lists.activeTModels.find(tmodel => {
-                        return (
-                                tmodel.targetExecutionCount === 0 ||
-                                tmodel.activeTargetList
-                                .filter(target => !tmodel.isScheduledPending(target))
-                                .some(target => tmodel.shouldScheduleRun(target))
-                                );
-                    });
-                    if (activeTModel) {
-                        const delay = !this.activeStartTime || TUtil.now() - this.activeStartTime > 15 ? 1 : 15;
-                        this.activeStartTime = TUtil.now();
-                                                
-                        this.schedule(delay, `getManager-needsRerun-${activeTModel.oid}-${activeTModel.activeTargetList}`);
-                    }
-                }
-            } 
+          this.requestNextSlice(`rerun-${this.rerunId}`);
+          return;
         }
+            
+        const newDelay = this.nextRuns.length > 0 ? this.nextRuns[0].delay - (TUtil.now() - this.nextRuns[0].insertTime) : undefined;
+                        
+        if (newDelay === undefined 
+                || getManager().lists.activeTModels.length > 0 
+                || getManager().lists.updatingTModels.length > 0
+                || getLocationManager().activatedList.length > 0) {
+            if (getEvents().eventQueue.length > 0) {
+                this.schedule(15, `events-${getEvents().eventQueue.length}`);
+            } else if (getLocationManager().activatedList.length > 0) {
+                this.schedule(15, `getManager-locationManager-activatedList`); 
+            } else if (getManager().lists.updatingTModels.length > 0) {
+                this.schedule(15, `getManager-needsRerun-updatingTModels`);
+            } else if (getManager().lists.activeTModels.length > 0) {
+                const activeTModel = getManager().lists.activeTModels.find(tmodel => {
+                    return (
+                            tmodel.targetExecutionCount === 0 ||
+                            tmodel.activeTargetList
+                            .filter(target => !tmodel.isScheduledPending(target))
+                            .some(target => tmodel.shouldScheduleRun(target))
+                            );
+                });
+                if (activeTModel) {
+                    const delay = !this.activeStartTime || TUtil.now() - this.activeStartTime > 15 ? 1 : 15;
+                    this.activeStartTime = TUtil.now();
+
+                    this.schedule(delay, `getManager-needsRerun-${activeTModel.oid}-${activeTModel.activeTargetList}`);
+                }
+            }
+        } 
     }
 
     domOperations(runningStep) {

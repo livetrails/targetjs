@@ -858,17 +858,11 @@ class BaseModel {
         return this;
     }
     
-    manageChildTargetExecution(child, shouldCalculateChildTargets) {
-        return shouldCalculateChildTargets
-                || this.shouldCalculateChildTargets()
-                || child.hasChildren() 
+    manageChildTargetExecution(child) {
+        return child.hasChildren() 
                 || child.addedChildren.length > 0 
                 || child.dirtyLayout
                 || child.targetExecutionCount === 0;
-    }
-    
-    shouldCalculateChildTargets() {
-        return this.val('shouldCalculateChildTargets');
     }
     
     getCoreTargets() {

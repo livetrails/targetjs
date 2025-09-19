@@ -487,8 +487,6 @@ class EventListener {
     resizeRoot() {
         TargetExecutor.executeDeclarativeTarget(tRoot(), 'screenWidth');
         TargetExecutor.executeDeclarativeTarget(tRoot(), 'screenHeight');
-        
-        
     }
 
     preventDefault(tmodel, eventName) {

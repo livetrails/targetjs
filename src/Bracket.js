@@ -62,7 +62,7 @@ class Bracket extends TModel {
 
             return this.visibilityStatus ? this.visibilityStatus.top && this.visibilityStatus.bottom : false;
         } else {
-            return true;
+            return true;//this.visibilityStatus ? this.visibilityStatus.top && this.visibilityStatus.bottom : false;
         }
     }
     
