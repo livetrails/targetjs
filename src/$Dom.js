@@ -361,6 +361,14 @@ class $Dom {
     findFirstByTag(tagName) {
         return $Dom.findFirstByTag(tagName, this.element);
     }
+    
+    getScrollTop() {
+        return this.element.scrollTop;
+    }
+    
+    getScrollLeft() {
+        return this.element.scrollLeft;
+    }
 
     static query(selector) {
         return selector[0] === '#' ? $Dom.findById(selector) : selector[0] === '.' ? $Dom.findFirstByClass(selector) : $Dom.findFirstByTag(selector);

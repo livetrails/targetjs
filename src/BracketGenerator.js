@@ -1,4 +1,6 @@
 import { Bracket } from "./Bracket.js";
+import { App } from "./App.js";
+
 /**
  * Generates a bottom-up tree from the children of a TModel. When the number of children
  * exceeds a defined threshold (bracketThreshold), a tree is generated to limit the process loop to only
@@ -225,6 +227,8 @@ class BracketGenerator {
 
     static createBracket(page, startIndex, endIndex, list) {
         const bracket = new Bracket(page);
+        App.tmodelIdMap[bracket.oid] = bracket;
+
         bracket.realParent = page;
 
         bracket.allChildrenList = list || bracket.allChildrenList;

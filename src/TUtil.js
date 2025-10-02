@@ -6,8 +6,8 @@ import { getLocationManager, tRoot, getScreenHeight, getScreenWidth } from "./Ap
  */
 class TUtil {
     static calcVisibility(child) {
-        //this condition is for objects that get overflow while updating their 'x'
-        if (child.isVisible() && child.isTargetUpdating('x')) {
+        // keep the "x updating" fast-path
+        if (child.isVisible() && (child.isTargetUpdating('x') || child.isTargetUpdating('y'))) {
             return true;
         }
         
@@ -25,31 +25,42 @@ class TUtil {
         }
 
         const status = child.visibilityStatus;
-        
+
         const validateInParent = child.validateVisibilityInParent() && parent !== tRoot();
 
         const parentX = validateInParent ? Math.max(domParent.absX, parent.absX) : 0;
         const parentY = validateInParent ? Math.max(domParent.absY, parent.absY) : 0;
-        const parentWidth = validateInParent ? Math.min(domParent.getWidth(), parent.getWidth()) : getScreenWidth();
-        const parentHeight = validateInParent ? Math.min(domParent.getHeight(), parent.getHeight()) : getScreenHeight();
-        const validatingParent = validateInParent ? parent : "screen";
+        const parentW = validateInParent ? Math.min(domParent.getWidth(), parent.getWidth()) : getScreenWidth();
+        const parentH = validateInParent ? Math.min(domParent.getHeight(), parent.getHeight()) : getScreenHeight();
 
-        status.right = x <= parentX + parentWidth;
-        status.left = x + maxWidth >= parentX;
-        status.bottom = y - child.getTopMargin() <= parentY + parentHeight;
-        status.top = y + maxHeight >= parentY;
-        status.parentX = parentX;
-        status.parentY = parentY;
-        status.parentWidth = parentWidth;
-        status.parentHeight = parentHeight;
+        const screenX = 0;
+        const screenY = 0;
+        const screenW = getScreenWidth();
+        const screenH = getScreenHeight();
+        
+        const clipX = Math.max(parentX, screenX);
+        const clipY = Math.max(parentY, screenY);
+        const clipR = Math.min(parentX + parentW, screenX + screenW);
+        const clipB = Math.min(parentY + parentH, screenY + screenH);
+
+        status.right = x <= clipR;
+        status.left = (x + maxWidth) >= clipX;
+        status.bottom = (y - child.getTopMargin()) <= clipB;
+        status.top = (y + maxHeight) >= clipY;
+
+        status.clipX = clipX;
+        status.clipY = clipY;
+        status.clipR = clipR;
+        status.clipB = clipB;
         status.x = x;
         status.y = y;
+        status.width = maxWidth;
+        status.height = maxHeight;
+        status.parent = validateInParent ? parent : "screen";
+
         status.isVisible = status.left && status.right && status.top && status.bottom;
-        status.parent = validatingParent;
-
         child.actualValues.isVisible = status.isVisible;
-
-        return child.actualValues.isVisible;
+        return status.isVisible;
     }
 
     static contains(container, tmodel) {
@@ -182,12 +193,12 @@ class TUtil {
         for (const g of list) {
             const gtab = g.isVisible() ? tab + '|  ' : tab + 'x  ';
             if (g.type === 'BI') {
-                console.log(`${gtab}${g.oid} v:${g.isVisible()} x:${Math.floor(g.getX())} y:${Math.floor(g.getY())}, absY:${Math.floor(g.absY)} yy:${Math.floor(g.absY + g.getDomParent().absY)} w:${Math.floor(g.getWidth())} h:${Math.floor(g.getHeight())} hc:${Math.floor(g.getContentHeight())}`);
+                console.log(`${gtab}${g.oid} v:${g.isVisible()} x:${Math.floor(g.getX())} y:${Math.floor(g.getY())}, absX:${Math.floor(g.absX)}, absY:${Math.floor(g.absY)}  ySouth:${Math.floor(g.viewport.ySouth)} w:${Math.floor(g.getBaseWidth())} ww:${Math.floor(g.getContentWidth())} h:${Math.floor(g.getBaseHeight())} hh:${Math.floor(g.getContentHeight())}`);
             } else {
-                console.log(`${gtab}${g.oid} v:${g.isVisible()} x:${Math.floor(g.getX())} y:${Math.floor(g.getY())} absY:${Math.floor(g.absY)} yy:${Math.floor(g.absY + g.getDomParent().absY)} w:${Math.floor(g.getWidth())} h:${Math.floor(g.getHeight())} hc:${Math.floor(g.getContentHeight())}`);
+                console.log(`${gtab}${g.oid} v:${g.isVisible()} x:${Math.floor(g.getX())} y:${Math.floor(g.getY())} absX:${Math.floor(g.absX)}, absY:${Math.floor(g.absY)} w:${Math.floor(g.getWidth())} h:${Math.floor(g.getHeight())} hc:${Math.floor(g.getContentHeight())}`);
             }
 
-            if (g.hasChildren()) {
+            if (g.hasChildren() && g.type !== 'exampleItem') {
                 TUtil.logTree(g, gtab);
             }
         }

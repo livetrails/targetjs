@@ -4,6 +4,7 @@ import { Viewport } from "./Viewport.js";
 import { TUtil } from "./TUtil.js";
 import { SearchUtil } from "./SearchUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
+import { TModelUtil } from "./TModelUtil.js";
 
 /**
  * It provides the base class for all objects in an app where targets are defined. 
@@ -42,6 +43,7 @@ class TModel extends BaseModel {
         this.currentStatus = 'new';
         
         this.dirtyLayout = false;
+        this.originWindowEpoch = -1;
         
         this.initTargets();        
     }
@@ -84,21 +86,47 @@ class TModel extends BaseModel {
             }
         }
         
+        this.viewport.container = this;
+        
         return this.viewport;
     }
+    
+    calcContentWidthHeight() {
+        const contentHeight = this.viewport.ySouth - this.viewport.yNorth;
+        const contentWidth = this.viewport.xEast - this.viewport.xWest;
+        const topBaseHeight = this.viewport.yEast - this.viewport.yNorth;
+        const bottomBaseWidth = this.viewport.xSouth - this.viewport.xWest;
+        
+        if (contentHeight !== this.contentHeight
+                || this.contentWidth !== contentWidth
+                ||  this.topBaseHeight !== topBaseHeight
+                || this.bottomBaseWidth !== bottomBaseWidth) {
+            this.contentHeight = contentHeight;
+            this.topBaseHeight = topBaseHeight;
+            this.bottomBaseWidth = bottomBaseWidth;
+            this.contentWidth = contentWidth;
+       }
+    }
+    
+    adjustViewport() {}    
 
     calcAbsolutePosition(x, y) {
-        
-        const absX = Math.floor(this.absX);
-        const absY = Math.floor(this.absY);     
-        
-        this.absX = TUtil.isDefined(this.val('absX')) ? this.val('absX') : this.getParent().absX + x;
-        this.absY = TUtil.isDefined(this.val('absY')) ? this.val('absY') : this.getParent().absY + y;
-
-        if (absX !== Math.floor(this.absX) || absY !== Math.floor(this.absY)) {
-            this.markLayoutDirty('absXY');
-        }           
+        this.absX = TUtil.isDefined(this.val('absX')) ? this.val('absX') : this.getParent().absX - (this.getParent().$dom?.getScrollLeft() ?? 0) + x;
+        this.absY = TUtil.isDefined(this.val('absY')) ? this.val('absY') : this.getParent().absY - (this.getParent().$dom?.getScrollTop() ?? 0) + y;
     }
+    
+    calcAbsolutePositionFromDom() {
+        TModelUtil.calcAbsolutePositionFromDom(this);
+    }
+    
+    getTransformX() {
+        return this.getX();
+    }
+    
+    getTransformY() {
+        return this.getY();
+    } 
+       
       
     removeChild(child) {
         if (!child) {
@@ -125,9 +153,7 @@ class TModel extends BaseModel {
             child.domOrderIndex = index;
             child.activate();
         }
-        
-        delete App.tmodelIdMap[child.oid];
-         
+                 
         this.childrenUpdateFlag = true;
         this.markLayoutDirty('moveChild');
         
@@ -370,7 +396,13 @@ class TModel extends BaseModel {
         if (TUtil.isDefined(this.val('calculateChildren'))) {
             return this.val('calculateChildren');
         }
-        const result = this.isIncluded() && (this.dirtyLayout !== false || this.currentStatus === 'new');
+        
+        if (this.isDomIsland() && !this.hasDom()) {
+            return false;
+        }
+        
+        const result = (this.isIncluded() && this.isVisible() && this.dirtyLayout !== false) || (this.isIncluded() && this.isNowVisible);
+        
         this.currentStatus = undefined;
 
         return result;
@@ -557,6 +589,10 @@ class TModel extends BaseModel {
         return !!this.$dom && this.$dom.exists();
     }
     
+    isDomIsland() {
+        return this.val('domIsland');
+    }
+    
     getRealParent() {
         return this.parent;
     }
@@ -569,13 +605,14 @@ class TModel extends BaseModel {
         return this.contentWidth;
     }  
     
-    calcContentWidthHeight() {
-        this.contentHeight = this.viewport.ySouth - this.viewport.yNorth;
-        this.topBaseHeight = this.viewport.yEast - this.viewport.yNorth;
-        this.bottomBaseWidth = this.viewport.xSouth - this.viewport.xWest;        
-        this.contentWidth = this.viewport.xEast - this.viewport.xWest;
+    useContentWidth() {
+        return TModelUtil.useContentWidth(this);
     }
     
+    useContentHeight() {
+        return TModelUtil.useContentHeight(this);
+    }    
+
     getBaseWidth() {
         return this.val('baseWidth') ?? this.getWidth();
     }
@@ -698,16 +735,6 @@ class TModel extends BaseModel {
         return this.val('y');
     }
     
-    getTransformX() {
-        const p = this.getDomParent()?.absX ?? 0;
-        return this.absX - p;
-    }
-    
-    getTransformY() {
-        const p = this.getDomParent()?.absY ?? 0;
-        return this.absY - p;
-    } 
-   
     getZ() {
         return this.val('z');
     }    

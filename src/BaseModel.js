@@ -115,21 +115,24 @@ class BaseModel {
             if (this.targets['canHaveDom'] !== false && !TUtil.isDefined(this.targets['domHolder'])) {
                 this.targets['domHolder'] = true;
             }
-        } else if (domExists && !TUtil.isDefined(this.targets['reuseDomDefinition'])) {
-            this.targets['reuseDomDefinition'] = true;
-            this.targets['domHolder'] = true;
-            if (!TUtil.isDefined(this.targets['excludeXYCalc'])) {
-                this.targets['excludeXYCalc'] = true;                
-            } 
-            if (!TUtil.isDefined(this.targets['x'])) {
-                this.targets['excludeX'] = true;
+        } else if (domExists) {
+            this.targets['domIsland'] = true;
+            if (!TUtil.isDefined(this.targets['reuseDomDefinition'])) {
+                this.targets['reuseDomDefinition'] = true;
+                this.targets['domHolder'] = true;
+                if (!TUtil.isDefined(this.targets['excludeXYCalc'])) {
+                    this.targets['excludeXYCalc'] = true;                
+                } 
+                if (!TUtil.isDefined(this.targets['x'])) {
+                    this.targets['excludeX'] = true;
+                }
+                if (!TUtil.isDefined(this.targets['y'])) {
+                    this.targets['excludeY'] = true;                
+                }
+                if (!TUtil.isDefined(this.targets['position'])) {
+                    this.targets['position'] = 'relative';
+                }
             }
-            if (!TUtil.isDefined(this.targets['y'])) {
-                this.targets['excludeY'] = true;                
-            }
-            if (!TUtil.isDefined(this.targets['position'])) {
-                this.targets['position'] = 'relative';
-            }            
         }
 
         Object.keys(this.targets).filter(key => !TargetData.excludedTargetKeys.has(key)).forEach((key, keyIndex) => {
@@ -350,7 +353,12 @@ class BaseModel {
         Object.keys(targets).forEach(key => {
             this.targets[key] = targets[key];
             this.removeFromUpdatingTargets(key);
-            this.processNewTarget(key);
+            if (!this.originalTargetNames.includes(key)) {
+                this.originalTargetNames.push(key);
+            }
+            const keyIndex = this.originalTargetNames.indexOf(key);
+            
+            this.processNewTarget(key, keyIndex);
         });
 
         getRunScheduler().schedule(1, 'addTargets-' + this.oid);

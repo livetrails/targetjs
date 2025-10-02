@@ -3,7 +3,7 @@ import { SearchUtil } from "./SearchUtil.js";
 import { TUtil } from "./TUtil.js";
 import { TargetData } from "./TargetData.js";
 import { TargetExecutor } from "./TargetExecutor.js";
-import { tApp, getRunScheduler, tRoot } from "./App.js";
+import { tApp, getRunScheduler, tRoot, getLocationManager } from "./App.js";
 
 /**
  * It provides a central place to manage all events. 
@@ -71,23 +71,28 @@ class EventListener {
               
         this.allEvents = {};
         
+        this.windowScrollX = window.scrollX | 0;
+        this.windowScrollY = window.scrollY | 0;
+        this.windowEpoch = 0;
+        
         Object.values(TargetData.events).forEach(group => {
             Object.assign(this.allEvents, group);
         });     
 
+        this.bindedHandleWindowEvent = this.handleWindowEvent.bind(this);
         this.bindedHandleEvent = this.handleEvent.bind(this);
         this.bindedParentHandleEvent = this.handleDocEvent.bind(this);
     }
 
     detachWindowEvents() {
         Object.keys(TargetData.events.windowEvents).forEach(key => {
-            tApp.$window.detachEvent(key, this.bindedHandleEvent);
+            tApp.$window.detachEvent(key, this.bindedHandleWindowEvent);
         });
     }
     
     attachWindowEvents() {
         Object.keys(TargetData.events.windowEvents).forEach(key => {
-            tApp.$window.addEvent(key, this.bindedHandleEvent);
+            tApp.$window.addEvent(key, this.bindedHandleWindowEvent);
         });        
     }
     
@@ -278,17 +283,21 @@ class EventListener {
     }
     
     handleDocEvent(event) {
-        this.handleEvent(event, true);
+        this.handleEvent(event, true, false);
     }
-
-    handleEvent(event, isDocEvent) {
+    
+    handleWindowEvent(event) {
+        this.handleEvent(event, false, true);
+    }
+    
+    handleEvent(event, isDocEvent, isWindowEvent) {
         if (!event) {
             return;
         }
 
         const { type: originalName } = event; 
         const eventItem = this.allEvents[originalName];
-                                
+                                                  
         if (!eventItem) {
             return;
         }
@@ -474,11 +483,26 @@ class EventListener {
                 break;                
                 
             case 'resize':
+                this.windowEpoch++;
                 this.resizeRoot();
-                tApp.manager.getVisibles().forEach(tmodel => {
-                    tmodel.markLayoutDirty('resize-event');
+                tApp.manager.getVisibles().forEach(t => {
+                    t.markLayoutDirty('resize-event');
                 });  
-                break;              
+                break;
+                
+            case 'scroll':
+                if (isWindowEvent) {
+                    console.log("window scroll");
+                    this.windowEpoch++;
+                    this.windowScrollX = window.scrollX | 0;
+                    this.windowScrollY = window.scrollY | 0;
+                    getLocationManager().domIslandSet.forEach(t => {
+                        t.markLayoutDirty('winScroll-event');
+                    });
+                } else {
+                    tmodel.markLayoutDirty('winScroll-event');
+                }
+                break;
         }
         
         getRunScheduler().schedule(0, `${originalName}-${eventName}-${(event.target.tagName || '').toUpperCase()}`);
@@ -593,6 +617,10 @@ class EventListener {
     getScrollTopHandler() {
         return this.currentHandlers.scrollTop;
     }
+    
+    getWindowScrollX() { return this.windowScrollX; }
+    getWindowScrollY() { return this.windowScrollY; }
+    getWindowEpoch() { return this.windowEpoch; }
 
     getPinchHandler() {
         return this.currentHandlers.pinch;

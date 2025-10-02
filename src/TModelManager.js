@@ -131,12 +131,7 @@ class TModelManager {
                 
                 if (!App.tmodelIdMap[tmodel.oid] || !tmodel.isIncluded()) {   
                     this.addToInvisibleDom(tmodel);
-                } else if (tmodel.canDeleteDom() && this.isBracketVisible(tmodel) === false) {
-                    this.addToInvisibleDom(tmodel);
-                    tmodel.getChildren().forEach(tmodel => {
-                        this.addToRecursiveInvisibleDom(tmodel);
-                    });
-                }
+                } 
             }
         });
         
@@ -315,7 +310,7 @@ class TModelManager {
         if (this.lists.noDom.length === 0) { 
             return;
         }
-                
+                        
         const needsDom = [];
 
         this.lists.noDom.sort((a, b) => {
@@ -342,7 +337,6 @@ class TModelManager {
                     tmodel.$dom = tmodel.val('$dom');
                     if (!tmodel.hasDom()) {
                         tmodel.getDomHolder(tmodel).appendTModel$Dom(tmodel);
-                        tmodel.hasDomNow = true;    
                     }   
                 } else {
                     const xKey = this.getDomExchangeKey(tmodel);
@@ -365,7 +359,7 @@ class TModelManager {
                             this.lists.invisibleDom.splice(index, 1);
                             tmodel.styleMap = invisible.styleMap;
                             tmodel.transformMap = invisible.transformMap;
-                            tmodel.$dom = invisible.$dom; 
+                            tmodel.$dom = invisible.$dom;
                                                         
                             TModelUtil.patchDom(tmodel);
                             this.resetTModelDom(invisible);
@@ -376,9 +370,13 @@ class TModelManager {
                         tmodel.$dom = new $Dom();
                         TModelUtil.createDom(tmodel);
                         tmodel.getDomHolder(tmodel).appendTModel$Dom(tmodel);
-                        tmodel.hasDomNow = true;
                     }
                 } 
+            }
+            
+            if (tmodel.hasDom()){
+                tmodel.hasDomNow = true;
+                tmodel.markLayoutDirty('hasDomNow');
             }
         }
         

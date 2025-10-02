@@ -14,6 +14,7 @@ class Viewport {
         this.scrollTop = 0;
         
         this.absX = 0;
+        this.absY = 0;
         this.xOverflowReset = 0;
         this.xOverflowLimit = 0;
 
@@ -22,6 +23,10 @@ class Viewport {
         this.yWest = 0;
         this.yEast = 0;
         this.ySouth = 0;
+                
+        this.container = undefined;
+        
+        this.time = 0;
     }
     
     setCurrentChild(child) {
@@ -59,25 +64,81 @@ class Viewport {
         this.currentChild.getRealParent().viewport.xEast = Math.max(this.currentChild.getRealParent().viewport.xEast, this.xEast);
         this.currentChild.getRealParent().viewport.ySouth = Math.max(this.currentChild.getRealParent().viewport.ySouth, this.ySouth);
     }
-
-    nextLocation() {   
-        const height = this.currentChild.getBaseHeight() * this.currentChild.getMeasuringScale();
+    
+    
+    computeBoundary(child, space) {
+        const scale = child.getMeasuringScale();
+        const width  = child.getBaseWidth() * scale;
+        const height = child.getBaseHeight() * scale;
         
-        const baseWidth = this.currentChild.getBaseWidth() * this.currentChild.getMeasuringScale();
-        const topBaseHeight = this.currentChild.getTopBaseHeight() * this.currentChild.getMeasuringScale();
+        let x, y, left, right, top, bottom;
+        
+        if (space === 'layout') {
+            x = child.x;
+            y = child.y;
+            left = x - child.getLeftMargin();
+            right = x + width + child.getRightMargin();
+            top = y - child.getTopMargin();
+            bottom = y + height + child.getBottomMargin();
+        } else if (space === 'absolute') {
+            x = child.absX - this.absX;
+            y = child.absY - this.absY;
+            left = x;
+            right = x + width + child.getRightMargin();
+            top = y;
+            bottom = y + height + child.getBottomMargin();
+        } else {
+            x = child.getX();
+            y = child.getY();
+            left = x;
+            right = x + width;
+            top = y;
+            bottom = y + height;
+        }
 
-        const ySouth = this.yNext + height + this.currentChild.getTopMargin() + this.currentChild.getBottomMargin();      
-        this.xNext += baseWidth + this.currentChild.getLeftMargin() + this.currentChild.getRightMargin();
+        return { left, top, right, bottom };
+      }
+
+    nextLocation() {
+        const child = this.currentChild;
+        const scale = child.getMeasuringScale();
+        const topBaseHeight = child.getTopBaseHeight() * scale;
+               
+        let maxHeight = child.getBaseHeight() * scale + this.currentChild.getTopMargin() + this.currentChild.getBottomMargin();
+        let maxWidth = child.getBaseWidth() * scale +  this.currentChild.getLeftMargin() + this.currentChild.getRightMargin();
+        
+        if (child.type !== 'BI') {
+            const layout = this.computeBoundary(child, 'layout');
+            const animated = this.computeBoundary(child, 'animated');  
+            maxHeight = Math.max(maxHeight, layout.bottom - animated.top, animated.bottom - layout.top, layout.bottom - layout.top, animated.bottom - animated.top);
+            maxWidth = Math.max(maxWidth, layout.right - animated.left, animated.right - layout.left, layout.right - layout.left, animated.right - animated.left);
+        }
+        
+        let ySouth = this.yNext + maxHeight;
+        this.xNext += maxWidth; 
+                
+        if (child.isDomIsland() && child.hasDom()) {
+            const absolute = this.computeBoundary(child, 'absolute');
+            ySouth = absolute.bottom;
+            this.xNext = absolute.right;
+            this.xWest = absolute.x;
+            this.yWest = absolute.y;
+        }
+        
         this.yNext += topBaseHeight;
-
         this.xSouth = this.xNext;
         this.yEast = this.yNext;
 
         this.xEast = Math.max(this.xNext, this.xEast);
-        this.ySouth = Math.max(ySouth, this.ySouth);
-        
-        this.currentChild.getRealParent().viewport.xEast = Math.max(this.currentChild.getRealParent().viewport.xEast, this.xEast);
-        this.currentChild.getRealParent().viewport.ySouth = Math.max(this.currentChild.getRealParent().viewport.ySouth, this.ySouth);
+        this.ySouth = Math.max(ySouth, this.ySouth) ;
+
+        if (child.type !== 'BI') {
+            child.getRealParent().viewport.xEast = Math.max(child.getRealParent().viewport.xEast, this.xEast);
+            child.getRealParent().viewport.ySouth = Math.max(child.getRealParent().viewport.ySouth, this.ySouth);
+        } else if (!child.isVisible()) {
+            child.getRealParent().viewport.xEast = child.viewport.xEast;
+            child.getRealParent().viewport.ySouth = child.viewport.ySouth;
+        }
     }
 }
 

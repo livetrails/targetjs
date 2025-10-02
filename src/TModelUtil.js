@@ -15,7 +15,7 @@ class TModelUtil {
             return false;
         }
         
-        return (!tmodel.excludeDefaultStyling() && !TUtil.isDefined(tmodel.targetValues.height) && !tmodel.val('heightFromDom') && !TModelUtil.isHeightDefined(tmodel) && !tmodel.hasChildren()) 
+            return (!tmodel.excludeDefaultStyling() && !TUtil.isDefined(tmodel.targetValues.height) && !tmodel.val('heightFromDom') && !TModelUtil.isHeightDefined(tmodel) && !tmodel.hasChildren()) 
             || tmodel.val('heightFromDom');    
     }
     
@@ -43,6 +43,14 @@ class TModelUtil {
     static isYDefined(tmodel) {
         return tmodel.isTargetImperative('y') || !!tmodel.allTargetMap['y'] || !!tmodel.targetValues['y'];   
     }  
+    
+    static useContentWidth(tmodel) {
+        return !TModelUtil.isWidthDefined(tmodel) && !tmodel.val('widthFromDom') && tmodel.getContentWidth() > 0;
+    }
+    
+    static useContentHeight(tmodel) {
+        return !TModelUtil.isHeightDefined(tmodel) && !tmodel.val('heightFromDom') && tmodel.getContentHeight() > 0;
+    }    
 
     static createDom(tmodel) {
         tmodel.$dom = new $Dom();
@@ -389,6 +397,23 @@ class TModelUtil {
 
         return sortedTransforms.join(' ');        
     };
+    
+    static calcAbsolutePositionFromDom(tmodel) {
+        if (!tmodel.hasDom()) { 
+            return;
+        }
+
+        const rect = tmodel.$dom.getBoundingClientRect();
+        const absX = Math.floor(rect.left);
+        const absY = Math.floor(rect.top);
+        
+        if (absX !== Math.floor(tmodel.absX) || absY !== Math.floor(tmodel.absY)) {
+                      
+            tmodel.absX = rect.left;
+            tmodel.absY = rect.top;
+            tmodel.markLayoutDirty('islandAbsXY');
+        }
+    }
 }
 
 export { TModelUtil };

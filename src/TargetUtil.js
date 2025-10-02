@@ -1,4 +1,4 @@
-import { App, getLoader, getEvents } from "./App.js";
+import { App, getLoader, getEvents, getLocationManager } from "./App.js";
 import { TUtil } from "./TUtil.js";
 import { TargetParser } from "./TargetParser.js";
 import { TargetData } from "./TargetData.js";
@@ -500,7 +500,8 @@ class TargetUtil {
         tmodel.updatingTargetList.length = 0;
         tmodel.activeTargetList.length = 0;
         tmodel.updatingChildrenList.length = 0;
-        tmodel.activeChildrenList.length = 0;   
+        tmodel.activeChildrenList.length = 0;
+        getLocationManager().domIslandSet.delete(tmodel);
         delete App.tmodelIdMap[tmodel.oid];
     } 
 

@@ -23,8 +23,8 @@ class TargetData {
             element: 'div',
             canHaveDom: true,
             isIncluded: true,
-            bracketThreshold: 10,
-            bracketSize: 5,
+            bracketThreshold: 5,
+            bracketSize: 2,
             preventDefault: undefined,
             canDeleteDom: undefined
         };
@@ -287,10 +287,11 @@ class TargetData {
             blur: { eventName: 'blur', inputType: 'mouse', eventType: 'cancel', order: 2, windowEvent: true, queue: true, rateLimit: 0 },
             resize: { eventName: 'resize', inputType: '', eventType: 'resize', order: 1, windowEvent: true, queue: true, rateLimit: 50 },
             orientationchange: { eventName: 'resize', inputType: '', eventType: 'resize', order: 1, windowEvent: true, queue: true, rateLimit: 50 },
+            scroll: {eventName: 'scroll', inputType: '', eventType: 'scroll', order: 1, windowEvent: true, queue: true, rateLimit: 50}            
         },
-
-        windowScroll: {
-            scroll: {eventName: 'scroll', inputType: '', eventType: 'windowScroll', order: 1, windowEvent: true, queue: true, rateLimit: 50}
+        
+        containerScroll: {
+            scroll: {eventName: 'scroll', inputType: '', eventType: 'scroll', order: 1, windowEvent: false, queue: true, rateLimit: 50}
         },
         
         inputEvents: {
@@ -447,7 +448,7 @@ class TargetData {
         onScroll: ['touchStart', 'mouseStart', 'wheelEvents'],
         onScrollLeft: ['touchStart', 'mouseStart', 'wheelEvents'],
         onScrollTop: ['touchStart', 'mouseStart', 'wheelEvents'],
-        onWindowScroll: ['windowScroll'],
+        onWindowScroll: ['containerScroll'],
         onPopState: ['popState'],
         onChange: ['changeEvents'],
         onInput: ['inputEvents'],
@@ -486,7 +487,7 @@ class TargetData {
         onScroll: tmodel => (getEvents().isScrollLeftHandler(tmodel) && getEvents().deltaX()) || (getEvents().isScrollTopHandler(tmodel) && getEvents().deltaY()),
         onScrollTop: tmodel => getEvents().getOrientation() !== 'horizontal' && getEvents().isScrollTopHandler(tmodel) && getEvents().deltaY(),
         onScrollLeft: tmodel => getEvents().getOrientation() !== 'vertical' && getEvents().isScrollLeftHandler(tmodel) && getEvents().deltaX(),
-        onWindowScroll: () => getEvents().getEventType() === 'windowScroll',
+        onWindowScroll: () => getEvents().getEventType() === 'scroll',
         onPopState: () => getEvents().getEventType() === 'popstate',
         onChange: tmodel => getEvents().getEventType() === 'change' && getEvents().isFormHandler(tmodel),
         onInput: tmodel => getEvents().getEventType() === 'input' &&  getEvents().isFormHandler(tmodel),
@@ -542,7 +543,7 @@ class TargetData {
         'requiresDom', 'preventDefault', 'canDeleteDom', 'textOnly', 'styling', '$dom',
         'defaultStyling', 'reuseDomDefinition', 'canHaveDom', 'excludeXYCalc', 'excludeX', 'excludeY',
         'containerOverflowMode', 'itemOverflowMode', 'baseElement', 'element', 'otype',
-        'calculateChildren'
+        'calculateChildren','domIsland', 'bracketThreshold', 'bracketSize', 'sourceDom'
     ]);
     
     static activationKeywordSet = new Set([
