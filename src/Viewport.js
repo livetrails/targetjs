@@ -49,7 +49,7 @@ class Viewport {
         this.xNext = this.scrollLeft - this.absX + this.xOverflowReset;
         this.yNext = this.ySouth;
     }
-
+    
     appendNewLine() {
         const height = this.currentChild.getHeight() * this.currentChild.getMeasuringScale();
 
@@ -60,9 +60,6 @@ class Viewport {
         this.xSouth = this.xNext;
 
         this.ySouth = Math.max(this.yNext, this.ySouth);
-
-        this.currentChild.getRealParent().viewport.xEast = Math.max(this.currentChild.getRealParent().viewport.xEast, this.xEast);
-        this.currentChild.getRealParent().viewport.ySouth = Math.max(this.currentChild.getRealParent().viewport.ySouth, this.ySouth);
     }
     
     
@@ -124,7 +121,7 @@ class Viewport {
             this.xWest = absolute.x;
             this.yWest = absolute.y;
         }
-        
+    
         this.yNext += topBaseHeight;
         this.xSouth = this.xNext;
         this.yEast = this.yNext;
@@ -132,10 +129,14 @@ class Viewport {
         this.xEast = Math.max(this.xNext, this.xEast);
         this.ySouth = Math.max(ySouth, this.ySouth) ;
 
-        if (child.type !== 'BI') {
-            child.getRealParent().viewport.xEast = Math.max(child.getRealParent().viewport.xEast, this.xEast);
-            child.getRealParent().viewport.ySouth = Math.max(child.getRealParent().viewport.ySouth, this.ySouth);
-        } else if (!child.isVisible()) {
+        child.getRealParent().viewport.xEast = Math.max(child.getRealParent().viewport.xEast, this.xEast);
+        child.getRealParent().viewport.ySouth = Math.max(child.getRealParent().viewport.ySouth, this.ySouth);
+        
+        if (child.type === 'BI') {
+            //console.log("child: " + child.oid + ', ' + child.getChildrenOids() + ', ' + maxWidth + ', ' + maxHeight + ' => ' + this.xNext + ', ' + this.yNext);
+        }
+
+        if (child.type === 'BI' && !child.isVisible() && !child.getRealParent().managesOwnScroll()) {
             child.getRealParent().viewport.xEast = child.viewport.xEast;
             child.getRealParent().viewport.ySouth = child.viewport.ySouth;
         }

@@ -82,7 +82,7 @@ class Bracket extends TModel {
         this.viewport.xEast = this.x;
         this.viewport.xSouth = this.x;
         this.viewport.xWest = this.x;
-        
+
         this.viewport.absX = this.getRealParent().viewport.absX;
         this.viewport.absY = this.getRealParent().viewport.absY;
 

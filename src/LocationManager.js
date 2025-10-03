@@ -165,16 +165,16 @@ class LocationManager {
                 if (child.isInFlow()) {
                     if (TUtil.isNumber(child.val('appendNewLine'))) {
                         viewport.appendNewLine();
-                        container.calcContentWidthHeight();
-                    } else {
-                        container.calcContentWidthHeight();
-                        viewport.nextLocation();
                     }
+
+                    viewport.nextLocation();
+                    container.calcContentWidthHeight();
                 }
+  
             }
             
             job.index++;
-            
+                        
             if (job.index < job.children.length) {
                 job.stage = 'child';
             }
@@ -481,10 +481,10 @@ class LocationManager {
         tmodel.isNowVisible = !wasVisible && nowVisible;
         tmodel.isNowInvisible = (wasVisible || wasVisible === undefined) && !nowVisible;
         
-        if (tmodel.oid === 'exampleView') {
-            //console.log("calc visibility: " + tmodel.oid + ", " + tmodel.actualValues.isVisible + ", " + tmodel.isNowVisible + ", " + tmodel.isNowInvisible)
+        if (tmodel.isNowInvisible) {
+            this.addToLocationList(tmodel);
         }
-
+        
         tmodel.addToParentVisibleChildren();        
     }
 

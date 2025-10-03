@@ -563,10 +563,10 @@ class TModel extends BaseModel {
     
     managesOwnScroll() {
         if (TUtil.isDefined(this.val('managesOwnScroll'))) {
-            return this.val('managesOwnScroll');
+            return !!this.val('managesOwnScroll');
         }
 
-        return this.allTargetMap['onScroll'] || this.allTargetMap['onScrollLeft'] || this.allTargetMap['onScrollTop'];
+        return !!this.allTargetMap['onScroll'] || !!this.allTargetMap['onScrollLeft'] || !!this.allTargetMap['onScrollTop'] || !!this.allTargetMap['onWindowScroll'];
     }
     
     calcVisibility() {
@@ -574,7 +574,7 @@ class TModel extends BaseModel {
     }
     
     validateVisibilityInParent() {
-        return TUtil.isDefined(this.val('validateVisibilityInParent')) ? this.val('validateVisibilityInParent') : false;
+        return TUtil.isDefined(this.val('validateVisibilityInParent')) ? this.val('validateVisibilityInParent') : this.parent.managesOwnScroll();
     }
 
     hasDomHolderChanged() {
