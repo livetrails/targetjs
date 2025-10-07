@@ -9,7 +9,6 @@ class Bracket extends TModel {
     constructor(parent) {
         super("BI");
         this.parent = parent;
-        this.visibilityStatus = { isVisible: true };
     }
     
     canHaveDom() {
@@ -95,8 +94,7 @@ class Bracket extends TModel {
         this.viewport.yNorth = this.y;
         this.viewport.yWest = this.y;
         this.viewport.yEast = this.y;
-
-        this.viewport.ySouth = this.getRealParent().viewport.ySouth;
+        this.viewport.ySouth = this.y;
         
         this.viewport.container = this;
                 

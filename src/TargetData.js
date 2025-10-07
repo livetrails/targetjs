@@ -23,8 +23,8 @@ class TargetData {
             element: 'div',
             canHaveDom: true,
             isIncluded: true,
-            bracketThreshold: 3,
-            bracketSize: 2,
+            bracketThreshold: 40,
+            bracketSize: 5,
             preventDefault: undefined,
             canDeleteDom: undefined
         };

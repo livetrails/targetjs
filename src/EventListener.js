@@ -492,7 +492,6 @@ class EventListener {
                 
             case 'scroll':
                 if (isWindowEvent) {
-                    console.log("window scroll");
                     this.windowEpoch++;
                     this.windowScrollX = window.scrollX | 0;
                     this.windowScrollY = window.scrollY | 0;

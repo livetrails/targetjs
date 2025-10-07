@@ -108,7 +108,6 @@ class LocationManager {
         }
     }
 
-
     async processStack(stack, ctx) {
         
         const processAfterAllChildren = job => {
@@ -165,9 +164,10 @@ class LocationManager {
                 if (child.isInFlow()) {
                     if (TUtil.isNumber(child.val('appendNewLine'))) {
                         viewport.appendNewLine();
+                    } else {
+                        viewport.nextLocation();
                     }
 
-                    viewport.nextLocation();
                     container.calcContentWidthHeight();
                 }
   
@@ -197,8 +197,8 @@ class LocationManager {
             viewport.setCurrentChild(child);
 
             if (!child.getDirtyLayout() && !child.currentStatus) {
-              
-                this.calcNextLocation(stack, child, container, viewport);
+
+                this.calcNextLocation(child, container, viewport);
                 job.index++;
 
                 return;
@@ -219,12 +219,10 @@ class LocationManager {
                 this.calculateTargets(child);
             }
 
-            if (container.getContainerOverflowMode() === 'always' 
-                    || child.getItemOverflowMode() === 'always'            
-                    || (container.getContainerOverflowMode() === 'auto' && child.getItemOverflowMode() === 'auto' && !child.useContentWidth() && viewport.isOverflow())) {
+            if (viewport.isOverflow()) {
                 viewport.overflow();
                 viewport.setLocation();
-            }  
+            }
 
             if (child.isIncluded()) {
                 if (child.targets['onVisibleChildrenChange'] && !this.visibleChildrenLengthMap[child.oid]) {
@@ -277,8 +275,8 @@ class LocationManager {
                     
                     job.stage = 'afterChild';
                     
-                } else if (!child.isVisible()) {
-                    
+                } else if (!child.isVisible() && child.makeChildrenInvisible !== false) {
+                    child.makeChildrenInvisible = false;
                     TUtil.getDeepList(child).forEach(t => {
                         t.actualValues.isVisible = false;
                         this.addToLocationList(t);
@@ -294,7 +292,6 @@ class LocationManager {
                 continue;
             }
                         
-
             const job = stack[stack.length - 1];
                         
             if (job.stage === 'init') {          
@@ -374,13 +371,11 @@ class LocationManager {
         return container.getChildren();
     }
     
-    calcNextLocation(stack, child, container, viewport) {
+    calcNextLocation(child, container, viewport) {
         
         viewport.setLocation();
         
-        if (container.getContainerOverflowMode() === 'always' 
-                || child.getItemOverflowMode() === 'always'
-                || (container.getContainerOverflowMode() === 'auto' && child.getItemOverflowMode() === 'auto' && viewport.isOverflow())) {
+        if (viewport.isOverflow()) {
             viewport.overflow();
             viewport.setLocation();
         }
@@ -428,16 +423,12 @@ class LocationManager {
         if (child.isInFlow()) {
             if (TUtil.isNumber(child.val('appendNewLine'))) {
                 viewport.appendNewLine();
-                container.calcContentWidthHeight();
-            } else if  (child.getItemOverflowMode() === 'always') {
-                viewport.nextLocation();
-                viewport.overflow();
-                container.calcContentWidthHeight();
             } else {
-                container.calcContentWidthHeight();
                 viewport.nextLocation();
             }
-        }     
+                
+            container.calcContentWidthHeight();
+        } 
     }
     
     calculateCoreTargets(tmodel) {
@@ -482,6 +473,7 @@ class LocationManager {
         tmodel.isNowInvisible = (wasVisible || wasVisible === undefined) && !nowVisible;
         
         if (tmodel.isNowInvisible) {
+            tmodel.makeChildrenInvisible = undefined;
             this.addToLocationList(tmodel);
         }
         

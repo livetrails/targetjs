@@ -193,7 +193,7 @@ class TUtil {
         for (const g of list) {
             const gtab = g.isVisible() ? tab + '|  ' : tab + 'x  ';
             if (g.type === 'BI') {
-                console.log(`${gtab}${g.oid} v:${g.isVisible()} x:${Math.floor(g.getX())} y:${Math.floor(g.getY())}, absX:${Math.floor(g.absX)}, absY:${Math.floor(g.absY)}  ySouth:${Math.floor(g.viewport.ySouth)} w:${Math.floor(g.getBaseWidth())} ww:${Math.floor(g.getContentWidth())} h:${Math.floor(g.getBaseHeight())} hh:${Math.floor(g.getContentHeight())}`);
+                console.log(`${gtab}${g.oid} v:${g.isVisible()} x:${Math.floor(g.getX())} y:${Math.floor(g.getY())}, absX:${Math.floor(g.absX)}, absY:${Math.floor(g.absY)}  n-e-s:${Math.floor(g.viewport.yNorth)}-${Math.floor(g.viewport.yEast)}-${Math.floor(g.viewport.ySouth)} w:${Math.floor(g.getBaseWidth())} ww:${Math.floor(g.getContentWidth())} h:${Math.floor(g.getBaseHeight())} hh:${Math.floor(g.getContentHeight())}`);
             } else {
                 console.log(`${gtab}${g.oid} v:${g.isVisible()} x:${Math.floor(g.getX())} y:${Math.floor(g.getY())} absX:${Math.floor(g.absX)}, absY:${Math.floor(g.absY)} w:${Math.floor(g.getWidth())} h:${Math.floor(g.getHeight())} hc:${Math.floor(g.getContentHeight())}`);
             }

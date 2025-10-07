@@ -41,28 +41,51 @@ class Viewport {
     }
     
     isOverflow() {
+        if (this.currentChild.type === 'BI') {
+            return false;
+        }
+        
+        if (this.container.getContainerOverflowMode() === 'always' 
+            || this.currentChild.getItemOverflowMode() === 'always'            
+                    || (this.container.getContainerOverflowMode() === 'auto' &&
+                        this.currentChild.getItemOverflowMode() === 'auto' && 
+                        !this.currentChild.useContentWidth() && this.checkChildOverflow())) {         
+            return true;        
+        }
+        
+    }
+
+    checkChildOverflow() {
         const childWidth = this.currentChild.getMinWidth();
         return this.absX + this.currentChild.x + childWidth + this.currentChild.getLeftMargin() > this.xOverflowLimit;
     }
 
     overflow() {
         this.xNext = this.scrollLeft - this.absX + this.xOverflowReset;
-        this.yNext = this.ySouth;
+        this.yNext = Math.max(this.currentChild.getRealParent().viewport.ySouth, this.ySouth);
     }
     
     appendNewLine() {
-        const height = this.currentChild.getHeight() * this.currentChild.getMeasuringScale();
+        const child = this.currentChild;
+        const scale = child.getMeasuringScale();
+        
+        let maxHeight = child.getHeight() * scale + this.currentChild.getTopMargin() + this.currentChild.getBottomMargin();
 
         this.xNext = this.scrollLeft - this.absX + this.xOverflowReset;
-        this.yNext = this.ySouth > this.yNext ? this.ySouth + this.currentChild.val('appendNewLine') : this.ySouth + height + this.currentChild.val('appendNewLine');
+        const ySouth =  this.yNext + maxHeight + child.val('appendNewLine');
 
         this.yEast = this.yNext;
         this.xSouth = this.xNext;
+        
 
-        this.ySouth = Math.max(this.yNext, this.ySouth);
+        this.ySouth = Math.max(this.ySouth, ySouth);
+        this.yEast = this.ySouth;
+        this.yNext = this.ySouth;
+
+        child.getRealParent().viewport.xEast = Math.max(child.getRealParent().viewport.xEast, this.xEast);
+        child.getRealParent().viewport.ySouth = Math.max(child.getRealParent().viewport.ySouth, this.ySouth);
     }
-    
-    
+
     computeBoundary(child, space) {
         const scale = child.getMeasuringScale();
         const width  = child.getBaseWidth() * scale;
@@ -101,10 +124,10 @@ class Viewport {
         const scale = child.getMeasuringScale();
         const topBaseHeight = child.getTopBaseHeight() * scale;
                
-        let maxHeight = child.getBaseHeight() * scale + this.currentChild.getTopMargin() + this.currentChild.getBottomMargin();
+        let maxHeight = child.getHeight() * scale + this.currentChild.getTopMargin() + this.currentChild.getBottomMargin();
         let maxWidth = child.getBaseWidth() * scale +  this.currentChild.getLeftMargin() + this.currentChild.getRightMargin();
         
-        if (child.type !== 'BI') {
+        if (child.type !== 'BI' && this.container.type === 'BI') {
             const layout = this.computeBoundary(child, 'layout');
             const animated = this.computeBoundary(child, 'animated');  
             maxHeight = Math.max(maxHeight, layout.bottom - animated.top, animated.bottom - layout.top, layout.bottom - layout.top, animated.bottom - animated.top);
@@ -118,8 +141,8 @@ class Viewport {
             const absolute = this.computeBoundary(child, 'absolute');
             ySouth = absolute.bottom;
             this.xNext = absolute.right;
-            this.xWest = absolute.x;
-            this.yWest = absolute.y;
+            this.xWest = absolute.left;
+            this.yWest = absolute.top;
         }
     
         this.yNext += topBaseHeight;
@@ -131,15 +154,6 @@ class Viewport {
 
         child.getRealParent().viewport.xEast = Math.max(child.getRealParent().viewport.xEast, this.xEast);
         child.getRealParent().viewport.ySouth = Math.max(child.getRealParent().viewport.ySouth, this.ySouth);
-        
-        if (child.type === 'BI') {
-            //console.log("child: " + child.oid + ', ' + child.getChildrenOids() + ', ' + maxWidth + ', ' + maxHeight + ' => ' + this.xNext + ', ' + this.yNext);
-        }
-
-        if (child.type === 'BI' && !child.isVisible() && !child.getRealParent().managesOwnScroll()) {
-            child.getRealParent().viewport.xEast = child.viewport.xEast;
-            child.getRealParent().viewport.ySouth = child.viewport.ySouth;
-        }
     }
 }
 

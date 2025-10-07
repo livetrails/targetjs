@@ -77,14 +77,7 @@ class TModel extends BaseModel {
         this.viewport.yEast = y;
         this.viewport.ySouth = y;
                 
-        Object.assign(this.viewport, this.val('viewport') || {});
-        
-        for (const key in this.viewport) {
-            const override = this.val(`viewport_${key}`);
-            if (TUtil.isDefined(override)) {
-                this.viewport[key] = override;
-            }
-        }
+        this.calcContentWidthHeight();
         
         this.viewport.container = this;
         
