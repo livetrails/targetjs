@@ -102,17 +102,33 @@ class TargetParser {
     }
 
     static isValueStepsCycleArray(arr) {
-        if (arr.length > 4 || arr.length === 0) {
+        if (!Array.isArray(arr) || arr.length === 0 || arr.length > 4) {
             return false;
         }
+        
+        const firstOk =
+            typeof arr[0] === 'number' ||
+            typeof arr[0] === 'string' ||
+             TargetParser.isListTarget(arr[0]);
+     
+       if (!firstOk) {
+           return false;
+       }
 
         for (let i = 1; i < arr.length; i++) {
-            if (typeof arr[i] !== 'number') {
+            const v = arr[i];
+            const isLast = i === arr.length - 1;
+
+            if (typeof v === 'function' && isLast && arr.length >= 4) {
+                continue;
+            }
+            
+            if (typeof v !== 'number') {                
                 return false;
             }
         }
 
-        return arr.length >= 2 && (typeof arr[0] === 'number' || TargetParser.isListTarget(arr[0]) || typeof arr[0] === 'string');
+        return arr.length >= 2;
     }
 
     static isListTarget(value) {

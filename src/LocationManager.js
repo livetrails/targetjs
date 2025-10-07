@@ -66,7 +66,7 @@ class LocationManager {
         }
     }
 
-    async calculateAll(budgetMs = 4) {
+    async calculateAll(budgetMs = 6) {
         if (this.calcBusy) {
             this.calcQueued = true;
             return;
