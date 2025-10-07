@@ -187,6 +187,11 @@ class LocationManager {
 
             const child = children[index];
             
+            if (!child) {
+                job.index++;
+                return;                
+            }
+            
             if (child.isDomIsland()) {
                 if (child.originWindowEpoch !== getEvents().getWindowEpoch() && child.hasDom()) {
                     child.calcAbsolutePositionFromDom();
@@ -293,7 +298,7 @@ class LocationManager {
             }
                         
             const job = stack[stack.length - 1];
-                        
+                                    
             if (job.stage === 'init') {          
                 const container = job.container;
 
@@ -326,7 +331,7 @@ class LocationManager {
                 processAfterChild(job);
             }
             
-            if (job.index === job.children.length) {
+            if (job.index >= job.children.length) {
                 processAfterAllChildren(job);
                 stack.pop();
                 continue;
