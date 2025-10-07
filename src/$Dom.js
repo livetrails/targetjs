@@ -363,11 +363,11 @@ class $Dom {
     }
     
     getScrollTop() {
-        return this.element.scrollTop;
+        return this.element?.scrollTop ?? 0;
     }
     
     getScrollLeft() {
-        return this.element.scrollLeft;
+        return this.element?.scrollLeft ?? 0;
     }
 
     static query(selector) {
