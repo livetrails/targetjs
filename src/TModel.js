@@ -1,5 +1,5 @@
 import { BaseModel } from "./BaseModel.js";
-import { App, getLocationManager, getRunScheduler } from "./App.js";
+import { App, getLocationManager, getRunScheduler, tRoot } from "./App.js";
 import { Viewport } from "./Viewport.js";
 import { TUtil } from "./TUtil.js";
 import { SearchUtil } from "./SearchUtil.js";
@@ -575,7 +575,18 @@ class TModel extends BaseModel {
     }
     
     hasBaseElementChanged() {
-        return this.getBaseElement() !== this.$dom.getTagName();
+        return this.hasDom() ? this.getBaseElement() !== this.$dom.getTagName() : false;
+    }
+    
+    mount(target) {
+        if (target !== undefined) {
+            const domHolder = TModelUtil.normalizeDomHolder(target);
+            if (domHolder) {
+                this.val('domHolder', domHolder);
+            }
+        }
+
+        tRoot().addChild(this);
     }
 
     hasDom() {

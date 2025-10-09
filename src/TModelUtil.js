@@ -414,6 +414,23 @@ class TModelUtil {
             tmodel.markLayoutDirty('islandAbsXY');
         }
     }
+    
+    static normalizeDomHolder(holder) {
+
+        if (holder instanceof $Dom) {
+            return holder;
+        }
+        if (holder instanceof Element) {
+            return new $Dom(holder);
+        }
+        
+        if (typeof holder === 'string') {
+            const el = $Dom.querySelector(holder);
+            return el ? new $Dom(el) : null;
+        }
+        
+        return null;
+    }
 }
 
 export { TModelUtil };

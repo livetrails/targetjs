@@ -373,6 +373,10 @@ class $Dom {
     static query(selector) {
         return selector[0] === '#' ? $Dom.findById(selector) : selector[0] === '.' ? $Dom.findFirstByClass(selector) : $Dom.findFirstByTag(selector);
     }
+    
+    static querySelector(selector) {
+        return document.querySelector(selector);
+    }
 
     static findById(id) {
         return document.getElementById(id[0] === '#' ? id.slice(1) : id);

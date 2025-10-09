@@ -611,7 +611,7 @@ class BaseModel {
             return;
         }
 
-        const stepInterval = interval || 7;
+        const stepInterval = interval || 8;
         
         const elapsed = now - lastUpdate;
         const stepIncrement = Math.max(1, Math.floor(elapsed / stepInterval));
