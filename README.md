@@ -327,13 +327,13 @@ import { App } from "targetj";
 
 **Via CDN**
 
-Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 67KB):
+Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 54KB):
 
 ```html
 <script src="https://unpkg.com/targetj@latest/dist/targetjs.js"></script>
 ```
 
-This will add `TargetJS` to the global `window` object, making it accessible throughout your JavaScript such as `TargetJS.App(YourApp)`.
+This exposes `TargetJS` on `window`, so you can initialize your app with `TargetJS.App(...)`. Make sure your code runs after the TargetJS script loads (use `defer` or place your script below it).
 
 You can also use it without `App` by mounting a `TModel` object to an HTML element, for example:
 
@@ -346,7 +346,6 @@ You can also use it without `App` by mounting a `TModel` object to an HTML eleme
     }).mount(document.body);
 </script>
 ```
-
 Or, directly in your HTML with `tg-` attributes:
 
 ```html
