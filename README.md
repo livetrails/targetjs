@@ -327,14 +327,26 @@ import { App } from "targetj";
 
 **Via CDN**
 
-Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 67KB):
+Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 54KB):
 
 ```html
 <script src="https://unpkg.com/targetj@latest/dist/targetjs.js"></script>
 ```
 
-This will add `TargetJS` to the global `window` object, making it accessible throughout your JavaScript such as `TargetJS.App(YourApp)`.
-You can also use it directly in your HTML with `tg-` attributes:
+This exposes `TargetJS` on `window`, so you can initialize your app with `TargetJS.App(...)`. Make sure your code runs after the TargetJS script loads (use `defer` or place your script below it).
+
+You can also use it without `App` by mounting a `TModel` object to an HTML element, for example:
+
+```html
+<script>
+    new TargetJS.TModel({
+        background: 'red',
+        width: [100, 50, 10],
+        height: [100, 50, 10]
+    }).mount(document.body);
+</script>
+```
+Or, directly in your HTML with `tg-` attributes:
 
 ```html
 <div
