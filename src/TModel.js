@@ -2,6 +2,7 @@ import { BaseModel } from "./BaseModel.js";
 import { App, getLocationManager, getRunScheduler, tRoot } from "./App.js";
 import { Viewport } from "./Viewport.js";
 import { TUtil } from "./TUtil.js";
+import { TargetData } from "./TargetData.js";
 import { SearchUtil } from "./SearchUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TModelUtil } from "./TModelUtil.js";
@@ -34,7 +35,7 @@ class TModel extends BaseModel {
         this.topBaseHeight = 0;
         
         this.styleMap = {};
-        this.transformMap = {};
+        this.tfMap = {};
                 
         this.visibilityStatus = undefined;
                       
@@ -68,8 +69,8 @@ class TModel extends BaseModel {
         this.viewport.absX = this.absX;
         this.viewport.absY = this.absY;
         
-        this.viewport.xOverflowReset = this.absX;        
-        this.viewport.xOverflowLimit = this.absX +this.getWidth();
+        this.viewport.xOverflowReset = x;        
+        this.viewport.xOverflowLimit = x +this.getWidth();
 
         this.viewport.yNext = y;
         this.viewport.yNorth = y;
@@ -111,18 +112,9 @@ class TModel extends BaseModel {
     calcAbsolutePositionFromDom() {
         TModelUtil.calcAbsolutePositionFromDom(this);
     }
-    
-    getTransformX() {
-        return this.getX();
-    }
-    
-    getTransformY() {
-        return this.getY();
-    } 
-       
-      
+
     removeChild(child) {
-        if (!child) {
+        if (!child || !this.allChildrenMap[child.oid]) {
             return;
         }
             
@@ -301,20 +293,14 @@ class TModel extends BaseModel {
         this.allChildrenList.forEach(t => {
             TargetUtil.resetBeforeDeletion(t);
             t.$dom = undefined;
-        })
+        }); 
         this.allChildrenList = [];
         this.allChildrenMap = {};
        
-        this.updatingChildrenList.length = 0;
-        for (const k in this.updatingChildrenMap) {
-            delete this.updatingChildrenMap[k];
-        }  
-        
-        this.activeChildrenList.length = 0;
-        for (const k in this.activeChildrenMap) {
-            delete this.activeChildrenMap[k];
-        }         
-        
+        this.clearUpdatingChildren();
+        this.clearActiveChildren();
+        this.clearAnimatingChildren();
+       
         if (this.hasDom()) {
             this.$dom.deleteAll();
         }
@@ -390,11 +376,11 @@ class TModel extends BaseModel {
             return this.val('calculateChildren');
         }
         
-        if (this.isDomIsland() && !this.hasDom()) {
+        if (!this.isIncluded() || (this.isDomIsland() && !this.hasDom())) {
             return false;
         }
         
-        const result = (this.isIncluded() && this.isVisible() && this.dirtyLayout !== false) || (this.isIncluded() && this.isNowVisible);
+        const result = (this.isVisible() && this.dirtyLayout !== false) || this.isNowVisible;
         
         this.currentStatus = undefined;
 
@@ -443,7 +429,7 @@ class TModel extends BaseModel {
     }
 
     getParentValue(targetName) {
-        return this.parent.val(targetName);
+        return this.parent?.val(targetName);
     }
     
     pval(targetName) {
@@ -493,6 +479,12 @@ class TModel extends BaseModel {
     lastVal(key) {
         return this.lastActualValues[key];
     }
+    
+    setActual(key, value) {
+        if (this.targetValues[key]) {
+            this.targetValues[key].actual = value;
+        }
+    }
 
     floorVal(key) {
         return Math.floor(this.val(key) ?? 0);
@@ -504,15 +496,15 @@ class TModel extends BaseModel {
    
     getDomHolder(tmodel) {
         const domHolder = this.val('domHolder');
-        const domParent = this.getDomParent();
-
+        
         if (domHolder === true && tmodel !== this) {
             return this.$dom;
-        }
-
+        }        
         if (domHolder && domHolder !== true && tmodel.$dom !== domHolder) {
             return domHolder;
         }
+        
+        const domParent = this.getDomParent();
 
         return domParent ? domParent.$dom : null;
     }
@@ -528,8 +520,8 @@ class TModel extends BaseModel {
             { height: this.getHeight() },
             { activeTargetList: this.activeTargetList },
             { updatingTargetList: this.updatingTargetList },
-            { updatingChildrenList: this.updatingChildrenList },
-            { activeChildrenList: this.activeChildrenList },            
+            { updatingChildren: this.updatingChildrenMap ? [ ...this.updatingChildrenMap.keys() ] : [] },
+            { activeChildren: this.activeChildrenMap ? [ ...this.activeChildrenMap.keys() ] : [] },            
             { children: this.getChildren() },
             { targetValues: this.targetValues },
             { actualValues: this.actualValues }
@@ -638,7 +630,14 @@ class TModel extends BaseModel {
     }
     
     getItemOverflowMode() {
-        return this.val('itemOverflowMode') ?? 'auto';
+        const mode = this.targets.itemOverflowMode;
+
+        if (mode !== undefined) {
+            return typeof mode === 'function' ? mode.call(this) : mode;
+        }
+
+        const v = this.val('itemOverflowMode');
+        return v !== undefined ? v : 'auto';
     }    
 
     getUIDepth() {
@@ -651,6 +650,10 @@ class TModel extends BaseModel {
         }
 
         return depth;
+    }
+    
+    canBeAnimated(key) {
+        return TargetData.isGpuPreferred(key) && this.actualValues.webAnimation !== false;
     }
     
     isTextOnly() {
@@ -712,7 +715,7 @@ class TModel extends BaseModel {
     }
     
     requiresDomRelocation() {
-        return TUtil.isDefined(this.val('requiresDomRelocation')) ? this.val('requiresDomRelocation') : !TUtil.isDefined(this.transformMap.x) && !TUtil.isDefined(this.transformMap.y);
+        return TUtil.isDefined(this.val('requiresDomRelocation')) ? this.val('requiresDomRelocation') : !TUtil.isDefined(this.tfMap.x) && !TUtil.isDefined(this.tfMap.y);
     }
     
     getBaseElement() {

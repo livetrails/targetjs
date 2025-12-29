@@ -1,5 +1,6 @@
 import { getEvents, getResizeLastUpdate } from "./App.js";
 import { TUtil } from "./TUtil.js";
+import { TargetUtil } from "./TargetUtil.js";
 
 class TargetData {
 
@@ -24,7 +25,7 @@ class TargetData {
             canHaveDom: true,
             isIncluded: true,
             bracketThreshold: 40,
-            bracketSize: 5,
+            bracketSize: 2,
             preventDefault: undefined,
             canDeleteDom: undefined
         };
@@ -96,6 +97,8 @@ class TargetData {
     };
 
     static styleWithUnitMap = {
+        width: true,
+        height: true,
         fontSize: true,
         lineHeight: true,
         borderRadius: true,
@@ -106,21 +109,26 @@ class TargetData {
         paddingBottom: true,
         left: true,
         top: true,
+        right: true,
+        bottom: true,
+        wordSpacing: true,
         letterSpacing: true
     }
 
     static colorMap = {
         color: true,
-        background: true,
-        backgroundColor: true
+        backgroundColor: true,
+        borderColor: true,
+        background: true        
     };
-
+    
     static styleTargetMap = {
         ...TargetData.transformMap,
-        ...TargetData.dimMap,
         ...TargetData.styleWithUnitMap,
+        ...TargetData.colorMap,
+        dim: true,
         color: true,
-        opacity: true,
+        opacity: true,       
         zIndex: true,
         border: true,
         borderTop: true,
@@ -128,6 +136,16 @@ class TargetData {
         borderRight: true,
         borderBottom: true
     };
+    
+    static gpuTargetMap = {
+        ...TargetData.transformMap,
+        color: true,
+        backgroundColor: true,
+        borderColor: true,      
+        opacity: true,
+        width: true,
+        height: true
+    }
 
     static asyncStyleTargetMap = {
         position: true,
@@ -151,8 +169,6 @@ class TargetData {
         boxShadow: true,
         fontWeight: true,
         willChange: true,
-        background: true,        
-        backgroundColor: true,       
         backgroundImage: true,
         backgroundSize: true,
         flexWrap: true,
@@ -411,7 +427,6 @@ class TargetData {
         willchange: 'willChange',
         domholder: 'domHolder',
         shouldcalculatechildtargets: 'shouldCalculateChildTargets',
-        coretargets: 'coreTargets',
         domparent: 'domParent',
         containeroverflowmode: 'containerOverflowMode',
         itemoverflowmode: 'itemOverflowMode',
@@ -462,9 +477,14 @@ class TargetData {
         onVisible: tmodel => tmodel.isNowVisible,
         onResize: tmodel => {
             const lastUpdate = tmodel.getDimLastUpdate();
+            if (!lastUpdate) {
+                return false;
+            }
             const parent = tmodel.getParent();
-            const resizeLastUpdate = parent ? Math.max(parent.getDimLastUpdate(), getResizeLastUpdate()) : getResizeLastUpdate();
-            return lastUpdate > 0 && resizeLastUpdate > lastUpdate;
+            const resizeLast = getResizeLastUpdate();
+            const parentLast = parent ? parent.getDimLastUpdate() : 0;
+            const resizeLastUpdate = parentLast > resizeLast ? parentLast : resizeLast;
+            return resizeLastUpdate > lastUpdate;            
         }
     };
 
@@ -562,8 +582,15 @@ class TargetData {
         return TargetData.lifecycleMethodSet.has(name) ||
                 TargetData.lifecyclePatterns.step.test(name) ||
                 TargetData.lifecyclePatterns.end.test(name);
-    }    
-
+    }  
+    
+    static isGpuPreferred(key) {
+        return !!TargetData.gpuTargetMap[TargetUtil.getTargetName(key)];
+    }
+    
+    static isTransformKey(key) {
+        return !!TargetData.transformMap[key];
+    }
 }
 
 export { TargetData };

@@ -1,5 +1,5 @@
 import { TUtil } from "./TUtil.js";
-import { getManager, getBrowser } from "./App.js";
+import { getManager } from "./App.js";
 
 /**
  * It serves as a wrapper for all DOM operations.
@@ -13,40 +13,138 @@ class $Dom {
             this.element = elemSelector;
         }
 
-        this.childrenCount = 0;
-        this.$domParent = undefined;
+        this.hasRealChildren = false;
+        this.slotModeEnabled = false;
+        this.contentSlot = null;
         this.originalContent = undefined;
         this.textOnly = true;
+
+        this.transformProp = null;
+        this.initTransformProp();
     }
-    
+
+    create(tagName) {
+        this.element = document.createElement(tagName);
+        this.initTransformProp();
+    }
+
+    initTransformProp() {
+        if (!this.element || !this.element.style) {
+            this.transformProp = null;
+            return;
+        }
+
+        const s = this.element.style;
+        if ('transform' in s) {
+            this.transformProp = 'transform';
+        } else if ('webkitTransform' in s) {
+            this.transformProp = 'webkitTransform';
+        } else {
+            this.transformProp = null;
+        }
+    }
+
     static createTemplate(html) {
         const $dom = new $Dom();
         $dom.create('template');
         $dom.innerHTML(html.trim());
         return $dom;
     }
-    
+
     cloneTemplate() {
         return new $Dom(this.element.content?.cloneNode(true).children[0]);
     }
-    
+
     clone() {
-        return this.element.cloneNode(true); 
-    }
-    
-    exists() {
-        if (this.selector) {
-            this.element = $Dom.query(this.selector);
-        }
-        return this.element ? !!this.element.parentElement : false;
-    }
-    
-    contains(element) {
-        return element instanceof Node && this.element.contains(element);
+        return this.element.cloneNode(true);
     }
 
-    create(tagName) {
-        this.element = document.createElement(tagName);
+    exists() {
+        return this.selector ? !!$Dom.query(this.selector) : false;
+    }
+
+    getElement() {
+        return this.element;
+    }
+
+    supportsWAAPI() {
+        return !!(this.element && typeof this.element.animate === 'function');
+    }
+
+    findContentSlot() {
+
+        if (this.contentSlot && this.contentSlot.parentNode === this.element) {
+            return this.contentSlot;
+        }
+
+        if (!this.element.firstElementChild) {
+            return null;
+        }
+
+        const slot = this.element.querySelector(':scope > [data-tj-slot="content"]');
+        if (slot) {
+            this.contentSlot = slot;
+        }
+        return slot;
+    }
+
+    ensureContentSlotFirst() {
+        let slot = this.findContentSlot();
+
+        if (!slot) {
+            slot = document.createElement('div');
+            slot.setAttribute('data-tj-slot', 'content');
+            this.element.insertBefore(slot, this.element.firstChild);
+            this.contentSlot = slot;
+        } else if (this.element.firstChild !== slot) {
+            this.element.insertBefore(slot, this.element.firstChild);
+        }
+
+        return slot;
+    }
+    
+    enableSlotMode() {
+        if (this.slotModeEnabled) {
+            return;
+        }
+        
+        if (!this.element?.firstChild) {
+            this.slotModeEnabled = true;
+            return;
+        }
+
+        const slot = this.ensureContentSlotFirst();
+
+        let n = slot.nextSibling;
+        while (n) {
+            const next = n.nextSibling;
+            slot.appendChild(n);
+            n = next;
+        }
+
+        this.slotModeEnabled = true;
+    }    
+
+    ensureSlotMode() {
+        this.enableSlotMode();
+
+        const slot = this.findContentSlot();
+        if (slot && this.element.firstChild !== slot) {
+            this.element.insertBefore(slot, this.element.firstChild);
+        }
+    }
+
+    getComputedStyle(name) {
+        if (!this.element) {
+            return undefined;
+        }
+        
+        const cs = window.getComputedStyle(this.element);
+        return name ? cs.getPropertyValue(name) || cs[name] : cs;
+    }
+
+    contains(element) {
+        return element instanceof Node && this.element.contains(element);
     }
 
     getTagName() {
@@ -60,15 +158,15 @@ class $Dom {
     setId(id) {
         this.attr('id', id[0] === '#' ? id.slice(1) : id);
     }
-    
+
     getId() {
         return this.attr('id');
     }
-    
+
     focus() {
         this.element.focus();
     }
-    
+
     blur() {
         this.element.blur();
     }
@@ -94,7 +192,6 @@ class $Dom {
         if (TUtil.isDefined(value)) {
             this.element.value = value;
         }
-        
         return currentValue;
     }
 
@@ -153,16 +250,10 @@ class $Dom {
     getBoundingClientRect() {
         return this.element.getBoundingClientRect();
     }
-    
+
     isXYWithinElement(x, y) {
         const rect = this.getBoundingClientRect();
-
-        return (
-            x >= rect.left &&
-            x <= rect.right &&
-            y >= rect.top &&
-            y <= rect.bottom
-        );
+        return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
     }
 
     parent() {
@@ -171,31 +262,16 @@ class $Dom {
 
     detach() {
         $Dom.detach(this.element);
-        if (this.$domParent && this.$domParent.childrenCount > 0) {
-            this.$domParent.childrenCount--;
-        }
     }
-    
+
     child(index) {
         return this.element.children[index];
     }
 
-    append$Dom($dom) {
-        this.element.appendChild($dom.element);
-    }
-    
-    appendElement(element) {
-        this.element.appendChild(element);
-    }
-    
-    removeElement(element) {
-        this.element.removeChild(element);        
-    }
-    
     elementCount() {
         return this.element.children.length;
     }
-    
+
     swapElements(element1, element2) {
         const nextSibling = element2.nextSibling;
         if (nextSibling === element1) {
@@ -204,88 +280,131 @@ class $Dom {
             this.element.insertBefore(element2, element1);
             this.element.insertBefore(element1, nextSibling);
         }
-    }    
+    }
 
-    insertFirst$Dom($dom) {
-        if (this.element.firstChild) {
-            this.element.insertBefore($dom.element, this.element.firstChild);
+    insertAfterContentSlot(node) {
+        if (!this.element) {
+            return;
+        }
+
+        const slot = this.ensureContentSlotFirst();
+        const after = slot ? slot.nextSibling : this.element.firstChild;
+
+        if (after) {
+            this.element.insertBefore(node, after);
         } else {
-            this.append$Dom($dom);
+            this.element.appendChild(node);
         }
     }
-    
+
+    insertFirst$Dom($dom) {
+        this.ensureSlotMode();
+        this.insertAfterContentSlot($dom.element);
+        this.hasRealChildren = true;
+    }
+
     relocate(tmodel, orderIndex) {
-        this.element.insertBefore(tmodel.$dom.element, this.element.children[orderIndex])
+        this.ensureSlotMode();
+
+        const slot = this.findContentSlot();
+        const offset = slot ? 1 : 0;
+        const idx = orderIndex + offset;
+
+        this.element.insertBefore(tmodel.$dom.element, this.element.children[idx] || null);
     }
 
     appendTModel$Dom(tmodel) {
-        if (this.childrenCount === 0 && this.element.children.length > 1 && tmodel.getDomParent() &&
-            tmodel.getDomParent().getHtml() && tmodel.getDomParent().getHtml() === this.originalContent) {
-            this.element.innerHTML = `<div>${this.html()}</div>`;
-        }
-
+        this.ensureSlotMode();
         this.element.appendChild(tmodel.$dom.element);
-        tmodel.$dom.$domParent = this;
-        this.childrenCount++;
+        this.hasRealChildren = true;
     }
-    
-    deleteAll() {
-        this.element.innerHTML = this.originalContent || '';
-        this.childrenCount = 0;
+
+    append$Dom($dom) {
+        this.ensureSlotMode();
+        this.element.appendChild($dom.element);
+        this.hasRealChildren = true;
     }
-   
+
+    appendElement(element) {
+        this.ensureSlotMode();
+        this.element.appendChild(element);
+        this.hasRealChildren = true;
+    }
+
+    removeElement(element) {
+        if (!element) {
+            return;
+        }
+        const parent = element.parentNode;
+
+        if (parent === this.element) {
+            this.element.removeChild(element);
+            return true;
+        }
+        
+        if (parent) {
+            parent.removeChild(element);
+            return false;
+        }        
+    }
+
     html(html) {
         if (TUtil.isDefined(html)) {
-            if (this.childrenCount > 0) {
-                const element = document.createElement('div');
-                element.innerHTML = html;
-
-                if (TUtil.isDefined(this.originalContent)) {
-                    this.element.replaceChild(element, this.element.firstChild);
-                } else {
-                    this.element.insertBefore(element, this.element.firstChild);
-                }
-
-                this.originalContent = html;
-                this.textOnly = false;
-
-            } else {
+            if (!this.hasRealChildren) {
                 this.element.innerHTML = html;
-                this.originalContent = html;
-                this.textOnly = false;
+            } else {
+                const slot = this.ensureContentSlotFirst();
+                slot.innerHTML = html;
             }
-        } else {
-            return TUtil.isDefined(this.originalContent) ? this.originalContent : this.element.innerHTML;
+
+            this.originalContent = html;
+            this.textOnly = false;
         }
     }
 
     text(text) {
         if (TUtil.isDefined(text)) {
-            if (this.childrenCount > 0) {
-                const element = document.createTextNode(text);
-                if (TUtil.isDefined(this.originalContent)) {
-                    this.element.replaceChild(element, this.element.firstChild);
-                } else {
-                    this.element.insertBefore(element, this.element.firstChild);
-                }
-
-                this.originalContent = text;
-                this.textOnly = true;
-
-            } else {
+            if (!this.hasRealChildren) {
                 this.element.textContent = text;
-                this.originalContent = text;
-                this.textOnly = true;
+            } else {
+                const slot = this.ensureContentSlotFirst();
+                slot.textContent = text;
             }
-        } else {
-            return TUtil.isDefined(this.originalContent) ? this.originalContent : this.element.textContent;
+
+            this.originalContent = text;
+            this.textOnly = true;
         }
+    }
+
+    clearContent() {
+        if (!this.element) {
+            return;
+        }
+
+        if (!this.hasRealChildren) {
+            this.element.innerHTML = this.originalContent || '';
+            return;
+        }
+
+        const slot = this.ensureContentSlotFirst();
+        slot.innerHTML = this.originalContent || '';
+    }
+
+    deleteAll() {
+        if (!this.element) {
+            return;
+        }
+
+        this.element.innerHTML = this.originalContent || '';
+        this.hasRealChildren = false;
+        this.contentSlot = null;
+        this.slotModeEnabled = false;
     }
 
     outerHTML(html) {
         this.element.outerHTML = html;
     }
-    
+
     isEmpty() {
         return this.element.innerHTML === '';
     }
@@ -297,13 +416,13 @@ class $Dom {
             return this.element.innerHTML;
         }
     }
-    
+
     innerText(text) {
         if (TUtil.isDefined(text)) {
             this.element.innerText = text;
         } else {
             return this.element.innerText;
-        }        
+        }
     }
 
     addClass(className) {
@@ -334,7 +453,7 @@ class $Dom {
     }
 
     transform(transformString) {
-        this.element.style[getBrowser().style.transform] = transformString;
+        this.element.style[this.transformProp] = transformString;
     }
 
     animate(keyFrames, options) {
@@ -345,11 +464,11 @@ class $Dom {
         const element = TUtil.isDefined(selector) ? $Dom.query(selector) : this.query('canvas');
         return element ? element.getContext(type) : undefined;
     }
-    
+
     query(query) {
         return this.element.querySelector(query);
     }
-    
+
     queryAll(query) {
         return this.element.querySelectorAll(query);
     }
@@ -361,19 +480,27 @@ class $Dom {
     findFirstByTag(tagName) {
         return $Dom.findFirstByTag(tagName, this.element);
     }
-    
+
     getScrollTop() {
         return this.element?.scrollTop ?? 0;
     }
-    
+
     getScrollLeft() {
         return this.element?.scrollLeft ?? 0;
     }
 
-    static query(selector) {
-        return selector[0] === '#' ? $Dom.findById(selector) : selector[0] === '.' ? $Dom.findFirstByClass(selector) : $Dom.findFirstByTag(selector);
+    static createDocumentFragment() {
+        return document.createDocumentFragment();
     }
-    
+
+    static query(selector) {
+        return selector[0] === '#'
+            ? $Dom.findById(selector)
+            : selector[0] === '.'
+            ? $Dom.findFirstByClass(selector)
+            : $Dom.findFirstByTag(selector);
+    }
+
     static querySelector(selector) {
         return document.querySelector(selector);
     }
@@ -417,23 +544,23 @@ class $Dom {
             parent.removeChild(element);
         }
     }
-    
+
     static hasFocus(tmodel) {
         return tmodel.hasDom() && document.activeElement === tmodel.$dom.element;
     }
 
     static getWindowScrollTop() {
-        return window.pageYOffset || document.documentElement.scrollTop || 0;        
+        return window.pageYOffset || document.documentElement.scrollTop || 0;
     }
-    
+
     static getWindowScrollLeft() {
-        return window.pageXOffset || document.documentElement.scrollLeft || 0;        
-    } 
-    
+        return window.pageXOffset || document.documentElement.scrollLeft || 0;
+    }
+
     static getScreenWidth() {
         return document.documentElement.clientWidth || document.body.clientWidth;
     }
-    
+
     static getScreenHeight() {
         return document.documentElement.clientHeight || document.body.clientHeight;
     }
@@ -445,10 +572,10 @@ class $Dom {
 
     static ajax(query) {
         const xhr = new XMLHttpRequest();
-        
-        let params = "";
+
+        let params = '';
         if (query.data) {
-            params = Object.keys(query.data).map(key => `${key}=${encodeURIComponent(query.data[key])}`).join('&');
+            params = Object.keys(query.data).map((key) => `${key}=${encodeURIComponent(query.data[key])}`).join('&');
         }
 
         xhr.onreadystatechange = function () {
@@ -467,7 +594,7 @@ class $Dom {
             xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
             xhr.send(params);
         } else {
-            query.url += !params ? "" : query.url > "" && query.url.indexOf("?") >= 0 ? `&${params}` : `?${params}`;
+            query.url += !params ? '' : query.url > '' && query.url.indexOf('?') >= 0 ? `&${params}` : `?${params}`;
             xhr.open(query.type, query.url, true);
             xhr.send();
         }

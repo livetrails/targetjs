@@ -70,7 +70,7 @@ class RunScheduler {
         this.schedule(delay, runId);
     }
     
-    schedule(delay, runId) {
+    schedule(delay, runId) {        
         if (!tApp.isRunning() || this.resetting) {
             return;
         }
@@ -99,12 +99,12 @@ class RunScheduler {
             }
             return;
         }
-
+        
         this.rerunId = '';
         this.runId = runId;
         this.runningFlag = true;
         this.runStartTime = TUtil.now();
-
+             
         if (this.phase === 0) {
             getEvents().captureEvents();
             tApp.targetManager.applyTargetValues(tRoot());

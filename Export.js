@@ -48,6 +48,7 @@ const TargetJS = {
   ...ColorUtil,
   ...Easing,
   ...TargetExecutor,
+  ...AnimationManager
 };
 
 if (typeof window !== 'undefined') {

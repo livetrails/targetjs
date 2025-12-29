@@ -23,7 +23,7 @@ class LoadingManager {
 
     fetchCommon(fetchId, cacheId, tmodel, fetchMap, fetchFn) {
         TargetUtil.markFetchAction(tmodel);
-
+        
         if (!this.isFetched(cacheId)) {
             if (!fetchMap[fetchId]) {
                 fetchMap[fetchId] = {
@@ -86,11 +86,11 @@ class LoadingManager {
     }
 
     getTModelKey(tmodel, targetName) {
-        return `${document.URL} ${tmodel.oid} ${TargetUtil.getTargetName(targetName)}`;
+        return `${tmodel.oid} ${targetName}`;
     }
 
     getLoadTargetName(targetName) {
-        return `load-${TargetUtil.getTargetName(targetName)}`;
+        return `load-${targetName}`;
     }
 
     addToTModelKeyMap(tmodel, targetName, fetchId, cacheId) {

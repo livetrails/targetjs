@@ -34,9 +34,11 @@ class Viewport {
     }
 
     setLocation() {
-        if (!this.currentChild.targets['excludeXYCalc']) {
-            this.currentChild.x = this.xNext + this.currentChild.getLeftMargin();
-            this.currentChild.y = this.yNext + this.currentChild.getTopMargin();
+        const child = this.currentChild;
+
+        if (!child.targets['excludeXYCalc']) {
+            child.x = this.xNext + child.getLeftMargin();
+            child.y = this.yNext + child.getTopMargin();
         }
     }
     
@@ -49,7 +51,7 @@ class Viewport {
             || this.currentChild.getItemOverflowMode() === 'always'            
                     || (this.container.getContainerOverflowMode() === 'auto' &&
                         this.currentChild.getItemOverflowMode() === 'auto' && 
-                        !this.currentChild.useContentWidth() && this.checkChildOverflow())) {         
+                        !this.currentChild.useContentWidth() && this.checkChildOverflow())) {  
             return true;        
         }
         
@@ -57,11 +59,11 @@ class Viewport {
 
     checkChildOverflow() {
         const childWidth = this.currentChild.getMinWidth();
-        return this.absX + this.currentChild.x + childWidth + this.currentChild.getLeftMargin() > this.xOverflowLimit;
+        return this.currentChild.x + childWidth + this.currentChild.getLeftMargin() > this.xOverflowLimit;
     }
 
     overflow() {
-        this.xNext = this.scrollLeft - this.absX + this.xOverflowReset;
+        this.xNext = this.scrollLeft - this.xOverflowReset;
         this.yNext = Math.max(this.currentChild.getRealParent().viewport.ySouth, this.ySouth);
     }
     
@@ -71,7 +73,7 @@ class Viewport {
         
         let maxHeight = child.getHeight() * scale + this.currentChild.getTopMargin() + this.currentChild.getBottomMargin();
 
-        this.xNext = this.scrollLeft - this.absX + this.xOverflowReset;
+        this.xNext = this.scrollLeft - this.xOverflowReset;
         const ySouth =  this.yNext + maxHeight + child.val('appendNewLine');
 
         this.yEast = this.yNext;
@@ -125,7 +127,7 @@ class Viewport {
         const topBaseHeight = child.getTopBaseHeight() * scale;
                
         let maxHeight = child.getHeight() * scale + this.currentChild.getTopMargin() + this.currentChild.getBottomMargin();
-        let maxWidth = child.getBaseWidth() * scale +  this.currentChild.getLeftMargin() + this.currentChild.getRightMargin();
+        let maxWidth = child.getItemOverflowMode() === 'always' ? this.container.getWidth() : child.getBaseWidth() * scale +  this.currentChild.getLeftMargin() + this.currentChild.getRightMargin();
         
         if (child.type !== 'BI' && this.container.type === 'BI') {
             const layout = this.computeBoundary(child, 'layout');
@@ -133,7 +135,7 @@ class Viewport {
             maxHeight = Math.max(maxHeight, layout.bottom - animated.top, animated.bottom - layout.top, layout.bottom - layout.top, animated.bottom - animated.top);
             maxWidth = Math.max(maxWidth, layout.right - animated.left, animated.right - layout.left, layout.right - layout.left, animated.right - animated.left);
         }
-        
+                
         let ySouth = this.yNext + maxHeight;
         this.xNext += maxWidth; 
                 

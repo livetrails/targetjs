@@ -24,7 +24,7 @@ class PageManager {
         await tApp.reset();
                 
         link = TUtil.getFullLink(link);
-
+        
         if (!this.pageCache[link]) {
             tApp.tRoot.$dom.innerHTML(""); 
             App.oids = {};
@@ -42,12 +42,18 @@ class PageManager {
             tApp.tRoot.$dom.innerHTML(this.pageCache[link].html);
             
             const visibles = Object.values(this.pageCache[link].visibleOidMap);
-            DomInit.initCacheDoms(visibles);
+            const newVisibles = DomInit.initCacheDoms(visibles);
             visibles.forEach(tmodel => {
                 tmodel.visibilityStatus = undefined;
             });
 
             tApp.manager.visibleOidMap = { ...this.pageCache[link].visibleOidMap };
+            newVisibles.forEach(visible => {
+                tApp.manager.visibleOidMap[visible.oid] = visible;
+            });
+            
+            window.scrollTo(this.pageCache[link].scrollLeft, this.pageCache[link].scrollTop);
+            
             this.lastLink = link;  
             tApp.start();    
         }
@@ -73,7 +79,7 @@ class PageManager {
 
     openLink(link, updateHistory = true) {
         link = TUtil.getFullLink(link);
-        
+                
         if (this.lastLink) {
             tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
             const html = tApp.tRoot.$dom.innerHTML();
@@ -86,6 +92,8 @@ class PageManager {
                 oids: { ...App.oids },
                 tmodelIdMap:  { ...App.tmodelIdMap },
                 visibleOidMap: { ...tApp.manager.visibleOidMap },
+                scrollLeft: $Dom.getWindowScrollLeft() || 0,
+                scrollTop: $Dom.getWindowScrollTop() || 0,                
                 tRoot: tApp.tRoot
             };
         }
@@ -108,6 +116,8 @@ class PageManager {
             oids: { ...App.oids },
             tmodelIdMap:  { ...App.tmodelIdMap },
             visibleOidMap: { ...tApp.manager.visibleOidMap },
+            scrollLeft: $Dom.getWindowScrollLeft() || 0,
+            scrollTop: $Dom.getWindowScrollTop() || 0,
             tRoot: tApp.tRoot
         };
         

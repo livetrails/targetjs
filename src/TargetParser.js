@@ -128,7 +128,7 @@ class TargetParser {
             }
         }
 
-        return arr.length >= 2;
+        return TargetParser.isListTarget(arr[0]) || arr.length >= 2;
     }
 
     static isListTarget(value) {
@@ -162,6 +162,9 @@ class TargetParser {
     }
     
     static isIntervalTarget(target) {
+        if (target.isInterval) {
+            return true;
+        }
         
         return TUtil.isDefined(target.interval) 
                 && !TUtil.isDefined(target.steps) 

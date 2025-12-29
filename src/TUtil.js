@@ -7,14 +7,17 @@ import { getLocationManager, tRoot, getScreenHeight, getScreenWidth } from "./Ap
 class TUtil {
     static calcVisibility(child) {
         // keep the "x updating" fast-path
-        if (child.isVisible() && (child.isTargetUpdating('x') || child.isTargetUpdating('y'))) {
+        
+        const parent = child.getRealParent();
+        const onVisibleChildrenChange = parent?.targets['onVisibleChildrenChange'] ?? false;
+        
+        if (!onVisibleChildrenChange && child.isVisible() && (child.isTargetUpdating(child.allTargetMap['x']) || child.isTargetUpdating(child.allTargetMap['y']))) {
             return true;
         }
         
         const x = child.absX;
         const y = child.absY;
         const domParent = child.getDomParent();
-        const parent = child.getRealParent();
 
         const scale = (domParent.getMeasuringScale() || 1) * child.getMeasuringScale();
         const maxWidth = TUtil.isDefined(child.getWidth()) ? scale * child.getWidth() : 0;
@@ -32,12 +35,12 @@ class TUtil {
         const parentY = validateInParent ? Math.max(domParent.absY, parent.absY) : 0;
         const parentW = validateInParent ? Math.min(domParent.getWidth(), parent.getWidth()) : getScreenWidth();
         const parentH = validateInParent ? Math.min(domParent.getHeight(), parent.getHeight()) : getScreenHeight();
-
+        
         const screenX = 0;
         const screenY = 0;
         const screenW = getScreenWidth();
         const screenH = getScreenHeight();
-        
+
         const clipX = Math.max(parentX, screenX);
         const clipY = Math.max(parentY, screenY);
         const clipR = Math.min(parentX + parentW, screenX + screenW);

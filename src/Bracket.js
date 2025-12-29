@@ -137,7 +137,7 @@ class Bracket extends TModel {
         this.viewport.xEast = Math.max(this.viewport.xEast, this.getRealParent().viewport.xEast);
         this.viewport.ySouth = Math.max(this.viewport.ySouth, this.getRealParent().viewport.ySouth);
     }
-
+    
     getChildren() {
         return this.allChildrenList;
     }

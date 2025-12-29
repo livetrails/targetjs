@@ -1,6 +1,5 @@
 import { $Dom } from "./$Dom.js";
 import { TModel } from "./TModel.js";
-import { Browser } from "./Browser.js";
 import { EventListener } from "./EventListener.js";
 import { LoadingManager } from "./LoadingManager.js";
 import { LocationManager } from "./LocationManager.js";
@@ -9,6 +8,7 @@ import { TModelManager } from "./TModelManager.js";
 import { RunScheduler } from "./RunScheduler.js";
 import { TargetManager } from "./TargetManager.js";
 import { TargetExecutor } from "./TargetExecutor.js";
+import { AnimationManager } from "./AnimationManager";
 import { TUtil } from "./TUtil.js";
 import { DomInit } from "./DomInit.js";
 import { SearchUtil } from "./SearchUtil.js";
@@ -25,9 +25,6 @@ const AppFn = () => {
     my.resizeLastUpdate = 0;
 
     my.init = function() {
-        my.browser = new Browser();
-        my.browser.setup();
-
         my.$window = new $Dom(window);
 
         my.loader = new LoadingManager();
@@ -35,6 +32,7 @@ const AppFn = () => {
         my.events = new EventListener();
         my.locationManager = new LocationManager();
         my.targetManager = new TargetManager();
+        my.animationManager = new AnimationManager();
         my.manager = new TModelManager();
         my.runScheduler = new RunScheduler();
 
@@ -118,6 +116,8 @@ const AppFn = () => {
         my.events.detachAll();
         my.events.detachWindowEvents();        
         my.events.clearAll();
+        await my.animationManager.cancelAll();
+        await my.animationManager.flushOneFrame();
 
         await my.runScheduler.resetRuns();
 
@@ -126,13 +126,15 @@ const AppFn = () => {
 
     my.reset = async function() {
         my.manager.getVisibles().forEach(tmodel => { 
-            tmodel.transformMap = {};
+            tmodel.tfMap = {};
             tmodel.styleMap = {};
-            tmodel.allStyleTargetList.forEach(function(key) {
-                if (TUtil.isDefined(tmodel.val(key))) {
-                    tmodel.addToStyleTargetList(key);
+            if (tmodel.allStyleTargetMap?.size) {
+                for (const [key] of tmodel.allStyleTargetMap) {
+                    if (TUtil.isDefined(tmodel.val(key))) {
+                        tmodel.addToStyleTargetList(key);
+                    }
                 }
-            });             
+            }            
         });
         await my.runScheduler.resetRuns();
         
@@ -182,9 +184,9 @@ const fetch = (tmodel, url, query, cacheId) => tApp?.loader?.fetch(tmodel, url, 
 const fetchImage = (tmodel, src, cacheId) => tApp?.loader?.fetchImage(tmodel, src, cacheId);
 const getManager = () => tApp?.manager;
 const getTargetManager = () => tApp?.targetManager;
+const getAnimationManager = () => tApp?.animationManager;
 const getRunScheduler = () => tApp?.runScheduler;
 const getLocationManager = () => tApp?.locationManager;
-const getBrowser = () => tApp?.browser;
 const getScreenWidth = () => tApp?.tRoot?.val('screenWidth') ?? 0;
 const getScreenHeight = () => tApp?.tRoot?.val('screenHeight') ?? 0;
 const getVisibles = () => tApp?.manager?.getVisibles();
@@ -221,9 +223,9 @@ export {
     fetchImage,
     getManager,
     getTargetManager,
+    getAnimationManager,
     getRunScheduler,
     getLocationManager,
-    getBrowser,
     getScreenWidth,
     getScreenHeight,
     getVisibles,

@@ -112,15 +112,10 @@ class Moves {
             xStart, widthStart, heightStart, bFactor, cFactor 
         });
         
-        const ys = bounce.height.list.map(height => {
-            return yStart - (height - heightStart) / 2;
-        });
 
         return {
-            y: { list: ys },
             x: bounce.x, 
-            width: bounce.width, 
-            height: bounce.height
+            width: bounce.width
         };
     }
     

@@ -3,8 +3,9 @@ import { TargetParser } from "./TargetParser.js";
 import { TargetData } from "./TargetData.js";
 import { TModel } from "./TModel.js";
 import { TUtil } from "./TUtil.js";
+import { TModelUtil } from "./TModelUtil.js"; 
 import { Easing } from "./Easing.js";
-import { getEvents, getLoader, getRunScheduler } from "./App.js";
+import { getLoader, getRunScheduler } from "./App.js";
 
 /**
  * It is responsible for executing both declarative and imperative targets.
@@ -28,6 +29,7 @@ class TargetExecutor {
     }
     
     static executeDeclarativeTarget(tmodel, key) { 
+        tmodel.allTargetMap[key] = key;        
         TargetExecutor.resolveTargetValue(tmodel, key);
         TargetExecutor.updateTarget(tmodel, tmodel.targetValues[key], key, false);
         
@@ -49,7 +51,12 @@ class TargetExecutor {
 
     static executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel) {
         let targetValue;
-        key = typeof key === 'string' && !key.endsWith('+') && tmodel.allTargetMap[key] ? key + "+" : key;
+        
+        if (typeof key === 'string') {
+            const cleanKey = TargetUtil.getTargetName(key);
+            key = !key.endsWith('+') ? key + "+" : key;
+            tmodel.allTargetMap[cleanKey] = key;
+        }
         
         if (TargetParser.isListTarget(value)) {
             targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel);
@@ -98,19 +105,21 @@ class TargetExecutor {
     static updateTarget(tmodel, targetValue, key, enforce) {
                 
         tmodel.setLastUpdate(key);
-
+        
         if (tmodel.getTargetSteps(key) === 0) {
             TargetExecutor.snapActualToTarget(tmodel, key);
         }
         
         targetValue.executionCount++;
         targetValue.executionFlag = true;
-        
+                
         tmodel.addToStyleTargetList(key, enforce);
         tmodel.setTargetMethodName(key, 'value'); 
 
-        tmodel.updateTargetStatus(key);
-
+        if (!tmodel.isKeyAnimating(key)) {
+            tmodel.updateTargetStatus(key);
+        }
+        
         if (!TargetData.ignoreRerun[key] && tmodel.shouldScheduleRun(key)) {
             getRunScheduler().schedule(30, 'updateTarget2-' + tmodel.oid + "-" + key);
         }
@@ -118,33 +127,24 @@ class TargetExecutor {
 
     static assignListTarget(tmodel, key, targetValue, valueList, initialValue, steps, interval, easing) {
         targetValue.valueList = valueList;
-        targetValue.stepList = Array.isArray(steps) ? steps : TUtil.isDefined(steps) ? [steps] : [1];
-        targetValue.intervalList = Array.isArray(interval) ? interval : TUtil.isDefined(interval) ? [interval] : [0];
+        targetValue.stepList = Array.isArray(steps) ? steps : TUtil.isDefined(steps) && steps > 0 ? [steps] : [1];
+        targetValue.intervalList = Array.isArray(interval) ? interval : (interval ? [interval] : undefined);
         targetValue.easingList = Array.isArray(easing) ? easing : TUtil.isDefined(easing) ? [easing] : [Easing.linear];
-
+        
         targetValue.cycle = 1;
         targetValue.value = valueList[1];
         targetValue.initialValue = initialValue;
         targetValue.steps = targetValue.stepList[0];
-        targetValue.interval = targetValue.intervalList[0];
+        targetValue.interval = targetValue.intervalList ?? 0;
         targetValue.easing = targetValue.easingList[0];
 
-        targetValue.step = Math.min(1, targetValue.steps);
+        targetValue.step = 0;
         targetValue.cycles = 0;
-        
-        targetValue.actual = initialValue;
-        
+                
         tmodel.val(key, initialValue);
+        tmodel.setActual(key, initialValue);        
     }
     
-    static executeEventHandlerTarget(groupValue) {
-        if (typeof groupValue === 'string') {
-            getEvents().attachGroupEvent(groupValue);
-        } else if (Array.isArray(groupValue)) {
-            groupValue.forEach(group =>  getEvents().attachGroupEvent(group));
-        }
-    }
-
     static assignSingleTarget(targetValue, value, initialValue, steps, cycles, interval, easing) {
         delete targetValue.valueList;
         delete targetValue.stepList;
@@ -152,6 +152,7 @@ class TargetExecutor {
         delete targetValue.easingList;
 
         targetValue.initialValue = initialValue;
+        targetValue.lastValue = targetValue.value;
         targetValue.value = value;
         targetValue.steps = steps || 0;
         targetValue.cycles = cycles || 0;
@@ -160,14 +161,22 @@ class TargetExecutor {
     }
 
     static snapActualToTarget(tmodel, key) {
-        const oldValue = tmodel.val(key);
         const targetValue = tmodel.targetValues[key];
         const value = targetValue.value;
         const newValue = typeof value === 'function' ? value.call(tmodel) : value;
-        tmodel.val(key, newValue);
-        targetValue.actual = newValue;
 
-        TargetUtil.handleValueChange(tmodel, key, newValue, oldValue, 0, 0);
+        if (tmodel.val(key) === newValue) {
+            return;
+        }
+
+        if (!tmodel.hasValidAnimation() || !tmodel.canBeAnimated(key)) {
+            tmodel.val(key, newValue);
+            tmodel.setActual(key, newValue);
+            TargetUtil.handleValueChange(tmodel, key);
+            return;
+        }
+
+        TModelUtil.overrideAnimatedKeyWithSnap(tmodel, key, newValue);
     }
 
     static resolveTargetValue(tmodel, key, cycle = tmodel.getTargetCycle(key)) {
@@ -186,7 +195,6 @@ class TargetExecutor {
 
         tmodel.targetValues[key] = targetValue;
         const easing = TUtil.isDefined(tmodel.targets[key].easing) ? tmodel.targets[key].easing : undefined;
-        
         
         if (TargetParser.isChildTarget(key, newValue)) {
                         
@@ -217,7 +225,6 @@ class TargetExecutor {
                 newInterval
             );
         } else if (TargetParser.isChildObjectTarget(key, tmodel.targets[key])) {
-            
                                     
             const child = new TModel(key, tmodel.targets[key]);
             tmodel.addChild(child);

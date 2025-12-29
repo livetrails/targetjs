@@ -1,7 +1,7 @@
-import { tApp, App, getRunScheduler, getLocationManager, getDomTModelById, getLoader } from "./App.js";
+import { App, getRunScheduler, getLocationManager, getAnimationManager, getDomTModelById, getLoader, getEvents } from "./App.js";
 import { TargetExecutor } from "./TargetExecutor.js";
 import { TUtil } from "./TUtil.js";
-import { TModelUtil } from "./TModelUtil.js";
+//import { TModelUtil } from "./TModelUtil.js";
 import { TargetParser } from "./TargetParser" ;
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
@@ -20,7 +20,7 @@ class BaseModel {
         oid = oid || this.targets.id;
         
         if (!TUtil.isDefined(oid)) {
-            this.type = type || this.targets.otype || 'blank';
+            this.type = this.targets.otype || type || 'blank';
             
             const uniqueId = App.getOid(this.type);
             this.oid = uniqueId.oid;
@@ -51,19 +51,6 @@ class BaseModel {
     get updatingTargetList() { return this.state().updatingTargetList ??= []; }
     get updatingTargetMap() { return this.state().updatingTargetMap ??= {}; }
     get fetchActionTargetList() { return this.state().fetchActionTargetList ??= []; } 
-    get updatingChildrenList() { return this.state().updatingChildrenList ??= []; }
-    get updatingChildrenMap() { return this.state().updatingChildrenMap ??= {}; }
-    get activeChildrenList() { return this.state().activeChildrenList ??= []; }
-    get activeChildrenMap() { return this.state().activeChildrenMap ??= {}; }
-    get externalEventList() { return this.state().externalEventList ??= []; }
-    get internalEventList() { return this.state().internalEventList ??= []; }
-    get coreTargets() { return this.state().coreTargets ??= []; }
-    get allStyleTargetList() { return this.state().allStyleTargetList ??= []; }
-    get allStyleTargetMap() { return this.state().allStyleTargetMap ??= {}; }
-    get styleTargetList() { return this.state().styleTargetList ??= []; }
-    get styleTargetMap() { return this.state().styleTargetMap ??= {}; }
-    get asyncStyleTargetList() { return this.state().asyncStyleTargetList ??= []; }
-    get asyncStyleTargetMap() { return this.state().asyncStyleTargetMap ??= {}; }
     get activatedTargets() { return this.state().activatedTargets ??= []; }
     get targetMethodMap() { return this.state().targetMethodMap ??= {}; }
     get targetExecutionCount() { return this.state().targetExecutionCount ??= 0; }
@@ -153,7 +140,7 @@ class BaseModel {
         const targetType = typeof target;
 
         const isInactiveKey = key.startsWith('_') || key.endsWith('$');
-
+        
         let needsTargetExecution = TargetData.mustExecuteTargets[cleanKey] || isInactiveKey || (targetType !== 'string' && targetType !== 'number' && targetType !== 'boolean');          
 
         const isExternalEvent = !!TargetData.allEventMap[cleanKey];
@@ -195,18 +182,16 @@ class BaseModel {
             target = this.targets[k];
         }
                 
-        if (isExternalEvent) {
-            if (!this.allTargetMap[cleanKey]) {
-                this.externalEventList.push(cleanKey);
-                target.active = false;
-            }
+        if (isExternalEvent) { 
+            this.externalEventMap ||= new Map();
+            this.externalEventMap.set(cleanKey, true);
+            target.active = false;
         }
 
         if (isInternalEvent) {
-            if (!this.allTargetMap[cleanKey]) {
-                this.internalEventList.push(cleanKey);
-                target.active = false;
-            }
+            this.internalEventMap ||= new Map();
+            this.internalEventMap.set(cleanKey, true);
+            target.active = false;
         }
         
         this.allTargetMap[cleanKey] = key;
@@ -227,17 +212,19 @@ class BaseModel {
             this.addToStyleTargetList(key);
         }
         
-        if (TargetData.coreTargetMap[key] && !this.coreTargets.includes(key)) {
-            this.coreTargets.push(key);
-        }
-        
-        if (!needsTargetExecution) {          
-            this.val(cleanKey, typeof target === 'object' ? target.value : target );
-            return;
-        }
-        
+        if (TargetData.coreTargetMap[key]) {
+            this.coreTargetMap ||= new Map();
+            if (!this.coreTargetMap.has(key)) {
+                this.coreTargetMap.set(key, true);
+            }
+        }    
+
         if (TargetParser.isIntervalTarget(target)) {
             target.cycles = 1;
+            target.isInterval = true;
+        } else if (!needsTargetExecution) {    
+            this.val(cleanKey, TUtil.isDefined(target?.value) ? target.value : target );
+            return;
         }
         
         if (target.active !== false && this.canTargetBeActivated(key)) {
@@ -262,10 +249,9 @@ class BaseModel {
     deactivate() {
         this.currentStatus = undefined;
     }
-    
 
     excludeDefaultStyling() {
-        return this.targets['defaultStyling'] === false || this.excludeStyling() || (this.reuseDomDefinition() && this.allStyleTargetList.length === 0);
+        return this.targets['defaultStyling'] === false || this.excludeStyling() || (this.reuseDomDefinition() && !this.allStyleTargetMap);
     }    
     
     canTargetBeActivated(key) {
@@ -282,27 +268,25 @@ class BaseModel {
     addToStyleTargetList(key, enforce) {
         
         key = TargetUtil.getTargetName(key);
-        
+
         if (!enforce && (this.excludeStyling() || this.targets[`exclude${TUtil.capitalizeFirstLetter(key)}`])) {
             return;
         }
         
         const isAsyncStyleTarget = TargetData.asyncStyleTargetMap[key];
-        const isAttributeTarget = TargetData.attributeTargetMap[key];
+        const isAttributeTarget = TargetData.attributeTargetMap[key];     
 
         if (isAsyncStyleTarget || isAttributeTarget) {
-            if (!this.asyncStyleTargetMap[key]) {
-                this.asyncStyleTargetList.push(key);
-                this.asyncStyleTargetMap[key] = true;
+            if (!this.asyncStyleTargetMap?.has(key)) {
+                this.asyncStyleTargetMap ||= new Map();
+                this.asyncStyleTargetMap.set(key, true);                 
             }
+                      
         } else if (this.isStyleTarget(key)) {
             let styleFlag = true;
             if (TargetData.transformMap[key]) {
                 if (this.getParent()) {
                     this.calcAbsolutePosition(this.getX(), this.getY());
-                }
-                if (TModelUtil.getTransformValue(this, key) === Math.floor(this.transformMap[key])) {
-                    styleFlag = false;
                 }
             } else if (key === 'width' || key === 'height') {
                 const dimension = Math.floor(key === 'width' ? this.getWidth() : this.getHeight());
@@ -317,20 +301,15 @@ class BaseModel {
                 styleFlag = false;
             } 
 
-            if (styleFlag && !this.styleTargetMap[key]) {
-                this.styleTargetList.push(key);
-                this.styleTargetMap[key] = true;                
+            if (styleFlag && !this.styleTargetMap?.has(key)) {
+                this.styleTargetMap ||= new Map();
+                this.styleTargetMap.set(key, true);                
             }
-        } else if (!this.styleTargetMap[key]) {
-            this.styleTargetList.push(key);
-            this.styleTargetMap[key] = true;            
-        } else {
-            return;
         }
 
-        if (TargetData.styleSet.has(key) && !this.allStyleTargetMap[key]) {
-            this.allStyleTargetList.push(key);
-            this.allStyleTargetMap[key] = true;
+        if (TargetData.styleSet.has(key) && !this.allStyleTargetMap?.has(key)) {
+            this.allStyleTargetMap ||= new Map();
+            this.allStyleTargetMap.set(key, true);
         }
     }
    
@@ -361,11 +340,15 @@ class BaseModel {
             this.processNewTarget(key, keyIndex);
         });
 
+        if (this.hasDom()) {
+            getEvents().attachEvents([this]);
+
+        }
+
         getRunScheduler().schedule(1, 'addTargets-' + this.oid);
     }
         
-    getTargetStepPercent(key, step) {
-        const steps = this.getTargetSteps(key);
+    getTargetStepPercent(key, step, steps) {
         step = !TUtil.isDefined(step) ? this.getTargetStep(key) : step;
         return steps ? step / steps : 1;
     }
@@ -416,12 +399,12 @@ class BaseModel {
         if (!targetValue) {
             return;
         }
-
+        
         const cycle = this.getTargetCycle(key);
         const cycles = this.getTargetCycles(key);
         const step = this.getTargetStep(key);
         const steps = this.getTargetSteps(key);
-
+        
         if (TargetUtil.isTargetAlreadyUpdating(this, key)) {
             targetValue.status = 'done';
             targetValue.step = steps;
@@ -437,40 +420,39 @@ class BaseModel {
         } else {
             targetValue.status = 'done';
         }
-
+        
         if (targetValue.status === 'fetching') {
             this.removeFromActiveTargets(key);
-            this.removeFromUpdatingTargets(key);            
+            this.removeFromUpdatingTargets(key);
            this.getParent().addToActiveChildren(this); 
         } else if (this.isTargetUpdating(key)) {
             this.addToUpdatingTargets(key);
-            this.removeFromActiveTargets(key);   
+            this.removeFromActiveTargets(key);
         } else if (this.isTargetActive(key)) {
             this.addToActiveTargets(key);
             this.removeFromUpdatingTargets(key);
         } else {
             this.removeFromActiveTargets(key);
             this.removeFromUpdatingTargets(key);
-            tApp.manager.doneTargets.push({ tmodel: this, key: key });
         }
 
         return targetValue.status;
     }
 
     getTargetStatus(key) {
-        return this.targetValues[key] ? this.targetValues[key].status : '';
+        return this.targetValues[key]?.status ?? '';
     }
 
     isTargetActive(key) {
-        return this.targetValues[key] && this.targetValues[key].status === 'active';
+        return this.targetValues[key]?.status === 'active';
     }
-
+    
     isTargetUpdating(key) {
-        return this.targetValues[key] && this.targetValues[key].status === 'updating';
+        return this.targetValues[key]?.status === 'updating';
     }
 
     isTargetDone(key) {
-        return this.targetValues[key] && this.targetValues[key].status === 'done';
+        return this.targetValues[key]?.status === 'done';
     }
 
     isTargetComplete(key) {
@@ -534,10 +516,6 @@ class BaseModel {
         }
     }
 
-    isTargetInLoop(key) {
-        return this.targets[key] ? (typeof this.targets[key].loop === 'function' ? this.targets[key].loop.call(this, key) : this.targets[key].loop) : false;
-    }
-
     doesTargetEqualActual(key) {
         if (this.targetValues[key]) {
             const deepEquality = this.targets[key] ? this.targets[key].deepEquality : false;
@@ -566,7 +544,7 @@ class BaseModel {
     }
 
     getScheduleTimeStamp(key) {
-        return this.targetValues[key] ? this.targetValues[key].scheduleTimeStamp : undefined;
+        return this.targetValues[key]?.scheduleTimeStamp;
     }
 
     isScheduledPending(key) {
@@ -575,8 +553,35 @@ class BaseModel {
         return lastScheduledTime && lastScheduledTime + interval > TUtil.now();
     }
     
+    isTargetInLoop(key) {
+        const t = this.targets[key];
+        if (!t) {
+            return false;
+        }
+
+        const loop = (typeof t.loop === 'function') ? t.loop.call(this, key) : t.loop;
+
+        return loop === true || loop === 'passive';
+    }
+
     shouldScheduleRun(key) {
-        return this.targets[key]?.triggerRerun ?? true;
+        const t = this.targets[key];
+        if (!t) {
+            return false;
+        }
+
+        if (t.triggerRerun !== undefined) {
+            return !!t.triggerRerun;
+        }
+
+        if (t.loop !== undefined) {
+            const loop = (typeof t.loop === 'function') ? t.loop.call(this, key) : t.loop;
+            if (loop === 'passive') {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     getTargetInitialValue(key) {
@@ -622,11 +627,11 @@ class BaseModel {
     }
 
     getTargetCycles(key) {
-        return this.targetValues[key] ? this.targetValues[key].cycles || 0 : 0;
+        return this.targetValues[key]?.cycles ?? 0;
     }
 
     getTargetCycle(key) {
-        return this.targetValues[key] ? this.targetValues[key].cycle : 0;
+        return this.targetValues[key]?.cycle ?? 0;
     }
 
     incrementTargetCycle(key) {
@@ -662,7 +667,7 @@ class BaseModel {
     }
 
     getTargetEasing(key) {
-        return typeof this.targetValues[key].easing === 'function' ? this.targetValues[key].easing : undefined;
+        return typeof this.targetValues[key]?.easing === 'function' ? this.targetValues[key].easing : undefined;
     }
 
     getTargetInterval(key) {
@@ -670,18 +675,23 @@ class BaseModel {
         return targetValue?.interval || 0;
     }
 
-    setTarget(key, value, steps, interval, easing) {       
+    setTarget(key, value, steps, interval, easing) {     
         if (typeof key === 'object' && key !== null) {
             [value, steps, interval, easing] = [key, value, steps, interval, easing];
             key = '';
         }
+        
+        if (typeof key === 'string') {
+            key = !key.endsWith('+') ? key + "+" : key;
+        }
+        
         const originalTargetName = TargetUtil.currentTargetName;
         const originalTModel = TargetUtil.currentTModel;
             
         if (this.getParent() === originalTModel) {
             TargetUtil.markChildAction(originalTModel, this);
         }
-                
+              
         this.markLayoutDirty(key);
         
         TargetExecutor.executeImperativeTarget(this, key, value, steps, interval, easing, originalTargetName, originalTModel);
@@ -689,8 +699,25 @@ class BaseModel {
         return this;
     }
     
+    cancelAnimation() {
+        if (!this.hasAnimatingTargets()) {
+            return;
+        }
+        
+        for (const [key] of this.animatingMap) {
+            if (this.targetValues[key]) {
+                this.targetValues[key].status = 'done';
+                this.removeFromUpdatingTargets(key);
+                this.removeFromActiveTargets(key);
+            }
+        }
+        
+        getAnimationManager().cancelTModel(this);
+        this.pausedBatch = undefined;
+    }
+    
     hasTargetUpdates(key) {
-        return key ? this.updatingTargetMap[key] === true : this.updatingTargetList.length > 0;
+        return key ? this.updatingTargetMap[key] === true || this.animatingMap?.has(key) : this.updatingTargetList.length > 0;
     }
 
     addToActiveTargets(key) {
@@ -745,7 +772,12 @@ class BaseModel {
     }
     
     hasUpdatingImperativeTargets(originalTargetName) {
-        for (const target of this.updatingTargetList) {
+        const updatingList = [
+          ...(this.updatingTargetList ?? []),
+          ...(this.hasAnimatingTargets() ? [...this.animatingMap.keys()] : [])
+        ];        
+        
+        for (const target of updatingList) {
             if (this.isTargetImperative(target) && this.targetValues[target].originalTargetName === originalTargetName) {
                 return true;
             }
@@ -765,47 +797,85 @@ class BaseModel {
         return targets;
     }
     
-    addToUpdatingChildren(child) {
-        if (!this.updatingChildrenMap[child.oid]) {
-            this.updatingChildrenMap[child.oid] = true;
-            this.updatingChildrenList.push(child);
+    hasAnyUpdates() {
+        return this.updatingTargetList.length !== 0 || this.activeTargetList.length !== 0 || (this.animatingMap?.size ?? 0) !== 0;  
+    }
+    
+    removeFromAnimatingMap(key) {
+        if (this.animatingMap?.has(key)) {
+            this.animatingMap.delete(key);
+            if (this.animatingMap.size === 0) {
+                this.getParent()?.removeFromAnimatingChildren(this);
+            }
         }
+    }
+    
+    clearAnimatingMap() {
+        this.animatingMap?.clear();
+        this.getParent()?.removeFromAnimatingChildren(this);
+    }
+    
+    addToAnimatingMap(key, record = true) {
+        this.animatingMap ||= new Map();        
+        this.animatingMap.set(key, record);
+        this.getParent()?.addToAnimatingChildren(this);
+    }
+    
+    isKeyAnimating(key) {
+        if (!this.animatingMap) {
+            return false;
+        }
+                
+        const { originalTargetName } = TargetUtil.getOriginalNames(this, key);
+
+        return this.animatingMap.has(key) && this.animatingMap.get(key).originalTargetName === originalTargetName;
+    }    
+    
+    addToUpdatingChildren(child) {
+        this.updatingChildrenMap ||= new Map();
+        this.updatingChildrenMap.set(child.oid, child);
     }
 
     removeFromUpdatingChildren(child) {
-        if (this.updatingChildrenMap[child.oid]) {
-            delete this.updatingChildrenMap[child.oid];
-            const index = this.updatingChildrenList.indexOf(child);
-            if (index >= 0) {
-                this.updatingChildrenList.splice(index, 1);
-            }
-        }
+        this.updatingChildrenMap?.delete(child.oid);   
     } 
     
+    addToAnimatingChildren(child) {
+        this.animatingChildrenMap ||= new Map();
+        this.animatingChildrenMap.set(child.oid, child);
+    }
+    
+    removeFromAnimatingChildren(child) {
+        this.animatingChildrenMap?.delete(child.oid);
+    }    
     addToActiveChildren(child) {
-        if (!this.activeChildrenMap[child.oid]) {              
-            this.activeChildrenMap[child.oid] = true;
-            this.activeChildrenList.push(child);
-        }
+        this.activeChildrenMap ||= new Map();
+        this.activeChildrenMap.set(child.oid, child);
     }
     
     removeFromActiveChildren(child) {
-        if (this.activeChildrenMap[child.oid]) {         
-            delete this.activeChildrenMap[child.oid];
-            const index = this.activeChildrenList.indexOf(child);
-            if (index >= 0) {
-                this.activeChildrenList.splice(index, 1);
-            }
-        }
+        this.activeChildrenMap?.delete(child.oid); 
     }     
     
     hasActiveChildren() {
-        return this.activeChildrenList.length > 0;
+        return !!this.activeChildrenMap?.size;
     } 
     
     hasUpdatingChildren() {
-        return this.updatingChildrenList.length > 0;
+        return !!this.updatingChildrenMap?.size;
     }   
+    
+    hasAnimatingChildren() {
+        return !!this.animatingChildrenMap?.size;
+    }
+    
+    hasAnimatingTargets() {
+        return !!this.animatingMap?.size;
+    }
+    
+    hasValidAnimation() {
+        return this.hasAnimatingTargets() && this.lastBatch && this.lastBatch.totalDuration > 0;
+    }
 
     deleteTargetValue(key) {        
         delete this.targetValues[key];
@@ -813,6 +883,18 @@ class BaseModel {
         this.removeFromUpdatingTargets(key);
         
         return this;
+    }
+    
+    clearAnimatingChildren() {
+        this.animatingChildrenMap?.clear();
+    }
+    
+    clearUpdatingChildren() {
+        this.updatingChildrenMap?.clear();
+    }
+    
+    clearActiveChildren() {
+        this.activeChildrenMap?.clear();   
     }    
  
     resetTarget(key) {
@@ -831,6 +913,12 @@ class BaseModel {
         }
         
         return this;
+    }
+    
+    activateTargets(keys) {
+        if (Array.isArray(keys)) {
+            keys.forEach(key => this.activateTarget(key));
+        }
     }
 
     activateTarget(key, value) {
@@ -856,6 +944,7 @@ class BaseModel {
                 targetValue.initialValue = undefined;
             } else {
                 this.targetValues[key] = targetValue;
+                targetValue.cycles = this.targets[key]?.cycles ?? targetValue.cycles;                
             }
                             
             this.updateTargetStatus(key);
@@ -871,15 +960,6 @@ class BaseModel {
                 || child.addedChildren.length > 0 
                 || child.dirtyLayout
                 || child.targetExecutionCount === 0;
-    }
-    
-    getCoreTargets() {
-        const explicit = this.val('coreTargets');
-        if (TUtil.isDefined(explicit)) {
-            return explicit;
-        }
-
-        return this.coreTargets;
     }
 
     setTargetMethodName(targetName, methodName) {

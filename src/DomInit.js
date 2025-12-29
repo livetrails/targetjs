@@ -1,6 +1,6 @@
 import { $Dom } from "./$Dom.js";
 import { TUtil } from "./TUtil.js";
-import { tRoot, App } from "./App.js";
+import { tRoot, App, getTModelById } from "./App.js";
 import { TargetData } from "./TargetData.js";
 
 /**
@@ -14,19 +14,29 @@ class DomInit {
         visibleList.forEach(tmodel => {
             tmodel.$dom = null;
         });
-
+        
         const visibleMap = TUtil.list2map(visibleList.filter(item => item.type !== 'BI'));
+        const newVisibles = [];
 
         for (let element of elements) {
             const id = element.getAttribute("id");
-            const tmodel = visibleMap[id];
 
+            let tmodel = visibleMap[id];
             if (tmodel) {
                 tmodel.$dom = new $Dom(`#${id}`);
             } else {
-                $Dom.detach(element);
+                tmodel = getTModelById(id);
+                
+                if (tmodel) {
+                    newVisibles.push(tmodel);
+                    tmodel.$dom = new $Dom(`#${id}`);              
+                } else {
+                    $Dom.detach(element);
+                }
             }
         }
+        
+        return newVisibles;
     }
 
     static initPageDoms($dom) {

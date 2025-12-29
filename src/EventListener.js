@@ -78,6 +78,8 @@ class EventListener {
         Object.values(TargetData.events).forEach(group => {
             Object.assign(this.allEvents, group);
         });     
+        
+        this.hovered = new Set();
 
         this.bindedHandleWindowEvent = this.handleWindowEvent.bind(this);
         this.bindedHandleEvent = this.handleEvent.bind(this);
@@ -110,16 +112,16 @@ class EventListener {
     
     attachEvents(tmodels) {
         for (const tmodel of tmodels) {
-            if (!tmodel.state().externalEventList) {
+            if (!tmodel.externalEventMap) {
                 continue;
             }
-            for (const targetName of tmodel.state().externalEventList) {
-                this.attachTargetEvents(tmodel, targetName);
+            for (const [targetName] of tmodel.externalEventMap) {
+                this.attachTargetEvents(tmodel, targetName, true);
             }
         }
     }
     
-    attachTargetEvents(tmodel, targetName) {
+    attachTargetEvents(tmodel, targetName, force) {
         const targetKey = `${tmodel.oid} ${targetName}`;
         
         const events = TargetData.targetToEventsMapping[targetName];
@@ -149,8 +151,8 @@ class EventListener {
                 const attachedKey = `${tmodel.oid} ${key} ${isWindow ? 'win' : 'dom'}`;
                 
                 const alreadyAttached = this.attachedEventMap[attachedKey] && this.attachedEventMap[attachedKey].$dom === $dom;
-                
-                if (!alreadyMarked || !alreadyAttached) {
+                                
+                if (force || !alreadyMarked || !alreadyAttached) {                    
                     $dom.detachEvent(key, this.bindedHandleEvent);
                     $dom.addEvent(key, this.bindedHandleEvent, eventSpec.capture, eventSpec.passive);
                     this.eventTargetMap[attachMarkerKey] = $dom;
@@ -175,7 +177,7 @@ class EventListener {
     resetEventsOnTimeout() {
         if (this.currentTouch.deltaY || this.currentTouch.deltaX || this.currentTouch.pinchDelta) {
             const diff = this.touchTimeStamp - TUtil.now();
-                                                
+                                          
             if (diff > 100) {                         
                 this.currentTouch.deltaY *= 0.95;
                 this.currentTouch.deltaX *= 0.95;
@@ -297,16 +299,21 @@ class EventListener {
 
         const { type: originalName } = event; 
         const eventItem = this.allEvents[originalName];
-                                                  
+                                                          
         if (!eventItem) {
             return;
         }
-                                
+                                        
         let { eventName, inputType, eventType, order: eventOrder, queue, rateLimit } = eventItem;
-                
+  
         const now = TUtil.now();
                 
-        const tmodel = this.getTModelFromEvent(event);
+        let tmodel;
+        if (eventType === 'move' && this.touchCount > 0 && this.currentHandlers.start) {
+            tmodel = this.currentHandlers.start;
+        } else {
+            tmodel = this.getTModelFromEvent(event);
+        }        
                         
         tmodel?.markLayoutDirty('event');
                 
@@ -406,7 +413,6 @@ class EventListener {
             }
             case 'mouseup':
             case 'touchend':
-                
                 this.detachDocumentEvents();
                 if (this.preventDefault(tmodel, eventName) && event.cancelable) {
                     event.preventDefault();
@@ -486,7 +492,9 @@ class EventListener {
                 this.windowEpoch++;
                 this.resizeRoot();
                 tApp.manager.getVisibles().forEach(t => {
-                    t.markLayoutDirty('resize-event');
+                    if (t.targets['onResize']) {
+                        t.markLayoutDirty('resize-event');
+                    }
                 });  
                 break;
                 
@@ -567,6 +575,7 @@ class EventListener {
         this.eventTargetMap = {};
         this.swipeStartX = 0;
         this.swipeStartY = 0;
+        this.hovered.clear();        
     }
 
     deltaX() {
@@ -681,11 +690,29 @@ class EventListener {
     }
 
     isEnterHandler(handler) {
-        return handler === this.currentHandlers.enter && this.getEventName() === 'mouseenter';
+        if (handler && handler === this.currentHandlers.enter && this.getEventName() === 'mouseenter') {
+
+            if (this.hovered.has(handler.oid)) {
+                return false;
+            }
+            
+            this.hovered.add(handler.oid);
+            return true;
+        }
+        return false;
     }
     
     isLeaveHandler(handler) {
-        return handler === this.currentHandlers.leave && this.getEventName() === 'mouseleave';
+        if (handler && handler === this.currentHandlers.leave && this.getEventName() === 'mouseleave') {
+            
+            if (!this.hovered.has(handler.oid)) {
+                return false;
+            }
+
+            this.hovered.delete(handler.oid);
+            return true;
+        }
+        return false;        
     }
     
     isHoverHandler(handler) {
