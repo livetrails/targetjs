@@ -14,6 +14,7 @@ export * from "./build/BracketGenerator.js";
 export * from "./build/ColorUtil.js";
 export * from "./build/Easing.js";
 export * from "./build/TargetExecutor.js";
+export * from "./build/AnimationManager.js";
 
 import * as App from './build/App.js';
 import * as TModel from './build/TModel.js';
@@ -31,6 +32,7 @@ import * as BracketGenerator from './build/BracketGenerator.js';
 import * as ColorUtil from './build/ColorUtil.js';
 import * as Easing from './build/Easing.js';
 import * as TargetExecutor from './build/TargetExecutor.js';
+import * as AnimationManager from './build/AnimationManager.js';
 
 const TargetJS = {
   ...App,
