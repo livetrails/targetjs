@@ -450,7 +450,7 @@ All of these are doable, but we chose the above to showcase a more complex, sequ
 
 - children: `children` is a special target that adds several items to the container's children each time it is executed. The `onVisibleChildrenChange` event function detects changes in the visible children and activates the `children` target to add new items that fill the gaps.  
 
-- loadItems: Since the target name ends with `$$`, it executes only after the newly created children finish their animations. It then iterates over all visible children and fetches their details. The result is an array of users. TargetJS ensures that this array preserves the order in which the API calls were made, not the order in which responses were received.
+- _loadItems: Because the target name starts with `_`, it executes only when explicitly activated, which happens inside the `onVisibleChildrenChange` event function. TargetJS guarantees that this array preserves the order in which API calls were made, not the order in which responses were received.
 
 - populate: Since the target name ends with `$$`, it executes only after all API calls have completed. It updates the content of each scrollable item with the name returned by the API.
 
@@ -465,22 +465,7 @@ import { App, TModel, getEvents, fetch, getScreenWidth, getScreenHeight } from "
 App({
     preventDefault: true,
     containerOverflowMode: "always",
-    children() {  
-        const childrenCount = this.getChildren().length;  
-        return Array.from({ length: 20 }, (_, i) => ({
-            width: [{list: [100, 250, 100]}, 50],
-            x$() { return this.getCenterX(); },
-            background: [{list: ["#FCE961", "#B388FF"]}, 15, 15],
-            height: 48,
-            color: "#C2FC61",
-            textAlign: "center",
-            lineHeight: 48,
-            bottomMargin: 2,
-            html: childrenCount + i,
-            validateVisibilityInParent: true
-        }));
-    },
-    loadItems$$() {
+    _loadItems() {
         this.visibleChildren.filter(child => !child.loaded).forEach(child => {
             child.loaded = true;
             fetch(this, `https://targetjs.io/api/randomUser?id=${child.oid}`);
@@ -488,25 +473,47 @@ App({
     },
     populate$$() {
         if (this.prevTargetValue) {
-            this.prevTargetValue.forEach(data => this.getChildByOid(data.id).setTarget('html', data.name));
+            this.prevTargetValue.forEach(data => this.getChildByOid(data.id).setTarget("html", data.name));
         }
+    },
+    children() {
+        const childrenCount = this.getChildren().length;
+        return Array.from({length: 20}, (_, i) => ({
+            animate() {
+                const pWidth = this.parent.getWidth();
+                this.setTarget({ width: {list: [100, 250, 100]}, x: { list: [ (pWidth - 100) / 2, (pWidth - 250) / 2, (pWidth - 100) / 2 ] } }, 100);
+            },
+            backgroundColor: [{list: ["#FCE961", "#B388FF"]}, 15, 15],
+            height: 48,
+            color: "#C2FC61",
+            textAlign: "center",
+            lineHeight: 48,
+            bottomMargin: 2,
+            html: childrenCount + i,
+            validateVisibilityInParent: true,
+        }));
     },
     onScroll() {
         this.setTarget("scrollTop", Math.max(0, this.getScrollTop() + getEvents().deltaY()));
     },
     onVisibleChildrenChange() {
-       return !this.visibleChildren.length || this.getLastChild().getY() < this.getHeight() ? 'children' : 'loadItems$$';
+        this.activateTarget("loadItems");
+
+        if (getEvents().dir() === "down" && this.visibleChildren.length * 50 < this.getHeight()) {
+            this.activateTarget("children");
+        }
     },
     width: getScreenWidth,
     height: getScreenHeight,
-    onResize: 'width'
+    onResize: "width"
 });
+
 ```
 
 We can reduce the number of API calls by triggering them only after scrolling stops as follows:
 
 ```javascript
-    loadItems$$: {
+    _loadItems: {
         value() {
             this.visibleChildren.filter(child => !child.loaded).forEach(child => {
                 child.loaded = true;
