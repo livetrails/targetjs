@@ -349,7 +349,12 @@ class TModelUtil {
         }
         
         return base;
-    }    
+    }  
+    
+    static num(v, fallback) {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : fallback;
+    } 
 
     static getTransformString(values, transformOrderList) {
         const processed = {};
@@ -369,7 +374,7 @@ class TModelUtil {
                 case 'translateY':
                 case 'translateZ':
                     if (values[key] !== null) {
-                        transformMap[key] = `${key}(${Number(values[key] ?? 0)}px)`;
+                        transformMap[key] = `${key}(${TModelUtil.num(values[key], 0)}px)`;
                         processed[key] = true;
                     }
                     break;
@@ -382,9 +387,10 @@ class TModelUtil {
                         processed.x = processed.y = processed.z = true;
                         break;
                     }
-                    const x = `${Number(values.x ?? 0)}px`;
-                    const y = `${Number(values.y ?? 0)}px`;
-                    const z = `${Number(values.z ?? 0)}px`;
+                    const x = `${TModelUtil.num(values.x, 0)}px`;
+                    const y = `${TModelUtil.num(values.y, 0)}px`;
+                    const z = `${TModelUtil.num(values.z, 0)}px`;
+
 
                     transformMap['translate3d'] = `translate3d(${x}, ${y}, ${z})`;
                     
@@ -404,10 +410,11 @@ class TModelUtil {
                     const has3D = TUtil.isDefined(values.rotate3DX) && TUtil.isDefined(values.rotate3DY) && TUtil.isDefined(values.rotate3DZ) && TUtil.isDefined(values.rotate3DAngle);
 
                     if (has3D) {
-                        transformMap['rotate3d'] = `rotate3d(${values.rotate3DX}, ${values.rotate3DY}, ${values.rotate3DZ}, ${Number(values.rotate3DAngle ?? 0)}deg)`;
+                        transformMap['rotate3d'] = `rotate3d(${TModelUtil.num(values.rotate3DX, 0)}, ${TModelUtil.num(values.rotate3DY, 0)}, ${TModelUtil.num(values.rotate3DZ, 0)}, ${TModelUtil.num(values.rotate3DAngle, 0)}deg)`;
+
                         processed.rotate3DX = processed.rotate3DY = processed.rotate3DZ = processed.rotate3DAngle = true;
                     } else if (values[key] !== null) {
-                        transformMap[key] = `${key}(${Number(values[key] ?? 0)}deg)`;
+                        transformMap[key] = `${key}(${TModelUtil.num(values[key], 0)}deg)`;
                         processed[key] = true;
                     }
                     break;
@@ -426,7 +433,7 @@ class TModelUtil {
                         transformMap['scale3d'] = `scale3d(${Number(values.scale3DX ?? 1)}, ${Number(values.scale3DY ?? 1)}, ${Number(values.scale3DZ ?? 1)})`;
                         processed.scale3DX = processed.scale3DY = processed.scale3DZ = true;
                     } else {
-                        transformMap[key] = `${key}(${Number(values[key] ?? (key === 'scale' ? 1 : 1))})`;
+                        transformMap[key] = `${key}(${TModelUtil.num(values[key], 1)})`;
                         processed[key] = true;
                     }
                     break;
@@ -447,7 +454,7 @@ class TModelUtil {
                 }
 
                 case 'perspective':
-                    transformMap[key] = `perspective(${Number(values.perspective ?? 0)}px)`;
+                    transformMap[key] = `perspective(${TModelUtil.num(values.perspective, 0)}px)`;
                     processed.perspective = true;
 
                     break;

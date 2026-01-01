@@ -825,7 +825,7 @@ class BaseModel {
         if (!this.animatingMap) {
             return false;
         }
-                
+        
         const { originalTargetName } = TargetUtil.getOriginalNames(this, key);
 
         return this.animatingMap.has(key) && this.animatingMap.get(key).originalTargetName === originalTargetName;

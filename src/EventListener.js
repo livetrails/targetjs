@@ -299,7 +299,7 @@ class EventListener {
 
         const { type: originalName } = event; 
         const eventItem = this.allEvents[originalName];
-                                                          
+                                                                  
         if (!eventItem) {
             return;
         }
@@ -314,7 +314,7 @@ class EventListener {
         } else {
             tmodel = this.getTModelFromEvent(event);
         }        
-                        
+                                             
         tmodel?.markLayoutDirty('event');
                 
         const newEvent = { eventName, eventItem, eventType, originalName, tmodel, originalEvent: event, timeStamp: now };
@@ -528,12 +528,15 @@ class EventListener {
     }
 
     getTModelFromEvent(event) {
-        let oid = event.target?.id;
+        let oid = event.currentTarget?.id;
         
         if (!oid || !tApp.manager.visibleOidMap[oid]) {
-            oid = $Dom.findNearestParentWithId(event.target);
+            oid = event.target?.id;
+            if (!oid || !tApp.manager.visibleOidMap[oid]) {
+                oid = $Dom.findNearestParentWithId(event.target);
+            }        
         }
-        
+
         return tApp.manager.visibleOidMap[oid];
     }
 
@@ -699,12 +702,13 @@ class EventListener {
             this.hovered.add(handler.oid);
             return true;
         }
-        return false;
-    }
-    
+            return false;
+        }
+
     isLeaveHandler(handler) {
+
         if (handler && handler === this.currentHandlers.leave && this.getEventName() === 'mouseleave') {
-            
+
             if (!this.hovered.has(handler.oid)) {
                 return false;
             }
@@ -712,9 +716,9 @@ class EventListener {
             this.hovered.delete(handler.oid);
             return true;
         }
-        return false;        
+        return false;
     }
-    
+
     isHoverHandler(handler) {
         return handler === this.currentHandlers.hover;
     }    

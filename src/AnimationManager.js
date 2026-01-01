@@ -10,7 +10,7 @@ class AnimationManager {
         this.waapiPoller = { rafId: 0, alive: true };
         this.recordMap = new Map();
         this.isShuttingDown = false;        
-        this.toid = 'blank_1';
+        this.toid = 'ring_0';
     }
     
     getAt(frame, key) {
@@ -115,7 +115,7 @@ class AnimationManager {
                 Object.keys(tmodel.tfMap).forEach(key => {
                     tmodel.tfMap[key] = tmodel.val(key);
                 });
-                const tfMap = { ...tmodel.tfMap, ...frame.tfMap };
+                const tfMap = { ...tmodel.tfMap, ...frame.tfMap };                             
                 out.transform = TModelUtil.getTransformString(tfMap, tmodel.val('transformOrder'));
                 frame.tfMap = tfMap;
                 transformAnimation = true;
@@ -222,7 +222,7 @@ class AnimationManager {
                     
                     rec.finished = true;
                     rec.hooks.fireOnEnd(tmodel, rec.originalKey);
-                                            
+                    
                     getRunScheduler().scheduleOnlyIfEarlier(1, `animate-${tmodel.oid}---${originalKey}`);
                 }
             }
@@ -409,6 +409,17 @@ class AnimationManager {
         tmodel.clearAnimatingMap();
     }
     
+    cancelKey(tmodel, originalKey) {
+
+        const recId = this.getRecordId(tmodel, originalKey);
+        const rec = this.recordMap.get(recId);
+
+        if (rec) {
+            rec.canceled = true;
+        }
+
+    }
+    
     async cancelAll() {
         this.isShuttingDown = true;
         
@@ -434,7 +445,7 @@ class AnimationManager {
             seen.add(tmodel.oid);
             
             this.freezeTModelAtCurrentTime(tmodel);
-
+            
             tmodel.pausedBatch = tmodel.lastBatch;
             tmodel.lastBatch = undefined;
             tmodel.finalKeyframe = undefined;

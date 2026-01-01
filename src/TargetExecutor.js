@@ -5,7 +5,7 @@ import { TModel } from "./TModel.js";
 import { TUtil } from "./TUtil.js";
 import { TModelUtil } from "./TModelUtil.js"; 
 import { Easing } from "./Easing.js";
-import { getLoader, getRunScheduler } from "./App.js";
+import { getLoader, getRunScheduler, getAnimationManager } from "./App.js";
 
 /**
  * It is responsible for executing both declarative and imperative targets.
@@ -45,6 +45,12 @@ class TargetExecutor {
         targetValue.isImperative = true;
         targetValue.originalTargetName = originalTargetName;
         targetValue.originalTModel = originalTModel;
+          
+        const isAnimating = tmodel.animatingMap?.has(key);
+
+        if (isAnimating && tmodel.getTargetSteps(key) > 0) {
+            getAnimationManager().cancelKey(tmodel, key);
+        }        
         
         return targetValue;
     }
@@ -116,10 +122,8 @@ class TargetExecutor {
         tmodel.addToStyleTargetList(key, enforce);
         tmodel.setTargetMethodName(key, 'value'); 
 
-        if (!tmodel.isKeyAnimating(key)) {
-            tmodel.updateTargetStatus(key);
-        }
-        
+        tmodel.updateTargetStatus(key);
+
         if (!TargetData.ignoreRerun[key] && tmodel.shouldScheduleRun(key)) {
             getRunScheduler().schedule(30, 'updateTarget2-' + tmodel.oid + "-" + key);
         }

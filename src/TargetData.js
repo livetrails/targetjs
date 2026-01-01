@@ -329,13 +329,13 @@ class TargetData {
         },
 
         leaveEvents: {
-            pointerleave: {eventName: 'mouseleave', inputType: 'pointer', eventType: 'leave', order: 2, windowEvent: false, queue: true, rateLimit: 0},
-            mouseleave: {eventName: 'mouseleave', inputType: 'mouse', eventType: 'leave', order: 3, windowEvent: false, queue: true, rateLimit: 0}
+          pointerleave: { eventName: 'mouseleave', inputType: 'pointer', eventType: 'leave', order: 2, windowEvent: false, queue: true, rateLimit: 0 },
+          mouseleave:   { eventName: 'mouseleave', inputType: 'mouse',   eventType: 'leave', order: 3, windowEvent: false, queue: true, rateLimit: 0 }
         },
 
         enterEvents: {
-            pointerenter: {eventName: 'mouseenter', inputType: 'pointer', eventType: 'enter', order: 2, windowEvent: false, queue: true, rateLimit: 0},
-            mouseenter: {eventName: 'mouseenter', inputType: 'mouse', eventType: 'enter', order: 3, windowEvent: false, queue: true, rateLimit: 0}
+          pointerenter: { eventName: 'mouseenter', inputType: 'pointer', eventType: 'enter', order: 2, windowEvent: false, queue: true, rateLimit: 0 },
+          mouseenter:   { eventName: 'mouseenter', inputType: 'mouse',   eventType: 'enter', order: 3, windowEvent: false, queue: true, rateLimit: 0 }
         },
 
         moveEvents: {
