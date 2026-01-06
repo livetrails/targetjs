@@ -86,7 +86,7 @@ class LoadingManager {
     }
 
     getTModelKey(tmodel, targetName) {
-        return `${tmodel.oid} ${targetName}`;
+        return `${document.URL}_${tmodel.oid}_${targetName}`;
     }
 
     getLoadTargetName(targetName) {
@@ -210,6 +210,20 @@ class LoadingManager {
     fetchCache(cacheId) {
         return this.cacheMap[cacheId];
     }
+    
+    calculateTargetStatus(tmodel, key) {
+
+        const cycle = tmodel.getTargetCycle(key);
+        const cycles = tmodel.getTargetCycles(key);
+                
+        if (tmodel.isTargetInLoop(key) || cycle < cycles) {
+            return 'active'; 
+        } else if (!this.isLoadingSuccessful(tmodel, key)) {
+            return 'fetching';
+        } else {
+            return 'done';
+        }
+    }    
 
     handleSuccess(fetchStatus, result) {
         const fetchTime = TUtil.now();
@@ -242,9 +256,10 @@ class LoadingManager {
                 targetResults[fetchEntry.order] = res.result;
             }
 
-            tmodel.val(targetName, targetResults?.length === 1 ? targetResults[0] : targetResults);
+            tmodel.val(targetName, targetResults?.length === 1 && tmodel.getTargetCycles(targetName) === 0 ? targetResults[0] : targetResults);
 
-            tmodel.updateTargetStatus(targetName);
+            const newStatus = this.calculateTargetStatus(tmodel, targetName);
+            tmodel.setTargetStatus(targetName, newStatus);  
             tmodel.setLastUpdate(targetName);
             TargetUtil.shouldActivateNextTarget(tmodel, targetName);
         });
@@ -288,14 +303,15 @@ class LoadingManager {
                 targetResults[fetchEntry.order] = res;
             }
 
-            tmodel.val(targetName, targetResults.length === 1 ? targetResults[0] : targetResults);
+            tmodel.val(targetName, targetResults?.length === 1 && tmodel.getTargetCycles(targetName) === 0 ? targetResults[0] : targetResults);
 
             tmodelEntry.errorCount++;
 
             this.callOnErrorHandler(tmodel, targetName);
 
-            tmodel.updateTargetStatus(targetName);
-            tmodel.setLastUpdate(targetName);            
+            const newStatus = this.calculateTargetStatus(tmodel, targetName);
+            tmodel.setTargetStatus(targetName, newStatus);  
+            tmodel.setLastUpdate(targetName);
             TargetUtil.shouldActivateNextTarget(tmodel, targetName);
         });
 

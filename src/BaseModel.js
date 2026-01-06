@@ -1,7 +1,6 @@
-import { App, getRunScheduler, getLocationManager, getAnimationManager, getDomTModelById, getLoader, getEvents } from "./App.js";
+import { App, getRunScheduler, getLocationManager, getAnimationManager, getDomTModelById, getEvents } from "./App.js";
 import { TargetExecutor } from "./TargetExecutor.js";
 import { TUtil } from "./TUtil.js";
-//import { TModelUtil } from "./TModelUtil.js";
 import { TargetParser } from "./TargetParser" ;
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
@@ -130,7 +129,7 @@ class BaseModel {
     processNewTarget(key, keyIndex) {
         
         const cleanKey = TargetUtil.getTargetName(key);
-        let target = this.targets[key] || this.targets[cleanKey];
+        let target = this.targets[key];
         
         if (!TUtil.isDefined(target)) {
             this.delVal(key);
@@ -163,11 +162,11 @@ class BaseModel {
                 || targetType === 'object'
                 || targetType === 'function'
             ) { 
-                if (!TUtil.isDefined(target.value) && !TargetParser.isChildObjectTarget(key, target) && !TargetParser.isIntervalTarget(target)) {
+                if (!TUtil.isDefined(target.value) && !TargetParser.isChildObjectTarget(key, target) && !TargetParser.isIntervalTarget(target)) {                  
                     needsTargetExecution = true;
                     target = TargetUtil.wrapTarget(this, target, key);
                 }
-                TargetUtil.bindTarget(this, key, prevKey, nextKey, keyIndex);
+                TargetUtil.bindTarget(this, key, prevKey, nextKey, keyIndex);              
             }
         }
         
@@ -393,38 +392,26 @@ class BaseModel {
         return this;
     }
     
-    updateTargetStatus(key) {
+    setTargetStatus(key, status) {
         const targetValue = this.targetValues[key];
 
         if (!targetValue) {
             return;
         }
         
-        const cycle = this.getTargetCycle(key);
-        const cycles = this.getTargetCycles(key);
-        const step = this.getTargetStep(key);
-        const steps = this.getTargetSteps(key);
-        
-        if (TargetUtil.isTargetAlreadyUpdating(this, key)) {
-            targetValue.status = 'done';
-            targetValue.step = steps;
-            targetValue.cycle = cycles;
-        } else if (this.isExecuted(key) && step < steps) {
-            targetValue.status = 'updating';
-        } else if (Array.isArray(targetValue.valueList) && cycle < targetValue.valueList.length - 1) {
-            targetValue.status = 'updating';
-        } else if (!this.isExecuted(key) || this.isTargetInLoop(key) || cycle < cycles) {
-            targetValue.status = 'active';
-        } else if (this.targets[key]?.fetchAction && !getLoader().isLoadingSuccessful(this, key)) {
-            targetValue.status = 'fetching';
-        } else {
-            targetValue.status = 'done';
+        const oldStatus = targetValue.status;
+
+        if (status === 'done' && oldStatus !== 'done' && oldStatus !== 'complete') {
+          targetValue.completeCount++;
+          targetValue.completeTime = TUtil.now();
         }
+
+        targetValue.status = status;
         
         if (targetValue.status === 'fetching') {
             this.removeFromActiveTargets(key);
             this.removeFromUpdatingTargets(key);
-           this.getParent().addToActiveChildren(this); 
+            this.getParent().addToActiveChildren(this); 
         } else if (this.isTargetUpdating(key)) {
             this.addToUpdatingTargets(key);
             this.removeFromActiveTargets(key);
@@ -435,8 +422,7 @@ class BaseModel {
             this.removeFromActiveTargets(key);
             this.removeFromUpdatingTargets(key);
         }
-
-        return targetValue.status;
+        
     }
 
     getTargetStatus(key) {
@@ -534,10 +520,6 @@ class BaseModel {
         const value = target.value ?? target;
         return (typeof value === 'function') ? value.call(this) : value;
     }
-    
-    getTargetSteps(key) {
-        return this.targetValues[key] ? this.targetValues[key].steps || 0 : 0;
-    }
 
     getTargetStep(key) {
         return this.targetValues[key] ? this.targetValues[key].step : 0;
@@ -605,7 +587,7 @@ class BaseModel {
     getTargetActivationTime(key) {
         return this.targetValues[key]?.activationTime ?? 0;
     }
-
+    
     getTargetCreationTime(key) {
         return this.targetValues[key] ? this.targetValues[key].creationTime : undefined;
     }
@@ -625,9 +607,45 @@ class BaseModel {
 
         return targetValue.step;        
     }
+    
+    getTargetEasing(key) {
+        const easing = this.targetValues[key]?.easing;
+        const target = this.targets[key];
+        if (!target) {
+            return easing;
+        }
+        
+        return typeof target.easing === 'function' ? target.easing.call(this, this.getTargetCycle(key)) : easing;
+    }
+
+    getTargetInterval(key) {
+        const interval = this.targetValues[key]?.interval ?? 0;
+        const target = this.targets[key];
+        if (!target) {
+            return interval;
+        }
+        
+        return typeof target.interval === 'function' ? target.interval.call(this, this.getTargetCycle(key)) : interval;        
+    }    
+    
+    getTargetSteps(key) {
+        const steps = this.targetValues[key]?.steps  ?? 0;
+        const target = this.targets[key];
+        if (!target) {
+            return steps;
+        }
+        
+        return typeof target.steps === 'function' ? target.steps.call(this, this.getTargetCycle(key)) : steps;
+    }
 
     getTargetCycles(key) {
-        return this.targetValues[key]?.cycles ?? 0;
+        const cycles = this.targetValues[key]?.cycles ?? 0;
+        const target = this.targets[key];
+        if (!target) {
+            return cycles;
+        }
+        
+        return typeof target.cycles === 'function' ? target.cycles.call(this, this.getTargetCycle(key), cycles) : cycles;
     }
 
     getTargetCycle(key) {
@@ -663,16 +681,8 @@ class BaseModel {
     setLastUpdate(key) {
         if (this.targetValues[key]) {
             this.targetValues[key].lastUpdate = TUtil.now();
+            this.targetValues[key].updateCount++;
         }
-    }
-
-    getTargetEasing(key) {
-        return typeof this.targetValues[key]?.easing === 'function' ? this.targetValues[key].easing : undefined;
-    }
-
-    getTargetInterval(key) {
-        const targetValue = this.targetValues[key];
-        return targetValue?.interval || 0;
     }
 
     setTarget(key, value, steps, interval, easing) {     
@@ -684,14 +694,14 @@ class BaseModel {
         if (typeof key === 'string') {
             key = !key.endsWith('+') ? key + "+" : key;
         }
-        
+
         const originalTargetName = TargetUtil.currentTargetName;
         const originalTModel = TargetUtil.currentTModel;
             
         if (this.getParent() === originalTModel) {
-            TargetUtil.markChildAction(originalTModel, this);
+            TargetUtil.markChildAction(originalTModel, originalTargetName, this);
         }
-              
+        
         this.markLayoutDirty(key);
         
         TargetExecutor.executeImperativeTarget(this, key, value, steps, interval, easing, originalTargetName, originalTModel);
@@ -712,7 +722,7 @@ class BaseModel {
             }
         }
         
-        getAnimationManager().cancelTModel(this);
+        getAnimationManager().deleteAnimation(this);
         this.pausedBatch = undefined;
     }
     
@@ -729,7 +739,7 @@ class BaseModel {
         }
     }
 
-    removeFromActiveTargets(key) {
+    removeFromActiveTargets(key) {      
         if (this.activeTargetMap[key]) {
             delete this.activeTargetMap[key];
             const index = this.activeTargetList.indexOf(key);
@@ -744,12 +754,6 @@ class BaseModel {
 
     addToUpdatingTargets(key) {
 
-        const oldKey = this.updatingTargetList.find(k => k !== key && TargetUtil.getTargetName(k) === TargetUtil.getTargetName(key));
-        if (oldKey) {
-            this.resetTarget(oldKey);
-            this.removeFromUpdatingTargets(oldKey);
-        }
-        
         if (!this.updatingTargetMap[key]) {
             this.markLayoutDirty(key);
             this.updatingTargetMap[key] = true;
@@ -758,7 +762,7 @@ class BaseModel {
         }
     }
 
-    removeFromUpdatingTargets(key) {
+    removeFromUpdatingTargets(key) {       
         if (this.updatingTargetMap[key]) {
             delete this.updatingTargetMap[key];
             const index = this.updatingTargetList.indexOf(key);
@@ -816,6 +820,9 @@ class BaseModel {
     }
     
     addToAnimatingMap(key, record = true) {
+        if (this.targetValues[key]?.snapAnimation) {
+            return;
+        }
         this.animatingMap ||= new Map();        
         this.animatingMap.set(key, record);
         this.getParent()?.addToAnimatingChildren(this);
@@ -930,9 +937,28 @@ class BaseModel {
             if (this.isVisible()) {
                 this.markLayoutDirty(key);
             }
+            
+            const target = this.targets[key];
+            
+            if (target?.childAction?.length) {
+                target.childAction = [];
+            }
+            if (target?.addChildAction?.length) {
+                target.addChildAction = [];
+            }
+                                
+            const invokerTModel = TargetUtil.currentTModel;
+            const invokerTarget = TargetUtil.currentTargetName;
 
             const targetValue = this.targetValues[key] || TargetUtil.emptyValue();
-            
+
+            if (this.getParent() === invokerTModel) {
+                TargetUtil.markChildAction(invokerTModel, invokerTarget, this);
+            }
+
+            targetValue.invokerModel = invokerTModel;
+            targetValue.invokerTarget = invokerTarget;
+
             if (this.targetValues[key]) {
                 targetValue.activationTime = TUtil.now();
                 targetValue.lastUpdate = TUtil.now();
@@ -947,7 +973,7 @@ class BaseModel {
                 targetValue.cycles = this.targets[key]?.cycles ?? targetValue.cycles;                
             }
                             
-            this.updateTargetStatus(key);
+            this.setTargetStatus(key, 'active');
 
             this.activate(key);           
         }

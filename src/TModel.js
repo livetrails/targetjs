@@ -147,7 +147,7 @@ class TModel extends BaseModel {
         return this;
     }
     
-    addChild(child, index = this.addedChildren.length + this.allChildrenList.length) {        
+    addChild(child, index = this.addedChildren.length + this.allChildrenList.length) {  
         if (typeof child === 'object') {
             this.childrenUpdateFlag = true;
             
@@ -164,7 +164,6 @@ class TModel extends BaseModel {
             if (!child.toDiscard) { 
                 
                 App.tmodelIdMap[child.oid] = child;
-                
                 this.addedChildren.push({ index, child });
                 child.parent = this;
                 child.markLayoutDirty('addChild');
@@ -174,9 +173,9 @@ class TModel extends BaseModel {
                 }
                 if (child.activeTargetList.length > 0) {
                     this.addToActiveChildren(child);
-                }
+                }   
                         
-                TargetUtil.markChildAction(this, child);
+                TargetUtil.markChildAction(this, TargetUtil.currentTargetName, child);
             }
         }
         return this;
@@ -283,12 +282,12 @@ class TModel extends BaseModel {
         return this.allChildrenList;
     }
 
-    removeAll() {  
+    removeChildren() {  
         if (!this.hasChildren()) {
             return this;
         }
         
-        this.markLayoutDirty('removeAll');
+        this.markLayoutDirty('removeChildren');
         
         this.allChildrenList.forEach(t => {
             TargetUtil.resetBeforeDeletion(t);
@@ -404,7 +403,7 @@ class TModel extends BaseModel {
     }
     
     getChild(index) {
-        return typeof index === 'number' ? this.getChildren()[index] : this.getChildByOid(index);
+        return typeof index === 'number' ? this.getChildren()[index] : this.findChild(index);
     }
     
     getChildIndex(child) {

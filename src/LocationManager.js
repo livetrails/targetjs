@@ -3,6 +3,7 @@ import { TUtil } from "./TUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
 import { TModelUtil } from "./TModelUtil.js";
+import { AnimationUtil } from "./AnimationUtil.js";
 import { TargetExecutor } from "./TargetExecutor.js";
 import { getTargetManager, tRoot, getEvents, getAnimationManager } from "./App.js";
 
@@ -59,7 +60,7 @@ class LocationManager {
             const child = activatedList[i++];
 
             const activatedTargets = child.activatedTargets.slice(0);
-
+            
             child.activatedTargets.length = 0;
 
             getTargetManager().applyTargetValues(child, activatedTargets);
@@ -186,11 +187,11 @@ class LocationManager {
         };
 
         const processChild = job => {
-
+            
             const { container, children, viewport, index } = job;
-
+            
             const child = children[index];
-                        
+            
             if (!child) {
                 job.index++;
                 return;                
@@ -485,12 +486,16 @@ class LocationManager {
         }
 
         this.checkInternalEvents(tmodel);
-                
-        tmodel.activatedTargets.forEach(target => {
-            if (tmodel.activeTargetMap[target]) {
-                tmodel.removeFromActiveTargets(target);
+        
+        let guard = 0;
+        while (tmodel.activatedTargets.length && guard++ < 50) {
+            const batch = tmodel.activatedTargets.slice(0);
+            tmodel.activatedTargets.length = 0;
+
+            for (const key of batch) {
+                getTargetManager().applyTargetValue(tmodel, key);
             }
-        });
+        }
         
         getTargetManager().applyTargetValues(tmodel);
         if (tmodel.updatingTargetList.length > 0) {
@@ -586,6 +591,9 @@ class LocationManager {
             const target = tmodel.targets[targetName];
                         
             if (tmodel.isTargetEnabled(targetName) && !tmodel.isTargetUpdating(target)) {
+                if (tmodel.targetValues[targetName]) {
+                    tmodel.targetValues[targetName].status = '';
+                }
                 TargetExecutor.prepareTarget(tmodel, targetName);
                 TargetExecutor.resolveTargetValue(tmodel, targetName);
                 TargetExecutor.updateTarget(tmodel, tmodel.targetValues[targetName], targetName, false);
@@ -636,7 +644,7 @@ class LocationManager {
             }                    
 
             if (keysToSnap.length > 0) {
-                TModelUtil.overrideAnimatedKeyWithSnap(tmodel, keysToSnap, valuesToSnap);
+                AnimationUtil.overrideAnimatedKeyWithSnap(tmodel, keysToSnap, valuesToSnap);
                 return;
             }
         }

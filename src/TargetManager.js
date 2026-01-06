@@ -32,7 +32,7 @@ class TargetManager {
             return;
         }
 
-        if (tmodel.isExecuted(key) && tmodel.getTargetStep(key) === tmodel.getTargetSteps(key)) {
+        if (tmodel.isExecuted(key) && tmodel.getTargetStep(key) === tmodel.getTargetSteps(key)) {             
             if (tmodel.isScheduledPending(key)) {
                 return;
             }
@@ -64,13 +64,8 @@ class TargetManager {
         updatingList = updatingList.slice(0);
 
         let schedulePeriod = 0;
-        
+
         for (const key of updatingList) {
-            
-            if (TargetUtil.isTargetAlreadyUpdating(tmodel, key)) {
-                tmodel.updateTargetStatus(key);
-                continue;
-            }
 
             schedulePeriod = TargetUtil.scheduleExecution(tmodel, key);
             
@@ -155,7 +150,7 @@ class TargetManager {
 
     fireOnEnd(tmodel, key) {
         const targetValue = tmodel.targetValues[key];
-
+        
         if (!targetValue) {
             return;
         }
@@ -172,6 +167,9 @@ class TargetManager {
             originalTarget = originalTModel ? originalTModel.targets[originalTargetName] : null;
         }
 
+        const newStatus = this.calculateTargetStatus(tmodel, targetValue, key);
+        tmodel.setTargetStatus(key, newStatus); 
+        
         if (tmodel.isTargetImperative(key)) { 
             const capKey = TargetUtil.getTargetName(TUtil.capitalizeFirstLetter(key));
             
@@ -197,9 +195,24 @@ class TargetManager {
             }
         }
         
-        tmodel.updateTargetStatus(key);
         TargetUtil.shouldActivateNextTarget(tmodel, key);
     }
+    
+    
+    calculateTargetStatus(tmodel, targetValue, key) {
+
+        const cycle = tmodel.getTargetCycle(key);
+        const cycles = tmodel.getTargetCycles(key);
+        
+        if (Array.isArray(targetValue.valueList) && cycle < targetValue.valueList.length - 1) {
+            return 'updating';
+        } else if (tmodel.isTargetInLoop(key) || cycle < cycles) {
+            return 'active';           
+        } else {
+            return 'done';
+        }
+    }    
+
     
     handleWebAnimationAPI(tmodel, cleanKey, key, targetValue, from, to, steps, interval) { 
         const batch = (tmodel.waapiBatch ||= {
@@ -208,7 +221,7 @@ class TargetManager {
             keyMap: {},
             totalDuration: 0
         });
-        
+
         const isTransform = TargetData.isTransformKey(cleanKey);
         
         const getFrameAtTime = (t) => {
@@ -228,7 +241,7 @@ class TargetManager {
         if (targetValue.valueList && targetValue.valueList.length) {
             const valueList = targetValue.valueList;
             const stepList = targetValue.stepList || [1];
-            const intervalList = targetValue.intervalList || [8];
+            const intervalList = targetValue.intervalList;
             const step = targetValue.step;
                                                                       
             const frame = getFrameAtTime(0);
@@ -278,13 +291,13 @@ class TargetManager {
         }
 
         if (tmodel.getTargetEasing(key)) {
-            //batch.easing = tmodel.getTargetEasing(cleanKey);
+            batch.easing = tmodel.getTargetEasing(key);
         }
 
         batch.totalDuration = Math.max(batch.totalDuration, keyDuration);
 
-        batch.keyMap[cleanKey] = key;
-        
+        (batch.keyMap[cleanKey] ||= new Set()).add(key);
+
         tmodel.removeFromUpdatingTargets(key);
     }
 
@@ -327,13 +340,12 @@ class TargetManager {
             
             tmodel.incrementTargetStep(key, now, lastUpdateTime, interval, steps);
 
-            const newValue = TModelUtil.morph(tmodel, key, initialValue, theValue, step, steps);
+            const newValue = TModelUtil.easingMorph(tmodel, key, initialValue, theValue, step, steps);
             tmodel.val(key, newValue);
             tmodel.setActual(key, newValue);
             tmodel.addToStyleTargetList(key);
 
             this.fireOnStep(tmodel, key, step);
-            tmodel.updateTargetStatus(key);
 
             if (tmodel.getTargetStep(key) < steps) {
                 getRunScheduler().scheduleOnlyIfEarlier(interval, `${tmodel.oid}---${key}-${step}/${steps}-${cycle}-${interval}`);

@@ -116,7 +116,7 @@ const AppFn = () => {
         my.events.detachAll();
         my.events.detachWindowEvents();        
         my.events.clearAll();
-        await my.animationManager.cancelAll();
+        await my.animationManager.deleteAll();
         await my.animationManager.flushOneFrame();
 
         await my.runScheduler.resetRuns();

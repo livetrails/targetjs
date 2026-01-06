@@ -1,6 +1,5 @@
-import { App, getLoader, getEvents, getLocationManager, getTargetManager } from "./App.js";
+import { App, getLoader, getEvents, getLocationManager, getTargetManager, getManager } from "./App.js";
 import { TUtil } from "./TUtil.js";
-import { TargetParser } from "./TargetParser.js";
 import { TargetData } from "./TargetData.js";
 import { TModelUtil } from "./TModelUtil.js";
 
@@ -21,13 +20,15 @@ class TargetUtil {
             initialValue: undefined,
             scheduleTimeStamp: undefined,
             lastUpdate: 0,
-            status: '',
+            updateCount: 0,
+            completeCount: 0,
+            completeTime: 0,
             executionCount: 0,
+            status: '',
             executionFlag: false,
             isImperative: false,
             originalTargetName: undefined,
             easing: undefined,
-            activationTime: TUtil.now(),
             creationTime: TUtil.now()
         };
     }
@@ -49,7 +50,7 @@ class TargetUtil {
     
     static bindTarget(tmodel, key, prevKey, nextKey, keyIndex) {
         let target = tmodel.targets[key];
-                
+                        
         const getPrevValue = () => {
             if (prevKey) { 
                 if (getLoader().isLoading(tmodel, prevKey)) {
@@ -116,7 +117,6 @@ class TargetUtil {
     }
     
     static shouldActivateNextTarget(tmodel, key, levelUp = 0, sideStep = 0, isImperative = false) {
-
         if (levelUp > 4 || !tmodel) {
             return;
         }
@@ -129,8 +129,9 @@ class TargetUtil {
         }
         
         let target = tmodel.targets[key];
-        
-        if (!target) {
+        const targetValue = tmodel.targetValues[key];
+
+        if (!target || !targetValue) {
             return;
         }
         
@@ -139,37 +140,61 @@ class TargetUtil {
         const fetchAction = target.fetchAction;
 
         let nextTargetActivated = false;
+        let completeSignature = 0;
 
-        if (nextTarget) { 
-                
+        if (nextTarget) {
+                          
+            let canActivate = false;
             
-            const updateAfterActivation = tmodel.getLastUpdate(key) > tmodel.getTargetActivationTime(nextTarget) || tmodel.getTargetActivationTime(nextTarget) === TUtil.now();                           
+            if (isEndTrigger) {
+                completeSignature = TargetUtil.getPrevCompleteSignature(tmodel, nextTarget);
 
-            if ((!isEndTrigger && sideStep === 0 && (updateAfterActivation || isImperative)) 
-                    || (isEndTrigger && updateAfterActivation)) {
+                const previousResult = tmodel.targetValues[nextTarget]?.completeSignature ?? 0;
+                if (completeSignature !== previousResult){
+                    canActivate = true;
+                }
+
+            } else {
+                targetValue.nextTargetUpdateMap ||= {};
+                const updateCount = targetValue.nextTargetUpdateMap[nextTarget] || 0;
+
+                canActivate = targetValue.updateCount > updateCount;
+            }
+             
+            if ((!isEndTrigger && sideStep === 0 && (canActivate || isImperative)) 
+                    || (isEndTrigger && (canActivate))) {
+                                
+                const prevOk = isEndTrigger ? TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) : false; 
+                
                 if (fetchAction) {
                     if (isEndTrigger) {
-                        if (TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) === true) {                  
+                        
+                        if (prevOk === true) {                  
                             TargetUtil.activateTarget(tmodel, nextTarget);
                             nextTargetActivated = true;
+                            TargetUtil.clearPendingTargets(tmodel, key);
+                        } else {
+                            TargetUtil.markPendingTargets(tmodel, key);
                         }
                     } else {
-                        while (getLoader().isNextLoadingItemSuccessful(tmodel, key)) {
+                        while (getLoader().isNextLoadingItemSuccessful(tmodel, key)) {                      
                             if (tmodel.activatedTargets.indexOf(nextTarget) >= 0) {
                                 tmodel.activatedTargets.push(nextTarget);                            
                             } else {
                                 TargetUtil.activateTarget(tmodel, nextTarget);
                             }
                             getLoader().nextActiveItem(tmodel, key);
-                            nextTargetActivated = true;
+                            nextTargetActivated = true;                              
                         } 
                     }
                 } else if (isEndTrigger) {                     
-                    if (TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) === true)  {
+                    if (prevOk === true)  {
                         tmodel.removeFromActiveTargets(nextTarget);
                         TargetUtil.activateTarget(tmodel, nextTarget);
                         nextTargetActivated = true;
-
+                         TargetUtil.clearPendingTargets(tmodel, key);
+                    } else {
+                        TargetUtil.markPendingTargets(tmodel, key);
                     }
                 } else if (!isEndTrigger) {
                     if (tmodel.activatedTargets.indexOf(nextTarget) >= 0 && !tmodel.isTargetUpdating(key)) {
@@ -183,17 +208,46 @@ class TargetUtil {
                 TargetUtil.cleanupTarget(tmodel, nextTarget);
             }
         }
-       
+        
+        if (nextTargetActivated) {
+            if (isEndTrigger) {
+                if (completeSignature > 0) {
+                    tmodel.targetValues[nextTarget] ||= TargetUtil.emptyValue();
+                    tmodel.targetValues[nextTarget].completeSignature = completeSignature;
+                }
+            } else {
+                targetValue.nextTargetUpdateMap[nextTarget] = targetValue.updateCount;
+            }
+        }
+
         if (!nextTargetActivated && !tmodel.hasAnyUpdates()) {
             const { originalTModel, originalTargetName, activateNextTarget } = target;
             if (activateNextTarget && !fetchAction) {
                 TargetUtil.shouldActivateNextTarget(tmodel, activateNextTarget, levelUp, sideStep + 1, isImperative);
-            } else if (originalTModel) {
+            } else if (originalTModel) {              
                 TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, levelUp + 1, sideStep, isImperative);
             }
         }
         
         TargetUtil.cleanupTarget(tmodel, key);      
+    }
+    
+    static markPendingTargets(tmodel, key) {
+        (tmodel.pendingTargets ||= new Set()).add(key);
+    }
+
+    static clearPendingTargets(tmodel, key) {
+        
+        const pending = tmodel.pendingTargets;
+        
+        if (!pending) {
+            return;
+        }
+
+        pending.delete(key);
+        if (pending.size === 0) {
+            tmodel.pendingTargets = undefined;
+        }
     }
     
     static cleanupTarget(tmodel, key) {
@@ -203,6 +257,12 @@ class TargetUtil {
         
         tmodel.setTargetComplete(key);
         const target = tmodel.targets[key];
+       
+        if (typeof target?.onComplete === "function") {
+            target.onComplete.call(tmodel);
+            tmodel.setTargetMethodName(key, "onComplete");
+        }
+        
         const fetchAction = target?.fetchAction;
         
         if (fetchAction && getLoader().isLoadingComplete(tmodel, key)) {
@@ -213,15 +273,42 @@ class TargetUtil {
                 
             target.fetchAction = false;
         } 
+        
+        TargetUtil.bubbleInvokerCompletion(tmodel, key);
     }
     
+    static bubbleInvokerCompletion(tmodel, key, visited = new Set(), levelUp = 0) {
+        const sig = `${tmodel.oid}:${key}`;
+        if (visited.has(sig) || levelUp > 4) {
+            return;
+        }
+        
+        visited.add(sig);
+
+        const targetValue = tmodel.targetValues[key];
+        if (!targetValue) {
+            return;
+        }
+
+        const invokerModel = tmodel.isTargetImperative(key) ? targetValue.originalTModel : targetValue.invokerModel;
+        const invokerTarget = tmodel.isTargetImperative(key) ? targetValue.originalTargetName : targetValue.invokerTarget;
+
+        if (!invokerModel || !invokerTarget) {
+            return;
+        }
+
+        TargetUtil.cleanupTarget(invokerModel, invokerTarget);
+
+        TargetUtil.bubbleInvokerCompletion(invokerModel, invokerTarget, visited, levelUp + 1);
+    }
+
     static activateTargets(tmodel, target) {
         while(target) {
             if (!tmodel.isTargetActive(target) && !tmodel.isTargetUpdating(target)) {
                 TargetUtil.activateTarget(tmodel, target);
             }
             
-            const activateNextTarget = tmodel.targets[target].activateNextTarget;
+            const activateNextTarget = tmodel.targets[target]?.activateNextTarget;
             target = activateNextTarget && !activateNextTarget.endsWith('$$') && activateNextTarget.endsWith('$') ? activateNextTarget : undefined;
         }
     }
@@ -231,10 +318,14 @@ class TargetUtil {
     }
 
     static isTModelComplete(tmodel) {
+        if (!tmodel) {
+            return false;
+        }
         const state = tmodel.state();
-
+        
         return !(state.updatingTargetList?.length)
             && !(state.activeTargetList?.length)
+            && !(state.activatedTargets?.length)
             && !tmodel.hasAnimatingTargets()
             && TargetUtil.isFetchingComplete(tmodel)
             && !tmodel.hasAnimatingChildren()    
@@ -242,7 +333,8 @@ class TargetUtil {
             && !tmodel.hasActiveChildren()
             && !(state.lastChildrenUpdate?.deletions?.length)
             && !(state.lastChildrenUpdate?.additions?.length)
-            && !tmodel.pausedBatch;
+            && !tmodel.pausedBatch
+            && !getManager().needsReattach(tmodel);
     }
     
     static isFetchingComplete(tmodel) {
@@ -254,7 +346,7 @@ class TargetUtil {
         }
 
         for (const key of list) {
-            if (!getLoader().isLoadingComplete(tmodel, key)) {
+            if (!getLoader().isLoadingSuccessful(tmodel, key)) {
                 return false;
             }
         }
@@ -274,6 +366,25 @@ class TargetUtil {
 
         return result;
     }
+        
+    static getPrevCompleteSignature(tmodel, key) {
+        const keyIndex = key ? tmodel.functionTargetNames.findIndex(name => key === name) : tmodel.functionTargetNames?.length ?? 0;
+ 
+        let completeSignature = 0;
+        for (var i = keyIndex - 1; i >= 0; i--) {
+            const targetName = tmodel.functionTargetNames[i];
+        
+            completeSignature += (tmodel.targetValues[targetName]?.completeCount ?? 0) + (tmodel.targetValues[targetName]?.completeTime ?? 0);
+            
+            if (tmodel.targets[targetName]?.addChildAction) {
+                tmodel.targets[targetName]?.addChildAction.forEach(t => {
+                    completeSignature += this.getPrevCompleteSignature(t);
+                });
+            }
+        }
+        
+        return completeSignature;
+    }
        
     static arePreviousTargetsComplete(tmodel, key) {
         const keyIndex = tmodel.functionTargetNames.findIndex(name => key === name);
@@ -291,7 +402,7 @@ class TargetUtil {
             
             if (tmodel.isTargetCompleteDeep(targetName) !== true) {
                const activeChildrenList = [ ...(tmodel.activeChildrenMap?.values() ?? []) ];
-               return  tmodel.oid + "." + targetName + " ==> " + tmodel.isTargetCompleteDeep(targetName) + " -1- " + tmodel.getTargetStatus(targetName) + " -2- " + TargetUtil.getUpdatingChildren(tmodel, targetName) + " -3- " + activeChildrenList.map(t => t.oid + ':' + t.hasAnyUpdates()); 
+               return  tmodel.oid + "." + targetName + " ==> " + tmodel.getTargetStatus(targetName) + ", " + tmodel.isTargetCompleteDeep(targetName) + ":: " + activeChildrenList.map(t => t.oid + ':' + t.hasAnyUpdates()) + ", " + [ ...TargetUtil.getUpdatingChildren(tmodel, targetName).keys() ]; 
                //return false;
             }            
         }
@@ -313,24 +424,32 @@ class TargetUtil {
                 return true;
             } 
             
+            if (getManager().needsReattach(tmodel)) {
+                return "needs Reattach";
+            }
+            
+            if (tmodel.canHaveDom() && !tmodel.hasDom()) {
+                return "no dom";
+            }
+            
             if (!tmodel.isTargetComplete(key) && !tmodel.isTargetDone(key)) {
-                return 1;
-            }            
-            
-            if (target.childAction && TargetUtil.getUpdatingChildren(tmodel, key) > 0) {         
-                return 2;
+                return 'not done';
             }
             
-            if (target.childAction && tmodel.hasActiveChildren()) {
-                return 3;
+            if (target.childAction?.length > 0 && TargetUtil.getUpdatingChildren(tmodel, key).size > 0) {         
+                return 'updating children';
             }
             
-            if (target.childAction && TargetUtil.areTargetChildrenComplete(target.childAction) !== true) {
-                return 4;
+            if (target.childAction?.length > 0 && TargetUtil.getActiveChildren(tmodel).size > 0) {
+                return 'active children';
+            }
+            
+            if (target.childAction?.length > 0 && TargetUtil.areTargetChildrenComplete(target.childAction) !== true) {
+                return 'incomplete children';
             }
             
             if (target.fetchAction && !getLoader().isLoadingSuccessful(tmodel, key)) {
-                return 5;
+                return 'incomplete loading';
             }
         }
         
@@ -341,7 +460,7 @@ class TargetUtil {
         if (!children) {
             return true;
         }
-        
+                
         for (const child of children) {
             if (!child.isVisible() && child.visibilityStatus) {
                 continue;
@@ -360,51 +479,68 @@ class TargetUtil {
     }
     
     static getUpdatingChildren(tmodel, originalTargetName) {
-        let count = 0; 
+        const childrenMap = new Map(); 
         
         const children = [
           ...(tmodel.updatingChildrenMap?.values() ?? []),
           ...(tmodel.animatingChildrenMap?.values() ?? [])
-        ]; 
-        
+        ];
+                
         children.filter(child => child.isVisible() || !child.visibilityStatus).forEach(child => {
             const updatingList = [
               ...(child.updatingTargetList ?? []),
               ...(child.animatingMap ? [...child.animatingMap.keys()] : [])
             ];
-            
-            updatingList.forEach(target => {
+
+            for (const target of updatingList) {
+
+                if (child.targetValues[target]?.snapAnimation) {
+                    continue;
+                }
+
                 if (child.isTargetImperative(target)) {
                     const imperativeOriginalTarget = child.targetValues[target]?.originalTargetName;
                     if (imperativeOriginalTarget === originalTargetName) {
-                        count++;
+                        childrenMap.set(child.oid, child);
                     } else if (imperativeOriginalTarget) {
 
                         const originalTModel = child.targetValues[target]?.originalTModel;
 
                         if (originalTModel.targets[imperativeOriginalTarget]?.originalTargetName === originalTargetName) {                            
-                            count++;
+                            childrenMap.set(child.oid, child);
                         }
                     }
-                } else if (child.targets[target]?.originalTargetName === originalTargetName) {                         
-                    count++;
+                } else if (child.targets[target]?.invokerTargetName === originalTargetName) {                         
+                    childrenMap.set(child.oid, child);
                 }
-            });
+            }
         });
 
-        return count;
-    }       
+        return childrenMap;
+    } 
+    
+    static getActiveChildren(tmodel) {
+        const childrenMap = new Map(); 
 
-    static isTargetAlreadyUpdating(tmodel, key) {
+        const children = [ ...(tmodel.activeChildrenMap?.values() ?? []) ];
+                
+        children.filter(child => child.isVisible() || !child.visibilityStatus).forEach(child => {
+            if (child.activeTargetList.length) {
+                childrenMap.set(child.oid, child);
+            }
+        });
+        
+        return childrenMap;
+    }
+
+    static getOldUpdatingTarget(tmodel, key) {
         const cleanKey = TargetUtil.getTargetName(key);
+        const updatingKey = tmodel.allTargetMap[cleanKey];
 
-        if (key !== cleanKey) {
-            if (!tmodel.isTargetImperative(key) && tmodel.isTargetImperative(cleanKey) && !tmodel.isTargetComplete(cleanKey)) {
-                return true;
-            } 
+        if (tmodel.updatingTargetMap[updatingKey]) {
+            return updatingKey;
         }
         
-        return false;
     }
         
     static activateSingleTarget(tmodel, targetName) {
@@ -417,15 +553,26 @@ class TargetUtil {
         }
     }
     
-    static markChildAction(tmodel, child) {
-        const currentTargetName = TargetUtil.currentTargetName;
-        const target = tmodel.targets[currentTargetName];
+    static markChildAction(parentTModel, parentTargetName, child) {
+        const target = parentTModel.targets[parentTargetName];
 
         if (typeof target === 'object') {
             if (!target['childAction']){
                 target['childAction'] = [child];
             } else if (!target['childAction'].includes(child)) {
                 target['childAction'].push(child);
+            }    
+        }
+    }
+    
+    static markAddChild(parentTModel, parentTargetName, child) {        
+        const target = parentTModel.targets[parentTargetName];
+
+        if (typeof target === 'object') {
+            if (!target['addChildAction']){
+                target['addChildAction'] = [child];
+            } else if (!target['addChildAction'].includes(child)) {
+                target['addChildAction'].push(child);
             }    
         }
     }
@@ -458,46 +605,6 @@ class TargetUtil {
         } 
         
         return target;
-    }
-
-    static getValueStepsCycles(tmodel, _target, key, cycle = tmodel.getTargetCycle(key)) {
-        const valueOnly = _target && _target.valueOnly;
-        const lastValue = tmodel.val(key);
-
-        let value = null, steps = 0, interval = 0, cycles = 0;
-
-        function getValue(target) {
-            if (Array.isArray(target)) {
-                if (valueOnly || !TargetParser.isValueStepsCycleArray(target)) {
-                    return [target, steps, interval, cycles];
-                } else if (Array.isArray(_target)) {
-                    return _target;
-                } else {
-                    value = target[0];
-                    steps = target.length >= 2 ? target[1] : steps;
-                    interval = target.length >= 3 ? target[2] : interval;
-                    cycles = target.length >= 4 ? target[3] : cycles;
-                    return [value, steps, interval, cycles];
-                }
-            }
-
-            if (typeof target === 'object' && target !== null && Object.getPrototypeOf(target) === Object.prototype) {
-                value = TargetUtil.runTargetValue(tmodel, target, key, cycle, lastValue);
-                steps = typeof target.steps === 'function' ? target.steps.call(tmodel, cycle) : TUtil.isDefined(target.steps) ? target.steps : 0;
-                interval = typeof target.interval === 'function' ? target.interval.call(tmodel, cycle) : TUtil.isDefined(target.interval) ? target.interval : 0;
-                cycles = typeof target.cycles === 'function' ? target.cycles.call(tmodel, cycle, tmodel.getTargetCycles(key)) : TUtil.isDefined(target.cycles) ? target.cycles : 0;
-
-                return Array.isArray(value) ? getValue(value) : [value, steps, interval, cycles];
-            }
-
-            if (typeof target === 'function') {
-                return getValue(target.call(tmodel, cycle, lastValue));
-            }
-
-            return [target, steps, interval, cycles];
-        }
-
-        return getValue(_target);
     }
     
     static runTargetValue(tmodel, target, key, cycle, lastValue) {

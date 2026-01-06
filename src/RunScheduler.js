@@ -188,6 +188,8 @@ class RunScheduler {
         if (newDelay === undefined 
                 || getManager().lists.activeTModels.length > 0 
                 || getManager().lists.updatingTModels.length > 0
+                || getManager().lists.restyle.length > 0
+                || getManager().lists.reasyncStyle.length > 0
                 || getLocationManager().activatedList.length > 0) {
             if (getEvents().eventQueue.length > 0) {
                 this.schedule(15, `events-${getEvents().eventQueue.length}`);

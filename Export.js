@@ -15,6 +15,7 @@ export * from "./build/ColorUtil.js";
 export * from "./build/Easing.js";
 export * from "./build/TargetExecutor.js";
 export * from "./build/AnimationManager.js";
+export * from "./build/AnimationUtil.js";
 
 import * as App from './build/App.js';
 import * as TModel from './build/TModel.js';
@@ -33,6 +34,7 @@ import * as ColorUtil from './build/ColorUtil.js';
 import * as Easing from './build/Easing.js';
 import * as TargetExecutor from './build/TargetExecutor.js';
 import * as AnimationManager from './build/AnimationManager.js';
+import * as AnimationUtil from './build/AnimationUtil.js';
 
 const TargetJS = {
   ...App,
@@ -50,7 +52,8 @@ const TargetJS = {
   ...ColorUtil,
   ...Easing,
   ...TargetExecutor,
-  ...AnimationManager
+  ...AnimationManager,
+  ...AnimationUtil
 };
 
 if (typeof window !== 'undefined') {

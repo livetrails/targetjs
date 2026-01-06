@@ -1,4 +1,5 @@
 import { TModelUtil } from "./TModelUtil.js";
+import { AnimationUtil } from "./AnimationUtil.js";
 import { TargetData } from "./TargetData.js";
 import { getRunScheduler } from "./App.js";
 import { TargetUtil } from "./TargetUtil.js";
@@ -10,83 +11,19 @@ class AnimationManager {
         this.waapiPoller = { rafId: 0, alive: true };
         this.recordMap = new Map();
         this.isShuttingDown = false;        
-        this.toid = 'ring_0';
-    }
+        this.toid = 'blank';
+    } 
     
-    getAt(frame, key) {
-        return TargetData.isTransformKey(key) ? frame.tfMap[key] : frame.styleMap[key];
-    }
-
-    setAt(frame, key, value) {
-        if (TargetData.isTransformKey(key)) {
-            frame.tfMap[key] = value;
-        } else {
-            frame.styleMap[key] = value;
-        }
-    }
-
-    backfillKeyAcrossFramesUsingMorph(tmodel, key, frames) {
-
-        const times = frames.map(f => f.keyTime);
-
-        const idxs = [];
-        for (let i = 0; i < frames.length; i++) {
-            if (this.getAt(frames[i], key) !== undefined) {
-                idxs.push(i);
-            }
-        }
-
-        if (idxs.length >= 2) {
-
-            for (let m = 0; m < idxs.length - 1; m++) {
-                const i0 = idxs[m];
-                const i1 = idxs[m + 1];
-
-                const from = this.getAt(frames[i0], key);
-                const to = this.getAt(frames[i1], key);
-
-                const meta = frames[i1].keyMeta.get(key);
-                const steps = meta.steps;
-                const interval = meta.interval;
-                const duration = steps * interval;
-
-                const t0 = times[i0];
-                const t1 = times[i1];
-                
-                const u = (t1 - t0) / duration;
-                
-                for (let i = i0 + 1; i < i1; i++) {
-                    const t = times[i];
-                    const elapsed = (t - t0);
-
-                    let step = TUtil.limit(Math.round(elapsed / (u * interval)), 0, steps);
-
-                    const v = TModelUtil.morph(tmodel, key, from, to, step, steps);
-                    this.setAt(frames[i], key, v);
-                    frames[i].keyMeta.set(key, { steps: step, interval });
-                }
-            }
-        }
-        
-        if (idxs.length) {
-            const lastIndex = idxs[idxs.length - 1];
-            const lastFrame = frames[lastIndex];
-            const lastValue = this.getAt(lastFrame, key);
-            for (let i = lastIndex + 1; i < frames.length; i++) {
-                this.setAt(frames[i], key, lastValue);
-                frames[i].keyMeta.set(key, { steps: 0 });
-            }
-        }
-    }
-
     animate(tmodel, batch, hooks) {
         if (this.isShuttingDown || !tmodel.hasDom()) {
             return;
         }
-                
+        
         const el = tmodel.$dom.getElement();
         
         batch.frames.sort((a, b) => a.keyTime  - b.keyTime);
+        
+        this.cancelElementAnimationsForKeys(el, Object.keys(batch.keyMap));
 
         if (tmodel.lastBatch) {
             const cutTime =  Math.min(TUtil.now() - tmodel.lastBatch.startTime, tmodel.lastBatch.totalDuration);
@@ -95,15 +32,15 @@ class AnimationManager {
             this.callFireOnEndOnConflict(tmodel, tmodel.lastBatch, batch);
             this.mergeBatches(tmodel.lastBatch, batch);
 
-            this.cancelTModel(tmodel);
+            this.deleteAnimation(tmodel);
         }
         
        const totalDuration = Math.max(batch.totalDuration, 1);
        
-       const cleanKeys = Object.keys(batch.keyMap);
-
-        for (const key of cleanKeys) {
-            this.backfillKeyAcrossFramesUsingMorph(tmodel, key, batch.frames);
+        const originalKeys = [...new Set(Object.values(batch.keyMap).flatMap(set => [...set]))];
+        
+        for (const originalKey of originalKeys) {
+            this.backfillKeyAcrossFramesUsingMorph(tmodel, originalKey, batch.frames);
         }
         
         let transformAnimation = false;
@@ -121,20 +58,20 @@ class AnimationManager {
                 transformAnimation = true;
             }
 
-            this.addUnitsToFrame(out);
+            AnimationUtil.addUnitsToFrame(out);
 
             return out;
         });
         
         const compactKeyframes = this.filterRedundantKeyframes(keyframes);
-
+      
         const timing = {
             duration: totalDuration,
             fill: "none",
             iterations: 1,
             easing: batch.easing || "linear"
         };
-                
+      
         batch.startTime = TUtil.now();
         
         tmodel.lastBatch = batch;
@@ -144,11 +81,9 @@ class AnimationManager {
         tmodel.finalRawFrame =  batch.frames[ batch.frames.length - 1];
 
         let anim = el.animate(compactKeyframes, timing);
-
-        const keyMap = batch.keyMap;
-                
-        for (const cleanKey of cleanKeys) {
-            const originalKey = keyMap[cleanKey];
+                   
+        for (const originalKey of originalKeys) {
+            const cleanKey = TargetUtil.getTargetName(originalKey);
             const recId = this.getRecordId(tmodel, originalKey);
           
             const { originalTModel, originalTargetName } = TargetUtil.getOriginalNames(tmodel, originalKey);
@@ -161,78 +96,190 @@ class AnimationManager {
                 anim,
                 originalTModel, originalTargetName,
                 frames: this.collectFramesForKey(batch, cleanKey),
-                finished: false,
-                canceled: false,
+                status: 'playing',
                 needsFireOnStep: true,
                 hooks
-            };            
-
+            };    
+                
             tmodel.addToAnimatingMap(originalKey, rec);
             this.recordMap.set(recId, rec);
         }
-       
-        const onDone = () => {
-
-            for (const [recId, rec] of this.recordMap) {
-                const { tmodel, cleanKey, originalKey } = rec;
-                                
-                if (rec.anim !== anim && !rec.canceled) {
-                    continue;
-                }
-                
-                const ct = rec.anim.effect?.getComputedTiming?.();
-                const isFinished = rec.canceled || rec.anim.playState === 'finished' || rec.anim.playState === 'idle' 
-                        || (ct && ct.progress === 1);
-                
-                if (!isFinished) {
-                    continue;
-                }
-
-                tmodel.removeFromAnimatingMap(originalKey);
-                
-                this.recordMap.delete(recId);
-
-                if (!rec.canceled && !rec.finished) {
-
-                    if (tmodel.finalRawFrame) {
-                        const value = this.getAt(tmodel.finalRawFrame, cleanKey);
-                        this.setAt(tmodel, cleanKey, value);
-                        tmodel.val(originalKey, value);
-                        const targetValue = tmodel.targetValues[originalKey];
-                        if (targetValue) {
-                            targetValue.step = tmodel.getTargetSteps(originalKey);
-                            targetValue.cycle = Array.isArray(targetValue.valueList) ? targetValue.valueList.length : tmodel.getTargetCycles(originalKey);
-                            targetValue.value = value;
-                            tmodel.setActual(originalKey, value);
-                            
-                            tmodel.updateTargetStatus(originalKey);
-                        }
-                    }                    
-
-                    if (!tmodel.hasAnimatingTargets()) {
-                        
-                        if (tmodel.finalKeyframe) {
-                            if (tmodel.hasDom()) {
-                               TModelUtil.fixStyleByAnimation(tmodel, tmodel.finalKeyframe);
-                            }
-                        }
-                        tmodel.lastBatch = undefined;
-                        tmodel.pausedBatch = undefined;
-                    }
-                    
-                    rec.finished = true;
-                    rec.hooks.fireOnEnd(tmodel, rec.originalKey);
-                    
-                    getRunScheduler().scheduleOnlyIfEarlier(1, `animate-${tmodel.oid}---${originalKey}`);
-                }
-            }
+               
+        const finalize = () => {
+            this.finalizeAnimation(anim);
         };
-        
-        anim.addEventListener("finish", onDone);
-        anim.addEventListener("cancel", onDone);        
+
+        anim.addEventListener("finish", finalize, { once: true });
+        anim.addEventListener("cancel", finalize, { once: true });
+
+        anim.finished.then(finalize).catch(finalize);
 
         this.startProgressPoller();
     }
+
+    finalizeAnimation(anim) {  
+        for (const [recId, rec] of this.recordMap) {
+            
+            if (rec.anim !== anim) {
+                continue;
+            }
+
+            if (rec.status === 'playing' || rec.status === 'canceled') {
+                continue;
+            }
+
+            const { tmodel, originalKey, cleanKey } = rec;
+            
+            tmodel.removeFromAnimatingMap(originalKey);
+            this.recordMap.delete(recId);
+
+            if (tmodel.finalRawFrame) {
+                const frames = rec.frames;
+                const lastFrame = frames && frames[frames.length - 1];
+                const value = lastFrame ? lastFrame.value : this.getAt(tmodel.finalRawFrame, cleanKey);                
+                this.setAt(tmodel, cleanKey, value);
+                tmodel.val(originalKey, value);
+                const targetValue = tmodel.targetValues[originalKey];
+                if (targetValue) {
+                    targetValue.step = tmodel.getTargetSteps(originalKey);
+                    targetValue.cycle = Array.isArray(targetValue.valueList) ? targetValue.valueList.length : tmodel.getTargetCycles(originalKey);
+                    targetValue.value = value;
+                    tmodel.setActual(originalKey, value);
+                }
+            }                
+
+            if (!tmodel.hasAnimatingTargets()) {
+
+                if (tmodel.finalKeyframe) {
+                    if (tmodel.hasDom()) {   
+                        AnimationUtil.fixStyleByAnimation(tmodel, tmodel.finalKeyframe);
+                    }
+                }
+                tmodel.lastBatch = undefined;
+                tmodel.pausedBatch = undefined;
+            }
+
+            rec.status = 'complete';
+            rec.hooks.fireOnEnd(tmodel, originalKey);
+
+            getRunScheduler().scheduleOnlyIfEarlier(1, `animate-${tmodel.oid}---${originalKey}`);
+        }
+    }
+    
+    startProgressPoller() {
+        if (this.waapiPoller.rafId) { 
+            return;
+        }
+                
+        this.waapiPoller.alive = true;
+
+        const tick = () => {
+            const animsToFinalize = new Set();
+            let hasPlaying = false;
+
+            for (const [, record] of this.recordMap) {
+                if (record.status === 'canceled') {
+                    continue
+                } else if (record.status === 'playing') {
+                    hasPlaying = true;
+                }
+                
+                this.updateTModelFromRecord(record);
+                
+                const ps = record.anim.playState;
+                const ct = record.anim.effect?.getComputedTiming?.();
+                const finished = ps === "finished" || ps === "idle" || (ct && ct.progress >= 0.999999);
+                
+                if (finished) {
+                    record.status = 'done';
+                    animsToFinalize.add(record.anim);
+                }
+            }
+
+            for (const anim of animsToFinalize) {
+                this.finalizeAnimation(anim);
+            }
+
+            if (this.recordMap.size > 0 || hasPlaying) {
+                this.waapiPoller.rafId = requestAnimationFrame(tick);
+            } else {        
+                this.waapiPoller.alive = false;
+                this.waapiPoller.rafId = 0;
+            }
+        };
+
+        this.waapiPoller.rafId = requestAnimationFrame(tick);
+    }    
+    
+    getAt(frame, key) {
+        return TargetData.isTransformKey(key) ? frame.tfMap[key] : frame.styleMap[key];
+    }
+
+    setAt(frame, key, value) {
+        if (TargetData.isTransformKey(key)) {
+            frame.tfMap[key] = value;
+        } else {
+            frame.styleMap[key] = value;
+        }
+    }
+
+    backfillKeyAcrossFramesUsingMorph(tmodel, originalKey, frames) {
+        const cleanKey = TargetUtil.getTargetName(originalKey);
+
+        const times = frames.map(f => f.keyTime);
+
+        const idxs = [];
+        for (let i = 0; i < frames.length; i++) {
+            if (this.getAt(frames[i], cleanKey) !== undefined) {
+                idxs.push(i);
+            }
+        }
+
+        if (idxs.length >= 2) {
+
+            for (let m = 0; m < idxs.length - 1; m++) {
+                const i0 = idxs[m];
+                const i1 = idxs[m + 1];
+
+                const from = this.getAt(frames[i0], cleanKey);
+                const to = this.getAt(frames[i1], cleanKey);
+
+                const meta = frames[i1].keyMeta.get(cleanKey);
+                if (!meta) {
+                    continue;
+                }
+                const steps = meta.steps;
+                const interval = meta.interval;
+                const duration = steps * interval;
+
+                const t0 = times[i0];
+                const t1 = times[i1];
+                
+                const u = (t1 - t0) / duration;
+                
+                for (let i = i0 + 1; i < i1; i++) {
+                    const t = times[i];
+                    const elapsed = (t - t0);
+
+                    let step = TUtil.limit(Math.round(elapsed / (u * interval)), 0, steps);
+
+                    const v = TModelUtil.easingMorph(tmodel, originalKey, from, to, step, steps);
+                    this.setAt(frames[i], cleanKey, v);
+                    frames[i].keyMeta.set(cleanKey, { steps: step, interval });
+                }
+            }
+        }
+        
+        if (idxs.length) {
+            const lastIndex = idxs[idxs.length - 1];
+            const lastFrame = frames[lastIndex];
+            const lastValue = this.getAt(lastFrame, cleanKey);
+            for (let i = lastIndex + 1; i < frames.length; i++) {
+                this.setAt(frames[i], cleanKey, lastValue);
+                frames[i].keyMeta.set(cleanKey, { steps: 0 });
+            }
+        }
+    }    
     
     freezeTModelAtCurrentTime(tmodel) {
         const batch = tmodel.lastBatch;
@@ -259,9 +306,9 @@ class AnimationManager {
             out.transform = TModelUtil.getTransformString(tfMap, tmodel.val('transformOrder'));
         }
 
-        this.addUnitsToFrame(out);
+        AnimationUtil.addUnitsToFrame(out);
         
-        TModelUtil.fixStyleByAnimation(tmodel, out);
+        AnimationUtil.fixStyleByAnimation(tmodel, out);
     }
 
     collectFramesForKey(batch, cleanKey) {
@@ -288,7 +335,7 @@ class AnimationManager {
         }
 
         out.sort((a, b) => a.time - b.time);
-        
+                
         return out.length >= 2 ? out : undefined;
     }
     
@@ -296,61 +343,6 @@ class AnimationManager {
         return `${tmodel.oid}-${key}`;
     }
 
-    addUnitsToFrame(out) {
-        for (const k of Object.keys(out)) {
-            if (k === 'offset' || k === 'transform') {
-                continue;
-            }
-
-            let v = out[k];
-
-            if (v === undefined || v === null || Number.isNaN(v)) {
-                delete out[k];
-                continue;
-            }
-
-            if (typeof v === 'number' && TargetData.styleWithUnitMap[k]) {
-                if ((k === 'width' || k === 'height') && v < 0) {
-                    v = 0;
-                }
-                
-                out[k] = `${v}px`;
-            }
-        }
-    }
-    
-    startProgressPoller() {
-        if (this.waapiPoller.rafId) { 
-            return;
-        }
-                
-        this.waapiPoller.alive = true;
-
-        const tick = () => {
-            let activeRecords = 0;
-            for (const [, record] of this.recordMap) {
-                if (!record || record.finished || record.canceled || record.anim?.playState !== 'running') {
-                    continue;
-                }
-                
-                activeRecords++;
-                
-                this.updateTModelFromRecord(record);
-                
-            } 
-            
-            if (activeRecords > 0) {
-                this.waapiPoller.rafId = requestAnimationFrame(tick);
-            } else {
-                 this.recordMap.clear();
-                this.waapiPoller.alive = false;
-                this.waapiPoller.rafId = 0;
-            }
-        };
-
-        this.waapiPoller.rafId = requestAnimationFrame(tick);
-    }
-    
     updateTModelFromRecord(record) {
         const { tmodel, originalKey, cleanKey } = record;
 
@@ -359,9 +351,9 @@ class AnimationManager {
         if (!result) {
             return;
         }
-
-        const { value, step } = result;
         
+        const { value, step } = result;
+                         
         this.setAt(tmodel, cleanKey, value);
         
         tmodel.val(originalKey, value);
@@ -379,26 +371,20 @@ class AnimationManager {
         }
     }
     
-    cancel(record) {
-        if (record.canceled) {
-            return;
-        }
-                
+    delete(record) {
         const { recId, originalKey, tmodel, anim } = record;
-            
-        record.canceled = true;
+                            
         anim.cancel();
-            
+        
         tmodel.removeFromAnimatingMap(originalKey);
 
-        this.recordMap.delete(recId);
+        this.recordMap.delete(recId);        
     }
     
-    cancelTModel(tmodel) {
-
+    deleteAnimation(tmodel) {
         for (const [recId, record] of this.recordMap) {
             if (recId.startsWith(`${tmodel.oid}-`)) {;
-                this.cancel(record);
+                this.delete(record);
             }
         }
         
@@ -410,17 +396,15 @@ class AnimationManager {
     }
     
     cancelKey(tmodel, originalKey) {
-
         const recId = this.getRecordId(tmodel, originalKey);
         const rec = this.recordMap.get(recId);
 
         if (rec) {
-            rec.canceled = true;
+            rec.status = 'canceled';
         }
-
     }
     
-    async cancelAll() {
+    async deleteAll() {
         this.isShuttingDown = true;
         
         if (this.waapiPoller.rafId) {
@@ -436,7 +420,7 @@ class AnimationManager {
                             
             this.updateTModelFromRecord(record);
             
-            this.cancel(record);            
+            this.delete(record);            
             
             if (seen.has(tmodel.oid)) {
                 continue;
@@ -445,7 +429,7 @@ class AnimationManager {
             seen.add(tmodel.oid);
             
             this.freezeTModelAtCurrentTime(tmodel);
-            
+
             tmodel.pausedBatch = tmodel.lastBatch;
             tmodel.lastBatch = undefined;
             tmodel.finalKeyframe = undefined;
@@ -463,7 +447,7 @@ class AnimationManager {
     }
     
     getValueFromAnim(record) {
-        const {tmodel, originalKey, anim, frames} = record;
+        const {originalKey, anim, frames} = record;
         
         if (!frames) {            
             return;
@@ -509,8 +493,8 @@ class AnimationManager {
             let step = Math.round(u * steps);
             step = TUtil.limit(step, 0, steps);
 
-            const value = TModelUtil.morph(tmodel, originalKey, from, to, step, steps);
-
+            const value = TModelUtil.morph(originalKey, from, to, u);
+            
             return { value, step, steps };
         }
     }
@@ -526,9 +510,9 @@ class AnimationManager {
         if (needsInsert) {
             batch.frames.splice(i, 0, {keyTime: cutTime, tfMap: {}, styleMap: {}, keyMeta: new Map()});
 
-            const cleanKeys = Object.keys(batch.keyMap);
-            for (const key of cleanKeys) {
-                this.backfillKeyAcrossFramesUsingMorph(tmodel, key, batch.frames);
+            const originalKeys = [...new Set(Object.values(batch.keyMap).flatMap(set => [...set]))];
+            for (const originalKey of originalKeys) {
+              this.backfillKeyAcrossFramesUsingMorph(tmodel, originalKey, batch.frames);
             }
             
             batch.frames = batch.frames.slice(i);
@@ -541,34 +525,36 @@ class AnimationManager {
         batch.totalDuration = batch.frames.length ? batch.frames[batch.frames.length - 1].keyTime : 0;            
     }
     
-   callFireOnEndOnConflict(tmodel, lastBatch, newBatch) {
-        const newKeyMap = newBatch.keyMap;
-        const oldKeyMap = lastBatch.keyMap;
-        const newCleanKeys = Object.keys(newKeyMap);
+    callFireOnEndOnConflict(tmodel, lastBatch, newBatch) {
+        const oldMap = lastBatch.keyMap; // cleanKey -> Set
+        const newMap = newBatch.keyMap;
+        
+        for (const cleanKey of Object.keys(newMap)) {
+            const oldSet = oldMap[cleanKey];
+            const newSet = newMap[cleanKey];
+            if (!oldSet || !newSet) {
+                continue;
+            }
 
-        for (const cleanKey of newCleanKeys) {
-            const oldOriginal = oldKeyMap[cleanKey];
-            const newOriginal = newKeyMap[cleanKey];
-            
-            if (oldOriginal && newOriginal && oldOriginal !== newOriginal) {
+            // Any old originalKey that’s not present anymore should be completed/canceled.
+            for (const oldOriginal of oldSet) {
+                if (newSet.has(oldOriginal)) {
+                    continue;
+                }
+                
                 const recId = this.getRecordId(tmodel, oldOriginal);
                 const oldRec = this.recordMap.get(recId);
-                if (oldRec && !oldRec.finished && !oldRec.canceled) {
+
+                if (oldRec && oldRec.status === 'playing') {
                     this.updateTModelFromRecord(oldRec);
-                    oldRec.finished = true;
-                    const targetValue = tmodel.targetValues[oldOriginal];
-                    if (targetValue) {
-                        targetValue.step = tmodel.getTargetSteps(oldOriginal);
-                        targetValue.cycle = Array.isArray(targetValue.valueList) ? targetValue.valueList.length : tmodel.getTargetCycles(oldOriginal);
-                        tmodel.updateTargetStatus(oldOriginal);
-                    }                    
+                    oldRec.status = 'complete';
                     oldRec.hooks.fireOnEnd(oldRec.tmodel, oldOriginal);
                     oldRec.tmodel.removeFromAnimatingMap(oldOriginal);
-                    this.recordMap.delete(oldRec.recId);
+                    this.recordMap.delete(recId);
                 }
             }
-        }       
-   }
+        }
+    }
    
     mergeBatches(lastBatch, newBatch) {   
         const newCleanKeys = Object.keys(newBatch.keyMap);
@@ -579,7 +565,7 @@ class AnimationManager {
                 delete frame.styleMap[key];
                 delete frame.tfMap[key];
                 delete lastBatch.keyMap[key];
-                }
+            }
                 
             if (Object.keys(frame.styleMap).length || Object.keys(frame.tfMap).length) {
                 oldFrames.push(frame);
@@ -626,7 +612,7 @@ class AnimationManager {
         tmodel.pausedBatch = batch;
         tmodel.lastBatch = undefined;
         
-        this.cancelTModel(tmodel);
+        this.deleteAnimation(tmodel);
     } 
     
     areFramesEqual(a, b) {
@@ -669,6 +655,43 @@ class AnimationManager {
 
         return filtered;
     }
+    
+    cancelElementAnimationsForKeys(el, cleanKeys) {
+        if (!el.getAnimations) {
+            return;
+        }
+
+        const keySet = new Set(cleanKeys);
+
+        for (const anim of el.getAnimations()) {
+            const effect = anim.effect;
+            if (!effect?.getKeyframes) {
+                continue;
+            }
+
+            const kfs = effect.getKeyframes();
+            let touches = false;
+
+            for (const kf of kfs) {
+                for (const k of Object.keys(kf)) {
+                    if (keySet.has(k)) {
+                        touches = true;
+                        break;
+                    }
+                }
+                if (touches) {
+                    break;
+                }
+            }
+
+            if (touches) {
+                try { 
+                    anim.cancel(); 
+                } catch {}
+            }
+        }
+    }
+
 }
 
 export { AnimationManager };

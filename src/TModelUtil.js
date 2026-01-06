@@ -2,9 +2,10 @@
 import { TUtil } from "./TUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
-import { getRunScheduler, getManager, getAnimationManager } from "./App.js";
+import { getRunScheduler, getManager } from "./App.js";
 import { $Dom } from "./$Dom.js";
 import { ColorUtil } from "./ColorUtil.js";
+import { Easing } from "./Easing.js";
 
 /**
  * It provides helper functions for TModel.
@@ -109,49 +110,6 @@ class TModelUtil {
                     : tmodel.floorVal(key);
         }
         return value;
-    }
-    
-    static fixStyleByAnimation(tmodel, frame) {
-        
-        if (!tmodel.hasDom()) {
-            return;
-        }
-        
-        const keys = Object.keys(frame);
-
-        for (const key of keys) {
-            if (key === 'offset') {
-                continue;
-            }
-            
-            const value = frame[key];
-            
-            if (value === null) {
-                continue;
-            }
-
-            let num = value;
-            if (typeof value === 'string' && value.endsWith('px')) {
-                const parsed = Number(value.slice(0, -2));
-                if (!Number.isNaN(parsed)) {
-                    num = parsed;
-                }
-            }
-
-            if (key === 'width') {
-                tmodel.styleMap.width = num;
-                tmodel.$dom.width(value);
-            } else if (key === 'height') {
-                tmodel.styleMap.height = num;
-                tmodel.$dom.height(value);
-            } else if (key === 'transform') {
-                tmodel.$dom.transform(value, tmodel.val('transformOrder'));
-            } else if (!TargetData.transformMap[key]) {
-                tmodel.$dom.style(key, value);
-                tmodel.styleMap[key] = num;
-            }
-        }
- 
     }
 
     static fixStyle(tmodel) {
@@ -267,9 +225,16 @@ class TModelUtil {
         }
     }
 
-    static morph(tmodel, key, from, to, step, steps) {
-        const easing = tmodel.getTargetEasing(key);
+    static easingMorph(tmodel, key, from, to, step, steps) {
+        const easingName = tmodel.getTargetEasing(key);
+        const easing = easingName ? Easing.easingFunction(easingName) : undefined;
+
         const easingStep = easing ? easing(tmodel.getTargetStepPercent(key, step, steps)) : tmodel.getTargetStepPercent(key, step, steps);
+
+        return TModelUtil.morph(key, from, to, easingStep);
+    }
+      
+    static morph(key, from, to, easingStep) {
 
         if (TargetData.colorMap[TargetUtil.getTargetName(key)]) {
             const targetColors = ColorUtil.color2Integers(to);
@@ -511,83 +476,6 @@ class TModelUtil {
         }
         return null;
     }
-    
-    static overrideAnimatedKeyWithSnap(tmodel, keys, values) {
-        const keyList = Array.isArray(keys) ? keys : [keys];
-        const valueList = Array.isArray(values) ? values : [values];
-
-        const tfMap0 = {};
-        const styleMap0 = {};
-        const keyMeta0 = new Map();
-
-        const tfMap1 = {};
-        const styleMap1 = {};
-        const keyMeta1 = new Map();
-
-        const keyMap = {};
-        
-        let needsAnimation = false;
-
-        for (let i = 0; i < keyList.length; i++) {
-            const key = keyList[i];
-
-            needsAnimation = true;
-            
-            const value = valueList[i];
-            const targetValue = tmodel.targetValues[key];
-
-            const cleanKey = TargetUtil.getTargetName(key);
-
-            if (TargetData.isTransformKey(cleanKey)) {
-                tfMap0[cleanKey] = value;
-                tfMap1[cleanKey] = value;
-            } else {
-                styleMap0[cleanKey] = value;
-                styleMap1[cleanKey] = value;
-            }
-
-            keyMeta0.set(cleanKey, { steps: 1, interval: 1 });
-            keyMeta1.set(cleanKey, { steps: 1, interval: 1 });
-
-            keyMap[cleanKey] = key;
-
-            if (targetValue) {
-                targetValue.value = value;
-                targetValue.steps = 1;
-                targetValue.interval = 0;
-            }
-        }
-        
-        if (!needsAnimation) {
-            return;
-        }
-
-        const frames = [];
-
-
-        frames.push({
-            keyTime: 0,
-            tfMap: tfMap0,
-            styleMap: styleMap0,
-            keyMeta: keyMeta0
-        });
-
-        frames.push({
-            keyTime: 1,
-            tfMap: tfMap1,
-            styleMap: styleMap1,
-            keyMeta: keyMeta1
-        });
-
-        const batch = {
-            frames,
-            keyMap,
-            totalDuration: 1
-        };
-                
-        getAnimationManager().animate(tmodel, batch, TargetUtil.getAnimationHooks());
-    }
-
 }
 
 export { TModelUtil };
