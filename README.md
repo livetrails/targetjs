@@ -443,13 +443,7 @@ App({
 
 ### Infinite Loading and Scrolling Example
 
-In this advanced example, we implement an infinite-scrolling application. The asynchronous flow that we want to achieve:
-1. Insert new items, and animate their width and background.
-2. On animation completion, trigger the API request for the visible items.
-3. Await for all API responses of all the items and then populate their names.
-
-This example could use other flows such as calling the API as soon as items are added, or populating each item’s name as its result arrives instead of waiting for all visible items. 
-All of these are doable, but we chose the above to showcase a more complex, sequential async flow.
+In this advanced example, we implement an infinite-scrolling application.
 
 **Explanation:**
 
@@ -468,7 +462,7 @@ All of these are doable, but we chose the above to showcase a more complex, sequ
 TargetJS employs a tree-like structure to track visible branches, optimizing scroller performance.
 
 
-  <img src="https://targetjs.io/img/infiniteScrolling.gif" width="130" />
+  <img src="https://targetjs.io/img/infiniteScrolling20.gif" width="130" />
 
 ```javascript
 import { App, getEvents, getScreenWidth, getScreenHeight } from "targetj";
