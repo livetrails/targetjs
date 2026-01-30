@@ -47,7 +47,7 @@ App({
   lineHeight: 60,
   textAlign: "center",
   borderRadius: 10,
-  background: "#f5f5f5",
+  backgroundColor: "#f5f5f5",
   html: "♡ Like"
 });
 ```
@@ -57,7 +57,7 @@ App({
 
 ### 2) Animation
 
-**What this shows:** A mount-time animation that scales and changes the background over 12 steps, with 12ms pauses between steps. Targets without (`$`, `$$`, `_`) execute immediately in the order they are defined.
+**What this shows:** A mount-time animation that scales and changes the `backgroundColor` over 12 steps, with 12ms pauses between steps. Targets without (`$`, `$$`, `_`) execute immediately in the order they are defined.
 
   <img src="https://targetjs.io/img/likeButton6.gif" width="130" />
 
@@ -71,8 +71,8 @@ App({
   textAlign: "center",
   borderRadius: 10, 
   html: "♡ Like",
-  scale: [ { list: [1.2, 1] }, 12, 12 ],
-  background: [ { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12 ]
+  scale: { value: [1.2, 1], steps: 12, interval: 12 },
+  backgroundColor: { value: ["#ffe8ec", "#f5f5f5"], steps: 12, interval: 12 }
 });
 ```
 
@@ -87,14 +87,13 @@ import { App } from "targetj";
 
 App({
   width: 220, height: 60, lineHeight: 60, textAlign: "center",
-  borderRadius: 10, background: "#f5f5f5",
+  borderRadius: 10, backgroundColor: "#f5f5f5",
   cursor: "pointer", userSelect: "none",
   html: "♡ Like",
 
   onClick() {
-    this.setTarget("scale",      { list: [1.2, 1] }, 12, 12);
-    this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
-    this.setTarget("html", "♥ Liked");
+    this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
+    this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
   }
 });
 ```
@@ -112,12 +111,11 @@ import { App } from "targetj";
 
 App({
   width: 220, height: 60, lineHeight: 60, textAlign: "center",
-  borderRadius: 10, background: "#f5f5f5", cursor: "pointer", userSelect: "none",
+  borderRadius: 10, backgroundColor: "#f5f5f5", cursor: "pointer", userSelect: "none",
   html: "♡ Like",
   onClick() {
-    this.setTarget("scale",      { list: [1.2, 1] }, 12, 12);
-    this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
-    this.setTarget("html", "♥ Liked");
+    this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
+    this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
   },
   heart$$: {
     html: "♥", color: "crimson", fontSize: 20,
@@ -148,13 +146,12 @@ import { App } from "targetj";
 
 App({
   width: 220, height: 60, lineHeight: 60, textAlign: "center",
-  borderRadius: 10, background: "#f5f5f5", cursor: "pointer", userSelect: "none",
+  borderRadius: 10, backgroundColor: "#f5f5f5", cursor: "pointer", userSelect: "none",
   html: "♡ Like",
 
   onClick() {
-    this.setTarget("scale",      { list: [1.2, 1] }, 12, 12);
-    this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
-    this.setTarget("html", "♥ Liked");
+    this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
+    this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
   },
 
   heart$$: {
@@ -214,13 +211,12 @@ import { App } from "targetj";
 App({
   likeButton: {
     width: 220, height: 60, lineHeight: 60, textAlign: "center",
-    borderRadius: 10, background: "#f5f5f5", cursor: "pointer", userSelect: "none",
+    borderRadius: 10, backgroundColor: "#f5f5f5", cursor: "pointer", userSelect: "none",
     role: "button", tabIndex: 0,
     html: "♡ Like",
     onClick() {
-      this.setTarget("scale",      { list: [1.2, 1] }, 12, 12);
-      this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
-      this.setTarget("html", "♥ Liked");
+      this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
+      this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
     },
   
     heart$$: {
@@ -251,7 +247,7 @@ App({
       }
     },  
     fetch$$: { method: "POST", id: 123, url: "/api/like" },
-    removeHearts$$() { this.removeAll(); },
+    removeHearts$$() { this.removeChildren(); },
     onKey(e) { if (e.key === "Enter") this.activateTarget("onClick"); }
   }
 });
@@ -340,9 +336,9 @@ You can also use it without `App` by mounting a `TModel` object to an HTML eleme
 ```html
 <script>
     new TargetJS.TModel({
-        background: 'red',
-        width: [100, 50, 10],
-        height: [100, 50, 10]
+        backgroundColor: 'red',
+        width: { value: [100, 250, 100], steps: 20 },
+        height: { value: [100, 250, 100], steps: 20 }
     }).mount(document.body);
 </script>
 ```
@@ -351,8 +347,8 @@ Or, directly in your HTML with `tg-` attributes:
 ```html
 <div
    tg-background="red"
-   tg-width="[100, 50, 10]"
-   tg-height="[100, 50, 10]">
+   tg-width="{ value: [100, 250, 100], steps: 20 }"
+   tg-height="{ value: [100, 250, 100], steps: 20 }">
 </div>
 ```
 
