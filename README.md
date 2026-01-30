@@ -453,82 +453,81 @@ All of these are doable, but we chose the above to showcase a more complex, sequ
 
 **Explanation:**
 
-- children: `children` is a special target that adds several items to the container's children each time it is executed. The `onVisibleChildrenChange` event function detects changes in the visible children and activates the `children` target to add new items that fill the gaps.  
+* `addChildren` is a special target that adds multiple items to the container’s children each time it executes. The `onVisibleChildrenChange` event detects changes in the visible children and activates `addChildren` to insert new items and fill any gaps.
 
-- _loadItems: Because the target name starts with `_`, it executes only when explicitly activated, which happens inside the `onVisibleChildrenChange` event function. TargetJS guarantees that this array preserves the order in which API calls were made, not the order in which responses were received.
+* `photo` and `userName` each add a `div` element inside every item, serving as placeholders for the photo and user name.
 
-- populate: Since the target name ends with `$$`, it executes only after all API calls have completed. It updates the content of each scrollable item with the name returned by the API.
+* `pause$$` delays the execution of all targets that follow it by 100 ms.
 
-TargetJS employs a tree-like structure to track visible branches, optimizing the scroller performance.
+* `fetch$$` retrieves the user’s details.
+
+* `reveal$$` executes after `fetch$$`, revealing the user name and populating the photo with a random color.
+
+* `wave$$` executes only after all preceding children have completed their targets, giving each user item a coordinated animation.
+
+TargetJS employs a tree-like structure to track visible branches, optimizing scroller performance.
 
 
   <img src="https://targetjs.io/img/infiniteScrolling.gif" width="130" />
 
 ```javascript
-import { App, TModel, getEvents, fetch, getScreenWidth, getScreenHeight } from "targetj";
+import { App, getEvents, getScreenWidth, getScreenHeight } from "targetj";
 
 App({
-    preventDefault: true,
-    containerOverflowMode: "always",
-    _loadItems() {
-        this.visibleChildren.filter(child => !child.loaded).forEach(child => {
-            child.loaded = true;
-            fetch(this, `https://targetjs.io/api/randomUser?id=${child.oid}`);
-        });
-    },
-    populate$$() {
-        if (this.prevTargetValue) {
-            this.prevTargetValue.forEach(data => this.getChildByOid(data.id).setTarget("html", data.name));
-        }
-    },
-    children() {
-        const childrenCount = this.getChildren().length;
-        return Array.from({length: 20}, (_, i) => ({
-            animate() {
-                const pWidth = this.parent.getWidth();
-                this.setTarget({ width: {list: [100, 250, 100]}, x: { list: [ (pWidth - 100) / 2, (pWidth - 250) / 2, (pWidth - 100) / 2 ] } }, 100);
-            },
-            backgroundColor: [{list: ["#FCE961", "#B388FF"]}, 15, 15],
-            height: 48,
-            color: "#C2FC61",
-            textAlign: "center",
-            lineHeight: 48,
-            bottomMargin: 2,
-            html: childrenCount + i,
-            validateVisibilityInParent: true,
-        }));
-    },
-    onScroll() {
-        this.setTarget("scrollTop", Math.max(0, this.getScrollTop() + getEvents().deltaY()));
-    },
-    onVisibleChildrenChange() {
-        this.activateTarget("loadItems");
-
-        if (getEvents().dir() === "down" && this.visibleChildren.length * 50 < this.getHeight()) {
-            this.activateTarget("children");
-        }
-    },
-    width: getScreenWidth,
-    height: getScreenHeight,
-    onResize: "width"
-});
-
-```
-
-We can reduce the number of API calls by triggering them only after scrolling stops as follows:
-
-```javascript
-    _loadItems: {
-        value() {
-            this.visibleChildren.filter(child => !child.loaded).forEach(child => {
-                child.loaded = true;
-                fetch(this, `https://targetjs.io/api/randomUser?id=${child.oid}`);
-            });
-        },
-        enabledOn() {
-            return getEvents().deltaY() === 0;
-        }
+  preventDefault: true,
+  width: 250,
+  height() { return getScreenHeight(); },
+  x() { return (getScreenWidth() - this.getWidth()) / 2; },
+  containerOverflowMode: "always",
+  addChildren() {
+    return Array.from({ length: 10 }, (_, i) => ({
+      height: 56,
+      width() { return this.parent.getWidth(); },
+      bottomMargin: 8,
+      borderRadius: 12,
+      backgroundColor: "white",
+      validateVisibilityInParent: true,
+      boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+      photo: {
+        x: 10, y: 10, width: 34, height: 34,
+        borderRadius: "50%",
+        backgroundColor: "#ddd"
+      },
+      userName: {
+        x: 60, y: 10, width: 180, height: 30,
+        overflow: "hidden",
+        borderRadius: 5,
+        backgroundColor: "#ddd"
+      },
+      pause$$: { interval: 100 },
+      fetch$$: "https://targetjs.io/api/randomUser",
+      reveal$$() {
+        const userName = this.getChild("userName");
+        userName.setTarget("html", this.val("fetch$$").name);
+        userName.setTarget("backgroundColor", { value: "white", steps: 20 });
+        this.getChild("photo").setTarget("backgroundColor", { value: "#" + Math.random().toString(16).slice(-6), steps: 20 });
+      },
+    }));
+  },
+  wave$$: {
+    interval: 30,
+    cycles() { return this.visibleChildren.length - 1; },
+    value(i) {
+      const child = this.visibleChildren[i];
+      child.setTarget("scale", { value: [1, 1.06, 1], steps: 18 });
+      child.setTarget("opacity", { value: [1, 0.92, 1], steps: 18 });
     }
+  },
+  onScroll() {
+    this.setTarget("scrollTop", Math.max(0, this.getScrollTop() + getEvents().deltaY()));
+  },
+  onVisibleChildrenChange() {
+    const visibleCount = this.visibleChildren.length;
+    if (getEvents().dir() !== "up" && visibleCount * 64 < this.getHeight()) {
+      this.activateTarget("addChildren");
+    }
+  }
+});
 ```
 ---
 
