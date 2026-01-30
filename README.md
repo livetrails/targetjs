@@ -394,19 +394,28 @@ App({
     child$() {
         const user = this.prevTargetValue;
         return {
-            width: 200,
-            height: 65,
-            borderRadius: 10,
+          width: 200,
+          height: 65,
+          borderRadius: 10,
+          boxSizing: "border-box",
+          padding: 10,
+          fontSize: 14,
+          backgroundColor: "#f0f0f0",
+          scale: { values: [0.8, 1], steps: 14, interal: 12 },
+          userName$$: {
+            padding: "10px 0 5px 10px",
             boxSizing: "border-box",
-            padding: 10,
-            fontSize: 14,
-            background: "#f0f0f0",
-            scale: [{ list: [0.8, 1] }, 14, 12],
-            html$() {
-              return `<div style="font-weight:600">${user.name}</div>
-                <div style="opacity:.65">${user.email}</div>`;
-            },
-        };
+            fontWeight: 600,
+            opacity: { value: [0, 1], steps: 50 },
+            html: user.name
+          },
+          userEmail$$: {
+            paddingLeft: 10,
+            boxSizing: "border-box",
+            opacity: { value: [0, 0.7], steps: 50 },
+            html: user.email
+          }
+       };
     }
 });
 ```
