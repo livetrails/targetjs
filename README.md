@@ -539,11 +539,14 @@ each time an API response is received, while ensuring the order of API calls is 
 then the second, and so on.
   
 1. **Postfix `$$` to the target name** (Deferred): 
-A target name ending with `$$` indicates that it will be activated only after all the preceding target has completed, along with all its imperative targets,
+A target name ending with `$$` indicates that it will be activated only after all the preceding targets have completed, along with all its imperative targets,
 and after all API results have been received.
 
 1. **Prefix `_` to the target name** (Inactive): 
 It indicates that the target is in an inactive state and must be activated by an event or other targets explicitly.
+
+1. **onComplete**
+It gets executed when the target and all proceeding targets fully complete their execution. It is equivalent to `$$`, but is executed from the same target.
 
 1. **enabledOn**
 Determines whether the target is eligible for execution. If enabledOn() returns false, the target remains active until it is enabled and gets executed.
@@ -561,7 +564,7 @@ It specifies the pause between each target execution or each actual value update
 By default, the actual value is updated immediately after the target value. The steps option allows the actual value to be updated in iterations specified by the number of steps.
 
 1. **easing**
-An easing function that operates when steps are defined. It controls how the actual value is updated in relation to the steps.
+A string that defines a predefined easing function that controls how the actual value is updated in relation to the steps.
 
 1. **onValueChange**
 This callback is triggered whenever there is a change returned by the target method/property `value`.
