@@ -329,17 +329,19 @@ Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 
 <script src="https://unpkg.com/targetj@latest/dist/targetjs.js"></script>
 ```
 
-This exposes `TargetJS` on `window`, so you can initialize your app with `TargetJS.App(...)`. Make sure your code runs after the TargetJS script loads (use `defer` or place your script below it).
+This exposes `TargetJS` on `window`, so you can initialize your app with `TargetJS.App(...)`. Make sure your code runs after the TargetJS script and the DOM are ready (use defer, place your script below it, or wait for `DOMContentLoaded`).
 
 You can also use it without `App` by mounting a `TModel` object to an HTML element, for example:
 
 ```html
+<div id='redbox'></div>
+
 <script>
     new TargetJS.TModel({
         backgroundColor: 'red',
         width: { value: [100, 250, 100], steps: 20 },
         height: { value: [100, 250, 100], steps: 20 }
-    }).mount(document.body);
+    }).mount('#redbox');
 </script>
 ```
 Or, directly in your HTML with `tg-` attributes:
