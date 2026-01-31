@@ -47,7 +47,7 @@ App({
   lineHeight: 60,
   textAlign: "center",
   borderRadius: 10,
-  background: "#f5f5f5",
+  backgroundColor: "#f5f5f5",
   html: "♡ Like"
 });
 ```
@@ -57,7 +57,7 @@ App({
 
 ### 2) Animation
 
-**What this shows:** A mount-time animation that scales and changes the background over 12 steps, with 12ms pauses between steps. Targets without (`$`, `$$`, `_`) execute immediately in the order they are defined.
+**What this shows:** A mount-time animation that scales and changes the `backgroundColor` over 12 steps, with 12ms pauses between steps. Targets without (`$`, `$$`, `_`) execute immediately in the order they are defined.
 
   <img src="https://targetjs.io/img/likeButton6.gif" width="130" />
 
@@ -71,8 +71,8 @@ App({
   textAlign: "center",
   borderRadius: 10, 
   html: "♡ Like",
-  scale: [ { list: [1.2, 1] }, 12, 12 ],
-  background: [ { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12 ]
+  scale: { value: [1.2, 1], steps: 12, interval: 12 },
+  backgroundColor: { value: ["#ffe8ec", "#f5f5f5"], steps: 12, interval: 12 }
 });
 ```
 
@@ -87,14 +87,13 @@ import { App } from "targetj";
 
 App({
   width: 220, height: 60, lineHeight: 60, textAlign: "center",
-  borderRadius: 10, background: "#f5f5f5",
+  borderRadius: 10, backgroundColor: "#f5f5f5",
   cursor: "pointer", userSelect: "none",
   html: "♡ Like",
 
   onClick() {
-    this.setTarget("scale",      { list: [1.2, 1] }, 12, 12);
-    this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
-    this.setTarget("html", "♥ Liked");
+    this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
+    this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
   }
 });
 ```
@@ -112,12 +111,11 @@ import { App } from "targetj";
 
 App({
   width: 220, height: 60, lineHeight: 60, textAlign: "center",
-  borderRadius: 10, background: "#f5f5f5", cursor: "pointer", userSelect: "none",
+  borderRadius: 10, backgroundColor: "#f5f5f5", cursor: "pointer", userSelect: "none",
   html: "♡ Like",
   onClick() {
-    this.setTarget("scale",      { list: [1.2, 1] }, 12, 12);
-    this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
-    this.setTarget("html", "♥ Liked");
+    this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
+    this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
   },
   heart$$: {
     html: "♥", color: "crimson", fontSize: 20,
@@ -148,13 +146,12 @@ import { App } from "targetj";
 
 App({
   width: 220, height: 60, lineHeight: 60, textAlign: "center",
-  borderRadius: 10, background: "#f5f5f5", cursor: "pointer", userSelect: "none",
+  borderRadius: 10, backgroundColor: "#f5f5f5", cursor: "pointer", userSelect: "none",
   html: "♡ Like",
 
   onClick() {
-    this.setTarget("scale",      { list: [1.2, 1] }, 12, 12);
-    this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
-    this.setTarget("html", "♥ Liked");
+    this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
+    this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
   },
 
   heart$$: {
@@ -214,13 +211,12 @@ import { App } from "targetj";
 App({
   likeButton: {
     width: 220, height: 60, lineHeight: 60, textAlign: "center",
-    borderRadius: 10, background: "#f5f5f5", cursor: "pointer", userSelect: "none",
+    borderRadius: 10, backgroundColor: "#f5f5f5", cursor: "pointer", userSelect: "none",
     role: "button", tabIndex: 0,
     html: "♡ Like",
     onClick() {
-      this.setTarget("scale",      { list: [1.2, 1] }, 12, 12);
-      this.setTarget("background", { list: ["#ffe8ec", "#f5f5f5"] }, 12, 12);
-      this.setTarget("html", "♥ Liked");
+      this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
+      this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
     },
   
     heart$$: {
@@ -251,7 +247,7 @@ App({
       }
     },  
     fetch$$: { method: "POST", id: 123, url: "/api/like" },
-    removeHearts$$() { this.removeAll(); },
+    removeHearts$$() { this.removeChildren(); },
     onKey(e) { if (e.key === "Enter") this.activateTarget("onClick"); }
   }
 });
@@ -340,9 +336,9 @@ You can also use it without `App` by mounting a `TModel` object to an HTML eleme
 ```html
 <script>
     new TargetJS.TModel({
-        background: 'red',
-        width: [100, 50, 10],
-        height: [100, 50, 10]
+        backgroundColor: 'red',
+        width: { value: [100, 250, 100], steps: 20 },
+        height: { value: [100, 250, 100], steps: 20 }
     }).mount(document.body);
 </script>
 ```
@@ -351,8 +347,8 @@ Or, directly in your HTML with `tg-` attributes:
 ```html
 <div
    tg-background="red"
-   tg-width="[100, 50, 10]"
-   tg-height="[100, 50, 10]">
+   tg-width="{ value: [100, 250, 100], steps: 20 }"
+   tg-height="{ value: [100, 250, 100], steps: 20 }">
 </div>
 ```
 
@@ -398,19 +394,28 @@ App({
     child$() {
         const user = this.prevTargetValue;
         return {
-            width: 200,
-            height: 65,
-            borderRadius: 10,
+          width: 200,
+          height: 65,
+          borderRadius: 10,
+          boxSizing: "border-box",
+          padding: 10,
+          fontSize: 14,
+          backgroundColor: "#f0f0f0",
+          scale: { values: [0.8, 1], steps: 14, interal: 12 },
+          userName$$: {
+            padding: "10px 0 5px 10px",
             boxSizing: "border-box",
-            padding: 10,
-            fontSize: 14,
-            background: "#f0f0f0",
-            scale: [{ list: [0.8, 1] }, 14, 12],
-            html$() {
-              return `<div style="font-weight:600">${user.name}</div>
-                <div style="opacity:.65">${user.email}</div>`;
-            },
-        };
+            fontWeight: 600,
+            opacity: { value: [0, 1], steps: 50 },
+            html: user.name
+          },
+          userEmail$$: {
+            paddingLeft: 10,
+            boxSizing: "border-box",
+            opacity: { value: [0, 0.7], steps: 50 },
+            html: user.email
+          }
+       };
     }
 });
 ```
@@ -438,92 +443,85 @@ App({
 
 ### Infinite Loading and Scrolling Example
 
-In this advanced example, we implement an infinite-scrolling application. The asynchronous flow that we want to achieve:
-1. Insert new items, and animate their width and background.
-2. On animation completion, trigger the API request for the visible items.
-3. Await for all API responses of all the items and then populate their names.
-
-This example could use other flows such as calling the API as soon as items are added, or populating each item’s name as its result arrives instead of waiting for all visible items. 
-All of these are doable, but we chose the above to showcase a more complex, sequential async flow.
+In this advanced example, we implement an infinite-scrolling application.
 
 **Explanation:**
 
-- children: `children` is a special target that adds several items to the container's children each time it is executed. The `onVisibleChildrenChange` event function detects changes in the visible children and activates the `children` target to add new items that fill the gaps.  
+* `addChildren` is a special target that adds multiple items to the container’s children each time it executes. The `onVisibleChildrenChange` event detects changes in the visible children and activates `addChildren` to insert new items and fill any gaps.
 
-- _loadItems: Because the target name starts with `_`, it executes only when explicitly activated, which happens inside the `onVisibleChildrenChange` event function. TargetJS guarantees that this array preserves the order in which API calls were made, not the order in which responses were received.
+* `photo` and `userName` each add a `div` element inside every item, serving as placeholders for the photo and user name.
 
-- populate: Since the target name ends with `$$`, it executes only after all API calls have completed. It updates the content of each scrollable item with the name returned by the API.
+* `pause$$` delays the execution of all targets that follow it by 100 ms.
 
-TargetJS employs a tree-like structure to track visible branches, optimizing the scroller performance.
+* `fetch$$` retrieves the user’s details.
+
+* `reveal$$` executes after `fetch$$`, revealing the user name and populating the photo with a random color.
+
+* `wave$$` executes only after all preceding children have completed their targets, giving each user item a coordinated animation.
+
+TargetJS employs a tree-like structure to track visible branches, optimizing scroller performance.
 
 
-  <img src="https://targetjs.io/img/infiniteScrolling.gif" width="130" />
+  <img src="https://targetjs.io/img/infiniteScrolling20.gif" width="130" />
 
 ```javascript
-import { App, TModel, getEvents, fetch, getScreenWidth, getScreenHeight } from "targetj";
+import { App, getEvents, getScreenWidth, getScreenHeight } from "targetj";
 
 App({
-    preventDefault: true,
-    containerOverflowMode: "always",
-    _loadItems() {
-        this.visibleChildren.filter(child => !child.loaded).forEach(child => {
-            child.loaded = true;
-            fetch(this, `https://targetjs.io/api/randomUser?id=${child.oid}`);
-        });
-    },
-    populate$$() {
-        if (this.prevTargetValue) {
-            this.prevTargetValue.forEach(data => this.getChildByOid(data.id).setTarget("html", data.name));
-        }
-    },
-    children() {
-        const childrenCount = this.getChildren().length;
-        return Array.from({length: 20}, (_, i) => ({
-            animate() {
-                const pWidth = this.parent.getWidth();
-                this.setTarget({ width: {list: [100, 250, 100]}, x: { list: [ (pWidth - 100) / 2, (pWidth - 250) / 2, (pWidth - 100) / 2 ] } }, 100);
-            },
-            backgroundColor: [{list: ["#FCE961", "#B388FF"]}, 15, 15],
-            height: 48,
-            color: "#C2FC61",
-            textAlign: "center",
-            lineHeight: 48,
-            bottomMargin: 2,
-            html: childrenCount + i,
-            validateVisibilityInParent: true,
-        }));
-    },
-    onScroll() {
-        this.setTarget("scrollTop", Math.max(0, this.getScrollTop() + getEvents().deltaY()));
-    },
-    onVisibleChildrenChange() {
-        this.activateTarget("loadItems");
-
-        if (getEvents().dir() === "down" && this.visibleChildren.length * 50 < this.getHeight()) {
-            this.activateTarget("children");
-        }
-    },
-    width: getScreenWidth,
-    height: getScreenHeight,
-    onResize: "width"
-});
-
-```
-
-We can reduce the number of API calls by triggering them only after scrolling stops as follows:
-
-```javascript
-    _loadItems: {
-        value() {
-            this.visibleChildren.filter(child => !child.loaded).forEach(child => {
-                child.loaded = true;
-                fetch(this, `https://targetjs.io/api/randomUser?id=${child.oid}`);
-            });
-        },
-        enabledOn() {
-            return getEvents().deltaY() === 0;
-        }
+  preventDefault: true,
+  width: 250,
+  height() { return getScreenHeight(); },
+  x() { return (getScreenWidth() - this.getWidth()) / 2; },
+  containerOverflowMode: "always",
+  addChildren() {
+    return Array.from({ length: 10 }, (_, i) => ({
+      height: 56,
+      width() { return this.parent.getWidth(); },
+      bottomMargin: 8,
+      borderRadius: 12,
+      backgroundColor: "white",
+      validateVisibilityInParent: true,
+      boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+      photo: {
+        x: 10, y: 10, width: 34, height: 34,
+        borderRadius: "50%",
+        backgroundColor: "#ddd"
+      },
+      userName: {
+        x: 60, y: 10, width: 180, height: 30,
+        overflow: "hidden",
+        borderRadius: 5,
+        backgroundColor: "#ddd"
+      },
+      pause$$: { interval: 100 },
+      fetch$$: "https://targetjs.io/api/randomUser",
+      reveal$$() {
+        const userName = this.getChild("userName");
+        userName.setTarget("html", this.val("fetch$$").name);
+        userName.setTarget("backgroundColor", { value: "white", steps: 20 });
+        this.getChild("photo").setTarget("backgroundColor", { value: "#" + Math.random().toString(16).slice(-6), steps: 20 });
+      },
+    }));
+  },
+  wave$$: {
+    interval: 30,
+    cycles() { return this.visibleChildren.length - 1; },
+    value(i) {
+      const child = this.visibleChildren[i];
+      child.setTarget("scale", { value: [1, 1.06, 1], steps: 18 });
+      child.setTarget("opacity", { value: [1, 0.92, 1], steps: 18 });
     }
+  },
+  onScroll() {
+    this.setTarget("scrollTop", Math.max(0, this.getScrollTop() + getEvents().deltaY()));
+  },
+  onVisibleChildrenChange() {
+    const visibleCount = this.visibleChildren.length;
+    if (getEvents().dir() !== "up" && visibleCount * 64 < this.getHeight()) {
+      this.activateTarget("addChildren");
+    }
+  }
+});
 ```
 ---
 
@@ -541,11 +539,14 @@ each time an API response is received, while ensuring the order of API calls is 
 then the second, and so on.
   
 1. **Postfix `$$` to the target name** (Deferred): 
-A target name ending with `$$` indicates that it will be activated only after all the preceding target has completed, along with all its imperative targets,
+A target name ending with `$$` indicates that it will be activated only after all the preceding targets have completed, along with all its imperative targets,
 and after all API results have been received.
 
 1. **Prefix `_` to the target name** (Inactive): 
 It indicates that the target is in an inactive state and must be activated by an event or other targets explicitly.
+
+1. **onComplete**
+It gets executed when the target and all proceeding targets fully complete their execution. It is equivalent to `$$`, but is executed from the same target.
 
 1. **enabledOn**
 Determines whether the target is eligible for execution. If enabledOn() returns false, the target remains active until it is enabled and gets executed.
@@ -563,7 +564,7 @@ It specifies the pause between each target execution or each actual value update
 By default, the actual value is updated immediately after the target value. The steps option allows the actual value to be updated in iterations specified by the number of steps.
 
 1. **easing**
-An easing function that operates when steps are defined. It controls how the actual value is updated in relation to the steps.
+A string that defines a predefined easing function that controls how the actual value is updated in relation to the steps.
 
 1. **onValueChange**
 This callback is triggered whenever there is a change returned by the target method/property `value`.
