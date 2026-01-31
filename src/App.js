@@ -14,7 +14,7 @@ import { DomInit } from "./DomInit.js";
 import { SearchUtil } from "./SearchUtil.js";
 
 let tApp;
-let queuedAppCall = null;
+let queuedAppCalls = [];
 
 const AppFn = () => {
     const my = {};
@@ -58,9 +58,9 @@ const AppFn = () => {
                 initPageDom() {
                     DomInit.initPageDoms(this.$dom); 
                     
-                    if (queuedAppCall) {
-                        this.addChild(queuedAppCall);
-                        queuedAppCall = undefined;
+                    if (queuedAppCalls.length) {
+                      queuedAppCalls.forEach(child => this.addChild(child));
+                      queuedAppCalls.length = 0;
                     }
                 }
             });
@@ -155,11 +155,13 @@ const AppFn = () => {
 };
 
 const App = firstChild => {
-    if (!tApp?.tRoot) {
-        queuedAppCall = firstChild;
-    } else if (firstChild) {
-        tApp?.tRoot.addChild(firstChild);
+  if (!tApp?.tRoot) {
+    if (firstChild) {
+        queuedAppCalls.push(firstChild);
     }
+  } else if (firstChild) {
+    tApp.tRoot.addChild(firstChild);
+  }
 };
 
 App.oids = {};

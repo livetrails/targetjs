@@ -2,6 +2,7 @@ import { $Dom } from "./$Dom.js";
 import { TUtil } from "./TUtil.js";
 import { tRoot, App, getTModelById } from "./App.js";
 import { TargetData } from "./TargetData.js";
+import { TModelUtil } from "./TModelUtil.js";
 
 /**
  * 
@@ -37,6 +38,31 @@ class DomInit {
         }
         
         return newVisibles;
+    }
+    
+    static mount(tmodel, elemTarget) {
+        if (elemTarget !== undefined) {
+            const $dom = TModelUtil.normalizeDomHolder(elemTarget);
+            if ($dom) {                
+                tmodel.targets.$dom = $dom;
+                tmodel.val('$dom', $dom);
+                delete tmodel.targets.position;
+                const id = $dom.getId();
+                if (id) {
+                    const uniqueId = App.getOid(id);
+                    tmodel.type = id;
+                    tmodel.oid = uniqueId.oid;
+                    tmodel.oidNum = uniqueId.num;
+                }
+                $dom.setSelector(`#${tmodel.oid}`);
+                $dom.setId(tmodel.oid);
+                $dom.attr('tgjs', 'true');
+                tmodel.initTargets();
+            }
+        }
+
+        App(tmodel);        
+        
     }
 
     static initPageDoms($dom) {

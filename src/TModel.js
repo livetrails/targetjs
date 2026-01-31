@@ -1,11 +1,12 @@
 import { BaseModel } from "./BaseModel.js";
-import { App, getLocationManager, getRunScheduler, tRoot } from "./App.js";
+import { App, getLocationManager, getRunScheduler } from "./App.js";
 import { Viewport } from "./Viewport.js";
 import { TUtil } from "./TUtil.js";
 import { TargetData } from "./TargetData.js";
 import { SearchUtil } from "./SearchUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TModelUtil } from "./TModelUtil.js";
+import { DomInit } from "./DomInit.js";
 
 /**
  * It provides the base class for all objects in an app where targets are defined. 
@@ -569,15 +570,8 @@ class TModel extends BaseModel {
         return this.hasDom() ? this.getBaseElement() !== this.$dom.getTagName() : false;
     }
     
-    mount(target) {
-        if (target !== undefined) {
-            const domHolder = TModelUtil.normalizeDomHolder(target);
-            if (domHolder) {
-                this.val('domHolder', domHolder);
-            }
-        }
-
-        tRoot().addChild(this);
+    mount(elemTarget) {
+        DomInit.mount(this, elemTarget);
     }
 
     hasDom() {

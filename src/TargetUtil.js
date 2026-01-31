@@ -290,16 +290,16 @@ class TargetUtil {
             return;
         }
 
-        const invokerModel = tmodel.isTargetImperative(key) ? targetValue.originalTModel : targetValue.invokerModel;
+        const invokerTModel = tmodel.isTargetImperative(key) ? targetValue.originalTModel : targetValue.invokerTModel;
         const invokerTarget = tmodel.isTargetImperative(key) ? targetValue.originalTargetName : targetValue.invokerTarget;
 
-        if (!invokerModel || !invokerTarget) {
+        if (!invokerTModel || !invokerTarget) {
             return;
         }
 
-        TargetUtil.cleanupTarget(invokerModel, invokerTarget);
+        TargetUtil.cleanupTarget(invokerTModel, invokerTarget);
 
-        TargetUtil.bubbleInvokerCompletion(invokerModel, invokerTarget, visited, levelUp + 1);
+        TargetUtil.bubbleInvokerCompletion(invokerTModel, invokerTarget, visited, levelUp + 1);
     }
 
     static activateTargets(tmodel, target) {

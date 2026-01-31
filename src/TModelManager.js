@@ -349,7 +349,7 @@ class TModelManager {
         if (this.lists.noDom.length === 0) { 
             return;
         }
-    
+            
         const holdersMap = new Map();
         const styleBatch = [];
         
@@ -427,7 +427,7 @@ class TModelManager {
         }
         
         this.activatePendingTargetsAfterDom(styleBatch);
-
+        
         getEvents().attachEvents(this.lists.noDom.filter(t => t.externalEventMap?.size > 0));
     }        
 }

@@ -956,7 +956,7 @@ class BaseModel {
                 TargetUtil.markChildAction(invokerTModel, invokerTarget, this);
             }
 
-            targetValue.invokerModel = invokerTModel;
+            targetValue.invokerTModel = invokerTModel;
             targetValue.invokerTarget = invokerTarget;
 
             if (this.targetValues[key]) {

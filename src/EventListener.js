@@ -299,7 +299,7 @@ class EventListener {
 
         const { type: originalName } = event; 
         const eventItem = this.allEvents[originalName];
-                                                                  
+        
         if (!eventItem) {
             return;
         }

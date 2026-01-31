@@ -521,13 +521,16 @@ class TargetData {
             'originalTargetName',
             'originalTModel',
             'activateNextTarget',
+            'invokerTarget',
+            'invokerTModel',
             'active',
+            'addChildAction',
             'childAction',
             'fetchAction'
     ]);
 
     static lifecycleCallbackSet = new Set([
-        'onValueChange', 'onImperativeEnd', 'onImperativeStep', 'onStepsEnd',
+        'onComplete', 'onValueChange', 'onImperativeEnd', 'onImperativeStep', 'onStepsEnd',
         'onSuccess', 'onError'
     ]);
     
