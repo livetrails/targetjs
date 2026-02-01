@@ -66,6 +66,7 @@ const AppFn = () => {
             });
 
             tmodel.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
+            tmodel.$dom.attr('data-tj-no-slot', 'true');
 
             tmodel.val('screenWidth', $Dom.getScreenWidth());                
             tmodel.val('screenHeight', $Dom.getScreenHeight());            

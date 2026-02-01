@@ -87,6 +87,10 @@ class $Dom {
         }
         return slot;
     }
+    
+    isNoSlotHost() {
+        return this.element?.getAttribute('data-tj-no-slot') === 'true';
+    }
 
     ensureContentSlotFirst() {
         let slot = this.findContentSlot();
@@ -108,6 +112,11 @@ class $Dom {
             return;
         }
         
+        if (this.isNoSlotHost()) {
+            this.slotModeEnabled = true;
+            return;
+        }        
+        
         if (!this.element?.firstChild) {
             this.slotModeEnabled = true;
             return;
@@ -126,6 +135,11 @@ class $Dom {
     }    
 
     ensureSlotMode() {
+        if (this.isNoSlotHost()) {
+            this.slotModeEnabled = true;
+            return;
+        } 
+        
         this.enableSlotMode();
 
         const slot = this.findContentSlot();
@@ -287,6 +301,11 @@ class $Dom {
             return;
         }
 
+        if (this.isNoSlotHost()) {
+            this.element.appendChild(node);
+            return;
+        }        
+
         const slot = this.ensureContentSlotFirst();
         const after = slot ? slot.nextSibling : this.element.firstChild;
 
@@ -349,8 +368,8 @@ class $Dom {
     }
 
     html(html) {
-        if (TUtil.isDefined(html)) {
-            if (!this.hasRealChildren) {
+        if (TUtil.isDefined(html)) {            
+            if (this.isNoSlotHost() || !this.hasRealChildren) {
                 this.element.innerHTML = html;
             } else {
                 const slot = this.ensureContentSlotFirst();
@@ -364,7 +383,7 @@ class $Dom {
 
     text(text) {
         if (TUtil.isDefined(text)) {
-            if (!this.hasRealChildren) {
+            if (this.isNoSlotHost() || !this.hasRealChildren) {
                 this.element.textContent = text;
             } else {
                 const slot = this.ensureContentSlotFirst();
@@ -381,7 +400,7 @@ class $Dom {
             return;
         }
 
-        if (!this.hasRealChildren) {
+        if (this.isNoSlotHost() || !this.hasRealChildren) {
             this.element.innerHTML = this.originalContent || '';
             return;
         }
