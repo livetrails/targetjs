@@ -5,7 +5,7 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework that simplifies front-end development with a code-ordered reactivity model and a compact, Rebol-like syntax. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling.
+TargetJS is a modern JavaScript UI framework that simplifies front-end development with a code-ordered reactivity model and an ultra-compact syntax. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling.
 It can be used as a full-featured framework or as a lightweight library alongside other frameworks. It is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
 ## The Philosophy Behind TargetJS
@@ -323,23 +323,25 @@ import { App } from "targetj";
 
 **Via CDN**
 
-Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 54KB):
+Add the following `<script>` tag to your HTML to load TargetJS from a CDN:
 
 ```html
 <script src="https://unpkg.com/targetj@latest/dist/targetjs.js"></script>
 ```
 
-This exposes `TargetJS` on `window`, so you can initialize your app with `TargetJS.App(...)`. Make sure your code runs after the TargetJS script loads (use `defer` or place your script below it).
+This exposes `TargetJS` on `window`, so you can initialize your app with `TargetJS.App(...)`. Make sure your code runs after the TargetJS script and the DOM are ready (use defer, place your script below it, or wait for `DOMContentLoaded`).
 
 You can also use it without `App` by mounting a `TModel` object to an HTML element, for example:
 
 ```html
+<div id='redbox'></div>
+
 <script>
     new TargetJS.TModel({
         backgroundColor: 'red',
         width: { value: [100, 250, 100], steps: 20 },
         height: { value: [100, 250, 100], steps: 20 }
-    }).mount(document.body);
+    }).mount('#redbox');
 </script>
 ```
 Or, directly in your HTML with `tg-` attributes:
@@ -364,7 +366,7 @@ TargetJS addresses several common pain points in front-end development:
 4.  **Rigid Static Layer of HTML:** Many frameworks use HTML as the primary medium for generating the user interface. TargetJS makes JavaScript the primary driver.  
 5.  **Boilerplate and Verbosity:** TargetJS aims to reduce boilerplate code. The code is compact and follows a predictable execution flow.
 6.  **Difficult Animation Control:**  TargetJS makes animations first-class citizens with fine-grained control.
-8.  **Performance Bottlenecks with Large Lists:** TargetJS optimizes rendering for large lists by using a tree structure that renders only the visible branches.
+7.  **Performance Bottlenecks with Large Lists:** TargetJS optimizes rendering for large lists by using a tree structure that renders only the visible branches.
 
 ---
 
@@ -401,7 +403,7 @@ App({
           padding: 10,
           fontSize: 14,
           backgroundColor: "#f0f0f0",
-          scale: { values: [0.8, 1], steps: 14, interal: 12 },
+          scale: { value: [0.8, 1], steps: 14, interval: 12 },
           userName$$: {
             padding: "10px 0 5px 10px",
             boxSizing: "border-box",
