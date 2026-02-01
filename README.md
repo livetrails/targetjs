@@ -323,7 +323,7 @@ import { App } from "targetj";
 
 **Via CDN**
 
-Add the following `<script>` tag to your HTML to load TargetJS from a CDN (only 54KB):
+Add the following `<script>` tag to your HTML to load TargetJS from a CDN (66KB gzipped):
 
 ```html
 <script src="https://unpkg.com/targetj@latest/dist/targetjs.js"></script>
@@ -403,7 +403,7 @@ App({
           padding: 10,
           fontSize: 14,
           backgroundColor: "#f0f0f0",
-          scale: { values: [0.8, 1], steps: 14, interal: 12 },
+          scale: { values: [0.8, 1], steps: 14, interval: 12 },
           userName$$: {
             padding: "10px 0 5px 10px",
             boxSizing: "border-box",
