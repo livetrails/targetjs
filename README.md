@@ -36,7 +36,7 @@ The example demonstrates how to run four asynchronous operations in a strict seq
 
 **What this shows:** One object defines a UI element without separate HTML/CSS. Static targets map directly to DOM styles/attributes. You can still use CSS if wanted.
 
-Use .mount("#id") to choose where it renders. If you omit .mount(), TargetJS mounts to `body`.
+Use `.mount("#id")` to choose where it renders. If you omit `.mount()`, TargetJS mounts to `body`.
 
 <img src="https://targetjs.io/img/likeButton.png" width="130" />
 
