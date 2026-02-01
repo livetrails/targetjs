@@ -36,7 +36,13 @@ The example demonstrates how to run four asynchronous operations in a strict seq
 
 **What this shows:** One object defines a UI element without separate HTML/CSS. Static targets map directly to DOM styles/attributes. You can still use CSS if wanted.
 
-  <img src="https://targetjs.io/img/likeButton.png" width="130" />
+Use .mount("#id") to choose where it renders. If you omit .mount(), TargetJS mounts to `body`.
+
+<img src="https://targetjs.io/img/likeButton.png" width="130" />
+
+```html
+<div id="likeButton"></div>
+```
 
 ```javascript
 import { App } from "targetj";
@@ -49,7 +55,7 @@ App({
   borderRadius: 10,
   backgroundColor: "#f5f5f5",
   html: "♡ Like"
-});
+}).mount("#likeButton");
 ```
 
 ---
@@ -60,6 +66,10 @@ App({
 **What this shows:** A mount-time animation that scales and changes the `backgroundColor` over 12 steps, with 12ms pauses between steps. Targets without (`$`, `$$`, `_`) execute immediately in the order they are defined.
 
   <img src="https://targetjs.io/img/likeButton6.gif" width="130" />
+
+```html
+<div id="likeButton"></div>
+```
 
 ```javascript
 import { App } from "targetj";
@@ -73,7 +83,7 @@ App({
   html: "♡ Like",
   scale: { value: [1.2, 1], steps: 12, interval: 12 },
   backgroundColor: { value: ["#ffe8ec", "#f5f5f5"], steps: 12, interval: 12 }
-});
+}).mount("#likeButton");
 ```
 
 ### 3) Click → animation (imperative `setTarget`)
@@ -82,6 +92,9 @@ App({
 
   <img src="https://targetjs.io/img/likeButton4.gif" width="130" />
 
+```html
+<div id="likeButton"></div>
+```
 ```javascript
 import { App } from "targetj";
 
@@ -95,7 +108,7 @@ App({
     this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
     this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
   }
-});
+}).mount("#likeButton");
 ```
 
 ---
@@ -106,6 +119,9 @@ App({
 
   <img src="https://targetjs.io/img/likeButton7.gif" width="130" />
 
+```html
+<div id="likeButton"></div>
+```
 ```javascript
 import { App } from "targetj";
 
@@ -130,7 +146,7 @@ App({
       }, 20);
     }
   }
-});
+}).mount("#likeButton");
 ```
 
 ---
@@ -140,6 +156,10 @@ App({
 **What this shows:** Deferred addition of a new element using $$. `bigHeart$$` waits for `heart$$` and the click sequence to complete their animation, then adds a larger heart and runs its own happy animation.
 
   <img src="https://targetjs.io/img/likeButton8.gif" width="130" />
+
+```html
+<div id="likeButton"></div>
+```
 
 ```javascript
 import { App } from "targetj";
@@ -180,7 +200,7 @@ App({
       }, 30);
     }
   }
-});
+}).mount("#likeButton");
 ```
 
 ---
@@ -189,12 +209,17 @@ App({
 
 **What this shows:** Networking is just another target. The POST happens **only after** all prior visual steps complete, since the target is postfixed with `$$`. Similarly, repeated clicks delay `fetch$$`.
 
+```html
+<div id="likeButton"></div>
+```
 ```javascript
+import { App } from "targetj";
+
 App({
   // …same as step 5…
 
   fetch$$: { method: "POST", id: 123, url: "/api/like" }
-});
+}).mount("#likeButton");
 ```
 
 ---
@@ -204,6 +229,10 @@ App({
 **What this shows:** A Like button that consolidates the previous steps into a single component. After the POST completes, a cleanup `removeHearts$$` target (fourth  async op) runs to remove the two heart elements. The button also includes basic accessibility (role, tabIndex, and Enter to activate). Demo: [Like button](https://targetj.io/examples/quick.html).
 
   <img src="https://targetjs.io/img/likeButton9.gif" width="130" />
+
+```html
+<div id="likeButton"></div>
+```
 
 ```javascript
 import { App } from "targetj";
@@ -250,7 +279,7 @@ App({
     removeHearts$$() { this.removeChildren(); },
     onKey(e) { if (e.key === "Enter") this.activateTarget("onClick"); }
   }
-});
+}).mount("#likeButton");
 ```
 ---
 
@@ -266,7 +295,7 @@ App({
 1. [📦 Installation](#-installation)
 1. [What Problems Does TargetJS Solve?](#what-problems-does-targetjs-solve)
 1. More Examples:
-    - [Loading Five Users Example](#loading-two-users-example)
+    - [Loading Five Users Example](#loading-five-users-example)
     - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
 1. [Target Methods](#target-methods)
 1. [Target Variables](#target-variables)
@@ -289,7 +318,7 @@ Targets provide a unified interface for both class methods and fields. Each Targ
 
 ## Understanding TargetJS Syntax: Reactive Postfixes
 
-TargetJS defines reactive behaviors using the `$` and `$$` postfixes on target names, unifying asynchronous operations such as API calls, animations, timers, and UI transitions. Although this convention may seem a bit cryptic at first, it offers a compact syntax.
+All targets execute automatically in the order they are writte unless their names have a postfix or prefix. TargetJS defines reactive behavior using the $ and $$ postfixes, while the _ prefix marks a target as inactive so it runs only when explicitly activated imperatively by another target. Although this convention may seem a bit cryptic at first, it enables a compact syntax.
 
 **`$` Postfix (Immediate Reactivity):**
 
@@ -302,6 +331,10 @@ A target name ending with a double `$$` (e.g., `fetch$$`) will activate only aft
 - The successful resolution of any timed sequences, such as animations.
 - The completion and return of results from all associated API calls.
 - The finalization of all tasks, animations, and API calls initiated by any dependent child targets that were themselves triggered by a preceding target.
+
+**`_` Prefix (Inactive):**
+
+A target name starting with `_` (e.g., `_height`) indicates that the target is inactive and does not execute automatically. It runs only when explicitly activated imperatively by another target using `.activateTarget(targetName)`.
 
 ---
 
@@ -331,20 +364,18 @@ Add the following `<script>` tag to your HTML to load TargetJS from a CDN:
 
 This exposes `TargetJS` on `window`, so you can initialize your app with `TargetJS.App(...)`. Make sure your code runs after the TargetJS script and the DOM are ready (use defer, place your script below it, or wait for `DOMContentLoaded`).
 
-You can also use it without `App` by mounting a `TModel` object to an HTML element, for example:
-
 ```html
 <div id='redbox'></div>
 
 <script>
-    new TargetJS.TModel({
+    TargetJS.App({
         backgroundColor: 'red',
         width: { value: [100, 250, 100], steps: 20 },
         height: { value: [100, 250, 100], steps: 20 }
     }).mount('#redbox');
 </script>
 ```
-Or, directly in your HTML with `tg-` attributes:
+Or, directly in your HTML with `tg-` attributes. Elements with tg- attributes are discovered automatically:
 
 ```html
 <div
@@ -382,6 +413,9 @@ In this example, we load five separate users and display five boxes, each contai
 
   <img src="https://targetjs.io/img/fetch-5-users.gif" width="130" />
 
+```html
+<div id="users"></div>
+```
 ```javascript
 import { App } from "targetj";
 
@@ -419,7 +453,7 @@ App({
           }
        };
     }
-});
+}).mount("#users");
 ```
 
 It can also be written using a target’s `cycles` and `interval` properties/methods to fetch users at intervals instead of in a single batch. In this example, we set interval to 1000, making the API call once every second.
@@ -440,7 +474,7 @@ App({
           // …same as the previous example…
         };
     }
-});
+}).mount("#users");
 ```
 
 ### Infinite Loading and Scrolling Example
@@ -465,6 +499,10 @@ TargetJS employs a tree-like structure to track visible branches, optimizing scr
 
 
   <img src="https://targetjs.io/img/infiniteScrolling20.gif" width="130" />
+
+```html
+<div id="userList"></div>
+```
 
 ```javascript
 import { App, getEvents, getScreenWidth, getScreenHeight } from "targetj";
@@ -523,7 +561,7 @@ App({
       this.activateTarget("addChildren");
     }
   }
-});
+}).mount("#userList");
 ```
 ---
 
