@@ -155,13 +155,28 @@ const AppFn = () => {
 };
 
 const App = firstChild => {
-  if (!tApp?.tRoot) {
-    if (firstChild) {
-        queuedAppCalls.push(firstChild);
+    if (!firstChild) {
+        return;
     }
-  } else if (firstChild) {
-    tApp.tRoot.addChild(firstChild);
-  }
+
+    const tmodel = firstChild instanceof TModel ? firstChild : new TModel('App', firstChild);
+
+    if (!tApp?.tRoot) {
+        queuedAppCalls.push(tmodel);
+    } else {
+        tApp.tRoot.addChild(tmodel);
+    }
+
+    return tmodel;
+};
+
+
+App.mount = (child, elemTarget) => {
+    const tmodel = App(child);
+    if (tmodel) {
+        tmodel.mount(elemTarget);
+    }
+    return tmodel;
 };
 
 App.oids = {};

@@ -572,6 +572,7 @@ class TModel extends BaseModel {
     
     mount(elemTarget) {
         DomInit.mount(this, elemTarget);
+        return this;
     }
 
     hasDom() {

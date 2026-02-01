@@ -47,6 +47,7 @@ class DomInit {
                 tmodel.targets.$dom = $dom;
                 tmodel.val('$dom', $dom);
                 delete tmodel.targets.position;
+
                 const id = $dom.getId();
                 if (id) {
                     const uniqueId = App.getOid(id);
@@ -54,15 +55,14 @@ class DomInit {
                     tmodel.oid = uniqueId.oid;
                     tmodel.oidNum = uniqueId.num;
                 }
+
                 $dom.setSelector(`#${tmodel.oid}`);
                 $dom.setId(tmodel.oid);
                 $dom.attr('tgjs', 'true');
+
                 tmodel.initTargets();
             }
         }
-
-        App(tmodel);        
-        
     }
 
     static initPageDoms($dom) {
