@@ -318,7 +318,7 @@ Targets provide a unified interface for both class methods and fields. Each Targ
 
 ## Understanding TargetJS Syntax: Reactive Postfixes
 
-TargetJS defines reactive behaviors using the `$` and `$$` postfixes on target names, unifying asynchronous operations such as API calls, animations, timers, and UI transitions. Although this convention may seem a bit cryptic at first, it offers a compact syntax.
+All targets execute automatically in the order they are writte unless their names have a postfix or prefix. TargetJS defines reactive behavior using the $ and $$ postfixes, while the _ prefix marks a target as inactive so it runs only when explicitly activated imperatively by another target. Although this convention may seem a bit cryptic at first, it enables a compact syntax.
 
 **`$` Postfix (Immediate Reactivity):**
 
@@ -331,6 +331,10 @@ A target name ending with a double `$$` (e.g., `fetch$$`) will activate only aft
 - The successful resolution of any timed sequences, such as animations.
 - The completion and return of results from all associated API calls.
 - The finalization of all tasks, animations, and API calls initiated by any dependent child targets that were themselves triggered by a preceding target.
+
+**`_` Prefix (Inactive):**
+
+A target name starting with `_` (e.g., `_height`) indicates that the target is inactive and does not execute automatically. It runs only when explicitly activated imperatively by another target using `.activateTarget(targetName)`.
 
 ---
 
