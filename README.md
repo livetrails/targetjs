@@ -1,71 +1,72 @@
-# TargetJS: JavaScript UI Framework for Simplified Development and Enhanced User Experience
+# TargetJS: UI Development as a Sequence
 
 **[targetjs.io](https://targetjs.io)** 
 [![MIT LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/livetrails/targetjs/blob/main/LICENSE) 
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a modern JavaScript UI framework that simplifies front-end development with a code-ordered reactivity model and an ultra-compact syntax. It provides a unified solution for key aspects like UI rendering, animations, APIs, state management, and event handling.
+TargetJS is a high-performance JavaScript UI framework with ultra-compact syntax. It replaces the "State → Render" model with a Code-Ordered Reactivity. It unifies UI, animations, APIs, event handling, and state into self-contained "Targets" that stack together like intelligent Lego pieces.
+
 It can be used as a full-featured framework or as a lightweight library alongside other frameworks. It is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
+
 
 ## The Philosophy Behind TargetJS
 
-Frameworks often promise simplicity, but frequently require extensive boilerplate and libraries as they inherit the same software approach rooted in early programming models and try to force it to fit UI development by adding more complexity. User interfaces are dynamic and asynchronous and require a different paradigm.
+Traditional frameworks model the UI as a function of state: change state, re-render the UI. If the state changes from A to B, the UI immediately jumps to $B'$. The framework doesn't naturally care about the "journey" from A to B. But modern user experiences are built on asynchronous sequences that unfold over time. For example:
 
-TargetJS adopts a new approach. First, it unifies class methods and fields into a single construct called targets. Each target is given state, lifecycles, timing, iterations, and the autonomy to execute mimicking the behavior of living cells. Targets are essentially self-contained, intelligent blocks of code.
+> Click → Animate button → Chain secondary animation → Pause 100 ms → Fetch data → Render list → Animate items one after another with a small delay
 
-The second challenge is making these targets fit and work together especially since UI operations are highly asynchronous. Instead of relying on traditional method calls and callbacks that don't address asynchronous nature well, TargetJS allows targets to react to the execution or completion of preceding targets. A subsequent target can run independently, execute whenever the previous one does, or wait until the previous target completes. Targets stack together like Lego pieces. It can address complex asynchronous workflow while remaining easy to understand.
+TargetJS is built for this reality. Instead of managing complex flags, your code structure mirrors these sequences directly.
 
-For example, setting a value can implicitly define an animation, where the current value iteratively progresses until it reaches the new value. When the animation completes, the next target might initiate a fetch API call. Once the data is received, it can trigger another target that creates 10 new elements, each with its own animation and API call. A subsequent target can then be set to run only after all 10 elements have completed their tasks. Targets simply react and chain together based on how the code is written.
+It achieves this through Targets. A Target is a self-contained unit that merges data (fields) and logic (methods) into a single reactive block. Each Target has its own internal state, timing, and lifecycle, acting like a living cell within your app. By simply ordering them in your code, you create complex asynchronous workflows without a async/await or .then() chain.
 
-Furthermore, TargetJS adopts a Rebol-like style to make the code more compact.
+By building animation directly into the logic and adopting a compact style, TargetJS makes the journey from A to B possible and with significantly less code than traditional frameworks.
 
-## Key Innovations and Concepts
+## ⚡ Quick Start (30 Seconds)
 
-1.  Reactive targets: A new construct called “targets” unifies class methods and fields. Targets are self-contained units of code with their own state, lifecycles, and timing. They are designed to execute themselves or react dynamically to the run or completion of preceding targets. This enables the declarative programming of complex asynchronous flows without explicit callbacks.
-2. All-in-One solution: Offers a unified approach to UI rendering, API integration, state management, event handling, and animation.
-3. Code-ordered execution, Rebol-like style: less code and more readable code.
+**1. Install**
 
----
-
-## Examples: Like Button → Animated Like with 4 Async Ops (in 7 Steps)
-
-The example demonstrates how to run four asynchronous operations in a strict sequential sequence, where each step waits for the previous ones to complete. Any restart or delay in an operation delays the ones that follow. This is to showcase managing async operations rather than focusing on the user experience. We will show the example in 7 steps.
-
-### 1) Like button (view only)
-
-**What this shows:** One object defines a UI element without separate HTML/CSS. Static targets map directly to DOM styles/attributes. You can still use CSS if wanted.
-
-Use `.mount("#id")` to choose where it renders. If you omit `.mount()`, TargetJS mounts to `body`.
-
-<img src="https://targetjs.io/img/likeButton.png" width="130" />
-
-```html
-<div id="likeButton"></div>
+```bash
+npm install targetj
 ```
+
+**2. The "Hello World" Sequence**
+
+This creates a blue box that grows, then turns red, and then logs "Hello World" in order.
 
 ```javascript
 import { App } from "targetj";
 
 App({
-  width: 220,
-  height: 60,
-  lineHeight: 60,
-  textAlign: "center",
-  borderRadius: 10,
-  backgroundColor: "#f5f5f5",
-  html: "♡ Like"
-}).mount("#likeButton");
+  backgroundColor: 'blue',
+  height: 100,
+  width: { value: [100, 200], steps: 100 }, // 1. Animate width in 100 steps using the default 8 ms interval per step.
+  backgroundColor$$: { value: 'red', steps: 100 }, // 2. Wait ($$) then turn red in 100 steps
+  done$$() { console.log("Hello World!"); } 
+}).mount("#app");
 ```
 
----
+## Understanding TargetJS Syntax
 
+The power of TargetJS lies in how you start or end target names. These symbols tell the framework **when** a target should run.
 
-### 2) Animation
+| Symbol   | Name     | Behavior                                                                                                             |
+| -------- | -------- | -------------------------------------------------------------------------------------------------------------------- |
+| `name`   | Standard | Runs immediately in the order it appears.                                                                            |
+| `name$`  | Reactive | Runs every time the previous sibling target executes.                                  |
+| `name$$` | Deferred | Waits until the previous target is **100% finished** (including animations and API calls). This is the game-changer. |
+| `_name`  | Inactive | Does not run automatically. Trigger it manually via `.activateTarget()`.                                             |
+ 
 
-**What this shows:** A mount-time animation that scales and changes the `backgroundColor` over 12 steps, with 12ms pauses between steps. Targets without (`$`, `$$`, `_`) execute immediately in the order they are defined.
+## Examples: Like Button → Animated Like (in 3 Steps)
 
-  <img src="https://targetjs.io/img/likeButton6.gif" width="130" />
+Let’s see how TargetJS handles a complex interaction that would usually require 50+ lines of React/CSS. The example demonstrates how to run four asynchronous operations in a strict sequential sequence, where each step waits for the previous ones to complete.
+
+### 1) Like button
+
+One object defines a UI element without separate HTML/CSS. Static targets map directly to DOM styles/attributes. You can still use CSS if wanted.
+
+<img src="https://targetjs.io/img/likeButton6.gif" width="130" />
 
 ```html
 <div id="likeButton"></div>
@@ -81,16 +82,17 @@ App({
   textAlign: "center",
   borderRadius: 10, 
   html: "♡ Like",
+  // Runs immediately on mount
   scale: { value: [1.2, 1], steps: 12, interval: 12 },
   backgroundColor: { value: ["#ffe8ec", "#f5f5f5"], steps: 12, interval: 12 }
 }).mount("#likeButton");
 ```
 
-### 3) Click → animation (imperative `setTarget`)
+### 2) Adding the Interaction
 
-**What this shows:** Clicking plays the animations from the previous step using imperative `setTarget`.
+We move the animation into an `onClick` and add a deferred heart animation.
 
-  <img src="https://targetjs.io/img/likeButton4.gif" width="130" />
+<img src="https://targetjs.io/img/likeButton-step2-2.gif" width="130" />
 
 ```html
 <div id="likeButton"></div>
@@ -103,132 +105,31 @@ App({
   borderRadius: 10, backgroundColor: "#f5f5f5",
   cursor: "pointer", userSelect: "none",
   html: "♡ Like",
-
-  onClick() {
-    this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
-    this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
-  }
-}).mount("#likeButton");
-```
-
----
-
-### 4) Sequencing with `$$`: Adding a small heart after click animation (first async op)
-
-**What this shows:** A `$$` target (deferred) runs only after all prior targets finish (including `onClick()` and its animations). Here it adds a new heart element and runs its fly motion only once the click sequence has completed. Repeated clicks will delay adding the heart.
-
-  <img src="https://targetjs.io/img/likeButton7.gif" width="130" />
-
-```html
-<div id="likeButton"></div>
-```
-```javascript
-import { App } from "targetj";
-
-App({
-  width: 220, height: 60, lineHeight: 60, textAlign: "center",
-  borderRadius: 10, backgroundColor: "#f5f5f5", cursor: "pointer", userSelect: "none",
-  html: "♡ Like",
   onClick() {
     this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
     this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
   },
-  heart$$: {
+  heart$$: {  // Wait for the button animation to finish, THEN add and animate the heart.
     html: "♥", color: "crimson", fontSize: 20,
     fly() {
       const cx = this.getCenterX(), cy = this.getCenterY();
       this.setTarget({
-        opacity: { list: [0, 1, 1, 0.8, 0.1] },
-        scale:   { list: [0.8, 1.4, 1.1, 0.9, 0.8] },
-        rotate:  { list: [0, 12, -8, 6, 0] },
-        x:       { list: [cx, cx + 22, cx - 16, cx + 10, cx] },
-        y:       { list: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150] }
-      }, 20);
+        opacity: { value: [0, 1, 1, 0.8, 0.1], steps: 20 },
+        scale:   { value: [0.8, 1.4, 1.1, 0.9, 0.8], steps: 20 },
+        rotate:  { value: [0, 12, -8, 6, 0], steps: 20 },
+        x:       { value: [cx, cx + 22, cx - 16, cx + 10, cx], steps: 30 },
+        y:       { value: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150], steps: 30 }
+      });
     }
-  }
+  }  
 }).mount("#likeButton");
 ```
 
----
+### 3) The Full Async Workflow
 
-### 5) Another `$$`: Adding a big heart (second async op)
+We handle UI, two animations, a POST request, and a cleanup.
 
-**What this shows:** Deferred addition of a new element using $$. `bigHeart$$` waits for `heart$$` and the click sequence to complete their animation, then adds a larger heart and runs its own happy animation.
-
-  <img src="https://targetjs.io/img/likeButton8.gif" width="130" />
-
-```html
-<div id="likeButton"></div>
-```
-
-```javascript
-import { App } from "targetj";
-
-App({
-  width: 220, height: 60, lineHeight: 60, textAlign: "center",
-  borderRadius: 10, backgroundColor: "#f5f5f5", cursor: "pointer", userSelect: "none",
-  html: "♡ Like",
-
-  onClick() {
-    this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
-    this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
-  },
-
-  heart$$: {
-    html: "♥", color: "crimson", fontSize: 20,
-    fly() {
-      const cx = this.getCenterX(), cy = this.getCenterY();
-      this.setTarget({
-        opacity: { list: [0, 1, 1, 0.8, 0.1] },
-        scale:   { list: [0.8, 1.4, 1.1, 0.9, 0.8] },
-        rotate:  { list: [0, 12, -8, 6, 0] },
-        x:       { list: [cx, cx + 22, cx - 16, cx + 10, cx] },
-        y:       { list: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150] }
-      }, 20);
-    }
-  },
-  bigHeart$$: {
-    html: "♥", color: "blue", fontSize: 100,
-    happyFly() {
-      const cx = this.getCenterX(), cy = this.getCenterY();
-      this.setTarget({
-        opacity: { list: [0, 1, 1, 0.85, 0.6, 0.1] },
-        scale:   { list: [0.4, 1.9, 1.2, 1.6, 1.0, 0.95] },
-        rotate:  { list: [0, 4, -3, 4, -2, 0] },
-        x:       { list: [cx, cx + 14, cx + 10, cx - 6, cx - 14, cx] },
-        y:       { list: [cy, cy - 30, cy - 55, cy - 80, cy - 100, cy - 130] }
-      }, 30);
-    }
-  }
-}).mount("#likeButton");
-```
-
----
-
-### 6) `fetch$$` (third async op)
-
-**What this shows:** Networking is just another target. The POST happens **only after** all prior visual steps complete, since the target is postfixed with `$$`. Similarly, repeated clicks delay `fetch$$`.
-
-```html
-<div id="likeButton"></div>
-```
-```javascript
-import { App } from "targetj";
-
-App({
-  // …same as step 5…
-
-  fetch$$: { method: "POST", id: 123, url: "/api/like" }
-}).mount("#likeButton");
-```
-
----
-
-### 7) Final version
-
-**What this shows:** A Like button that consolidates the previous steps into a single component. After the POST completes, a cleanup `removeHearts$$` target (fourth  async op) runs to remove the two heart elements. The button also includes basic accessibility (role, tabIndex, and Enter to activate). Demo: [Like button](https://targetj.io/examples/quick.html).
-
-  <img src="https://targetjs.io/img/likeButton9.gif" width="130" />
+<img src="https://targetjs.io/img/likeButton-step3-4.gif" width="130" />
 
 ```html
 <div id="likeButton"></div>
@@ -247,58 +148,40 @@ App({
       this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
       this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
     },
-  
     heart$$: {
       html: "♥", color: "crimson", fontSize: 20,
       fly() {
         const cx = this.getCenterX(), cy = this.getCenterY();
         this.setTarget({
-          opacity: { list: [0, 1, 1, 0.8, 0.1] },
-          scale:   { list: [0.8, 1.4, 1.1, 0.9, 0.8] },
-          rotate:  { list: [0, 12, -8, 6, 0] },
-          x:       { list: [cx, cx + 22, cx - 16, cx + 10, cx] },
-          y:       { list: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150] }
-        }, 20);
+          opacity: { value: [0, 1, 1, 0.8, 0.1], steps: 20 },
+          scale:   { value: [0.8, 1.4, 1.1, 0.9, 0.8], steps: 20 },
+          rotate:  { value: [0, 12, -8, 6, 0], steps: 20 },
+          x:       { value: [cx, cx + 22, cx - 16, cx + 10, cx], steps: 30 },
+          y:       { value: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150], steps: 30 }
+        });
       }
     },
-  
-    bigHeart$$: {
-      html: "♥", color: "blue", fontSize: 100,
-      happyFly() {
-        const cx = this.getCenterX(), cy = this.getCenterY();
-        this.setTarget({
-          opacity: { list: [0, 1, 1, 0.85, 0.6, 0.1] },
-          scale:   { list: [0.4, 1.9, 1.2, 1.6, 1.0, 0.95] },
-          rotate:  { list: [0, 4, -3, 4, -2, 0] },
-          x:       { list: [cx, cx + 14, cx + 10, cx - 6, cx - 14, cx] },
-          y:       { list: [cy, cy - 30, cy - 55, cy - 80, cy - 100, cy - 130] }
-        }, 30);
-      }
-    },  
-    fetch$$: { method: "POST", id: 123, url: "/api/like" },
-    removeHearts$$() { this.removeChildren(); },
+    fetch$$: { method: "POST", id: 123, url: "/api/like" }, // Wait for hearts to finish, THEN fetch
+    removeHearts$$() { this.removeChildren(); }, // Wait for fetch to finish, THEN cleanup
     onKey(e) { if (e.key === "Enter") this.activateTarget("onClick"); }
   }
 }).mount("#likeButton");
 ```
+
+### Summary
+
+Instead of wiring callbacks and effects, you write a sequence of targets. All targets execute automatically in the order they are written. `$$` defers execution until all prior sibling steps finish. Animations, API calls, event handling, and child creation are all treated as the same kind of thing: targets. Complex asynchronous flows are expressed by structuring parent and child targets. In addition, targets also provide built-in capabilities such as `onComplete` callback, enabledOn, looping with delays, and more as explained below.
+
 ---
 
-### Final takeaway
-
-- Instead of wiring callbacks and effects, you write a sequence of targets. `$$` defers until all prior steps finish. Animations, API calls, and child creation are all the same kind of thing: targets.
-- Minimal plumbing yet full control to manage a flow of complex asynchronous operations.
-  
 ## Table of Contents
 
-1. [Targets: The Building Blocks of TargetJS](#targets-the-building-blocks-of-targetjs)
-1. [Understanding TargetJS Syntax: Reactive Postfixes](#understanding-targetjs-syntax-reactive-postfixes)
-1. [📦 Installation](#-installation)
-1. [What Problems Does TargetJS Solve?](#what-problems-does-targetjs-solve)
+1. [📦 Alternative Installation Via CDN](#-alternative-installation-via-cdn)
+1. [🚀 Why TargetJS?](#-why-targetjs)
 1. More Examples:
     - [Loading Five Users Example](#loading-five-users-example)
     - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
 1. [Target Methods](#target-methods)
-1. [Target Variables](#target-variables)
 1. [Special Target Names](#special-target-names)
 1. [How to Debug in TargetJS](#how-to-debug-in-targetjs)
 1. [Documentation](#documentation)
@@ -306,55 +189,7 @@ App({
 1. [Contact](#contact)
 1. [💖 Support TargetJS](#-support-targetjs)
 
-## Targets: The Building Blocks of TargetJS
-
-Targets provide a unified interface for both class methods and fields. Each Target comes equipped with a built-in set of capabilities:
-
-1. State Management: Targets are inherently stateful, enabling implicit state handling across your application.
-2. Iterations: They can iterate towards defined values, making them perfect for creating animations.
-3. Multiple or Conditional Execution: Targets can execute repeatedly or only under specific conditions.
-4. Execution timing: Targets enable fine-grained control over when they execute.
-5. Code-Ordered Execution: Targets execute sequentially and predictably in the order they are written within a JavaScript object, thanks to ES2015's guaranteed property order.
-
-## Understanding TargetJS Syntax: Reactive Postfixes
-
-All targets execute automatically in the order they are writte unless their names have a postfix or prefix. TargetJS defines reactive behavior using the $ and $$ postfixes, while the _ prefix marks a target as inactive so it runs only when explicitly activated imperatively by another target. Although this convention may seem a bit cryptic at first, it enables a compact syntax.
-
-**`$` Postfix (Immediate Reactivity):**
-
-A target name ending with a single `$` (e.g., `height$`) indicates that this target will execute every time its immediately preceding target runs or emits a new value. If the preceding target involves an asynchronous operation like an API call, the reactive target activates when the response is received. If there are multiple API calls made, `$` postfix ensures that the target reacts to the first API result when it becomes available, then the second, and so on, maintaining a strict, code-ordered sequence of operations.
-
-**`$$` Postfix (Deferred Reactivity):**
-
-A target name ending with a double `$$` (e.g., `fetch$$`) will activate only after all the preceding targets have fully and comprehensively completed all of their operations. This includes:
-
-- The successful resolution of any timed sequences, such as animations.
-- The completion and return of results from all associated API calls.
-- The finalization of all tasks, animations, and API calls initiated by any dependent child targets that were themselves triggered by a preceding target.
-
-**`_` Prefix (Inactive):**
-
-A target name starting with `_` (e.g., `_height`) indicates that the target is inactive and does not execute automatically. It runs only when explicitly activated imperatively by another target using `.activateTarget(targetName)`.
-
----
-
-## **📦 Installation**
-
-**Via package manager**
-
-Install TargetJS via npm (note: there's no "s" at the end):
-
-```bash
-npm install targetj
-```
-
-Then import it into your JavaScript code:
-
-```javascript
-import { App } from "targetj";
-```
-
-**Via CDN**
+## 📦 Alternative Installation Via CDN
 
 Add the following `<script>` tag to your HTML to load TargetJS from a CDN:
 
@@ -362,7 +197,9 @@ Add the following `<script>` tag to your HTML to load TargetJS from a CDN:
 <script src="https://unpkg.com/targetj@latest/dist/targetjs.js"></script>
 ```
 
-This exposes `TargetJS` on `window`, so you can initialize your app with `TargetJS.App(...)`. Make sure your code runs after the TargetJS script and the DOM are ready (use defer, place your script below it, or wait for `DOMContentLoaded`).
+This exposes `TargetJS` on `window`, so you can initialize your app with `TargetJS.App(...)`.
+
+>  Ensure your code runs after the DOM is ready (use `defer`, place your script at the bottom of the `<body>`, or wrap it in a `DOMContentLoaded` listener).
 
 ```html
 <div id='redbox'></div>
@@ -375,7 +212,10 @@ This exposes `TargetJS` on `window`, so you can initialize your app with `Target
     }).mount('#redbox');
 </script>
 ```
-Or, directly in your HTML with `tg-` attributes. Elements with tg- attributes are discovered automatically:
+
+### Zero-JS Declarative HTML
+
+TargetJS can also be used as a "no-code" library. Elements with tg- attributes are discovered and activated automatically.
 
 ```html
 <div
@@ -385,21 +225,13 @@ Or, directly in your HTML with `tg-` attributes. Elements with tg- attributes ar
 </div>
 ```
 
----
+## 🚀 Why TargetJS?
 
-## What Problems Does TargetJS Solve?
-
-TargetJS addresses several common pain points in front-end development:
-
-1.  **Scattered State Management:** Many frameworks require separate libraries or complex patterns for state management. In TargetJS, state management is inherently handled through its core concept of “targets”.
-2.  **Complexity of Asynchronous Operations:**  Traditional JavaScript often involves complex handling of asynchronous operations (Promises, callbacks, `async/await`). TargetJS addresses this by providing a declarative reactive targets and synchronous execution flow.
-3.  **Disjointed Development Workflow:**  Developers often juggle multiple tools and concepts (UI libraries, animation libraries, event handlers). TargetJS provides a unified solution.
-4.  **Rigid Static Layer of HTML:** Many frameworks use HTML as the primary medium for generating the user interface. TargetJS makes JavaScript the primary driver.  
-5.  **Boilerplate and Verbosity:** TargetJS aims to reduce boilerplate code. The code is compact and follows a predictable execution flow.
-6.  **Difficult Animation Control:**  TargetJS makes animations first-class citizens with fine-grained control.
-7.  **Performance Bottlenecks with Large Lists:** TargetJS optimizes rendering for large lists by using a tree structure that renders only the visible branches.
-
----
+1. Zero Boilerplate Async: The $$ postfix handles the "wait" for you.
+2. Unified State: State isn't "elsewhere". It's built into every Target.
+3. Animation by Default: High-performance animations are baked into the logic.
+4. Ultra-Compact: Write 70% less code than standard frameworks.
+5. Lower Cognitive Load: Code reads from top to bottom, exactly how the user experiences the interaction.
 
 ## More Examples
 
@@ -428,6 +260,8 @@ App({
         'https://targetjs.io/api/randomUser?id=user4'
     ],
     child$() {
+        // prevTargetValue Holds the previous target’s value. For fetch targets, this is each API result in code order,
+        // not the order in which responses arrive in the browser.
         const user = this.prevTargetValue;
         return {
           width: 200,
@@ -480,8 +314,6 @@ App({
 ### Infinite Loading and Scrolling Example
 
 In this advanced example, we implement an infinite-scrolling application.
-
-**Explanation:**
 
 * `addChildren` is a special target that adds multiple items to the container’s children each time it executes. The `onVisibleChildrenChange` event detects changes in the visible children and activates `addChildren` to insert new items and fill any gaps.
 
@@ -565,163 +397,52 @@ App({
 ```
 ---
 
-## Target Methods
+## Technical Reference
 
-All methods and properties are optional, but they play integral roles in making targets useful for animation, API loading, event handling, and more:
+### Target Methods
+
+Every target can be an object with these optional controls:
 
 1. **value**
-If defined, value is the primary target method that will be executed. The target value will be calculated based on the result of this method.
-`Value` can also be defined as a property.
-
-1. **Postfix `$` to the target name** (Reactive): 
-A target name ending with $ indicates that it will be only activated when the preceding target is executed. If the preceding target involves API calls, it will be activated
-each time an API response is received, while ensuring the order of API calls is enforced. This means it will remain inactive until the first API result is received,
-then the second, and so on.
-  
-1. **Postfix `$$` to the target name** (Deferred): 
-A target name ending with `$$` indicates that it will be activated only after all the preceding targets have completed, along with all its imperative targets,
-and after all API results have been received.
-
-1. **Prefix `_` to the target name** (Inactive): 
-It indicates that the target is in an inactive state and must be activated by an event or other targets explicitly.
-
-1. **onComplete**
-It gets executed when the target and all proceeding targets fully complete their execution. It is equivalent to `$$`, but is executed from the same target.
-
-1. **enabledOn**
-Determines whether the target is eligible for execution. If enabledOn() returns false, the target remains active until it is enabled and gets executed.
-
-1. **loop**
-Controls the repetition of target execution. If loop() returns true, the target will continue to execute indefinitely. It can also be defined as a boolean instead of a method.
-
-1. **cycles**
-It works similarly to `loop`, but it specifies an explicit number of repetitions. It can also be combined with `loop`, in which case, once the specified cycles complete, they will rerun as long as `loop` returns true. In other words, `loop` functions as an outer loop for `cycles`.
-
-1. **interval**
-It specifies the pause between each target execution or each actual value update when steps are defined.
+The data or function that determines the target's state.
 
 1. **steps**
-By default, the actual value is updated immediately after the target value. The steps option allows the actual value to be updated in iterations specified by the number of steps.
+Turns a value change into an animation (e.g., steps: 20).
+
+1. **interval**
+The delay (ms) between steps or executions.
+
+1. **cycles**
+How many times to repeat the target.
+
+1. **onComplete**
+Callback when this target (and its children) finishes.
+
+1. **enabledOn**
+Determines whether the target is enabled for execution.
+
+1. **loop**
+Managed the repetition of target execution. Similar to `cycles` but uses boolean instead.
 
 1. **easing**
 A string that defines a predefined easing function that controls how the actual value is updated in relation to the steps.
 
 1. **onValueChange**
-This callback is triggered whenever there is a change returned by the target method/property `value`.
+This callback is triggered when `value` emits a new value.
 
-1. **onStepsEnd**
-This method is invoked only after the final step of updating the actual value is completed, assuming the target has a defined steps value.
+### Special Target Names
 
-1. **onImperativeStep**
-This callback tracks the progress of imperative targets defined within a declarative target. If there are multiple imperative targets, this method is called at each step,
-identifiable by their target name. You can also use `on${targetName}Step` to track individual targets with their own callbacks. For example, `onWidthStep()` is called on each update of the `width` target.
+TargetJS maps directly to the DOM for zero-friction styling. For example:
 
-1. **onImperativeEnd**
-Similar to `onImperativeStep`, but it is triggered when an imperative target completes. If multiple targets are expected to complete, you can use `on${targetName}End` instead. For example, `onWidthEnd` is called when the `width` target gets completed.
-
-1. **initialValue**
-This is only a property. It defines the initial value of the actual value.
-
-1. **active**
-This is only a property. It indicates whether the target is ready for execution. When set to false, it behaves similarly to a `_` prefix. By default, all targets are active, so setting it to true is unnecessary.
-   
-1. **onSuccess**
-An optional callback for targets that make API calls. It will be invoked for each API response received.
-
-1. **onError**
-Similar to the `onSuccess` but it will be invoked on every error.
-
-## Target Variables
-In all the target methods above, you can access the following variables:
-
-1. **this.prevTargetValue**  
-It holds the value of the preceding target. If the preceding target involves API calls, a single $ postfix means it will hold one API result at a time, as the target is
-activated with each API response. If the target is postfixed with $$, it will have the results as an array, ordered by the sequence of API calls rather than the order in
-which the responses are received.
-
-2. **this.isPrevTargetUpdated()**
-It returns `true` if the previous target has been updated. This method is useful when a target is activated externally, such as by a user event, rather than by the preceding target.
-
-3. **this.key**
-Represents the name of the current target.
-
-4. **this.value**
-Represents the current value of the target.
-
-
-## Special Target Names
-
-All HTML style names and attributes are treated as special target names. The most commonly used style names and attributes have already been added to the framework, with the possibility of adding more in the future.
-
-Examples:
-- `width`, `height`: Set the dimensions of the object.
-- `opacity`, `scale`, `rotate`: Adjust the opacity, scale, and rotation of the object.
-- `zIndex`: Sets the z-order of the object.
-
-In addition to styles and attribute names, we have the following special names:
-
-1. **html**: Sets the content of the object, interpreted as text by default.
-2. **children**: Adds new items to the parent each time it executes. Items can be either plain objects or instances of TModel for greater control.
-3. **Child**: Similar to `children` but adds only one item.
-4. **css**: A string that sets the CSS of the object.
-5. **element**: Sets the HTML tag of the object, defaulting to `div`.
-6. **shouldBeBracketed**: A boolean flag that, when set to true (the default), enables the creation of an optimization tree for a container with more items than the `bracketThreshold` (another target with a default value of 10). This optimization ensures only the visible branch receives updates and get executed.
-7. **x** and **y**: Sets the location of the object.
-8. **scrollLeft** and **scrollTop**: Control the scrolling position of the object.
-9. **leftMargin**, **rightMargin**, **topMargin**, **bottomMargin**: Set margins between objects.
-10. **domHolder**: When set to true, indicates that the current object serves as the DOM holder for all of its descendant objects. It can also return a DOM element, in which case the current object and all descendants will be contained within that DOM element.
-11. **domParent**: Set by the container or children to control which DOM container they are embedded in.
-12. **isVisible**: An optional target to explicitly control the visibility of the object, bypassing TargetJS’s automatic calculation.
-13. **canHaveDom**: A boolean flag that determines if the object can have a DOM element on the page.
-14. **canDeleteDom**:  When set to true (the default), indicates that the object's DOM element will be removed when the object becomes invisible.
-16. **widthFromDom** and **heightFromDom**: Boolean flags to explicilty control if the width and height should be derived from the DOM element.
-17. **textOnly**: A boolean flag that specifies the content type as either text or HTML. The default value is false, indicating text.
-18. **isInFlow**: A boolean flag that determines if the object will contribute to the content height and width of its parent.
-19. **style**: An object to set the HTML style of the object, especially for style names that aren’t built-in.
-
-
-Lastly, we have the event targets which their values can be an array of targets to activate on specific events or may implement the event handler directly.
-
-**Example with Target Array:**
-```javascript
-onResize: [ 'width', 'height' ]  // Activates declarative 'width' and 'height' targets on screen resize.
-```
-
-**Example with Event handler:**
-```javascript
-onResize() { 
-    this.setTarget('width', getScreenWidth());
-    this.setTarget('height', getScreenHeight());
-}
-```
-
-Here are all the event targets:
-1. **onResize**: Triggered on screen resize events.
-2. **onParentResize**: Activated when the parent’s width or height is updated.
-3. **onFocus**: Triggered on focus events.
-4. **onBlur**: Triggered on blur events.
-5. **onClick**: Activated on click events.
-6. **onTouchStart**: Called when `touchstart` or `mousedown` events occur.
-7. **onTouch**: Generic handler for all touch events.
-8. **onTouchEnd**: Called when `touchend` or `mouseup` events occur.
-9. **onSwipe**: Activated on swipe events.
-10. **onEnter**: Triggered when the mouse cursor enters the object’s DOM.
-11. **onLeave**: Triggered when the mouse cursor leaves the object’s DOM.
-12. **onScrollTop**: Called on top scroll events.
-13. **onScrollLeft**: Called on left scroll events.
-14. **onScroll**: Called on both scroll events.
-15. **onWindowScroll**: Called on window scroll events.
-16. **onKey**: Triggered by key events.
-17. **onVisible**: Activated when the object becomes visible.
-18. **onChildrenChange**: Triggered when the children count changes.
-19. **onVisibleChildrenChange**: Triggered when the count of visible children changes.
-20. **onDomEvent**: It accepts an array of targets and activates them when their associated object acquires a DOM element.
+- **Styles**: `width`, `height`, `opacity`, `x`, `y`, `rotate`, `scale`, `backgroundColor`.
+- **Structure**: `html`, `children`, `element`, `domHolder`.
+- **Events**: `onClick`, `onScroll`, `onKey`, `onVisibleChildrenChange`, `onResize`.
 
 ## How to Debug in TargetJS
 
 TargetJS provides built-in debugging tools:
 
-```bash
+```js
 TargetJS.tApp.stop(); // Stop the application.
 TargetJS.tApp.start(); // Restart the application
 TargetJS.tApp.throttle = 0; // Slow down execution (milliseconds between cycles)
