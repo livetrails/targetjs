@@ -12,15 +12,15 @@ It can be used as a full-featured framework or as a lightweight library alongsid
 
 ## The Philosophy Behind TargetJS
 
-Traditional frameworks model the UI as a function of state: change state, re-render the UI. If the state changes from A to B, the UI immediately jumps to $B'$. The framework doesn't naturally care about the "journey" from A to B. But modern user experiences are built on asynchronous sequences that unfold over time. For example:
+Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A to B, the UI immediately jumps to **B**. The framework doesn’t naturally represent the *journey* from A to B. But modern, rich user experiences are built on sequences that unfold over time. For example:
 
-> Click → Animate button → Chain secondary animation → Pause 100 ms → Fetch data → Render list → Animate items one after another with a small delay
+> Click → Animate button → Chain secondary animation → Fetch data → Render list → Animate items → Pause → Animate an important item
 
 TargetJS is built for this reality. Instead of managing complex flags, your code structure mirrors these sequences directly.
 
-It achieves this through Targets. A Target is a self-contained unit that merges data (fields) and logic (methods) into a single reactive block. Each Target has its own internal state, timing, and lifecycle, acting like a living cell within your app. By simply ordering them in your code, you create complex asynchronous workflows without a async/await or .then() chain.
+It achieves this through Targets. A Target is a self-contained unit that merges data (fields) and logic (methods) into a single reactive block. Each Target has its own internal state, timing, and lifecycle, acting like a living cell within your app. By simply ordering them in your code, you create complex asynchronous workflows without async/await or .then() chains.
 
-By building animation directly into the logic and adopting a compact style, TargetJS makes the journey from A to B possible and with significantly less code than traditional frameworks.
+By building animation directly into the logic of the framework and adopting a compact style, TargetJS makes the journey from A to B explicit and with significantly less code than traditional frameworks.
 
 ## ⚡ Quick Start (30 Seconds)
 
