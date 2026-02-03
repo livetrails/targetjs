@@ -42,7 +42,7 @@ App({
   height: 100,
   width: { value: [100, 200], steps: 100 }, // 1. Animate width in 100 steps using the default 8 ms interval per step.
   backgroundColor$$: { value: 'red', steps: 100 }, // 2. Wait ($$) then turn red in 100 steps
-  done$$() { console.log("Hello World!"); } 
+  done$$() { console.log("Hello World!"); } // 3. Wait ($$) then log
 }).mount("#app");
 ```
 
