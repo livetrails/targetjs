@@ -48,14 +48,14 @@ App({
 
 ## Understanding TargetJS Syntax
 
-The power of TargetJS lies in how you start or end target names. These symbols tell the framework **when** a target should run.
+These symbols tell the framework **when** a target should run.
 
-| Symbol   | Name     | Behavior                                                                                                             |
-| -------- | -------- | -------------------------------------------------------------------------------------------------------------------- |
-| `name`   | Standard | Runs immediately in the order it appears.                                                                            |
-| `name$`  | Reactive | Runs every time the previous sibling target executes.                                  |
-| `name$$` | Deferred | Waits until the previous target is **100% finished** (including animations and API calls). This is the game-changer. |
-| `_name`  | Inactive | Does not run automatically. Trigger it manually via `.activateTarget()`.                                             |
+| Symbol   | Name     | Behavior                                                                                                                 |
+| -------- | -------- | -------------------------------------------------------------------------------------------------------------------------|
+| `name`   | Standard | Runs immediately in the order it appears.                                                                                |
+| `name$`  | Reactive | Runs every time the previous sibling target executes.                                                                    |
+| `name$$` | Deferred | Executes only after the entire preceding target chain including children, animations, and API calls has fully completed. |
+| `_name`  | Inactive | Does not run automatically. Trigger it manually via `.activateTarget()`.                                                 |
  
 
 ## Examples: Like Button → Animated Like (in 3 Steps)
