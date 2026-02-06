@@ -43,9 +43,7 @@ class DomInit {
     static mount(tmodel, elemTarget) {
         if (elemTarget !== undefined) {
             const $dom = TModelUtil.normalizeDomHolder(elemTarget);
-            if ($dom) {
-                $dom.attr('data-tj-no-slot', 'true');
-                
+            if ($dom) {                
                 tmodel.targets.$dom = $dom;
                 tmodel.val('$dom', $dom);
                 delete tmodel.targets.position;

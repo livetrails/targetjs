@@ -349,7 +349,7 @@ class TModelManager {
         if (this.lists.noDom.length === 0) { 
             return;
         }
-            
+        
         const holdersMap = new Map();
         const styleBatch = [];
         

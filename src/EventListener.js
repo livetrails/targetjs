@@ -296,10 +296,10 @@ class EventListener {
         if (!event) {
             return;
         }
-
+        
         const { type: originalName } = event; 
         const eventItem = this.allEvents[originalName];
-        
+                
         if (!eventItem) {
             return;
         }
@@ -313,8 +313,8 @@ class EventListener {
             tmodel = this.currentHandlers.start;
         } else {
             tmodel = this.getTModelFromEvent(event);
-        }        
-                                             
+        }     
+                                                     
         tmodel?.markLayoutDirty('event');
                 
         const newEvent = { eventName, eventItem, eventType, originalName, tmodel, originalEvent: event, timeStamp: now };
@@ -426,27 +426,27 @@ class EventListener {
                 event.stopPropagation();
                 break;                             
                 
-            case 'click':
+            case 'click': {
                 if (this.preventDefault(tmodel, eventName)) {
                     event.preventDefault();
                 }
-                      
-                this.end0 = this.getTouch(event);
-                                
-                if (this.start0) {
-                    const clickHandler = SearchUtil.findFirstClickHandler(tmodel);
-                                        
-                    if (clickHandler && clickHandler === this.currentHandlers.click && (clickHandler !== this.currentHandlers.swipe || this.getSwipeDistance() < 5)) {
-                        this.eventQueue.length = 0;
-                        this.eventQueue.push({ eventName, eventItem, eventType, originalName, tmodel, originalEvent: event, timeStamp: now });
-                    }
-                }
-                        
-                this.clearEnd();
-                this.touchCount = 0; 
 
+                this.end0 = this.getTouch(event);
+
+                const clickHandler = SearchUtil.findFirstClickHandler(tmodel);
+
+                const canAcceptClick = !this.start0 || (clickHandler === this.currentHandlers.click && (clickHandler !== this.currentHandlers.swipe || this.getSwipeDistance() < 5));
+
+                if (clickHandler && canAcceptClick) {
+                    this.eventQueue.length = 0;
+                    this.eventQueue.push({eventName, eventItem, eventType, originalName, tmodel, originalEvent: event, timeStamp: now});
+                }
+
+                this.clearEnd();
+                this.touchCount = 0;
                 event.stopPropagation();
                 break;
+            } 
 
             case 'wheel':
                 if (this.preventDefault(tmodel, eventName)) {

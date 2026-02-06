@@ -16,6 +16,8 @@ class PageManager {
     initPage(html) {
         tApp.tRoot.$dom.outerHTML(html);
         tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
+        tApp.tRoot.$dom.attr('data-tj-no-slot', 'true');
+
         DomInit.initPageDoms(tApp.tRoot.$dom);
     }
 
@@ -59,13 +61,13 @@ class PageManager {
         }
     }
 
-    openLinkFromHistory(state) {        
+    async openLinkFromHistory(state) {        
         if (state.link) {
             this.onPageClose();
             this.openLink(state.link, false);
         } else if (state.browserUrl) {
             history.replaceState({ link: state.browserUrl }, "", state.browserUrl);
-            this.openPage(state.browserUrl);
+            await this.openPage(state.browserUrl);
         }
     }
     
@@ -77,7 +79,7 @@ class PageManager {
         });          
     }
 
-    openLink(link, updateHistory = true) {
+    async openLink(link, updateHistory = true) {
         link = TUtil.getFullLink(link);
                 
         if (this.lastLink) {
@@ -93,7 +95,7 @@ class PageManager {
                 tmodelIdMap:  { ...App.tmodelIdMap },
                 visibleOidMap: { ...tApp.manager.visibleOidMap },
                 scrollLeft: $Dom.getWindowScrollLeft() || 0,
-                scrollTop: $Dom.getWindowScrollTop() || 0,                
+                scrollTop: $Dom.getWindowScrollTop() || 0,  
                 tRoot: tApp.tRoot
             };
         }
@@ -102,7 +104,7 @@ class PageManager {
             history.pushState({ link }, "", link);
         }
         
-        this.openPage(link);
+        await this.openPage(link);
                 
         getRunScheduler().schedule(0, "pagemanager-processOpenLink");
     }

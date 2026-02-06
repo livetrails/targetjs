@@ -220,7 +220,8 @@ class TargetData {
         tabIndex: true,
         role: true,
         ariaLabel: true,
-        ariaCurrent: true
+        ariaCurrent: true,
+        ariaPressed: true
     };
 
     static mustExecuteTargets = {
@@ -443,6 +444,7 @@ class TargetData {
         userselect: 'userSelect',
         arialabel: 'ariaLabel',
         ariacurrent: 'ariaCurrent',
+        ariapressed: 'ariaPressed',
         tabindex: 'tabIndex'
     };
 

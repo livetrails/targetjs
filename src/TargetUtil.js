@@ -277,7 +277,11 @@ class TargetUtil {
         TargetUtil.bubbleInvokerCompletion(tmodel, key);
     }
     
-    static bubbleInvokerCompletion(tmodel, key, visited = new Set(), levelUp = 0) {
+    static bubbleInvokerCompletion(tmodel, key, visited = new Set(), cleaned = new Set(), levelUp = 0) {
+        if (!tmodel || !key) {
+            return;
+        }
+
         const sig = `${tmodel.oid}:${key}`;
         if (visited.has(sig) || levelUp > 4) {
             return;
@@ -290,16 +294,27 @@ class TargetUtil {
             return;
         }
 
-        const invokerTModel = tmodel.isTargetImperative(key) ? targetValue.originalTModel : targetValue.invokerTModel;
-        const invokerTarget = tmodel.isTargetImperative(key) ? targetValue.originalTargetName : targetValue.invokerTarget;
+        const tryCleanupAndBubble = (invT, invK) => {
+            if (!invT || !invK) {
+                return;
+            }
 
-        if (!invokerTModel || !invokerTarget) {
-            return;
+            const cSig = `${invT.oid}:${invK}`;
+            if (!cleaned.has(cSig)) {
+                cleaned.add(cSig);
+                TargetUtil.cleanupTarget(invT, invK);
+            }
+
+            TargetUtil.bubbleInvokerCompletion(invT, invK, visited, cleaned, levelUp + 1);
+        };
+
+        tryCleanupAndBubble(targetValue.originalTModel, targetValue.originalTargetName);
+
+        if (!tmodel.isTargetImperative(key)) {
+            tryCleanupAndBubble(targetValue.invokerTModel, targetValue.invokerTargetName);
+
+            tryCleanupAndBubble(tmodel.targets[key]?.originalTModel, tmodel.targets[key]?.originalTargetName);
         }
-
-        TargetUtil.cleanupTarget(invokerTModel, invokerTarget);
-
-        TargetUtil.bubbleInvokerCompletion(invokerTModel, invokerTarget, visited, levelUp + 1);
     }
 
     static activateTargets(tmodel, target) {
