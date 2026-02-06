@@ -528,10 +528,15 @@ class EventListener {
     }
 
     getTModelFromEvent(event) {
-        let oid = event.currentTarget?.id;
+        const el = event.currentTarget || event.target;
+
+        let oid;
+        if (el && el.nodeType === 1) {
+            oid = el.getAttribute('tgjs-oid') || el.id;
+        }
         
         if (!oid || !tApp.manager.visibleOidMap[oid]) {
-            oid = event.target?.id;
+            oid = el?.id;
             if (!oid || !tApp.manager.visibleOidMap[oid]) {
                 oid = $Dom.findNearestParentWithId(event.target);
             }        

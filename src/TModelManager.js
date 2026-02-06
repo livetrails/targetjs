@@ -360,8 +360,9 @@ class TModelManager {
         });
         
         for (const tmodel of this.lists.noDom) {
-            if ($Dom.query(`#${tmodel.oid}`)) {
-                tmodel.$dom = new $Dom(`#${tmodel.oid}`);
+            const domId = tmodel.domId ?? tmodel.oid;
+            if ($Dom.query(`#${domId}`)) {
+                tmodel.$dom = new $Dom(`#${domId}`);
                 tmodel.$dom.attr('tgjs', 'true');
                 tmodel.hasDomNow = true;
                 tmodel.markLayoutDirty('hasDomNow');

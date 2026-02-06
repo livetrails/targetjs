@@ -45,19 +45,17 @@ class DomInit {
             const $dom = TModelUtil.normalizeDomHolder(elemTarget);
             if ($dom) {                
                 tmodel.targets.$dom = $dom;
+                tmodel.targets.element = $dom.getTagName().toLowerCase();
+                tmodel.targets.position = $dom.getStyleValue('position') || 'relative';
+                
                 tmodel.val('$dom', $dom);
-                delete tmodel.targets.position;
 
                 const id = $dom.getId();
-                if (id) {
-                    const uniqueId = App.getOid(id);
-                    tmodel.type = id;
-                    tmodel.oid = uniqueId.oid;
-                    tmodel.oidNum = uniqueId.num;
+                if (id && id !== tmodel.oid) {
+                  $dom.attr('tgjs-oid', tmodel.oid);
+                  tmodel.domId = id;
                 }
-
-                $dom.setSelector(`#${tmodel.oid}`);
-                $dom.setId(tmodel.oid);
+                
                 $dom.attr('tgjs', 'true');
 
                 tmodel.initTargets();
