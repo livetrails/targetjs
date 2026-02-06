@@ -139,32 +139,30 @@ We handle UI, two animations, a POST request, and a cleanup.
 import { App } from "targetj";
 
 App({
-  likeButton: {
-    width: 220, height: 60, lineHeight: 60, textAlign: "center",
-    borderRadius: 10, backgroundColor: "#f5f5f5", cursor: "pointer", userSelect: "none",
-    role: "button", tabIndex: 0,
-    html: "♡ Like",
-    onClick() {
-      this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
-      this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
-    },
-    heart$$: {
-      html: "♥", color: "crimson", fontSize: 20,
-      fly() {
-        const cx = this.getCenterX(), cy = this.getCenterY();
-        this.setTarget({
-          opacity: { value: [0, 1, 1, 0.8, 0.1], steps: 20 },
-          scale:   { value: [0.8, 1.4, 1.1, 0.9, 0.8], steps: 20 },
-          rotate:  { value: [0, 12, -8, 6, 0], steps: 20 },
-          x:       { value: [cx, cx + 22, cx - 16, cx + 10, cx], steps: 30 },
-          y:       { value: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150], steps: 30 }
-        });
-      }
-    },
-    fetch$$: { method: "POST", id: 123, url: "/api/like" }, // Wait for hearts to finish, THEN fetch
-    removeHearts$$() { this.removeChildren(); }, // Wait for fetch to finish, THEN cleanup
-    onKey(e) { if (e.key === "Enter") this.activateTarget("onClick"); }
-  }
+  width: 220, height: 60, lineHeight: 60, textAlign: "center",
+  borderRadius: 10, backgroundColor: "#f5f5f5", cursor: "pointer", userSelect: "none",
+  role: "button", tabIndex: 0,
+  html: "♡ Like",
+  onClick() {
+    this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
+    this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
+  },
+  heart$$: {
+    html: "♥", color: "crimson", fontSize: 20,
+    fly() {
+      const cx = this.getCenterX(), cy = this.getCenterY();
+      this.setTarget({
+        opacity: { value: [0, 1, 1, 0.8, 0.1], steps: 20 },
+        scale:   { value: [0.8, 1.4, 1.1, 0.9, 0.8], steps: 20 },
+        rotate:  { value: [0, 12, -8, 6, 0], steps: 20 },
+        x:       { value: [cx, cx + 22, cx - 16, cx + 10, cx], steps: 30 },
+        y:       { value: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150], steps: 30 }
+      });
+    }
+  },
+  fetch$$: { method: "POST", id: 123, url: "/api/like" }, // Wait for hearts to finish, THEN fetch
+  removeHearts$$() { this.removeChildren(); }, // Wait for fetch to finish, THEN cleanup
+  onKey(e) { if (e.key === "Enter") this.activateTarget("onClick"); } 
 }).mount("#likeButton");
 ```
 
