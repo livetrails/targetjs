@@ -18,9 +18,11 @@ Traditional frameworks model the UI as a function of state: change state, re-ren
 
 TargetJS is built for this reality. Instead of managing complex flags, your code structure mirrors these sequences directly.
 
-It achieves this through Targets. A Target is a self-contained unit that merges data (fields) and logic (methods) into a single reactive block. Each Target has its own internal state, timing, and lifecycle, acting like a living cell within your app. By simply ordering them in your code, you create complex asynchronous workflows without async/await or .then() chains.
+It achieves this through Targets. A Target is a self-contained unit that merges data (fields) and logic (methods) into a single reactive block. Each Target has its own internal state, timing, and lifecycle, acting like a living cell within your app. By simply ordering them in your code, you create complex asynchronous workflows without async/await or .then() chains. 
 
-By building animation directly into the logic of the framework and adopting a compact style, TargetJS makes the journey from A to B explicit and with significantly less code than traditional frameworks.
+In addition, animation is built directly into the framework’s logic. 
+
+By adopting a compact style, TargetJS makes the journey from A to B explicit, with significantly less code than traditional frameworks.
 
 ## ⚡ Quick Start (30 Seconds)
 
@@ -139,32 +141,30 @@ We handle UI, two animations, a POST request, and a cleanup.
 import { App } from "targetj";
 
 App({
-  likeButton: {
-    width: 220, height: 60, lineHeight: 60, textAlign: "center",
-    borderRadius: 10, backgroundColor: "#f5f5f5", cursor: "pointer", userSelect: "none",
-    role: "button", tabIndex: 0,
-    html: "♡ Like",
-    onClick() {
-      this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
-      this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
-    },
-    heart$$: {
-      html: "♥", color: "crimson", fontSize: 20,
-      fly() {
-        const cx = this.getCenterX(), cy = this.getCenterY();
-        this.setTarget({
-          opacity: { value: [0, 1, 1, 0.8, 0.1], steps: 20 },
-          scale:   { value: [0.8, 1.4, 1.1, 0.9, 0.8], steps: 20 },
-          rotate:  { value: [0, 12, -8, 6, 0], steps: 20 },
-          x:       { value: [cx, cx + 22, cx - 16, cx + 10, cx], steps: 30 },
-          y:       { value: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150], steps: 30 }
-        });
-      }
-    },
-    fetch$$: { method: "POST", id: 123, url: "/api/like" }, // Wait for hearts to finish, THEN fetch
-    removeHearts$$() { this.removeChildren(); }, // Wait for fetch to finish, THEN cleanup
-    onKey(e) { if (e.key === "Enter") this.activateTarget("onClick"); }
-  }
+  width: 220, height: 60, lineHeight: 60, textAlign: "center",
+  borderRadius: 10, backgroundColor: "#f5f5f5", cursor: "pointer", userSelect: "none",
+  role: "button", tabIndex: 0,
+  html: "♡ Like",
+  onClick() {
+    this.setTarget('scale', { value: [1.2, 1], steps: 8, interval: 12 });
+    this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
+  },
+  heart$$: {
+    html: "♥", color: "crimson", fontSize: 20,
+    fly() {
+      const cx = this.getCenterX(), cy = this.getCenterY();
+      this.setTarget({
+        opacity: { value: [0, 1, 1, 0.8, 0.1], steps: 20 },
+        scale:   { value: [0.8, 1.4, 1.1, 0.9, 0.8], steps: 20 },
+        rotate:  { value: [0, 12, -8, 6, 0], steps: 20 },
+        x:       { value: [cx, cx + 22, cx - 16, cx + 10, cx], steps: 30 },
+        y:       { value: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150], steps: 30 }
+      });
+    }
+  },
+  fetch$$: { method: "POST", id: 123, url: "/api/like" }, // Wait for hearts to finish, THEN fetch
+  removeHearts$$() { this.removeChildren(); }, // Wait for fetch to finish, THEN cleanup
+  onKey(e) { if (e.key === "Enter") this.activateTarget("onClick"); } 
 }).mount("#likeButton");
 ```
 
