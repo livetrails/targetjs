@@ -233,18 +233,11 @@ class TargetData {
         fetchImage: true
     };
 
-    static coreTargetMap = {
-        x: true,
-        y: true
-    };
-
     static ignoreRerun = {
-        ...TargetData.coreTargetMap,
         isVisible: true
     };
 
     static ignoreTargetMethodNameMap = {
-        ...TargetData.coreTargetMap,
         isVisible: true
     };
 

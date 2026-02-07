@@ -45,10 +45,36 @@ class DomInit {
             const $dom = TModelUtil.normalizeDomHolder(elemTarget);
             if ($dom) {                
                 tmodel.targets.$dom = $dom;
-                tmodel.targets.element = $dom.getTagName().toLowerCase();
-                tmodel.targets.position = $dom.getStyleValue('position') || 'relative';
-                
                 tmodel.val('$dom', $dom);
+                
+                const tag = $dom.getTagName().toLowerCase();
+
+                const patch = {};
+                
+                if (tmodel.val('element') !== tag) {
+                    patch.element = tag;
+                }
+                    
+                patch.position = $dom.getStyleValue('position') || 'relative';
+                
+                patch.domIsland = true;
+
+                if (!TUtil.isDefined(tmodel.targets.reuseDomDefinition)) {
+                    patch.reuseDomDefinition = true;
+                    patch.domHolder = true;
+
+                    if (!TUtil.isDefined(tmodel.targets.excludeXYCalc)) {
+                        patch.excludeXYCalc = true;
+                    }
+                    if (!TUtil.isDefined(tmodel.targets.x) && !TUtil.isDefined(tmodel.targets.excludeX)) {
+                        patch.excludeX = true;
+                    }
+                    if (!TUtil.isDefined(tmodel.targets.y) && !TUtil.isDefined(tmodel.targets.excludeY)) {
+                        patch.excludeY = true;
+                    }
+                }
+
+                tmodel.addTargets(patch);             
 
                 const id = $dom.getId();
                 if (id && id !== tmodel.oid) {
@@ -57,8 +83,6 @@ class DomInit {
                 }
                 
                 $dom.attr('tgjs', 'true');
-
-                tmodel.initTargets();
             }
         }
     }

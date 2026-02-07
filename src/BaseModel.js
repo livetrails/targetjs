@@ -210,13 +210,6 @@ class BaseModel {
         if (target.active !== false || TUtil.isDefined(target.initialValue)) {  
             this.addToStyleTargetList(key);
         }
-        
-        if (TargetData.coreTargetMap[key]) {
-            this.coreTargetMap ||= new Map();
-            if (!this.coreTargetMap.has(key)) {
-                this.coreTargetMap.set(key, true);
-            }
-        }    
 
         if (TargetParser.isIntervalTarget(target)) {
             target.cycles = 1;
