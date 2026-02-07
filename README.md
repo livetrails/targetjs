@@ -18,9 +18,11 @@ Traditional frameworks model the UI as a function of state: change state, re-ren
 
 TargetJS is built for this reality. Instead of managing complex flags, your code structure mirrors these sequences directly.
 
-It achieves this through Targets. A Target is a self-contained unit that merges data (fields) and logic (methods) into a single reactive block. Each Target has its own internal state, timing, and lifecycle, acting like a living cell within your app. By simply ordering them in your code, you create complex asynchronous workflows without async/await or .then() chains.
+It achieves this through Targets. A Target is a self-contained unit that merges data (fields) and logic (methods) into a single reactive block. Each Target has its own internal state, timing, and lifecycle, acting like a living cell within your app. By simply ordering them in your code, you create complex asynchronous workflows without async/await or .then() chains. 
 
-By building animation directly into the logic of the framework and adopting a compact style, TargetJS makes the journey from A to B explicit and with significantly less code than traditional frameworks.
+In addition, animation is built directly into the framework’s logic. 
+
+By adopting a compact style, TargetJS makes the journey from A to B explicit, with significantly less code than traditional frameworks.
 
 ## ⚡ Quick Start (30 Seconds)
 
