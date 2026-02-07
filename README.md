@@ -20,9 +20,9 @@ TargetJS is built for this reality. Instead of managing complex flags, your code
 
 It achieves this through Targets. A Target is a self-contained unit that merges data (fields) and logic (methods) into a single reactive block. Each Target has its own internal state, timing, and lifecycle, acting like a living cell within your app. By simply ordering them in your code, you create complex asynchronous workflows without async/await or .then() chains. 
 
-In addition, animation is built directly into the framework’s logic. 
+In addition, efficient animation is built directly into the framework using the Web Animations API, delivering CSS-level efficiency.
 
-By adopting a compact style, TargetJS makes the journey from A to B explicit, with significantly less code than traditional frameworks.
+By adopting a compact style, TargetJS makes the journey from A to B efficient and explicit, with significantly less code than traditional frameworks.
 
 ## ⚡ Quick Start (30 Seconds)
 
@@ -162,7 +162,7 @@ App({
       });
     }
   },
-  fetch$$: { method: "POST", id: 123, url: "/api/like" }, // Wait for hearts to finish, THEN fetch
+  fetch$$: { method: "POST", id: 123, url: "/api/like" }, // Wait for the heart to finish, THEN fetch
   removeHearts$$() { this.removeChildren(); }, // Wait for fetch to finish, THEN cleanup
   onKey(e) { if (e.key === "Enter") this.activateTarget("onClick"); } 
 }).mount("#likeButton");
