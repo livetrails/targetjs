@@ -178,7 +178,7 @@ Instead of wiring callbacks and effects, you write a sequence of targets. All ta
 
 1. [📦 Alternative Installation Via CDN](#-alternative-installation-via-cdn)
 1. [🚀 Why TargetJS?](#-why-targetjs)
-1. More Examples:
+1. Deeer Examples:
     - [Loading Five Users Example](#loading-five-users-example)
     - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
 1. [Target Methods](#target-methods)
