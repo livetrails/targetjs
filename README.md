@@ -12,7 +12,7 @@ It can be used as a full-featured framework or as a lightweight library alongsid
 
 ## The Philosophy Behind TargetJS
 
-Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A to B, the UI immediately jumps to B. The framework doesn’t naturally represent the *journey* from A to B. But modern, rich user experiences are built on sequences that unfold over time. For example:
+Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A to B, the UI immediately jumps to B. The framework doesn’t naturally represent the *journey* from A to B. But modern, rich user experiences are journeys, not jumpts. They are built on sequences that unfold over time. For example:
 
 > Click → Animate button → Chain secondary animation → Fetch data → Render list → Animate items → Pause → Animate an important item
 
