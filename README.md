@@ -12,7 +12,7 @@ It can be used as a full-featured framework or as a lightweight library alongsid
 
 ## The Philosophy Behind TargetJS
 
-Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A to B, the UI immediately jumps to **B**. The framework doesn’t naturally represent the *journey* from A to B. But modern, rich user experiences are built on sequences that unfold over time. For example:
+Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A to B, the UI immediately jumps to B. The framework doesn’t naturally represent the *journey* from A to B. But modern, rich user experiences are built on sequences that unfold over time. For example:
 
 > Click → Animate button → Chain secondary animation → Fetch data → Render list → Animate items → Pause → Animate an important item
 
@@ -170,7 +170,7 @@ App({
 
 ### Summary
 
-Instead of wiring callbacks and effects, you write a sequence of targets. All targets execute automatically in the order they are written. `$$` defers execution until all prior sibling steps finish. Animations, API calls, event handling, and child creation are all treated as the same kind of thing: targets. Complex asynchronous flows are expressed by structuring parent and child targets. In addition, targets also provide built-in capabilities such as `onComplete` callback, enabledOn, looping with delays, and more as explained below.
+Instead of wiring callbacks and effects, you write a sequence of targets. All targets execute automatically in the order they are written. `$$` defers execution until all prior sibling steps finish. Animations, API calls, event handling, and child creation are all treated as the same kind of thing: targets. Complex asynchronous flows are expressed by organizing work into parent and child targets. In addition, targets also provide built-in capabilities such as `onComplete` callback, enabledOn, looping with delays, and more as explained below.
 
 ---
 
@@ -442,7 +442,7 @@ TargetJS maps directly to the DOM for zero-friction styling. For example:
 
 TargetJS provides built-in debugging tools:
 
-```js
+```javascript
 TargetJS.tApp.stop(); // Stop the application.
 TargetJS.tApp.start(); // Restart the application
 TargetJS.tApp.throttle = 0; // Slow down execution (milliseconds between cycles)
