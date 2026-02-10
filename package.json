@@ -1,7 +1,7 @@
 {
   "name": "targetj",
-  "version": "1.0.216",
-  "description": "TargetJS is a JavaScript framework designed for creating animated and efficient web user interfaces.",
+  "version": "1.0.217",
+  "description": "TargetJS: UI Development as a Sequence.",
   "keywords": ["targetjs"],
   "main": "Export.js",
   "homepage": "https://targetjs.io",

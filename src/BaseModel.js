@@ -71,7 +71,8 @@ class BaseModel {
         return this.parent;
     }
 
-    initTargets() {        
+    initTargets() {   
+        this.targetsVersion = 1;
         this.originalTargetNames = Object.keys(this.targets).filter(key => !TargetData.excludedTargetKeys.has(key));
 
         this.functionTargetNames = [];
@@ -127,7 +128,8 @@ class BaseModel {
     }
     
     processNewTarget(key, keyIndex) {
-        
+        this.targetsVersion++;
+
         const cleanKey = TargetUtil.getTargetName(key);
         let target = this.targets[key];
         

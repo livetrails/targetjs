@@ -173,7 +173,9 @@ class TargetData {
         backgroundSize: true,
         flexWrap: true,
         userSelect: true,
-        outline: true
+        outline: true,
+        backfaceVisibility: true,
+        filter: true
     };
 
     static scaleMap = {
@@ -438,7 +440,8 @@ class TargetData {
         arialabel: 'ariaLabel',
         ariacurrent: 'ariaCurrent',
         ariapressed: 'ariaPressed',
-        tabindex: 'tabIndex'
+        tabindex: 'tabIndex',
+        backfacevisibility: 'backfaceVisibility'
     };
 
     static targetToEventsMapping = {

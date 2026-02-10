@@ -167,7 +167,7 @@ class TModelUtil {
         }
         
         if (transformUpdate) {        
-            tmodel.$dom.transform(TModelUtil.getTransformString(tmodel.tfMap, tmodel.val('transformOrder')));
+            tmodel.$dom.transform(TModelUtil.getTransformString(tmodel, tmodel.tfMap));
         }
         
         tmodel.styleTargetMap.clear();
@@ -319,9 +319,159 @@ class TModelUtil {
     static num(v, fallback) {
         const n = Number(v);
         return Number.isFinite(n) ? n : fallback;
-    } 
+    }
+    
+    static shouldUseImplicitTransformOrder(tmodel) {
+        const names = tmodel.originalTargetNames || [];
 
-    static getTransformString(values, transformOrderList) {
+        const hasAny = (arr) => arr.some(k => names.indexOf(k) >= 0);
+
+        const hasPerspective = hasAny(["perspective"]);
+        const hasTranslate = hasAny(["translateX", "translateY", "translateZ", "x", "y", "z"]);
+        const hasRotate = hasAny(["rotateX", "rotateY", "rotateZ"]) || (hasAny(["rotate3DX"]) && hasAny(["rotate3DY"]) && hasAny(["rotate3DZ"]) && hasAny(["rotate3DAngle"]));
+        const hasSkew = hasAny(["skewX", "skewY"]);
+        const hasScale =
+                hasAny(["scaleX", "scaleY", "scaleZ"]) ||
+                (hasAny(["scale3DX"]) && hasAny(["scale3DY"]) && hasAny(["scale3DZ"]));
+
+        let groups = 0;
+        if (hasPerspective) {
+           groups++;
+        }
+        if (hasTranslate) {
+           groups++;
+        }
+        if (hasRotate) {
+           groups++;
+        }
+        if (hasSkew) {
+           groups++;
+        }
+        if (hasScale) {
+           groups++;
+        }
+
+        return groups > 1;
+    }
+    
+
+    static buildImplicitTransformOrderMap(names) {
+
+        const has = (k) => names.indexOf(k) >= 0;
+
+        const firstIdx = (candidates) => {
+            let best = Infinity;
+            for (const c of candidates) {
+                const i = names.indexOf(c);
+                if (i >= 0 && i < best) {
+                    best = i;
+                }
+            }
+            return best;
+        };
+
+        const hasExplicitTranslate = has("translateX") || has("translateY") || has("translateZ");
+        const hasXYZ = has("x") || has("y") || has("z");
+
+        const hasRotate3d = has("rotate3DX") && has("rotate3DY") && has("rotate3DZ") && has("rotate3DAngle");
+        const hasScale3d = has("scale3DX") && has("scale3DY") && has("scale3DZ");
+        const hasBothSkew = has("skewX") && has("skewY");
+
+        const groups = [];
+
+        if (has("perspective")) {
+            groups.push({
+                group: "perspective",
+                order: firstIdx(["perspective"]),
+                outputs: ["perspective"]
+            });
+        }
+
+        if (hasExplicitTranslate) {
+            groups.push({
+                group: "translate",
+                order: firstIdx(["translateX", "translateY", "translateZ"]),
+                outputs: ["translateX", "translateY", "translateZ"].filter(has)
+            });
+        } else if (hasXYZ) {
+            groups.push({
+                group: "translate",
+                order: firstIdx(["x", "y", "z"]),
+                outputs: ["translate3d"]
+            });
+        }
+
+        if (hasRotate3d) {
+            groups.push({
+                group: "rotate",
+                order: firstIdx(["rotate3DX", "rotate3DY", "rotate3DZ", "rotate3DAngle"]),
+                outputs: ["rotate3d"]
+            });
+        } else {
+            const rotKeys = ["rotateX", "rotateY", "rotateZ", "rotate"];
+            const rotPresent = rotKeys.filter(has);
+            if (rotPresent.length) {
+                groups.push({
+                    group: "rotate",
+                    order: firstIdx(rotKeys),
+                    outputs: rotPresent
+                });
+            }
+        }
+
+        if (hasBothSkew) {
+            groups.push({
+                group: "skew",
+                order: firstIdx(["skewX", "skewY"]),
+                outputs: ["skew"]
+            });
+        } else {
+            const skewPresent = ["skewX", "skewY"].filter(has);
+            if (skewPresent.length) {
+                groups.push({
+                    group: "skew",
+                    order: firstIdx(["skewX", "skewY"]),
+                    outputs: skewPresent
+                });
+            }
+        }
+
+        if (hasScale3d) {
+            groups.push({
+                group: "scale",
+                order: firstIdx(["scale3DX", "scale3DY", "scale3DZ"]),
+                outputs: ["scale3d"]
+            });
+        } else {
+            const scaleKeys = ["scaleX", "scaleY", "scaleZ", "scale"];
+            const scalePresent = scaleKeys.filter(has);
+            if (scalePresent.length) {
+                groups.push({
+                    group: "scale",
+                    order: firstIdx(scaleKeys),
+                    outputs: scalePresent
+                });
+            }
+        }
+
+        const tieRank = {perspective: 0, translate: 1, rotate: 2, skew: 3, scale: 4};
+
+        groups.sort((a, b) => {
+            const oa = Number.isFinite(a.order) ? a.order : Infinity;
+            const ob = Number.isFinite(b.order) ? b.order : Infinity;
+            if (oa !== ob) {
+                return oa - ob;
+            }
+            return (tieRank[a.group] ?? 999) - (tieRank[b.group] ?? 999);
+        });
+
+        const orderList = groups.flatMap(g => g.outputs);
+        const map = {};
+        orderList.forEach((k, i) => map[k] = i);
+        return map;        
+    }
+
+    static getTransformString(tmodel, values) {
         const processed = {};
         const transformMap = {};
 
@@ -428,12 +578,24 @@ class TModelUtil {
         }
         
         let orderMap = {};
+        
+        const transformOrderList = tmodel.val('transformOrder'); 
+        
+        
         if (Array.isArray(transformOrderList) && transformOrderList.length) {
-            transformOrderList.forEach((name, index) => {
-                orderMap[name] = index;
-            });
+            transformOrderList.forEach((name, index) => { orderMap[name] = index; });
         } else {
-            orderMap = TargetData.transformOrder || {};
+            if (TModelUtil.shouldUseImplicitTransformOrder(tmodel)) {
+                if (tmodel.implicitTransformOrderVersion !== tmodel.targetsVersion) {
+                  tmodel.implicitTransformOrderMap = TModelUtil.buildImplicitTransformOrderMap(tmodel.originalTargetNames);
+                  tmodel.implicitTransformOrderVersion = tmodel.targetsVersion;
+                }
+                orderMap = tmodel.implicitTransformOrderMap;
+            }
+        }
+        
+        if (!Object.keys(orderMap).length && Object.keys(transformMap).length) {
+            orderMap = TargetData.transformOrder;
         }
 
         const sortedKeys = Object.keys(transformMap).sort((a, b) => {

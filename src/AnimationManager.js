@@ -53,7 +53,7 @@ class AnimationManager {
                     tmodel.tfMap[key] = tmodel.val(key);
                 });
                 const tfMap = { ...tmodel.tfMap, ...frame.tfMap };                             
-                out.transform = TModelUtil.getTransformString(tfMap, tmodel.val('transformOrder'));
+                out.transform = TModelUtil.getTransformString(tmodel, tfMap);
                 frame.tfMap = tfMap;
                 transformAnimation = true;
             }
@@ -71,7 +71,7 @@ class AnimationManager {
             iterations: 1,
             easing: batch.easing || "linear"
         };
-      
+              
         batch.startTime = TUtil.now();
         
         tmodel.lastBatch = batch;
@@ -303,7 +303,7 @@ class AnimationManager {
             });
             const tfMap = { ...tmodel.tfMap, ...frame0.tfMap };
             frame0.tfMap = tfMap;
-            out.transform = TModelUtil.getTransformString(tfMap, tmodel.val('transformOrder'));
+            out.transform = TModelUtil.getTransformString(tmodel, tfMap);
         }
 
         AnimationUtil.addUnitsToFrame(out);
