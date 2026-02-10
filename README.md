@@ -12,7 +12,7 @@ It can be used as a full-featured framework or as a lightweight library alongsid
 
 ## The Philosophy Behind TargetJS
 
-Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A to B, the UI immediately jumps to **B**. The framework doesn’t naturally represent the *journey* from A to B. But modern, rich user experiences are built on sequences that unfold over time. For example:
+Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A to B, the UI immediately jumps to B. The framework doesn’t naturally represent the *journey* from A to B. But modern, rich user experiences are journeys, not jumps. They are built on sequences that unfold over time. For example:
 
 > Click → Animate button → Chain secondary animation → Fetch data → Render list → Animate items → Pause → Animate an important item
 
@@ -20,9 +20,9 @@ TargetJS is built for this reality. Instead of managing complex flags, your code
 
 It achieves this through Targets. A Target is a self-contained unit that merges data (fields) and logic (methods) into a single reactive block. Each Target has its own internal state, timing, and lifecycle, acting like a living cell within your app. By simply ordering them in your code, you create complex asynchronous workflows without async/await or .then() chains. 
 
-In addition, animation is built directly into the framework’s logic. 
+In addition, efficient animation is built directly into the framework using the Web Animations API, delivering CSS-level efficiency.
 
-By adopting a compact style, TargetJS makes the journey from A to B explicit, with significantly less code than traditional frameworks.
+By adopting a compact style, TargetJS makes the journey from A to B efficient and explicit, with significantly less code than traditional frameworks.
 
 ## ⚡ Quick Start (30 Seconds)
 
@@ -162,7 +162,7 @@ App({
       });
     }
   },
-  fetch$$: { method: "POST", id: 123, url: "/api/like" }, // Wait for hearts to finish, THEN fetch
+  fetch$$: { method: "POST", id: 123, url: "/api/like" }, // Wait for the heart to finish, THEN fetch
   removeHearts$$() { this.removeChildren(); }, // Wait for fetch to finish, THEN cleanup
   onKey(e) { if (e.key === "Enter") this.activateTarget("onClick"); } 
 }).mount("#likeButton");
@@ -170,7 +170,7 @@ App({
 
 ### Summary
 
-Instead of wiring callbacks and effects, you write a sequence of targets. All targets execute automatically in the order they are written. `$$` defers execution until all prior sibling steps finish. Animations, API calls, event handling, and child creation are all treated as the same kind of thing: targets. Complex asynchronous flows are expressed by structuring parent and child targets. In addition, targets also provide built-in capabilities such as `onComplete` callback, enabledOn, looping with delays, and more as explained below.
+Instead of wiring callbacks and effects, you write a sequence of targets. All targets execute automatically in the order they are written. `$$` defers execution until all prior sibling steps finish. Animations, API calls, event handling, and child creation are all treated as the same kind of thing: targets. Complex asynchronous flows are expressed by organizing work into parent and child targets. In addition, targets also provide built-in capabilities such as `onComplete` callback, enabledOn, looping with delays, and more as explained below.
 
 ---
 
@@ -178,7 +178,7 @@ Instead of wiring callbacks and effects, you write a sequence of targets. All ta
 
 1. [📦 Alternative Installation Via CDN](#-alternative-installation-via-cdn)
 1. [🚀 Why TargetJS?](#-why-targetjs)
-1. More Examples:
+1. Deeer Examples:
     - [Loading Five Users Example](#loading-five-users-example)
     - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
 1. [Target Methods](#target-methods)
@@ -233,7 +233,7 @@ TargetJS can also be used as a "no-code" library. Elements with tg- attributes a
 4. Ultra-Compact: Write 70% less code than standard frameworks.
 5. Lower Cognitive Load: Code reads from top to bottom, exactly how the user experiences the interaction.
 
-## More Examples
+## Deeper Examples
 
 ### Loading Five Users Example
 
@@ -442,7 +442,7 @@ TargetJS maps directly to the DOM for zero-friction styling. For example:
 
 TargetJS provides built-in debugging tools:
 
-```js
+```javascript
 TargetJS.tApp.stop(); // Stop the application.
 TargetJS.tApp.start(); // Restart the application
 TargetJS.tApp.throttle = 0; // Slow down execution (milliseconds between cycles)
