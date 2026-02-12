@@ -1,4 +1,6 @@
-import { getLocationManager, tRoot, getScreenHeight, getScreenWidth } from "./App.js";
+import { getLocationManager, tRoot, getScreenHeight, getScreenWidth, getEvents } from "./App.js";
+import { TargetUtil } from "./TargetUtil.js";
+import { TargetData } from "./TargetData.js";
 
 /**
  * 
@@ -225,7 +227,68 @@ class TUtil {
         }
         
         console.log(branch.map(t => t.oid));
+    }
+    
+    static handleValueChange(tmodel, key) {
+        let target = tmodel.targets[key];
+        
+        if (!target) {
+            key = TargetUtil.getTargetName(key);
+            target = tmodel.targets[key];
+        }
+        
+        const newValue = tmodel.val(key);
+        const lastValue = tmodel.lastVal(key);
 
+        if (typeof target === 'object' && typeof target.onValueChange === 'function') {
+            const valueChanged = !TUtil.areEqual(newValue, lastValue, target.deepEquality);
+            if (valueChanged) {
+                target.onValueChange.call(tmodel, newValue, lastValue, tmodel.getTargetCycle(key));
+                tmodel.setTargetMethodName(key, 'onValueChange');
+            }
+                            
+            return true;
+        }
+        
+        return false;
+    }
+    
+    static scheduleExecution(tmodel, key) {
+        const interval = tmodel.getTargetInterval(key);
+        const now = TUtil.now();
+        
+        if (interval <= 0) {
+            return 0;
+        }
+
+        if (tmodel.isTargetImperative(key) && tmodel.getTargetStep(key) === 0) {
+            tmodel.setScheduleTimeStamp(key, now);
+            return 0;
+        }
+
+        const lastScheduledTime = tmodel.getScheduleTimeStamp(key);
+        
+        if (TUtil.isDefined(lastScheduledTime)) {
+            const elapsed = now - lastScheduledTime;
+            return Math.max(interval - elapsed, 0);
+        }
+
+        tmodel.setScheduleTimeStamp(key, now);
+        
+        return interval;
+    }    
+    
+    static runTargetValue(tmodel, target, key, cycle, lastValue) {
+        const cleanKey = TargetUtil.getTargetName(key);  
+        const isExternalEvent = TargetData.allEventMap[cleanKey];
+
+        if (isExternalEvent) {
+            return typeof target.value === 'function' ? target.value.call(tmodel, getEvents().getCurrentOriginalEvent(), cycle, lastValue) : TUtil.isDefined(target.value) ? target.value : target;        
+        } else if (tmodel.val(`___${key}`)) {
+            return typeof target.value === 'function' ? target.value.call(tmodel, tmodel.val(`___${key}`), cycle, lastValue) : TUtil.isDefined(target.value) ? target.value : target;            
+        } else {
+            return typeof target.value === 'function' ? target.value.call(tmodel, cycle, lastValue) : TUtil.isDefined(target.value) ? target.value : target;
+        }
     }
     
     static mergeTargets(tmodel1, tmodel2) {

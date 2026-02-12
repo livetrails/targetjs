@@ -546,7 +546,7 @@ class LocationManager {
 
                     const el = tmodel.$dom.getElement();
                     if (el && el.isConnected && document.visibilityState === 'visible') {
-                        getAnimationManager().animate(tmodel, batch, TargetUtil.getAnimationHooks());
+                        getAnimationManager().animate(tmodel, batch, AnimationUtil.getAnimationHooks());
                         tmodel.pausedBatch = undefined;
                     }
                 }

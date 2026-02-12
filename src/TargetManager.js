@@ -6,6 +6,7 @@ import { TargetUtil } from "./TargetUtil.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { SearchUtil } from "./SearchUtil.js";
 import { TargetData } from "./TargetData.js";
+import { AnimationUtil } from "./AnimationUtil.js";
 
 /**
  * Manages target execution/cycles and updates actual values toward target values.
@@ -36,7 +37,7 @@ class TargetManager {
             if (tmodel.isScheduledPending(key)) {
                 return;
             }
-            const schedulePeriod = TargetUtil.scheduleExecution(tmodel, key);
+            const schedulePeriod = TUtil.scheduleExecution(tmodel, key);
             if (schedulePeriod > 0) {
                 getRunScheduler().timeSchedule(schedulePeriod, `targetSchedule__${tmodel.oid}__${key}_${schedulePeriod}`);
                 return;
@@ -67,7 +68,7 @@ class TargetManager {
 
         for (const key of updatingList) {
 
-            schedulePeriod = TargetUtil.scheduleExecution(tmodel, key);
+            schedulePeriod = TUtil.scheduleExecution(tmodel, key);
             
             if (schedulePeriod > 0) {  
                 getRunScheduler().schedule(schedulePeriod, `setActualValues-${tmodel.oid}__${key}_${schedulePeriod}`);
@@ -84,7 +85,7 @@ class TargetManager {
             return;
         }
                 
-        getAnimationManager().animate(tmodel, batch, TargetUtil.getAnimationHooks());
+        getAnimationManager().animate(tmodel, batch, AnimationUtil.getAnimationHooks());
         
         tmodel.waapiBatch = undefined;
     }
@@ -137,7 +138,7 @@ class TargetManager {
             }
             
         } else {
-            needsRefire = TargetUtil.handleValueChange(tmodel, key); 
+            needsRefire = TUtil.handleValueChange(tmodel, key); 
 
             if (target?.activateNextTarget && !target.activateNextTarget.endsWith('$$') && target.activateNextTarget.endsWith('$')) {
                 needsRefire = true;   

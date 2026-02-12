@@ -1,7 +1,8 @@
 // AnimationUtil.js
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
-import { getAnimationManager } from "./App.js";
+import { TModelUtil } from "./TModelUtil.js";
+import { getAnimationManager, getTargetManager } from "./App.js";
 
 /**
  * It provides helper functions for Animation.
@@ -82,7 +83,7 @@ class AnimationUtil {
             totalDuration: 1
         };
                 
-        getAnimationManager().animate(tmodel, batch, TargetUtil.getAnimationHooks());
+        getAnimationManager().animate(tmodel, batch, AnimationUtil.getAnimationHooks());
     }
     
     static fixStyleByAnimation(tmodel, frame) {
@@ -148,8 +149,15 @@ class AnimationUtil {
                 out[k] = `${v}px`;
             }
         }
-    }    
+    }
     
+    static getAnimationHooks() {
+        return {
+            morph: (tm, key, from, to, step, steps) => TModelUtil.morph(tm, key, from, to, step, steps),
+            fireOnStep: (tm, key, step) => getTargetManager().fireOnStep(tm, key, step),
+            fireOnEnd: (tm, key) => getTargetManager().fireOnEnd(tm, key)
+        };
+    } 
 }
 
 export { AnimationUtil };

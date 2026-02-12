@@ -1,7 +1,6 @@
-import { App, getLoader, getEvents, getLocationManager, getTargetManager, getManager } from "./App.js";
+import { App, getLoader, getLocationManager, getManager } from "./App.js";
 import { TUtil } from "./TUtil.js";
 import { TargetData } from "./TargetData.js";
-import { TModelUtil } from "./TModelUtil.js";
 
 /**
  * It provides helper functions for target management, such as deriving the values for steps, intervals, and cycles from targets.
@@ -116,59 +115,68 @@ class TargetUtil {
         });
     }
     
-    static shouldActivateNextTarget(tmodel, key, levelUp = 0, sideStep = 0, isImperative = false) {
+    static shouldActivateNextTarget(tmodel, key, levelUp = 0, sideStep = 0, isImperative = false, mode = "complete") {
         if (levelUp > 4 || !tmodel) {
             return;
         }
+
+        const isUpdateMode = mode === "update";
+        const isCompleteMode = !isUpdateMode;
+
         if (tmodel.isTargetImperative(key)) {
-            const { originalTModel, originalTargetName } = tmodel.targetValues[key];
-            TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, levelUp + 1, sideStep, true); 
-                    
-            TargetUtil.cleanupTarget(tmodel, key);
+            const {originalTModel, originalTargetName} = tmodel.targetValues[key];
+
+            TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, levelUp + 1, sideStep, true, "update");
+
+            if (isCompleteMode) {
+                TargetUtil.cleanupTarget(tmodel, key);
+
+                if (TargetUtil.isTargetFullyCompleted(tmodel, key)) {
+                    TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, levelUp + 1, sideStep, true, "complete");
+                }
+            }
             return;
         }
-        
-        let target = tmodel.targets[key];
-        const targetValue = tmodel.targetValues[key];
 
+        const target = tmodel.targets[key];
+        const targetValue = tmodel.targetValues[key];
         if (!target || !targetValue) {
             return;
         }
-        
+
         const nextTarget = target.activateNextTarget;
         const isEndTrigger = nextTarget?.endsWith('$$') ?? false;
         const fetchAction = target.fetchAction;
+
+        if (isUpdateMode && isEndTrigger) {
+            return;
+        }
 
         let nextTargetActivated = false;
         let completeSignature = 0;
 
         if (nextTarget) {
-                          
             let canActivate = false;
-            
+
             if (isEndTrigger) {
                 completeSignature = TargetUtil.getPrevCompleteSignature(tmodel, nextTarget);
-
                 const previousResult = tmodel.targetValues[nextTarget]?.completeSignature ?? 0;
-                if (completeSignature !== previousResult){
+                if (completeSignature !== previousResult) {
                     canActivate = true;
                 }
-
             } else {
                 targetValue.nextTargetUpdateMap ||= {};
                 const updateCount = targetValue.nextTargetUpdateMap[nextTarget] || 0;
-
                 canActivate = targetValue.updateCount > updateCount;
             }
-             
-            if ((!isEndTrigger && sideStep === 0 && (canActivate || isImperative)) 
-                    || (isEndTrigger && (canActivate))) {
-                                
-                const prevOk = isEndTrigger ? TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) : false; 
-                
+
+            if ((!isEndTrigger && sideStep === 0 && (canActivate || isImperative)) ||
+                    (isEndTrigger && canActivate)) {
+
+                const prevOk = isEndTrigger ? TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) : false;
+
                 if (fetchAction) {
                     if (isEndTrigger) {
-                        
                         if (prevOk === true) {                  
                             TargetUtil.activateTarget(tmodel, nextTarget);
                             nextTargetActivated = true;
@@ -204,11 +212,11 @@ class TargetUtil {
                         nextTargetActivated = true;
                     }             
                 }
-            } else if (tmodel.isTargetDone(nextTarget)) {
+            } else if (isCompleteMode && tmodel.isTargetDone(nextTarget)) {
                 TargetUtil.cleanupTarget(tmodel, nextTarget);
             }
         }
-        
+
         if (nextTargetActivated) {
             if (isEndTrigger) {
                 if (completeSignature > 0) {
@@ -220,18 +228,20 @@ class TargetUtil {
             }
         }
 
-        if (!nextTargetActivated && !tmodel.hasAnyUpdates()) {
-            const { originalTModel, originalTargetName, activateNextTarget } = target;
+        if (isCompleteMode && !nextTargetActivated && !tmodel.hasAnyUpdates()) {
+            const {originalTModel, originalTargetName, activateNextTarget} = target;
             if (activateNextTarget && !fetchAction) {
-                TargetUtil.shouldActivateNextTarget(tmodel, activateNextTarget, levelUp, sideStep + 1, isImperative);
-            } else if (originalTModel) {              
-                TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, levelUp + 1, sideStep, isImperative);
+                TargetUtil.shouldActivateNextTarget(tmodel, activateNextTarget, levelUp, sideStep + 1, isImperative, "complete");
+            } else if (originalTModel) {
+                TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, levelUp + 1, sideStep, isImperative, "complete");
             }
         }
-        
-        TargetUtil.cleanupTarget(tmodel, key);      
+
+        if (isCompleteMode) {
+            TargetUtil.cleanupTarget(tmodel, key);
+        }
     }
-    
+
     static markPendingTargets(tmodel, key) {
         (tmodel.pendingTargets ||= new Set()).add(key);
     }
@@ -251,6 +261,9 @@ class TargetUtil {
     }
     
     static cleanupTarget(tmodel, key) {
+        if (tmodel.oid === 'blank_79') {
+            console.log("cleanup: " + tmodel.oid + ', ' + key + ', ' + tmodel.isTargetImperative(key));
+        }
         if (tmodel.isTargetComplete(key) || !TargetUtil.isTargetFullyCompleted(tmodel, key)) {
             return;
         }
@@ -294,18 +307,18 @@ class TargetUtil {
             return;
         }
 
-        const tryCleanupAndBubble = (invT, invK) => {
-            if (!invT || !invK) {
+        const tryCleanupAndBubble = (m, t) => {
+            if (!m || !t) {
                 return;
             }
 
-            const cSig = `${invT.oid}:${invK}`;
+            const cSig = `${m.oid}:${t}`;
             if (!cleaned.has(cSig)) {
                 cleaned.add(cSig);
-                TargetUtil.cleanupTarget(invT, invK);
+                TargetUtil.cleanupTarget(m, t);
             }
 
-            TargetUtil.bubbleInvokerCompletion(invT, invK, visited, cleaned, levelUp + 1);
+            TargetUtil.bubbleInvokerCompletion(m, t, visited, cleaned, levelUp + 1);
         };
 
         tryCleanupAndBubble(targetValue.originalTModel, targetValue.originalTargetName);
@@ -548,16 +561,6 @@ class TargetUtil {
         return childrenMap;
     }
 
-    static getOldUpdatingTarget(tmodel, key) {
-        const cleanKey = TargetUtil.getTargetName(key);
-        const updatingKey = tmodel.allTargetMap[cleanKey];
-
-        if (tmodel.updatingTargetMap[updatingKey]) {
-            return updatingKey;
-        }
-        
-    }
-        
     static activateSingleTarget(tmodel, targetName) {
         if (tmodel.targets[targetName] && tmodel.canTargetBeActivated(targetName)) {
             if (tmodel.isTargetEnabled(targetName)) {
@@ -622,19 +625,6 @@ class TargetUtil {
         return target;
     }
     
-    static runTargetValue(tmodel, target, key, cycle, lastValue) {
-        const cleanKey = TargetUtil.getTargetName(key);  
-        const isExternalEvent = TargetData.allEventMap[cleanKey];
-
-        if (isExternalEvent) {
-            return typeof target.value === 'function' ? target.value.call(tmodel, getEvents().getCurrentOriginalEvent(), cycle, lastValue) : TUtil.isDefined(target.value) ? target.value : target;        
-        } else if (tmodel.val(`___${key}`)) {
-            return typeof target.value === 'function' ? target.value.call(tmodel, tmodel.val(`___${key}`), cycle, lastValue) : TUtil.isDefined(target.value) ? target.value : target;            
-        } else {
-            return typeof target.value === 'function' ? target.value.call(tmodel, cycle, lastValue) : TUtil.isDefined(target.value) ? target.value : target;
-        }
-    }
-    
     static resetBeforeDeletion(tmodel) {
         tmodel.updatingTargetList.length = 0;
         tmodel.activeTargetList.length = 0;
@@ -647,73 +637,6 @@ class TargetUtil {
         delete App.tmodelIdMap[tmodel.oid];
     } 
 
-    static getIntervalValue(tmodel, key, interval) {
-        const intervalValue = typeof interval === 'function' ? interval.call(tmodel, key) : interval;
-        return TUtil.isNumber(intervalValue) ? intervalValue : 0;
-    }
-
-    static scheduleExecution(tmodel, key) {
-        const interval = tmodel.getTargetInterval(key);
-        const now = TUtil.now();
-        
-        if (interval <= 0) {
-            return 0;
-        }
-
-        if (tmodel.isTargetImperative(key) && tmodel.getTargetStep(key) === 0) {
-            tmodel.setScheduleTimeStamp(key, now);
-            return 0;
-        }
-
-        const lastScheduledTime = tmodel.getScheduleTimeStamp(key);
-        
-        if (TUtil.isDefined(lastScheduledTime)) {
-            const elapsed = now - lastScheduledTime;
-            return Math.max(interval - elapsed, 0);
-        }
-
-        tmodel.setScheduleTimeStamp(key, now);
-        
-        return interval;
-    }    
-
-    static getTargetSchedulePeriod(tmodel, key, intervalValue) {
-        const now = TUtil.now();
-        let pastPeriod;
-        let schedulePeriod = 0;
-
-        if (intervalValue > 0) {
-            if (TUtil.isDefined(tmodel.getTargetTimeStamp(key))) {
-                pastPeriod = now - tmodel.getTargetTimeStamp(key);
-                if (pastPeriod < intervalValue) {
-                    schedulePeriod = intervalValue - pastPeriod;
-                } else {
-                    schedulePeriod = 0;
-                }
-            } else {
-                tmodel.setTargetTimeStamp(key, now);
-                schedulePeriod = intervalValue;
-            }
-        } else if (TUtil.isDefined(tmodel.getTargetTimeStamp(key))) {
-            pastPeriod = now - tmodel.getTargetTimeStamp(key);
-            if (pastPeriod < 0) {
-                schedulePeriod = -pastPeriod;
-            } else {
-                schedulePeriod = 0;
-            }
-        }
-
-        return schedulePeriod;
-    }
-    
-    static getAnimationHooks() {
-        return {
-            morph: (tm, key, from, to, step, steps) => TModelUtil.morph(tm, key, from, to, step, steps),
-            fireOnStep: (tm, key, step) => getTargetManager().fireOnStep(tm, key, step),
-            fireOnEnd: (tm, key) => getTargetManager().fireOnEnd(tm, key)
-        };
-    }
-    
     static getOriginalNames(tmodel, key) {
         let originalTModel, originalTargetName;
         
@@ -726,30 +649,6 @@ class TargetUtil {
         }
         
         return { originalTModel, originalTargetName };
-    }
-
-    static handleValueChange(tmodel, key) {
-        let target = tmodel.targets[key];
-        
-        if (!target) {
-            key = TargetUtil.getTargetName(key);
-            target = tmodel.targets[key];
-        }
-        
-        const newValue = tmodel.val(key);
-        const lastValue = tmodel.lastVal(key);
-
-        if (typeof target === 'object' && typeof target.onValueChange === 'function') {
-            const valueChanged = !TUtil.areEqual(newValue, lastValue, target.deepEquality);
-            if (valueChanged) {
-                target.onValueChange.call(tmodel, newValue, lastValue, tmodel.getTargetCycle(key));
-                tmodel.setTargetMethodName(key, 'onValueChange');
-            }
-                            
-            return true;
-        }
-        
-        return false;
     }
 }
 

@@ -403,8 +403,8 @@ class TModel extends BaseModel {
         return this.getChildren()[this.allChildrenList.length - 1];
     }
     
-    getChild(index) {
-        return typeof index === 'number' ? this.getChildren()[index] : this.findChild(index);
+    getChild(t) {
+        return typeof t === 'number' ? this.getChildren()[t] : this.findChild(t);
     }
     
     getChildIndex(child) {

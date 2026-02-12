@@ -34,9 +34,7 @@ class TargetExecutor {
         TargetExecutor.resolveTargetValue(tmodel, key);
         TargetExecutor.updateTarget(tmodel, tmodel.targetValues[key], key, false);
         
-        if (tmodel.isTargetDone(key)) {
-            TargetUtil.shouldActivateNextTarget(tmodel, key); 
-        }
+        TargetUtil.shouldActivateNextTarget(tmodel, key);
     }
     
     static assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel) {
@@ -230,7 +228,7 @@ class TargetExecutor {
         if (!tmodel.hasValidAnimation() || !tmodel.canBeAnimated(key)) {
             tmodel.val(key, newValue);
             tmodel.setActual(key, newValue);
-            TargetUtil.handleValueChange(tmodel, key);
+            TUtil.handleValueChange(tmodel, key);
             return;
         }
 

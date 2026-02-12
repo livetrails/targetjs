@@ -263,7 +263,7 @@ static isObjectTarget(key, value) {
 
             // Plain objects: compute value + params (steps/interval/easing/cycles)
             if (typeof target === "object" && target !== null && Object.getPrototypeOf(target) === Object.prototype) {
-                const valueResult = TargetUtil.runTargetValue(tmodel, target, key, cycle, lastValue);
+                const valueResult = TUtil.runTargetValue(tmodel, target, key, cycle, lastValue);
                 
                 if (TargetParser.isPrimitiveArray(valueResult) && (TUtil.isDefined(target.steps) || TUtil.isDefined(target.interval) || TUtil.isDefined(target.easing) || TUtil.isDefined(target.cycles))) {
                     value = { list: valueResult };

@@ -1,6 +1,6 @@
 {
   "name": "targetj",
-  "version": "1.0.217",
+  "version": "1.0.218",
   "description": "TargetJS: UI Development as a Sequence.",
   "keywords": ["targetjs"],
   "main": "Export.js",
