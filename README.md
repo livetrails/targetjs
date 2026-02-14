@@ -170,7 +170,7 @@ App({
 
 ### Summary
 
-Each target has its own state and lifecycle. Targets execute automatically in the order they are written. `$$` defers execution until all prior sibling targets (including their children) are fully complete. Animations, API calls, event handling, and child creation are all treated uniformly as targets. Complex asynchronous flows are structured by organizing work into parent and child targets. In addition, targets provide built-in capabilities such as `onComplete` callbacks, `enabledOn`, looping with delays, and more, as explained below.
+Each target has its own state and lifecycle. Targets execute automatically in the order they are written. `$$` defers execution until all prior sibling targets (including their children) are fully complete. Animations, API calls, event handling, and child creation are all treated uniformly as targets. Complex asynchronous flows can be structured by organizing work into parent and child targets. In addition, targets provide built-in capabilities such as `onComplete` callbacks, `enabledOn`, looping with delays, and more. This also makes the code more compact, as it avoids using extra variables to track progress and reduces the need for loops and conditional statements.
 
 ---
 
