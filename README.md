@@ -40,11 +40,11 @@ This creates a blue box that grows, then turns red, and then logs "Hello World" 
 import { App } from "targetj";
 
 App({
-  backgroundColor: 'blue',
-  height: 100,
-  width: { value: [100, 200], steps: 100 }, // 1. Animate width in 100 steps using the default 8 ms interval per step.
-  backgroundColor$$: { value: 'red', steps: 100 }, // 2. Wait ($$) then turn red in 100 steps
-  done$$() { console.log("Hello World!"); } // 3. Wait ($$) then log
+  backgroundColor: 'blue', // Starts immediately
+  width: { value: [100, 200], steps: 100 }, // Starts immediately: animate width from 100px to 200px in 100 steps with 8 ms interval per step.
+  height: { value: [100, 200], steps: 100 }, // Starts immediately: animate height.
+  backgroundColor$$: { value: 'red', steps: 100 }, // Wait ($$) for width/height to finish
+  done$$() { console.log("Hello World!"); } // 3. Waits ($$) for the background color
 }).mount("#app");
 ```
 
