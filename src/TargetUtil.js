@@ -153,27 +153,28 @@ class TargetUtil {
         }
 
         let nextTargetActivated = false;
-        let completeSignature = 0;
+        let canActivate = false;
 
         if (nextTarget) {
-            let canActivate = false;
 
             if (isEndTrigger) {
-                completeSignature = TargetUtil.getPrevCompleteSignature(tmodel, nextTarget);
-                const previousResult = tmodel.targetValues[nextTarget]?.completeSignature ?? 0;
-                if (completeSignature !== previousResult) {
+                const nextCompleteCount = tmodel.targetValues[nextTarget]?.completeCount ?? 0;
+                if (targetValue.completeCount > nextCompleteCount) {
                     canActivate = true;
                 }
             } else {
-                targetValue.nextTargetUpdateMap ||= {};
-                const updateCount = targetValue.nextTargetUpdateMap[nextTarget] || 0;
-                canActivate = targetValue.updateCount > updateCount;
+                const nextTargetUpdateCount = targetValue.nextTargetUpdateCount ?? 0;
+                canActivate = targetValue.updateCount > nextTargetUpdateCount;
             }
 
             if ((!isEndTrigger && sideStep === 0 && (canActivate || isImperative)) ||
                     (isEndTrigger && canActivate)) {
-
+                
                 const prevOk = isEndTrigger ? TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) : false;
+
+                if (nextTarget === 'fetch$$' && tmodel.oid === 'scroller_6') {
+                    console.log('we found fetch$$: ' + key + ", " + tmodel.oid + ", " + TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget));
+                }
 
                 if (fetchAction) {
                     if (isEndTrigger) {
@@ -218,23 +219,23 @@ class TargetUtil {
         }
 
         if (nextTargetActivated) {
-            if (isEndTrigger) {
-                if (completeSignature > 0) {
-                    tmodel.targetValues[nextTarget] ||= TargetUtil.emptyValue();
-                    tmodel.targetValues[nextTarget].completeSignature = completeSignature;
-                }
-            } else {
-                targetValue.nextTargetUpdateMap[nextTarget] = targetValue.updateCount;
+            if (!isEndTrigger) {
+                targetValue.nextTargetUpdateCount = targetValue.updateCount;
             }
         }
+        
+        const nextTargetCompleteCount = nextTarget ? (tmodel.targetValues[nextTarget]?.completeCount ?? 0) : 0;
+        const caughtUp = isEndTrigger ? (targetValue.completeCount <= nextTargetCompleteCount) : false;
 
-        if (isCompleteMode && !nextTargetActivated && !tmodel.hasAnyUpdates()) {
-            const {originalTModel, originalTargetName, activateNextTarget} = target;
-            if (activateNextTarget && !fetchAction) {
-                TargetUtil.shouldActivateNextTarget(tmodel, activateNextTarget, levelUp, sideStep + 1, isImperative, "complete");
-            } else if (originalTModel) {
-                TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, levelUp + 1, sideStep, isImperative, "complete");
-            }
+        if (!nextTargetActivated && isCompleteMode) {
+            if (nextTarget && caughtUp && !fetchAction) {
+                TargetUtil.shouldActivateNextTarget(tmodel, nextTarget, levelUp, sideStep + 1, isImperative, "complete");
+            } else if (!nextTarget) {
+                const {originalTModel, originalTargetName} = target;
+                if (originalTModel && originalTargetName) {
+                    TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, levelUp + 1, sideStep, isImperative, "complete");
+                }
+            }  
         }
 
         if (isCompleteMode) {
@@ -261,9 +262,6 @@ class TargetUtil {
     }
     
     static cleanupTarget(tmodel, key) {
-        if (tmodel.oid === 'blank_79') {
-            console.log("cleanup: " + tmodel.oid + ', ' + key + ', ' + tmodel.isTargetImperative(key));
-        }
         if (tmodel.isTargetComplete(key) || !TargetUtil.isTargetFullyCompleted(tmodel, key)) {
             return;
         }

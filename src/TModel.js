@@ -1,5 +1,5 @@
 import { BaseModel } from "./BaseModel.js";
-import { App, getLocationManager, getRunScheduler } from "./App.js";
+import { App, getLocationManager, getRunScheduler, getEvents } from "./App.js";
 import { Viewport } from "./Viewport.js";
 import { TUtil } from "./TUtil.js";
 import { TargetData } from "./TargetData.js";
@@ -313,7 +313,19 @@ class TModel extends BaseModel {
             this.getParent().visibleChildren.push(this);
         }
     }
-            
+        
+    markEventDirty() {
+        this.eventDirtyEpoch = getEvents().eventEpoch;
+
+        if (this.parent) {
+            this.parent.markEventDirty();
+        }
+    }
+
+    hasEventDirty() {
+        return (this.eventDirtyEpoch ?? -1) > (this.processedEventEpoch ?? -1);
+    }
+    
     markLayoutDirty(key, tmodel = this) {
         if (!this.dirtyLayout) {
             this.dirtyLayout = { oids: {}, count: 0 };
@@ -375,13 +387,14 @@ class TModel extends BaseModel {
         if (TUtil.isDefined(this.val('calculateChildren'))) {
             return this.val('calculateChildren');
         }
-        
+                
         if (!this.isIncluded() || (this.isDomIsland() && !this.hasDom())) {
             return false;
         }
         
-        const result = (this.isVisible() && this.dirtyLayout !== false) || this.isNowVisible;
-        
+
+        const result = (this.isVisible() && (this.hasEventDirty() || this.dirtyLayout !== false)) || this.isNowVisible;
+                
         this.currentStatus = undefined;
 
         return result;

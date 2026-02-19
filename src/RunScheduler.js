@@ -32,7 +32,6 @@ class RunScheduler {
         this.phase = 0;
         this.runningStep = -1;
         this.sliceQueued = false;
-
     }
 
     async resetRuns() {
@@ -56,20 +55,21 @@ class RunScheduler {
         this.activeStartTime = undefined;
         this.phase = 0;
         this.runningStep = -1;
-        this.sliceQueued = false;
+        this.sliceQueued = false;     
     }
 
     scheduleOnlyIfEarlier(delay, runId) {
 
-        const runTime = this.runStartTime + delay;
-
+        const base = this.runningFlag ? (this.runStartTime ?? TUtil.now()) : TUtil.now();
+        const runTime = base + (delay ?? 0);
+        
         if (this.delayProcess && runTime >= this.delayProcess.runTime) {
             return;
         }
-        
+
         this.schedule(delay, runId);
     }
-    
+
     schedule(delay, runId) {        
         if (!tApp.isRunning() || this.resetting) {
             return;
@@ -104,6 +104,10 @@ class RunScheduler {
         this.runId = runId;
         this.runningFlag = true;
         this.runStartTime = TUtil.now();
+        
+        if (tApp.debugLevel === 1) {
+            TUtil.log(true)(`Request from: ${runId} delay: ${delay} runningStep:${this.runningStep} dom:${this.domProcessing} runs:${this.nextRuns.length} D:${this.delayProcess?.delay} events:${getEvents().eventQueue.length}`);
+        }        
              
         if (this.phase === 0) {
             getEvents().captureEvents();
@@ -111,9 +115,8 @@ class RunScheduler {
             await getLocationManager().calculateAll();
             this.phase = 1;
         }
-        
+
         if (TUtil.now() - this.runStartTime > FRAME_BUDGET_MS) {
-            this.runningFlag = false;
             this.requestNextSlice(runId);
             return;
         }
@@ -124,7 +127,6 @@ class RunScheduler {
         }
 
         if (TUtil.now() - this.runStartTime > FRAME_BUDGET_MS) {
-            this.runningFlag = false;
             this.requestNextSlice(runId);
             return;
         }
@@ -136,7 +138,6 @@ class RunScheduler {
         }
 
         if (TUtil.now() - this.runStartTime > FRAME_BUDGET_MS) {
-            this.runningFlag = false;
             this.requestNextSlice(runId);
             return;
         }
@@ -152,10 +153,6 @@ class RunScheduler {
             this.phase = 4;
         }
 
-        if (tApp.debugLevel === 1) {
-            TUtil.log(true)(`Request from: ${runId} delay: ${delay} runningStep:${this.runningStep} dom:${this.domProcessing} runs:${this.nextRuns.length} D:${this.delayProcess?.delay} events:${getEvents().eventQueue.length}`);
-        }
-
         this.runDuration = TUtil.now() - this.runStartTime;
 
         if (this.domProcessing === 0) {
@@ -164,6 +161,8 @@ class RunScheduler {
     }
 
     requestNextSlice(runId) {
+        this.runningFlag = false;
+        
         if (this.sliceQueued) {
             return;
         }
@@ -174,15 +173,18 @@ class RunScheduler {
             this.delayRun(0, `slice-${runId}`, TUtil.now());
         });
     }
+    
     needsRerun() {
         this.phase = 0;
         this.runningFlag = false;
         
         if (this.rerunId) {
-          this.requestNextSlice(`rerun-${this.rerunId}`);
-          return;
+            const id = this.rerunId;
+            this.rerunId = '';
+            this.schedule(0, `rerun-${id}`);
+            return;
         }
-            
+
         const newDelay = this.nextRuns.length > 0 ? this.nextRuns[0].delay - (TUtil.now() - this.nextRuns[0].insertTime) : undefined;
                         
         if (newDelay === undefined 
@@ -190,13 +192,14 @@ class RunScheduler {
                 || getManager().lists.updatingTModels.length > 0
                 || getManager().lists.restyle.length > 0
                 || getManager().lists.reasyncStyle.length > 0
+                || getEvents().eventQueue.length > 0
                 || getLocationManager().activatedList.length > 0) {
             if (getEvents().eventQueue.length > 0) {
-                this.schedule(15, `events-${getEvents().eventQueue.length}`);
+                this.schedule(1, `events-${getEvents().eventQueue.length}`);
             } else if (getLocationManager().activatedList.length > 0) {
-                this.schedule(15, `getManager-locationManager-activatedList`); 
+                this.schedule(1, `getManager-locationManager-activatedList`); 
             } else if (getManager().lists.updatingTModels.length > 0) {
-                this.schedule(15, `getManager-needsRerun-updatingTModels`);
+                this.schedule(1, `getManager-needsRerun-updatingTModels`);
             } else if (getManager().lists.activeTModels.length > 0) {
                 const activeTModel = getManager().lists.activeTModels.find(tmodel => {
                     return (
@@ -214,6 +217,11 @@ class RunScheduler {
                 }
             }
         } 
+        
+        if (!this.delayProcess && this.nextRuns.length > 0) {
+            const delay = Math.max(1, this.nextRuns[0].delay - (TUtil.now() - this.nextRuns[0].insertTime));
+            this.schedule(delay, "wake-nextRun");
+        }        
     }
 
     domOperations(runningStep) {
@@ -249,12 +257,11 @@ class RunScheduler {
             insertTime,
             runTime: runTime,
             interval,
-            timeoutId: setTimeout(() => {             
+            timeoutId: setTimeout(async () => {
                 this.delayProcess.timeoutId = undefined;
-                this.run(delay, runId);
+
+                await this.run(delay, runId);
                 this.executeNextRun();
-                
-                
             }, Math.max(0, delay))
         };    
     }
@@ -305,20 +312,28 @@ class RunScheduler {
     insertRun(newRunId, newInsertTime, newDelay) {
         let low = 0, high = this.nextRuns.length;
         while (low < high) {
-            const mid = Math.floor((low + high) / 2);
-            const delay = this.nextRuns[mid].delay;
-            const insertTime = this.nextRuns[mid].insertTime;
-            const diff = (insertTime + delay) - (newInsertTime + newDelay);
-            if (diff > 0) {
-                high = mid;
-            } else if (diff < 0) {
-                low = mid + 1;
-            } else {
+            const mid = (low + high) >> 1;
+            const r = this.nextRuns[mid];
+
+            const diffTime = (r.insertTime + r.delay) - (newInsertTime + newDelay);
+
+            if (diffTime === 0) {
+                r.runId += '-' + newRunId;
                 return;
+            }
+
+            if (diffTime > 0) {
+                high = mid;
+            } else {
+                low = mid + 1;
             }
         }
 
-        this.nextRuns.splice(low, 0, {runId: newRunId, insertTime: newInsertTime, delay: newDelay});
+        this.nextRuns.splice(low, 0, {
+            runId: newRunId,
+            insertTime: newInsertTime,
+            delay: newDelay
+        });
     }
 }
 

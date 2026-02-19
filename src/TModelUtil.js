@@ -594,7 +594,7 @@ class TModelUtil {
             }
         }
         
-        if (!Object.keys(orderMap).length && Object.keys(transformMap).length) {
+        if (!Object.keys(orderMap).length) {
             orderMap = TargetData.transformOrder;
         }
 

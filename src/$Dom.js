@@ -461,9 +461,9 @@ class $Dom {
         }
     }
 
-    detachEvent(type, fn) {
+    detachEvent(type, fn, capture) {
         if (this.element.removeEventListener) {
-            this.element.removeEventListener(type, fn, false);
+            this.element.removeEventListener(type, fn, capture);
         } else if (this.element.detachEvent) {
             this.element.detachEvent(`on${type}`, fn);
         } else {

@@ -74,7 +74,8 @@ class EventListener {
         this.windowScrollX = window.scrollX | 0;
         this.windowScrollY = window.scrollY | 0;
         this.windowEpoch = 0;
-        
+        this.eventEpoch = 0;
+
         Object.values(TargetData.events).forEach(group => {
             Object.assign(this.allEvents, group);
         });     
@@ -95,19 +96,23 @@ class EventListener {
     attachWindowEvents() {
         Object.keys(TargetData.events.windowEvents).forEach(key => {
             tApp.$window.addEvent(key, this.bindedHandleWindowEvent);
-        });        
+        });
     }
     
-    detachDocumentEvents() {         
-        Object.keys(TargetData.events.documentEvents).forEach(key => {
-            this.$document.detachEvent(key, this.bindedParentHandleEvent);
-        });        
+    detachDocumentEvents(groupName) {
+      const group = TargetData.events[groupName];
+      Object.keys(group).forEach(type => {
+        const spec = group[type];
+        this.$document.detachEvent(type, this.bindedParentHandleEvent, spec.capture);
+      });
     }
-    
-    attachDocumentEvents() {
-        Object.keys(TargetData.events.documentEvents).forEach(key => {
-            this.$document.addEvent(key, this.bindedParentHandleEvent);
-        });         
+
+    attachDocumentEvents(groupName) {
+        const group = TargetData.events[groupName];
+        Object.keys(group).forEach(type => {
+            const spec = group[type];
+            this.$document.addEvent(type, this.bindedParentHandleEvent, spec.capture, spec.passive);
+        });
     }
     
     attachEvents(tmodels) {
@@ -137,7 +142,13 @@ class EventListener {
                 return undefined;
             }
             
+            const hasPointer = typeof window !== 'undefined' && !!window.PointerEvent;
+         
             Object.keys(eventMap).forEach(key => {
+                if (hasPointer && key.startsWith('mouse')) {
+                    return;
+                }
+                
                 const eventSpec = eventMap[key];
                 const isWindow = !!eventSpec.windowEvent;
                 const $dom = isWindow ? tApp.$window : (tmodel.hasDom() ? tmodel.$dom : null);
@@ -153,23 +164,22 @@ class EventListener {
                 const alreadyAttached = this.attachedEventMap[attachedKey] && this.attachedEventMap[attachedKey].$dom === $dom;
                                 
                 if (force || !alreadyMarked || !alreadyAttached) {                    
-                    $dom.detachEvent(key, this.bindedHandleEvent);
+                    $dom.detachEvent(key, this.bindedHandleEvent, eventSpec.capture);
                     $dom.addEvent(key, this.bindedHandleEvent, eventSpec.capture, eventSpec.passive);
                     this.eventTargetMap[attachMarkerKey] = $dom;
-                    this.attachedEventMap[attachedKey] = {$dom, event: key};
+                    this.attachedEventMap[attachedKey] = { $dom, event: key, capture: !!eventSpec.capture };
                 }
             }); 
         });
     }
 
     detachAll() {
-        const eventKeys = Object.keys(this.attachedEventMap);
-        eventKeys.forEach(eventKey => {
-            const { $dom, event } = this.attachedEventMap[eventKey];
+        for (const k of Object.keys(this.attachedEventMap)) {
+            const {$dom, event, capture} = this.attachedEventMap[k];
             if ($dom.exists()) {
-                $dom.detachEvent(event, this.bindedHandleEvent);
+                $dom.detachEvent(event, this.bindedHandleEvent, capture);
             }
-        });
+        }
         this.attachedEventMap = {};
         this.eventTargetMap = {};
     }
@@ -247,12 +257,12 @@ class EventListener {
     captureEvents() {
         this.currentTouch.prevDeltaX = 0;
         this.currentTouch.prevDeltaY = 0;
-
+        
         this.currentHandlers.enter = undefined;
         this.currentHandlers.leave = undefined;
         this.currentHandlers.justFocused = undefined;
         this.currentHandlers.blur = undefined;
-        this.currentHandlers.end = undefined;
+        this.currentHandlers.end = undefined;    
         this.currentKey = this.currentTouch.key;
         
         if (this.eventQueue.length === 0) {
@@ -262,9 +272,9 @@ class EventListener {
             this.currentKey = '';
             return;
         }
-
+                
         const lastEvent = this.eventQueue.shift();
-                           
+                         
         if (this.canFindHandlers) {
             this.findEventHandlers(lastEvent);
         }
@@ -299,13 +309,13 @@ class EventListener {
         
         const { type: originalName } = event; 
         const eventItem = this.allEvents[originalName];
-                
+           
         if (!eventItem) {
             return;
         }
                                         
         let { eventName, inputType, eventType, order: eventOrder, queue, rateLimit } = eventItem;
-  
+          
         const now = TUtil.now();
                 
         let tmodel;
@@ -313,19 +323,22 @@ class EventListener {
             tmodel = this.currentHandlers.start;
         } else {
             tmodel = this.getTModelFromEvent(event);
-        }     
-                                                     
-        tmodel?.markLayoutDirty('event');
-                
+        } 
+                        
         const newEvent = { eventName, eventItem, eventType, originalName, tmodel, originalEvent: event, timeStamp: now };
 
         if (this.lastEvent?.eventItem) {
             const { eventItem: lastEventItem, timeStamp: lastTimeStamp } = this.lastEvent;
             const rate = now - lastTimeStamp;
            
-            if (inputType && lastEventItem.inputType && lastEventItem.inputType !== inputType && eventOrder > lastEventItem.order) {
+            const isTerminal = (eventType === 'end' || eventType === 'cancel' || eventType === 'start');
+
+            if (!isTerminal &&
+                    inputType && lastEventItem.inputType &&
+                    lastEventItem.inputType !== inputType &&
+                    eventOrder > lastEventItem.order) {
                 return;
-            }                  
+            }
 
             if (this.eventQueue.length > EventListener.MAX_EVENT_QUEUE_SIZE && rateLimit > 0 && rate < rateLimit) {
                 let capacity = 0;
@@ -336,7 +349,7 @@ class EventListener {
                             if (this.preventDefault(tmodel, eventName)) {
                                 event.preventDefault();
                                 event.stopPropagation();
-                            }                            
+                            }                              
                             return;
                         }
                     } else {
@@ -345,11 +358,15 @@ class EventListener {
                 }
             }
         }
-                      
+        
+        this.eventEpoch++;
+        tmodel?.markEventDirty();
+        tmodel?.markLayoutDirty('event');
+                 
         this.lastEvent = newEvent;
                                         
         if (queue) {
-            this.eventQueue.push(this.lastEvent);
+            this.eventQueue.push(this.lastEvent); 
         }
 
         let touch; 
@@ -360,9 +377,10 @@ class EventListener {
                 this.clearStart();
                 this.clearEnd();
                 this.clearTouch();
+                this.eventQueue.length = 0;
+                this.eventQueue.push(this.lastEvent);
 
                 this.touchCount = this.countTouches(event) || 1;
-                
 
                 if (this.preventDefault(tmodel, eventName) && event.cancelable) {
                     event.preventDefault();
@@ -383,9 +401,9 @@ class EventListener {
                 
                 event.stopPropagation();
                 
-                this.detachDocumentEvents();
-                this.attachDocumentEvents();
-                
+                this.detachDocumentEvents('documentDragEvents');
+                this.attachDocumentEvents('documentDragEvents');
+   
                 break;
                 
             case 'mousemove':
@@ -413,7 +431,8 @@ class EventListener {
             }
             case 'mouseup':
             case 'touchend':
-                this.detachDocumentEvents();
+                this.detachDocumentEvents('documentDragEvents');
+
                 if (this.preventDefault(tmodel, eventName) && event.cancelable) {
                     event.preventDefault();
                 }
@@ -459,7 +478,7 @@ class EventListener {
 
             case 'mouseleave':
                 if (isDocEvent && this.touchCount > 0) {
-                    this.detachDocumentEvents();
+                    this.detachDocumentEvents('documentDragEvents');
 
                     touch = this.getTouch(event);
                     this.cursor.x = touch.x;
@@ -475,11 +494,22 @@ class EventListener {
                               
                 break;
                 
+            case 'mousecancel':
+            case 'touchcancel':
+                this.canFindHandlers = true;                
+                this.detachDocumentEvents('documentDragEvents');
+                this.clearStart();
+                this.clearEnd();
+                this.clearTouch();
+                this.touchCount = 0;
+                event.stopPropagation(); 
+                
+                break;                
 
             case 'key':
                 this.currentTouch.key = event.which || event.keyCode;
                 this.currentHandlers.focus?.markLayoutDirty('key-event');
-                
+     
                 break;
                 
             case 'keydown':
@@ -512,7 +542,7 @@ class EventListener {
                 break;
         }
         
-        getRunScheduler().schedule(0, `${originalName}-${eventName}-${(event.target.tagName || '').toUpperCase()}`);
+        getRunScheduler().schedule(0, `${originalName}-${eventName}-${(event.target.tagName || '').toUpperCase()}`);        
     }
     
     resizeRoot() {
@@ -541,7 +571,7 @@ class EventListener {
                 oid = $Dom.findNearestParentWithId(event.target);
             }        
         }
-
+        
         return tApp.manager.visibleOidMap[oid];
     }
 
@@ -673,6 +703,7 @@ class EventListener {
     hasDelta() {
         return this.deltaX() !== 0 || this.deltaY() !== 0;
     }
+    
     isEndEvent() {
         return this.getEventType() === 'end' || this.getEventType() === 'click';
     }

@@ -290,9 +290,8 @@ class TargetData {
         },
 
         cancelEvents: {
-            touchcancel: { eventName: 'touchend', inputType: 'touch', eventType: 'cancel', order: 1, windowEvent: false, queue: true, rateLimit: 0 },
-            pointercancel: { eventName: 'mousecancel', inputType: 'pointer', eventType: 'cancel', order: 2, windowEvent: false, queue: true, rateLimit: 0 },
-            mousecancel: { eventName: 'mouseup', inputType: 'mouse', eventType: 'cancel', order: 3, windowEvent: false, queue: true, rateLimit: 0 }
+            touchcancel: { eventName: 'touchcancel', inputType: 'touch', eventType: 'cancel', order: 1, windowEvent: false, queue: true, rateLimit: 0 },
+            pointercancel: { eventName: 'mousecancel', inputType: 'pointer', eventType: 'cancel', order: 2, windowEvent: false, queue: true, rateLimit: 0 }
         },
 
         windowEvents: {
@@ -340,14 +339,21 @@ class TargetData {
             mousemove: {eventName: 'mousemove', inputType: 'mouse', eventType: 'move', order: 3, windowEvent: false, queue: true, rateLimit: 50}
         },
 
-        documentEvents: {
-            touchmove: {eventName: 'touchmove', inputType: 'touch', eventType: 'move', order: 1, windowEvent: false, queue: true, rateLimit: 50},
-            pointermove: {eventName: 'mousemove', inputType: 'pointer', eventType: 'move', order: 2, windowEvent: false, queue: true, rateLimit: 50},
-            mousemove: {eventName: 'mousemove', inputType: 'mouse', eventType: 'move', order: 3, windowEvent: false, queue: true, rateLimit: 50},
-            mouseleave: {eventName: 'mouseleave', inputType: 'mouse', eventType: 'leave', order: 3, windowEvent: false, queue: true, rateLimit: 50},
-            pointerup: {eventName: 'mouseup', inputType: 'pointer', eventType: 'end', order: 2, windowEvent: false, queue: true, rateLimit: 0},
-            mouseup: {eventName: 'mouseup', inputType: 'mouse', eventType: 'end', order: 3, windowEvent: false, queue: true, rateLimit: 0},
-            touchend: {eventName: 'touchend', inputType: 'touch', eventType: 'end', order: 1, windowEvent: false, queue: true, rateLimit: 0}
+        documentBaseEvents: {
+          touchstart: { eventName: 'touchstart', inputType: 'touch', eventType: 'start', order: 1, windowEvent: false, queue: true, rateLimit: 0, capture: true } ,           
+          pointerdown: { eventName:'mousedown', inputType:'pointer', eventType:'start', order:2, windowEvent:false, queue:true, rateLimit:0, capture:true },
+          mousedown:   { eventName:'mousedown', inputType:'mouse',   eventType:'start', order:3, windowEvent:false, queue:true, rateLimit:0, capture:true },
+        },
+
+        documentDragEvents: {
+            pointermove: {eventName: 'mousemove', inputType: 'pointer', eventType: 'move', order: 2, windowEvent: false, queue: true, rateLimit: 50, capture: true},
+            mousemove: {eventName: 'mousemove', inputType: 'mouse', eventType: 'move', order: 3, windowEvent: false, queue: true, rateLimit: 50, capture: true},
+            touchmove: {eventName: 'touchmove', inputType: 'touch', eventType: 'move', order: 1, windowEvent: false, queue: true, rateLimit: 50, capture: true},
+            pointerup: {eventName: 'mouseup', inputType: 'pointer', eventType: 'end', order: 2, windowEvent: false, queue: true, rateLimit: 0, capture: true},
+            mouseup: {eventName: 'mouseup', inputType: 'mouse', eventType: 'end', order: 3, windowEvent: false, queue: true, rateLimit: 0, capture: true},
+            touchend: {eventName: 'touchend', inputType: 'touch', eventType: 'end', order: 1, windowEvent: false, queue: true, rateLimit: 0, capture: true},
+            pointercancel: {eventName: 'mousecancel', inputType: 'pointer', eventType: 'cancel', order: 2, windowEvent: false, queue: true, rateLimit: 0, capture: true},
+            touchcancel: {eventName: 'touchcancel', inputType: 'touch', eventType: 'cancel', order: 1, windowEvent: false, queue: true, rateLimit: 0, capture: true}
         },
 
         wheelEvents: {
@@ -487,8 +493,8 @@ class TargetData {
     };
 
     static allEventMap = {
-        onStart: tmodel => getEvents().isStartHandler(tmodel),
-        onEnd: tmodel => getEvents().isEndHandler(tmodel),
+        onStart: tmodel => getEvents().isStartEvent() && getEvents().isStartHandler(tmodel),
+        onEnd: tmodel => getEvents().isEndEvent() && getEvents().isEndHandler(tmodel),
         onAnySwipe: () => getEvents().isSwipeEvent() && TUtil.isDefined(getEvents().swipeStartX),
         onHover: tmodel => getEvents().isMoveEvent() && getEvents().isHoverHandler(tmodel),
 

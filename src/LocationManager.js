@@ -118,17 +118,11 @@ class LocationManager {
     async processStack(stack, ctx) {
         
         const processAfterAllChildren = job => {
-            const {container, children} = job;
+            const {container} = job;
             
             container.adjustViewport();
             
             container.calcContentWidthHeight();
-                
-            if (getEvents().getEventType() || getEvents().hasDelta()) {
-                for (const child of children) {
-                    this.checkExternalEvents(child);
-                }
-            }
         };
         
         const resetDirtyLayout = job => {
@@ -175,6 +169,13 @@ class LocationManager {
 
                     container.calcContentWidthHeight();
                 }
+                
+                if (child.hasEventDirty() || getEvents().getEventType() || getEvents().hasDelta()) {
+                   this.checkExternalEvents(child);
+                   if (child.hasEventDirty()) {
+                       child.processedEventEpoch = child.eventDirtyEpoch;
+                   }
+                }                
   
             }
             
@@ -183,7 +184,6 @@ class LocationManager {
             if (job.index < job.children.length) {
                 job.stage = 'child';
             }
-
         };
 
         const processChild = job => {
@@ -324,7 +324,7 @@ class LocationManager {
 
                 container.visibleChildren.length = 0;
 
-                job.children = allChildrenList;
+                job.children = allChildrenList.slice(0);
                 job.index = 0;
                 job.viewport = container.createViewport();
                 job.stage = 'child';
@@ -344,7 +344,9 @@ class LocationManager {
                 continue;
             }
 
-            processChild(job);
+            if (job.stage === 'child') {
+                processChild(job);
+            }
         }
     }
 

@@ -117,7 +117,11 @@ class LoadingManager {
         
         this.tmodelKeyMap[key].fetchMap[fetchId].order = this.tmodelKeyMap[key].entryCount;
         this.tmodelKeyMap[key].entryCount++;
-        tmodel.val(loadTargetName).push(undefined);        
+        tmodel.val(loadTargetName).push(undefined);  
+        
+        if (tmodel.oid === 'scroller_6') {
+            console.log("loading: " + tmodel.oid + ", " + targetName + ", " + this.tmodelKeyMap[key].entryCount);
+        }
 
         if (cacheId && this.isFetched(cacheId)) {
             this.fetchingAPIMap[fetchId].startTime = TUtil.now();
@@ -192,7 +196,7 @@ class LoadingManager {
                 tmodelEntry.accessIndex += result.length;
             } else if (TUtil.isDefined(targetValue[tmodelEntry.accessIndex])) {
                 result = targetValue[tmodelEntry.accessIndex];
-                tmodelEntry.accessIndex++;
+                tmodelEntry.accessIndex = Math.min(tmodelEntry.accessIndex + 1, tmodelEntry.entryCount - 1);
             }
         }
 

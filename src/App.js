@@ -100,6 +100,8 @@ const AppFn = () => {
         my.events.detachAll();        
         my.events.detachWindowEvents();
         my.events.attachWindowEvents();
+        my.events.detachDocumentEvents('documentBaseEvents');
+        my.events.attachDocumentEvents('documentBaseEvents');
         my.events.clearAll();
         my.events.attachEvents(my.manager.getVisibles());
 
@@ -115,7 +117,8 @@ const AppFn = () => {
         my.runningFlag = false;
 
         my.events.detachAll();
-        my.events.detachWindowEvents();        
+        my.events.detachWindowEvents(); 
+        my.events.detachDocumentEvents('documentBaseEvents');        
         my.events.clearAll();
         await my.animationManager.deleteAll();
         await my.animationManager.flushOneFrame();
