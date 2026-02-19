@@ -40,11 +40,11 @@ This creates a blue box that grows, then turns red, and then logs "Hello World" 
 import { App } from "targetj";
 
 App({
-  backgroundColor: 'blue',
-  height: 100,
-  width: { value: [100, 200], steps: 100 }, // 1. Animate width in 100 steps using the default 8 ms interval per step.
-  backgroundColor$$: { value: 'red', steps: 100 }, // 2. Wait ($$) then turn red in 100 steps
-  done$$() { console.log("Hello World!"); } // 3. Wait ($$) then log
+  backgroundColor: 'blue', // Starts immediately
+  width: { value: [100, 200], steps: 100 }, // Starts immediately: animate width from 100px to 200px in 100 steps with 8 ms interval per step.
+  height: { value: [100, 200], steps: 100 }, // Starts immediately: animate height.
+  backgroundColor$$: { value: 'red', steps: 100 }, // Wait ($$) for width/height to finish
+  done$$() { console.log("Hello World!"); } // 3. Waits ($$) for the background color
 }).mount("#app");
 ```
 
@@ -170,7 +170,7 @@ App({
 
 ### Summary
 
-Instead of wiring callbacks and effects, you write a sequence of targets. All targets execute automatically in the order they are written. `$$` defers execution until all prior sibling steps finish. Animations, API calls, event handling, and child creation are all treated as the same kind of thing: targets. Complex asynchronous flows are expressed by organizing work into parent and child targets. In addition, targets also provide built-in capabilities such as `onComplete` callback, enabledOn, looping with delays, and more as explained below.
+Each target has its own state and lifecycle. Targets execute automatically in the order they are written. `$$` defers execution until all prior sibling targets (including their children) are fully complete. Animations, API calls, event handling, and child creation are all treated uniformly as targets. Complex asynchronous flows can be structured by organizing work into parent and child targets. In addition, targets provide built-in capabilities such as `onComplete` callbacks, `enabledOn`, looping with delays, and more. This also makes the code more compact, as it avoids using extra variables to track progress and reduces the need for loops and conditional statements.
 
 ---
 
