@@ -117,11 +117,7 @@ class LoadingManager {
         
         this.tmodelKeyMap[key].fetchMap[fetchId].order = this.tmodelKeyMap[key].entryCount;
         this.tmodelKeyMap[key].entryCount++;
-        tmodel.val(loadTargetName).push(undefined);  
-        
-        if (tmodel.oid === 'scroller_6') {
-            console.log("loading: " + tmodel.oid + ", " + targetName + ", " + this.tmodelKeyMap[key].entryCount);
-        }
+        tmodel.val(loadTargetName).push(undefined);
 
         if (cacheId && this.isFetched(cacheId)) {
             this.fetchingAPIMap[fetchId].startTime = TUtil.now();

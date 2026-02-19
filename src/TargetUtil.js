@@ -172,14 +172,10 @@ class TargetUtil {
                 
                 const prevOk = isEndTrigger ? TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) : false;
 
-                if (nextTarget === 'fetch$$' && tmodel.oid === 'scroller_6') {
-                    console.log('we found fetch$$: ' + key + ", " + tmodel.oid + ", " + TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget));
-                }
-
                 if (fetchAction) {
                     if (isEndTrigger) {
-                        if (prevOk === true) {                  
-                            TargetUtil.activateTarget(tmodel, nextTarget);
+                        if (prevOk === true) {  
+                            TargetUtil.activateTargetOnce(tmodel, nextTarget);
                             nextTargetActivated = true;
                             TargetUtil.clearPendingTargets(tmodel, key);
                         } else {
@@ -201,7 +197,7 @@ class TargetUtil {
                         tmodel.removeFromActiveTargets(nextTarget);
                         TargetUtil.activateTarget(tmodel, nextTarget);
                         nextTargetActivated = true;
-                         TargetUtil.clearPendingTargets(tmodel, key);
+                        TargetUtil.clearPendingTargets(tmodel, key);
                     } else {
                         TargetUtil.markPendingTargets(tmodel, key);
                     }
@@ -327,20 +323,20 @@ class TargetUtil {
             tryCleanupAndBubble(tmodel.targets[key]?.originalTModel, tmodel.targets[key]?.originalTargetName);
         }
     }
-
-    static activateTargets(tmodel, target) {
-        while(target) {
-            if (!tmodel.isTargetActive(target) && !tmodel.isTargetUpdating(target)) {
-                TargetUtil.activateTarget(tmodel, target);
-            }
-            
-            const activateNextTarget = tmodel.targets[target]?.activateNextTarget;
-            target = activateNextTarget && !activateNextTarget.endsWith('$$') && activateNextTarget.endsWith('$') ? activateNextTarget : undefined;
-        }
-    }
     
-    static activateTarget(tmodel, target) {
-        tmodel.activateTarget(target);
+    static activateTargetOnce(tmodel, nextTarget) {        
+        const nextTargetValue = (tmodel.targetValues[nextTarget] ||= TargetUtil.emptyValue());
+        const last = nextTargetValue.activationTime ?? 0;
+        if (last > 0 && last >= tmodel.getLastUpdate(nextTarget)) {
+            return false;
+        }
+
+        nextTargetValue.activationTime = tmodel.getLastUpdate(nextTarget) + 0.001;
+        tmodel.activateTarget(nextTarget);
+    }
+
+    static activateTarget(tmodel, key) {
+        tmodel.activateTarget(key);
     }
 
     static isTModelComplete(tmodel) {
@@ -391,25 +387,6 @@ class TargetUtil {
         }
 
         return result;
-    }
-        
-    static getPrevCompleteSignature(tmodel, key) {
-        const keyIndex = key ? tmodel.functionTargetNames.findIndex(name => key === name) : tmodel.functionTargetNames?.length ?? 0;
- 
-        let completeSignature = 0;
-        for (var i = keyIndex - 1; i >= 0; i--) {
-            const targetName = tmodel.functionTargetNames[i];
-        
-            completeSignature += (tmodel.targetValues[targetName]?.completeCount ?? 0) + (tmodel.targetValues[targetName]?.completeTime ?? 0);
-            
-            if (tmodel.targets[targetName]?.addChildAction) {
-                tmodel.targets[targetName]?.addChildAction.forEach(t => {
-                    completeSignature += this.getPrevCompleteSignature(t);
-                });
-            }
-        }
-        
-        return completeSignature;
     }
        
     static arePreviousTargetsComplete(tmodel, key) {
