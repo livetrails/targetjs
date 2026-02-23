@@ -339,12 +339,6 @@ class TargetData {
             mousemove: {eventName: 'mousemove', inputType: 'mouse', eventType: 'move', order: 3, windowEvent: false, queue: true, rateLimit: 50}
         },
 
-        documentBaseEvents: {
-          touchstart: { eventName: 'touchstart', inputType: 'touch', eventType: 'start', order: 1, windowEvent: false, queue: true, rateLimit: 0, capture: true } ,           
-          pointerdown: { eventName:'mousedown', inputType:'pointer', eventType:'start', order:2, windowEvent:false, queue:true, rateLimit:0, capture:true },
-          mousedown:   { eventName:'mousedown', inputType:'mouse',   eventType:'start', order:3, windowEvent:false, queue:true, rateLimit:0, capture:true },
-        },
-
         documentDragEvents: {
             pointermove: {eventName: 'mousemove', inputType: 'pointer', eventType: 'move', order: 2, windowEvent: false, queue: true, rateLimit: 50, capture: true},
             mousemove: {eventName: 'mousemove', inputType: 'mouse', eventType: 'move', order: 3, windowEvent: false, queue: true, rateLimit: 50, capture: true},

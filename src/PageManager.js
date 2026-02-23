@@ -11,6 +11,19 @@ class PageManager {
     constructor() {
         this.lastLink = TUtil.getFullLink(document.URL);
         this.pageCache = {};
+        this.initHistory();
+    }
+    
+    initHistory() {
+        const link = TUtil.getFullLink(document.URL);
+
+        const st = history.state;
+
+        if (!st || (!st.link && !st.browserUrl)) {
+          history.replaceState({ link }, "", link);
+        }
+
+        this.lastLink = link;
     }
     
     initPage(html) {
@@ -64,7 +77,7 @@ class PageManager {
     async openLinkFromHistory(state) {        
         if (state.link) {
             this.onPageClose();
-            this.openLink(state.link, false);
+            await this.openLink(state.link, false);
         } else if (state.browserUrl) {
             history.replaceState({ link: state.browserUrl }, "", state.browserUrl);
             await this.openPage(state.browserUrl);

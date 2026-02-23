@@ -43,7 +43,8 @@ class DomInit {
     static mount(tmodel, elemTarget) {
         if (elemTarget !== undefined) {
             const $dom = TModelUtil.normalizeDomHolder(elemTarget);
-            if ($dom) {                
+            if ($dom) {    
+                tmodel.domState = DomInit.snapshotDomState($dom.element);                
                 tmodel.targets.$dom = $dom;
                 tmodel.val('$dom', $dom);
                 
@@ -56,6 +57,7 @@ class DomInit {
                 }
                     
                 patch.position = $dom.getStyleValue('position') || 'relative';
+                patch.sourceDom = true;
                 
                 patch.domIsland = true;
 
@@ -255,6 +257,51 @@ class DomInit {
 
         return rawValue;
     }
+    
+    static snapshotDomState(element) {
+        if (!element || element.nodeType !== 1) {
+            return;
+        }
+
+
+        const attrs = {};
+        for (const { name, value } of Array.from(element.attributes)) {
+            attrs[name] = value;
+        }
+
+        const styleAttr = element.getAttribute("style");
+        const html = element.innerHTML;
+
+        return { attrs, styleAttr, html };
+    }
+    
+    static restoreDomState(element, domState) {
+        if (!element || element.nodeType !== 1 || !domState) {
+            return;
+        }
+
+        const { attrs: originalAttrs, styleAttr: originalStyleAttr } = domState;
+
+        for (const {name} of Array.from(element.attributes)) {
+            if (!(name in originalAttrs)) {
+                element.removeAttribute(name);
+            }
+        }
+
+        for (const [name, value] of Object.entries(originalAttrs)) {
+            if (element.getAttribute(name) !== value) {
+                element.setAttribute(name, value);
+            }
+        }
+
+        if (!originalStyleAttr) {
+          element.removeAttribute("style");
+        } else {
+          element.setAttribute("style", originalStyleAttr);
+        }
+        
+        element.innerHTML = domState.html;
+    }    
 }
 
 export { DomInit };

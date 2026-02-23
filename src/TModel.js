@@ -676,7 +676,7 @@ class TModel extends BaseModel {
     }
 
     canHandleEvent(eventName) {
-        return this.allTargetMap[eventName] ?? false;
+        return this.allTargetMap[eventName] ? true : false;
     }
 
     preventDefault() {

@@ -3,7 +3,7 @@ import { SearchUtil } from "./SearchUtil.js";
 import { TUtil } from "./TUtil.js";
 import { TargetData } from "./TargetData.js";
 import { TargetExecutor } from "./TargetExecutor.js";
-import { tApp, getRunScheduler, tRoot, getLocationManager } from "./App.js";
+import { tApp, getRunScheduler, getManager, tRoot, getLocationManager } from "./App.js";
 
 /**
  * It provides a central place to manage all events. 
@@ -148,7 +148,7 @@ class EventListener {
                 if (hasPointer && key.startsWith('mouse')) {
                     return;
                 }
-                
+                                
                 const eventSpec = eventMap[key];
                 const isWindow = !!eventSpec.windowEvent;
                 const $dom = isWindow ? tApp.$window : (tmodel.hasDom() ? tmodel.$dom : null);
@@ -309,11 +309,11 @@ class EventListener {
         
         const { type: originalName } = event; 
         const eventItem = this.allEvents[originalName];
-           
+                   
         if (!eventItem) {
             return;
         }
-                                        
+                                      
         let { eventName, inputType, eventType, order: eventOrder, queue, rateLimit } = eventItem;
           
         const now = TUtil.now();
@@ -521,7 +521,7 @@ class EventListener {
             case 'resize':
                 this.windowEpoch++;
                 this.resizeRoot();
-                tApp.manager.getVisibles().forEach(t => {
+                getManager().getVisibles().forEach(t => {
                     if (t.targets['onResize']) {
                         t.markLayoutDirty('resize-event');
                     }
@@ -567,12 +567,12 @@ class EventListener {
         
         if (!oid || !tApp.manager.visibleOidMap[oid]) {
             oid = el?.id;
-            if (!oid || !tApp.manager.visibleOidMap[oid]) {
+            if (!oid || !getManager().visibleOidMap[oid]) {
                 oid = $Dom.findNearestParentWithId(event.target);
             }        
         }
         
-        return tApp.manager.visibleOidMap[oid];
+        return getManager().visibleOidMap[oid];
     }
 
     clearStart() {

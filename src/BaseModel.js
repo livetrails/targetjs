@@ -339,7 +339,7 @@ class BaseModel {
 
         }
 
-        getRunScheduler().schedule(1, 'addTargets-' + this.oid);
+        getRunScheduler()?.schedule(1, 'addTargets-' + this.oid);
     }
         
     getTargetStepPercent(key, step, steps) {

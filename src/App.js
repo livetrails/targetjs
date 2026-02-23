@@ -86,8 +86,6 @@ const AppFn = () => {
 
         my.tRoot = my.tRootFactory();
 
-        window.history.pushState({ link: document.URL }, "", document.URL);
-
         return my;
     };
 
@@ -100,8 +98,6 @@ const AppFn = () => {
         my.events.detachAll();        
         my.events.detachWindowEvents();
         my.events.attachWindowEvents();
-        my.events.detachDocumentEvents('documentBaseEvents');
-        my.events.attachDocumentEvents('documentBaseEvents');
         my.events.clearAll();
         my.events.attachEvents(my.manager.getVisibles());
 
@@ -118,7 +114,6 @@ const AppFn = () => {
 
         my.events.detachAll();
         my.events.detachWindowEvents(); 
-        my.events.detachDocumentEvents('documentBaseEvents');        
         my.events.clearAll();
         await my.animationManager.deleteAll();
         await my.animationManager.flushOneFrame();
@@ -144,6 +139,7 @@ const AppFn = () => {
         
         my.manager.clearAll();
         my.locationManager.clear();
+        my.loader.clear();
         SearchUtil.clear();
     };
 
@@ -181,6 +177,42 @@ App.mount = (child, elemTarget) => {
         tmodel.mount(elemTarget);
     }
     return tmodel;
+};
+
+App.unmount = async () => {
+    if (!tApp) {
+        return;
+    }
+
+    await tApp.stop();
+
+    const root = tApp.tRoot;
+    const children = root.getChildren();
+
+    children.forEach(child => {
+        if (child.val('sourceDom')) {
+            DomInit.restoreDomState(child.$dom?.element, child.domState);
+            return;
+        }
+
+        if (child.$dom?.attr('tgjs')) {     
+            root.$dom.removeElement(child.$dom.element); 
+        }
+    });
+
+    root.allChildrenList = [];
+    root.allChildrenMap = {};
+
+    root.clearUpdatingChildren();
+    root.clearActiveChildren();
+    root.clearAnimatingChildren();
+    
+    await tApp.reset();
+
+    App.oids = {};
+    App.tmodelIdMap = {};
+    queuedAppCalls.length = 0;
+    tApp = undefined;
 };
 
 App.oids = {};
@@ -230,7 +262,6 @@ if (document.readyState === "loading") {
 } else {
     runApp();
 }
-
 
 export {
     tApp,
