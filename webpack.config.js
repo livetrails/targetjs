@@ -12,7 +12,7 @@ module.exports = {
         environment: {
           arrowFunction: false
         },
-        path: path.resolve(__dirname, '../targetj/jslib'),
+        path: path.resolve(__dirname, './dist'),
         filename: 'targetjs.js'
     },
     module: {
