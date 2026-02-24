@@ -44,6 +44,13 @@ class DomInit {
             const $dom = DomInit.normalizeElementTarget(elemTarget);
                             
             if ($dom) { 
+                if (tmodel.$dom?.exists()) {
+                    if (tmodel.domState) {
+                        DomInit.restoreDomState(tmodel.$dom.element, tmodel.domState);
+                    } else {
+                        tmodel.$dom.detach();
+                    }
+                }
                 tmodel.domState = DomInit.snapshotDomState($dom.element);                
                 tmodel.targets.$dom = $dom;
                 tmodel.val('$dom', $dom);
@@ -88,8 +95,8 @@ class DomInit {
                 }
                 
                 $dom.attr('tgjs-oid', tmodel.oid);
-
                 $dom.attr('tgjs', 'true');
+                tmodel.$dom = undefined;
             }
         }
     }

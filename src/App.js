@@ -157,19 +157,33 @@ const AppFn = () => {
     return my;
 };
 
+const ensureRunning = () => {
+    if (tApp?.tRoot || document.readyState === "loading") {
+        return;
+    }
+
+    runApp();
+};
+
 const App = firstChild => {
     if (!firstChild) {
         return;
     }
 
-    const tmodel = firstChild instanceof TModel ? firstChild : new TModel('App', firstChild);
+    const tmodel = firstChild instanceof TModel ? firstChild : new TModel("App", firstChild);
 
     if (!tApp?.tRoot) {
-        queuedAppCalls.push(tmodel);
-    } else {
+        if (document.readyState === "loading") {
+            queuedAppCalls.push(tmodel);
+            return tmodel;
+        }
+
+        ensureRunning();
         tApp.tRoot.addChild(tmodel);
+        return tmodel;
     }
 
+    tApp.tRoot.addChild(tmodel);
     return tmodel;
 };
 
@@ -205,7 +219,6 @@ App.unmount = async () => {
 
     App.oids = {};
     App.tmodelIdMap = {};
-    queuedAppCalls.length = 0;
     tApp = undefined;
 };
 
@@ -247,6 +260,10 @@ const getDomTModelById = id => {
 window.t = window.t || getTModelById;
 
 const runApp = () => {
+    if (tApp) {
+        return;
+    }
+
     tApp = AppFn();
     tApp.init().start();
 };
