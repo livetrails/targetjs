@@ -55,8 +55,8 @@ These symbols tell the framework **when** a target should run.
 | Symbol   | Name     | Behavior                                                                                                                 |
 | -------- | -------- | -------------------------------------------------------------------------------------------------------------------------|
 | `name`   | Standard | Runs immediately in the order it appears.                                                                                |
-| `name$`  | Reactive | Runs every time the previous sibling target executes.                                                                    |
-| `name$$` | Deferred | Executes only after the entire preceding target chain including children, animations, and API calls has fully completed. |
+| `name$`  | Reactive | Runs every time the previous sibling target runs.                                                                    |
+| `name$$` | Deferred | Runs only after the entire preceding target chain including children, animations, and API calls has fully completed. |
 | `_name`  | Inactive | Does not run automatically. Trigger it manually via `.activateTarget()`.                                                 |
  
 
