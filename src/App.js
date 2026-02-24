@@ -55,7 +55,7 @@ const AppFn = () => {
                     }
                     return height;
                 },
-                initPageDom() {
+                initPageDom() {                    
                     DomInit.initPageDoms(this.$dom); 
                     
                     if (queuedAppCalls.length) {
@@ -64,9 +64,12 @@ const AppFn = () => {
                     }
                 }
             });
-
+    
             tmodel.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
-            tmodel.$dom.attr('data-tj-no-slot', 'true');
+                   
+            if (tmodel.$dom.getTagName() !== 'body') {
+                tmodel.$dom.attr('data-tjno-slot', 'true');
+            }
             
             tmodel.val('screenWidth', $Dom.getScreenWidth());                
             tmodel.val('screenHeight', $Dom.getScreenHeight());            
@@ -167,15 +170,6 @@ const App = firstChild => {
         tApp.tRoot.addChild(tmodel);
     }
 
-    return tmodel;
-};
-
-
-App.mount = (child, elemTarget) => {
-    const tmodel = App(child);
-    if (tmodel) {
-        tmodel.mount(elemTarget);
-    }
     return tmodel;
 };
 

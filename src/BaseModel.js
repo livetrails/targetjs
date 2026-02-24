@@ -318,8 +318,8 @@ class BaseModel {
         delete this.targetValues[key];
     }
 
-    addTarget(key, target) {
-        this.addTargets({ [key]: target });
+    addTarget(key, value) {
+        this.addTargets({ [key]: value });
     }
 
     addTargets(targets) {

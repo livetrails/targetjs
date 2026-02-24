@@ -75,8 +75,7 @@ class TModelUtil {
     }
     
     static patchDom(tmodel) {
-        tmodel.$dom.setSelector(`#${tmodel.oid}`);
-        tmodel.$dom.setId(tmodel.oid);
+        tmodel.$dom.ensureId(tmodel.oid);
         tmodel.$dom.attr('tgjs', 'true');
         if (tmodel.getHtml()) {
             tmodel.isTextOnly() ? tmodel.$dom.text(tmodel.getHtml()) : tmodel.$dom.html(tmodel.getHtml());
@@ -622,21 +621,6 @@ class TModelUtil {
             tmodel.absY = rect.top;
             tmodel.markLayoutDirty('islandAbsXY');
         }
-    }
-
-    static normalizeDomHolder(holder) {
-        if (holder instanceof $Dom) {
-            return holder;
-        }
-        if (holder instanceof Element) {
-            return new $Dom(holder);
-        }
-
-        if (typeof holder === 'string') {
-            const el = $Dom.querySelector(holder);
-            return el ? new $Dom(el) : null;
-        }
-        return null;
     }
 }
 

@@ -29,7 +29,9 @@ class PageManager {
     initPage(html) {
         tApp.tRoot.$dom.outerHTML(html);
         tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
-        tApp.tRoot.$dom.attr('data-tj-no-slot', 'true');
+        if (tApp.tRoot.$dom.getTagName() !== 'body') {
+            tApp.tRoot.$dom.attr('data-tj-no-slot', 'true');
+        }
 
         DomInit.initPageDoms(tApp.tRoot.$dom);
     }

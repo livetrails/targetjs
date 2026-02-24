@@ -507,21 +507,18 @@ class TModel extends BaseModel {
         return this.val('domParent') || SearchUtil.findParentByTarget(this, 'domHolder', true);
     }
    
-    getDomHolder(tmodel) {
+    getDomHolder() {
         const domHolder = this.val('domHolder');
-        
-        if (domHolder === true && tmodel !== this) {
-            return this.$dom;
-        }        
-        if (domHolder && domHolder !== true && tmodel.$dom !== domHolder) {
+
+        if (domHolder && domHolder !== true && this.$dom !== domHolder) {
             return domHolder;
         }
-        
+
         const domParent = this.getDomParent();
 
         return domParent ? domParent.$dom : null;
     }
-   
+
     bug() {
         return [
             { visible: this.isVisible() },
@@ -576,7 +573,7 @@ class TModel extends BaseModel {
     }
 
     hasDomHolderChanged() {
-        return !this.reuseDomDefinition() && this.getDomHolder(this) && this.getDomHolder(this).exists() && this.$dom.parent() !== this.getDomHolder(this).element;
+        return !this.reuseDomDefinition() && this.getDomHolder() && this.getDomHolder().exists() && this.$dom.parent() !== this.getDomHolder().element;
     }
     
     hasBaseElementChanged() {

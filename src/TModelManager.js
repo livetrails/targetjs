@@ -127,7 +127,7 @@ class TModelManager {
 
             if (visible || tmodel.requiresDom()) {
                 if (tmodel.canHaveDom() && !tmodel.hasDom() && tmodel.isIncluded() && !this.noDomMap[tmodel.oid]) {
-                    if (tmodel.getDomHolder(tmodel)?.exists() || this.noDomMap[tmodel.getDomParent()?.oid]) {
+                    if (tmodel.getDomHolder()?.exists() || this.noDomMap[tmodel.getDomParent()?.oid]) {
                         this.lists.noDom.push(tmodel);
                         this.noDomMap[tmodel.oid] = true;
                     } else {
@@ -266,8 +266,8 @@ class TModelManager {
                 reattached.push(tmodel);
             }
     
-            if (tmodel.getDomHolder(tmodel)) {  
-                tmodel.getDomHolder(tmodel).appendTModel$Dom(tmodel);
+            if (tmodel.getDomHolder()) {  
+                tmodel.getDomHolder().appendTModel$Dom(tmodel);
             }
         }
         
@@ -383,7 +383,7 @@ class TModelManager {
         this.activatePendingTargetsAfterDom(this.lists.noDom);
 
         for (const tmodel of needsDom) {
-            const domHolder = tmodel.getDomHolder(tmodel);
+            const domHolder = tmodel.getDomHolder();
                         
             if (!domHolder) {
                 tmodel.markLayoutDirty('noDomHolder');

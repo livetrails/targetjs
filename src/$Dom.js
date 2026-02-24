@@ -11,6 +11,10 @@ class $Dom {
             this.element = $Dom.query(elemSelector);
         } else if (elemSelector) {
             this.element = elemSelector;
+            if (elemSelector.nodeType === 1) {
+                const id = this.element.getAttribute('id');
+                this.selector = typeof id === 'string' ? (id.startsWith('#') ? id : '#' + id) : null;
+            }
         }
 
         this.hasRealChildren = false;
@@ -89,7 +93,7 @@ class $Dom {
     }
     
     isNoSlotHost() {
-        return this.element?.getAttribute('data-tj-no-slot') === 'true';
+        return this.getTagName() === 'body' || this.element?.getAttribute('data-tj-no-slot') === 'true';
     }
 
     ensureContentSlotFirst() {
@@ -162,15 +166,16 @@ class $Dom {
     }
 
     getTagName() {
-        return this.element.tagName.toLowerCase();
+        return this.element?.tagName?.toLowerCase();
     }
 
     setSelector(selector) {
         this.selector = selector;
     }
 
-    setId(id) {
-        this.attr('id', id[0] === '#' ? id.slice(1) : id);
+    ensureId(id) {
+        this.selector = id[0] === '#' ? id : '#' + id;        
+        this.attr('id', this.selector.slice(1));
     }
 
     getId() {

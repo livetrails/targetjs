@@ -2,7 +2,6 @@ import { $Dom } from "./$Dom.js";
 import { TUtil } from "./TUtil.js";
 import { tRoot, App, getTModelById } from "./App.js";
 import { TargetData } from "./TargetData.js";
-import { TModelUtil } from "./TModelUtil.js";
 
 /**
  * 
@@ -42,8 +41,9 @@ class DomInit {
     
     static mount(tmodel, elemTarget) {
         if (elemTarget !== undefined) {
-            const $dom = TModelUtil.normalizeDomHolder(elemTarget);
-            if ($dom) {    
+            const $dom = DomInit.normalizeElementTarget(elemTarget);
+                            
+            if ($dom) { 
                 tmodel.domState = DomInit.snapshotDomState($dom.element);                
                 tmodel.targets.$dom = $dom;
                 tmodel.val('$dom', $dom);
@@ -80,10 +80,15 @@ class DomInit {
 
                 const id = $dom.getId();
                 if (id && id !== tmodel.oid) {
-                  $dom.attr('tgjs-oid', tmodel.oid);
-                  tmodel.domId = id;
+                    tmodel.domId = id;
+                } else if (!id) {
+                   const newId = `tgjs-${tmodel.oid}`;
+                    $dom.ensureId(newId);
+                    tmodel.domId = newId;
                 }
                 
+                $dom.attr('tgjs-oid', tmodel.oid);
+
                 $dom.attr('tgjs', 'true');
             }
         }
@@ -301,7 +306,22 @@ class DomInit {
         }
         
         element.innerHTML = domState.html;
-    }    
+    }
+    
+    static normalizeElementTarget(elemTarget) {
+        if (elemTarget instanceof $Dom) {
+            return elemTarget;
+        }
+        if (elemTarget instanceof Element) {
+            return new $Dom(elemTarget);
+        }
+
+        if (typeof elemTarget === 'string') {
+            const el = $Dom.querySelector(elemTarget);
+            return el ? new $Dom(el) : null;
+        }
+        return null;
+    }
 }
 
 export { DomInit };
