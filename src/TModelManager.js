@@ -298,6 +298,10 @@ class TModelManager {
     
     deleteDoms() {   
         for (const tmodel of this.lists.invisibleDom) {
+            if (tmodel.val('sourceDom')) {
+                continue;
+            }
+                
             this.deleteDom(tmodel);
         }
         

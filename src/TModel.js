@@ -584,6 +584,14 @@ class TModel extends BaseModel {
         DomInit.mount(this, elemTarget);
         return this;
     }
+    
+    unmount() {
+        if (this.hasDom() && this.val('sourceDom') && this.domState) {
+          DomInit.restoreDomState(this.$dom.element, this.domState);
+        }
+
+        this.parent?.removeChild(this);
+    }
 
     hasDom() {
         return !!this.$dom && this.$dom.exists();
