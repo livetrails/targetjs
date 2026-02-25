@@ -177,8 +177,9 @@ Each target has its own state and lifecycle. Targets execute automatically in th
 ## Table of Contents
 
 1. [📦 Alternative Installation Via CDN](#-alternative-installation-via-cdn)
+1. [Using TargetJS as a Library](#using-targetjs-as-a-library)
 1. [🚀 Why TargetJS?](#-why-targetjs)
-1. Deeer Examples:
+1. Deeper Examples:
     - [Loading Five Users Example](#loading-five-users-example)
     - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
 1. [Target Methods](#target-methods)
@@ -223,6 +224,39 @@ TargetJS can also be used as a "no-code" library. Elements with tg- attributes a
    tg-width="{ value: [100, 250, 100], steps: 20 }"
    tg-height="{ value: [100, 250, 100], steps: 20 }">
 </div>
+```
+
+## Using TargetJS as a Library
+
+TargetJS can run inside an existing app mounted into a DOM element managed by another framework.
+
+### React (mount + cleanup)
+
+```javascript
+import React, { useLayoutEffect, useRef } from "react";
+import { App as TJApp } from "targetj";
+
+export default function TargetIsland() {
+  const hostRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const el = hostRef.current;
+    if (!el) return;
+
+    TJApp({
+      width: { value: [100, 500], steps: 100 },
+      height: 200,
+      backgroundColor: "purple",
+      onClick() { console.log("click"); }
+    }).mount(el);
+
+    return () => {
+      TJApp.unmount();
+    };
+  }, []);
+
+  return <div ref={hostRef} style={{ width: 100, height: 200, overflow: "hidden" }} />;
+}
 ```
 
 ## 🚀 Why TargetJS?
