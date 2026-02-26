@@ -174,7 +174,7 @@ class DomInit {
                         parentModel[childrenKey].value.push(newModel);
                     } else if (typeof parentModel[childrenKey] === 'string') {
                         parentModel[childrenKey] = {
-                            cycles: TUtil.isNumber(+parentModel[childrenKey]) ? +parentModel[childrenKey] : 0,
+                            cycles: TUtil.isNumber(+parentModel[childrenKey]) ? +parentModel[childrenKey] : 1,
                             value: [ newModel ]
                         }
                     } else if (typeof parentModel[childrenKey] === 'object') {
@@ -183,7 +183,7 @@ class DomInit {
 
                 } else {
                     parentModel.children$ = {
-                        cycles: 0,
+                        cycles: 1,
                         value: [ newModel ]
                     };
                 }

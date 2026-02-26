@@ -328,9 +328,8 @@ class TModelUtil {
         const hasPerspective = hasAny(["perspective"]);
         const hasTranslate = hasAny(["translateX", "translateY", "translateZ", "x", "y", "z"]);
         const hasRotate = hasAny(["rotateX", "rotateY", "rotateZ"]) || (hasAny(["rotate3DX"]) && hasAny(["rotate3DY"]) && hasAny(["rotate3DZ"]) && hasAny(["rotate3DAngle"]));
-        const hasSkew = hasAny(["skewX", "skewY"]);
-        const hasScale =
-                hasAny(["scaleX", "scaleY", "scaleZ"]) ||
+        const hasSkew = hasAny(["skewX", "skewY", "skew"]);
+        const hasScale = hasAny(["scaleX", "scaleY", "scaleZ"]) ||
                 (hasAny(["scale3DX"]) && hasAny(["scale3DY"]) && hasAny(["scale3DZ"]));
 
         let groups = 0;
@@ -349,7 +348,7 @@ class TModelUtil {
         if (hasScale) {
            groups++;
         }
-
+        
         return groups > 1;
     }
     

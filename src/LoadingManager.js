@@ -216,7 +216,7 @@ class LoadingManager {
         const cycle = tmodel.getTargetCycle(key);
         const cycles = tmodel.getTargetCycles(key);
                 
-        if (tmodel.isTargetInLoop(key) || cycle < cycles) {
+        if (tmodel.isTargetInLoop(key) || cycle < cycles - 1) {
             return 'active'; 
         } else if (!this.isLoadingSuccessful(tmodel, key)) {
             return 'fetching';
@@ -256,7 +256,7 @@ class LoadingManager {
                 targetResults[fetchEntry.order] = res.result;
             }
 
-            tmodel.val(targetName, targetResults?.length === 1 && tmodel.getTargetCycles(targetName) === 0 ? targetResults[0] : targetResults);
+            tmodel.val(targetName, targetResults?.length === 1 && tmodel.getTargetCycles(targetName) <= 1 ? targetResults[0] : targetResults);
 
             const newStatus = this.calculateTargetStatus(tmodel, targetName);
             tmodel.setTargetStatus(targetName, newStatus);  
@@ -303,7 +303,7 @@ class LoadingManager {
                 targetResults[fetchEntry.order] = res;
             }
 
-            tmodel.val(targetName, targetResults?.length === 1 && tmodel.getTargetCycles(targetName) === 0 ? targetResults[0] : targetResults);
+            tmodel.val(targetName, targetResults?.length === 1 && tmodel.getTargetCycles(targetName) <= 1 ? targetResults[0] : targetResults);
 
             tmodelEntry.errorCount++;
 

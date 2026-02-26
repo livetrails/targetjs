@@ -227,7 +227,7 @@ static isObjectTarget(key, value) {
         const valueOnly = _target && _target.valueOnly;
         const lastValue = tmodel.val(key);
 
-        let value = null, steps = 0, interval = 0, easing = undefined, cycles = 0;
+        let value = null, steps = 0, interval = 0, easing = undefined, cycles = 1;
 
         const resolveMaybeFn = (v, ...args) => (typeof v === "function" ? v.call(tmodel, ...args) : v);
                        
@@ -272,7 +272,7 @@ static isObjectTarget(key, value) {
                     easing = TUtil.isDefined(target.easing) ? resolveMaybeFn(target.easing, cycle) : easing;
                     cycles = TUtil.isDefined(target.cycles)
                         ? resolveMaybeFn(target.cycles, cycle, tmodel.getTargetCycles(key))
-                        : 0;               
+                        : 1;               
 
                     return [value, steps, interval, easing, cycles];
                 } else if (typeof valueResult === 'object' && TUtil.isDefined(valueResult.value) && TUtil.isDefined(valueResult.steps)) {
@@ -295,7 +295,7 @@ static isObjectTarget(key, value) {
 
                 cycles = TUtil.isDefined(target.cycles)
                         ? resolveMaybeFn(target.cycles, cycle, tmodel.getTargetCycles(key))
-                        : 0;
+                        : 1;
 
                 return Array.isArray(value) ? getValue(value) : [value, steps, interval, easing, cycles];
             }

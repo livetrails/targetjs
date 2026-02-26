@@ -16,10 +16,10 @@ class TargetExecutor {
         TargetUtil.currentTargetName = key;
         TargetUtil.currentTModel = tmodel;
         
-        if (tmodel.isExecuted(key) && tmodel.getTargetCycles(key) > 0) {
+        if (tmodel.isExecuted(key) && tmodel.getTargetCycles(key) > 1) {
 
-            if (tmodel.getTargetCycle(key) < tmodel.getTargetCycles(key)) {
-                tmodel.incrementTargetCycle(key, tmodel.getTargetCycle(key));
+            if (tmodel.getTargetCycle(key) < tmodel.getTargetCycles(key) - 1) {
+                tmodel.incrementTargetCycle(key);
             } else {
                 tmodel.resetTargetCycle(key);
             }
@@ -33,8 +33,6 @@ class TargetExecutor {
         tmodel.allTargetMap[cleanKey] = key;        
         TargetExecutor.resolveTargetValue(tmodel, key);
         TargetExecutor.updateTarget(tmodel, tmodel.targetValues[key], key, false);
-        
-        TargetUtil.shouldActivateNextTarget(tmodel, key);
     }
     
     static assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel) {
@@ -54,7 +52,7 @@ class TargetExecutor {
         return targetValue;
     }
 
-    static executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel) {
+    static executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel, cycles = 1) {
         let targetValue;
         
         if (typeof key === 'string') {
@@ -67,23 +65,26 @@ class TargetExecutor {
             const vSteps = TUtil.isDefined(value.steps) ? value.steps : steps;
             const vInterval = TUtil.isDefined(value.interval) ? value.interval : interval;
             const vEasing = TUtil.isDefined(value.easing) ? value.easing : easing;            
-            
-            targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel);
-            TargetExecutor.assignListTarget(tmodel, key, targetValue, value.list, value.list[0], vSteps, vInterval, vEasing);
-        } else if (TargetParser.isTargetSpecObject(value)) {
+            const vCycles = TUtil.isDefined(value.cycles) ? value.cycles : cycles;            
 
+            targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel);
+            TargetExecutor.assignListTarget(tmodel, key, targetValue, value.list, value.list[0], vSteps, vInterval, vEasing, vCycles);
+        } else if (TargetParser.isTargetSpecObject(value)) {
 
             const valueArray = TargetParser.getValueStepsCycles(tmodel, value, key);
             let newValue    = valueArray[0];
             let newSteps    = valueArray[1];
             let newInterval = valueArray[2];
             let newEasing   = valueArray[3];
-
+            let newCycles   = valueArray[4];
+            
             steps    = TUtil.isDefined(newSteps) ? newSteps : steps;
             interval = TUtil.isDefined(newInterval) ? newInterval : interval;
             easing   = TUtil.isDefined(newEasing) ? newEasing : easing;
 
-            TargetExecutor.executeImperativeTarget(tmodel, key, newValue, steps, interval, easing, originalTargetName, originalTModel);
+            cycles = TUtil.isDefined(newCycles) ? newCycles : cycles;
+
+            TargetExecutor.executeImperativeTarget(tmodel, key, newValue, steps, interval, easing, originalTargetName, originalTModel, cycles);
             return;            
             
         } else if (TargetParser.isObjectTarget(key, value)) {
@@ -93,16 +94,18 @@ class TargetExecutor {
                 let newSteps = steps;
                 let newInterval = interval;
                 let newEasing = easing;
+                let newCycles = cycles;
                 
-                if (typeof newValue === 'object'  && !TargetParser.isListTarget(newValue)) {
+                if (typeof newValue === 'object' && !TargetParser.isListTarget(newValue)) {
                     const valueArray = TargetParser.getValueStepsCycles(tmodel, completeValue[objectKey], objectKey);
                     newValue = valueArray[0];
                     newSteps = TUtil.isDefined(valueArray[1]) ? valueArray[1] : steps;
                     newInterval = TUtil.isDefined(valueArray[2]) ? valueArray[2] : interval;
                     newEasing   = TUtil.isDefined(valueArray[3]) ? valueArray[3] : easing;
+                    newCycles = TUtil.isDefined(valueArray[4]) ? valueArray[4] : cycles;
                 }
 
-                TargetExecutor.executeImperativeTarget(tmodel, objectKey, newValue, newSteps, newInterval, newEasing, originalTargetName, originalTModel);
+                TargetExecutor.executeImperativeTarget(tmodel, objectKey, newValue, newSteps, newInterval, newEasing, originalTargetName, originalTModel, newCycles);
             });
         } else {
             if (typeof value === 'object' && !TargetParser.isListTarget(value)) {
@@ -112,16 +115,21 @@ class TargetExecutor {
                     steps    = TUtil.isDefined(valueArray[1]) ? valueArray[1] : steps;
                     interval = TUtil.isDefined(valueArray[2]) ? valueArray[2] : interval;
                     easing   = TUtil.isDefined(valueArray[3]) ? valueArray[3] : easing;
-                    TargetExecutor.executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel);
+                    cycles   = TUtil.isDefined(valueArray[4]) ? valueArray[4] : cycles;
+                    
+                    TargetExecutor.executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel, cycles);
                 } else {
-                    targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel);
-                    TargetExecutor.assignSingleTarget(targetValue, value, undefined, steps, 0, interval, easing);
-                    targetValue.step = 0;                    
+                    targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel, cycles);
+                    TargetExecutor.assignSingleTarget(targetValue, value, undefined, steps, cycles, interval, easing);
+                    targetValue.step = 0; 
+                    targetValue.cycle = 0;                   
+
                 }
             } else {
-                targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel);
-                TargetExecutor.assignSingleTarget(targetValue, value, undefined, steps, 0, interval, easing);
+                targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel, cycles);
+                TargetExecutor.assignSingleTarget(targetValue, value, undefined, steps, cycles, interval, easing);
                 targetValue.step = 0;
+                targetValue.cycle = 0;
             }
         }
 
@@ -158,6 +166,7 @@ class TargetExecutor {
     
     static calculateTargetStatus(tmodel, targetValue, key) {
 
+        const valuePointer = tmodel.getValueListPointer(key);
         const cycle = tmodel.getTargetCycle(key);
         const cycles = tmodel.getTargetCycles(key);
         const step = tmodel.getTargetStep(key);
@@ -167,9 +176,9 @@ class TargetExecutor {
             return 'done';
         } else if (step < steps) {
             return 'updating';
-        } else if (Array.isArray(targetValue.valueList) && cycle < targetValue.valueList.length - 1) {
+        } else if (Array.isArray(targetValue.valueList) && valuePointer < targetValue.valueList.length - 1) {
             return 'updating'; 
-       } else if (tmodel.isTargetInLoop(key) || cycle < cycles) {
+       } else if (tmodel.isTargetInLoop(key) || cycle < cycles - 1) {
             return 'active'; 
         } else if (tmodel.targets[key]?.fetchAction && !getLoader().isLoadingSuccessful(tmodel, key)) {
             return 'fetching';            
@@ -178,14 +187,16 @@ class TargetExecutor {
         }
     }
 
-    static assignListTarget(tmodel, key, targetValue, valueList, initialValue, steps, interval, easing) {
+    static assignListTarget(tmodel, key, targetValue, valueList, initialValue, steps, interval, easing, cycles) {
         targetValue.valueList = valueList;
         
         targetValue.stepList = Array.isArray(steps) ? steps : (TUtil.isDefined(steps) && steps > 0 ? [steps] : [1]);
         targetValue.intervalList = Array.isArray(interval) ? interval : (TUtil.isDefined(interval) ? [interval || 8] : [8]);
         targetValue.easingList = Array.isArray(easing) ? easing : (TUtil.isDefined(easing) ? [easing] : [Easing.LINEAR]);
 
-        targetValue.cycle = 1;
+        targetValue.cycles = cycles;
+        
+        targetValue.valuePointer = 1;        
         targetValue.value = valueList[1];
         targetValue.initialValue = initialValue;
         targetValue.steps = targetValue.stepList[0];
@@ -193,7 +204,6 @@ class TargetExecutor {
         targetValue.easing = targetValue.easingList[0];
 
         targetValue.step = 0;
-        targetValue.cycles = 0;
         targetValue.snapAnimation = false;
 
         tmodel.val(key, initialValue);
@@ -205,12 +215,16 @@ class TargetExecutor {
         delete targetValue.stepList;
         delete targetValue.intervalList;
         delete targetValue.easingList;
+        
+        if (TUtil.isDefined(targetValue.valuePointer)) {
+            targetValue.valuePointer = 0;
+        }
 
         targetValue.initialValue = initialValue;
         targetValue.lastValue = targetValue.value;
         targetValue.value = value;
         targetValue.steps = steps || 0;
-        targetValue.cycles = cycles || 0;
+        targetValue.cycles = cycles || 1;
         targetValue.interval = interval || 0;
         targetValue.easing = easing;
         targetValue.snapAnimation = false;        
@@ -246,7 +260,7 @@ class TargetExecutor {
         const newSteps    = valueArray[1] || 0;
         const newInterval = valueArray[2] || 0;     
         const newEasing   = valueArray[3];
-        const newCycles   = valueArray[4] || 0;
+        const newCycles   = valueArray[4] || 1;
         
         const targetValue = tmodel.targetValues[key] || TargetUtil.emptyValue();
 
@@ -259,7 +273,7 @@ class TargetExecutor {
                 undefined,
                 undefined, 
                 0, 
-                1,
+                2,
                 newValue.interval,
                 easing
             );
@@ -352,7 +366,7 @@ class TargetExecutor {
                 easing
             );    
         } else if (TargetParser.isListTarget(newValue)) {
-            TargetExecutor.assignListTarget(tmodel, key, targetValue, newValue.list, newValue.list[0], newSteps, newInterval, easing);
+            TargetExecutor.assignListTarget(tmodel, key, targetValue, newValue.list, newValue.list[0], newSteps, newInterval, easing, newCycles);
         } else {
             if (newSteps > 0 && !TUtil.areEqual(tmodel.val(key), newValue, tmodel.targets[key]?.deepEquality ?? false)) {
                 tmodel.resetTargetStep(key);

@@ -214,7 +214,7 @@ class BaseModel {
         }
 
         if (TargetParser.isIntervalTarget(target)) {
-            target.cycles = 1;
+            target.cycles = 2;
             target.isInterval = true;
         } else if (!needsTargetExecution) {    
             this.val(cleanKey, TUtil.isDefined(target?.value) ? target.value : target );
@@ -634,7 +634,7 @@ class BaseModel {
     }
 
     getTargetCycles(key) {
-        const cycles = this.targetValues[key]?.cycles ?? 0;
+        const cycles = this.targetValues[key]?.cycles ?? 1;
         const target = this.targets[key];
         if (!target) {
             return cycles;
@@ -646,13 +646,22 @@ class BaseModel {
     getTargetCycle(key) {
         return this.targetValues[key]?.cycle ?? 0;
     }
+    
+    getValueListPointer(key) {
+        return this.targetValues[key]?.valuePointer ?? 0;
+    }    
 
     incrementTargetCycle(key) {
         if (this.targetValues[key]) {
             this.targetValues[key].cycle++;
         }
-        return this.targetValues[key].cycle;        
     }
+    
+    incrementValueListPointer(key) {
+        if (this.targetValues[key]) {
+            this.targetValues[key].valuePointer++;
+        }
+    }    
 
     setTargetInterval(key, value) {
         if (this.targetValues[key]) {
@@ -909,7 +918,7 @@ class BaseModel {
             targetValue.step = 0;
             targetValue.cycle = 0;
             targetValue.steps = 0;
-            targetValue.cycles = 0;
+            targetValue.cycles = 1;
             targetValue.interval = 0;
             targetValue.status = '';
         }
@@ -961,7 +970,8 @@ class BaseModel {
                 targetValue.executionFlag = false;
                 targetValue.scheduleTimeStamp = undefined;
                 targetValue.step = 0;
-                targetValue.cycle = Array.isArray(targetValue.valueList) ? 1 : 0;
+                targetValue.cycle = 0;
+                targetValue.valuePointer = Array.isArray(targetValue.valueList) ? 1 : 0;
                 targetValue.initialValue = undefined;
             } else {
                 this.targetValues[key] = targetValue;

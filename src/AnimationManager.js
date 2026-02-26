@@ -81,7 +81,7 @@ class AnimationManager {
         tmodel.finalRawFrame =  batch.frames[ batch.frames.length - 1];
 
         let anim = el.animate(compactKeyframes, timing);
-                   
+        
         for (const originalKey of originalKeys) {
             const cleanKey = TargetUtil.getTargetName(originalKey);
             const recId = this.getRecordId(tmodel, originalKey);
@@ -142,9 +142,13 @@ class AnimationManager {
                 const targetValue = tmodel.targetValues[originalKey];
                 if (targetValue) {
                     targetValue.step = tmodel.getTargetSteps(originalKey);
-                    targetValue.cycle = Array.isArray(targetValue.valueList) ? targetValue.valueList.length : tmodel.getTargetCycles(originalKey);
+                    targetValue.valuePointer = targetValue.valueList?.length ?? 0;
                     targetValue.value = value;
                     tmodel.setActual(originalKey, value);
+                    if (tmodel.isTargetImperative(originalKey)) {
+                        targetValue.cycle = targetValue.cycles;
+                    }
+
                 }
             }                
 
