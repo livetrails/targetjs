@@ -84,10 +84,21 @@ class TargetUtil {
         const doesNextTargetUsePrevValue = nextKey && nextKey.endsWith('$') ? true : false;
         
         if (!target.activateNextTarget) {
+            let nextTarget;
             if (doesNextTargetUsePrevValue) {
-                target.activateNextTarget = nextKey;
+                nextTarget = nextKey;
             } else {
-                target.activateNextTarget = tmodel.originalTargetNames.slice(keyIndex + 1).find(name => name.endsWith('$$'));
+                const names = tmodel.originalTargetNames;
+                for (let i = keyIndex + 1; i < names.length; i++) {
+                    const name = names[i];
+                    if (name.endsWith("$$")) {
+                        nextTarget = name;
+                        break;
+                    }
+                }            
+            }
+            if (nextTarget) {
+                target.activateNextTarget = nextTarget;
             }
         }
         
@@ -155,7 +166,7 @@ class TargetUtil {
 
         let nextTargetActivated = false;
         let canActivate = false;
-
+        
         if (nextTarget) {
 
             if (isEndTrigger) {

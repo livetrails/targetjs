@@ -321,6 +321,9 @@ class TModelUtil {
     }
     
     static shouldUseImplicitTransformOrder(tmodel) {
+        if (tmodel.val('useTargetTransformOrder')) {
+            return true;
+        }
         const names = tmodel.originalTargetNames || [];
 
         const hasAny = (arr) => arr.some(k => names.indexOf(k) >= 0);
