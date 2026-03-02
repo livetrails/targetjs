@@ -344,7 +344,7 @@ class TargetManager {
             
         const lastUpdateTime = tmodel.getLastUpdate(key);
         const now = TUtil.now();
-
+        
         
         if (!TUtil.isDefined(initialValue)) {
             initialValue = TUtil.isDefined(tmodel.val(key)) ? tmodel.val(key) : typeof theValue === 'number' ? 0 : undefined;

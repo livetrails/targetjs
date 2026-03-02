@@ -117,12 +117,33 @@ class Bracket extends TModel {
         this.absX = x + this.getRealParent().absX;
         this.absY = y + this.getRealParent().absY;
     }
-
-    shouldCalculateChildren() {
+    
+    shouldCalculateChildren() {     
         
-        const result = (this.isVisible() && this.getDirtyLayout() !== false) || this.currentStatus === 'new' || this.isNowVisible;
-        this.currentStatus = undefined;
-        return result;
+        if (this.currentStatus === 'new' || this.isNowVisible) {
+            const visibleChild = this.getChildren().find(child => child.calcVisibility());
+            this.currentStatus = undefined;
+            if (visibleChild) {
+                this.currentStatus = 'new';
+                let parent = this.parent;
+                while(parent && parent.type === 'BI') {
+                    parent.currentStatus = 'new';
+                    parent = parent.parent;
+                }
+            } 
+            
+            return true;
+        }
+        
+        if (this.getDirtyLayout() === false) {
+            return false;
+        }
+        
+        if (this.isVisible()) {
+            return true;
+        }
+
+        return false;
     }
 
     getDirtyLayout() {

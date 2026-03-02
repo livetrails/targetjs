@@ -217,10 +217,6 @@ class LocationManager {
             if (child.isDomIsland()) {                              
                 this.domIslandSet.add(child);
             }            
-            
-            if (child.shouldBeBracketed() && !TUtil.isDefined(child.getDomParent().targets['onWindowScroll'])) {                
-                child.getDomParent().addTarget('onWindowScroll', '');
-            }
 
             viewport.setLocation();
             
