@@ -112,16 +112,11 @@ App({
     this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
   },
   heart$$: {  // Wait for the button animation to finish, THEN add and animate the heart.
-    html: "♥", color: "crimson", fontSize: 20,
+    html: "♥", color: "crimson", fontSize: 20;
     fly() {
-      const cx = this.getCenterX(), cy = this.getCenterY();
-      this.setTarget({
-        opacity: { value: [0, 1, 1, 0.8, 0.1], steps: 20 },
-        scale:   { value: [0.8, 1.4, 1.1, 0.9, 0.8], steps: 20 },
-        rotate:  { value: [0, 12, -8, 6, 0], steps: 20 },
-        x:       { value: [cx, cx + 22, cx - 16, cx + 10, cx], steps: 30 },
-        y:       { value: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150], steps: 30 }
-      });
+      const cx = (this.parent.getWidth() - this.getWidth()) / 2;
+      this.setTarget('x', { value: [cx, cx + 22, cx - 16, cx + 10, cx ], steps: 50, cycles: 2 }); // Repeat it twice
+      this.setTarget('y', { value: [0, -120], steps: 400 });
     }
   }  
 }).mount("#likeButton");
@@ -152,14 +147,9 @@ App({
   heart$$: {
     html: "♥", color: "crimson", fontSize: 20,
     fly() {
-      const cx = this.getCenterX(), cy = this.getCenterY();
-      this.setTarget({
-        opacity: { value: [0, 1, 1, 0.8, 0.1], steps: 20 },
-        scale:   { value: [0.8, 1.4, 1.1, 0.9, 0.8], steps: 20 },
-        rotate:  { value: [0, 12, -8, 6, 0], steps: 20 },
-        x:       { value: [cx, cx + 22, cx - 16, cx + 10, cx], steps: 30 },
-        y:       { value: [cy - 8, cy - 70, cy - 90, cy - 120, cy - 150], steps: 30 }
-      });
+      const cx = (this.parent.getWidth() - this.getWidth()) / 2;
+      this.setTarget('x', { value: [cx, cx + 22, cx - 16, cx + 10, cx ], steps: 50, cycles: 2 }); // Repeat it twice
+      this.setTarget('y', { value: [0, -120], steps: 400 });
     }
   },
   fetch$$: { method: "POST", id: 123, url: "/api/like" }, // Wait for the heart to finish, THEN fetch
@@ -334,7 +324,7 @@ App({
     gap: 10,
     fetch: {
         interval: 1000,
-        cycles: 4,
+        cycles: 5,
         value(i) { return `https://targetjs.io/api/randomUser?id=user${i}`; }
     },
     child$() {   
@@ -411,7 +401,7 @@ App({
   },
   wave$$: {
     interval: 30,
-    cycles() { return this.visibleChildren.length - 1; },
+    cycles() { return this.visibleChildren.length; },
     value(i) {
       const child = this.visibleChildren[i];
       child.setTarget("scale", { value: [1, 1.06, 1], steps: 18 });
