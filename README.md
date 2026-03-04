@@ -48,17 +48,39 @@ App({
 }).mount("#app");
 ```
 
-## Understanding TargetJS Syntax
+## Targets
 
-These symbols tell the framework **when** a target should run.
+In TargetJS, targets are the fundamental unit of behavior. 
+Methods, properties, and objects are internally transformed into targets that the framework schedules and executes.
 
-| Symbol   | Name     | Behavior                                                                                                                 |
-| -------- | -------- | -------------------------------------------------------------------------------------------------------------------------|
-| `name`   | Standard | Runs immediately in the order it appears.                                                                                |
-| `name$`  | Reactive | Runs every time the previous sibling target runs.                                                                    |
-| `name$$` | Deferred | Runs only after the entire preceding target chain including children, animations, and API calls has fully completed. |
-| `_name`  | Inactive | Does not run automatically. Trigger it manually via `.activateTarget()`.                                                 |
- 
+
+### Execution Syntax
+
+Target names can include special symbols that determine **when they execute**.
+
+| Symbol | Name | Behavior |
+|------|------|------|
+| `name` | Standard | Runs immediately in the order it appears. |
+| `name$` | Reactive | Runs every time the previous sibling target runs. |
+| `name$$` | Deferred | Runs only after the entire preceding target chain (including children, animations, and API calls) completes. |
+| `_name` | Inactive | Does not run automatically. Trigger it manually via `.activateTarget()`. |
+
+
+### Target Controls
+
+A target can also be defined as an object with optional controls that manage its lifecycle and execution.
+
+| Property | Description |
+|------|------|
+| `value` | The data or function that determines the target's state. |
+| `steps` | Turns a value change into an animation. |
+| `interval` | Delay (ms) between steps or executions. |
+| `cycles` | Number of times the target repeats. |
+| `loop` | Boolean form of repetition for continuous execution. |
+| `enabledOn` | Determines whether the target is enabled for execution. |
+| `easing` | Predefined easing function controlling how values update over steps. |
+| `onComplete` | Callback triggered when this target (and its children) finishes. |
+| `onValueChange` | Callback triggered when the target emits a new value. |
 
 ## Examples: Like Button → Animated Like (in 3 Steps)
 
@@ -172,7 +194,6 @@ Each target has its own state and lifecycle. Targets execute automatically in th
 1. Deeper Examples:
     - [Loading Five Users Example](#loading-five-users-example)
     - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
-1. [Target Methods](#target-methods)
 1. [Special Target Names](#special-target-names)
 1. [How to Debug in TargetJS](#how-to-debug-in-targetjs)
 1. [Documentation](#documentation)
@@ -421,46 +442,42 @@ App({
 ```
 ---
 
-## Technical Reference
+## Special Target Names
 
-### Target Methods
+Some target names have built-in meaning and interact directly with the DOM, layout system, or browser events.  
+Because these behaviors are expressed as targets, they still participate in the same execution system and dependency flows as any other target.
 
-Every target can be an object with these optional controls:
+**Styles**
 
-1. **value**
-The data or function that determines the target's state.
+These targets update CSS properties and transforms:
 
-1. **steps**
-Turns a value change into an animation (e.g., steps: 20).
+- `width`, `height`
+- `opacity`
+- `x`, `y`, `z`
+- `rotate`, `rotateX`, `rotateY`, `rotateZ`
+- `scale`
+- `backgroundColor`, `color`
 
-1. **interval**
-The delay (ms) between steps or executions.
+These can be animated simply by adding `steps`.
 
-1. **cycles**
-How many times to repeat the target.
+**Structure**
 
-1. **onComplete**
-Callback when this target (and its children) finishes.
+These targets define the structure of the interface:
 
-1. **enabledOn**
-Determines whether the target is enabled for execution.
+- `children` or `addChildren` – adds new children each time the target executes
+- `html` – inner HTML content, often simple text
+- `element` – specify the DOM element type (e.g., `div`, `canvas`)
 
-1. **loop**
-Managed the repetition of target execution. Similar to `cycles` but uses boolean instead.
+**Events**
 
-1. **easing**
-A string that defines a predefined easing function that controls how the actual value is updated in relation to the steps.
+These targets respond to browser events:
 
-1. **onValueChange**
-This callback is triggered when `value` emits a new value.
-
-### Special Target Names
-
-TargetJS maps directly to the DOM for zero-friction styling. For example:
-
-- **Styles**: `width`, `height`, `opacity`, `x`, `y`, `rotate`, `scale`, `backgroundColor`.
-- **Structure**: `html`, `children`, `element`, `domHolder`.
-- **Events**: `onClick`, `onScroll`, `onKey`, `onVisibleChildrenChange`, `onResize`.
+- `onClick`
+- `onScroll`
+- `onKey`
+- `onResize`
+- `onEnter` / `onLeave`
+- `onVisibleChildrenChange`
 
 ## How to Debug in TargetJS
 
