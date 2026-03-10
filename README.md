@@ -146,7 +146,7 @@ App({
     this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
   },
   heart$$: {  // Wait for the button animation to finish, THEN add and animate the heart.
-    html: "♥", color: "crimson", fontSize: 20;
+    html: "♥", color: "crimson", fontSize: 20,
     fly() {
       const cx = (this.parent.getWidth() - this.getWidth()) / 2;
       this.setTarget('x', { value: [cx, cx + 22, cx - 16, cx + 10, cx ], steps: 50, cycles: 2 }); // Repeat it twice
