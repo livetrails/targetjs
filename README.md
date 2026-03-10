@@ -12,17 +12,29 @@ It can be used as a full-featured framework or as a lightweight library alongsid
 
 ## The Philosophy Behind TargetJS
 
-Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A to B, the UI immediately jumps to B. The framework doesn’t naturally represent the *journey* from A to B. But modern, rich user experiences are journeys, not jumps. They are built on sequences that unfold over time. For example:
+Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A to B, the UI immediately jumps to B. The framework doesn’t naturally represent the *journey* from A to B. But modern, rich user experiences are journeys, not jumps. 
+
+**State as a Destination**
+
+TargetJS is built for this reality. It represents state as a destination or target (hence the name). The values of class methods and fields become destinations that the framework iterates toward based on a configurable number of "steps." No steps means the state jumps immediately to the value. Adding steps transforms the change into a fluid transition.
+
+**The Unified Primitive: The Target**
+
+The framework also adds state, lifecycle, and the ability to add timing and callbacks to both class methods and fields. Both class methods and fields are treated uniformly and are called "targets" to be the new primitive construct of a class. Targets act as smart blocks that resemble living cells: self-contained and aware of their own progression.
+
+**UI as Sequence**
+
+Furthermore, UIs are built on sequences that unfold over time. For example:
 
 > Click → Animate button → Chain secondary animation → Fetch data → Render list → Animate items → Pause → Animate an important item
 
-TargetJS is built for this reality. Instead of managing complex flags, your code structure mirrors these sequences directly.
+Instead of managing complex flags, the target structure mirrors these sequences directly through code order. Asynchronous operations are handled by adding reactivity to targets that defer execution until preceding tasks complete. This allows for complex asynchronous workflows without `async/await` or `.then()` chains. 
 
-It achieves this through Targets. A Target is a self-contained unit that merges data (fields) and logic (methods) into a single reactive block. Each Target has its own internal state, timing, and lifecycle, acting like a living cell within your app. By simply ordering them in your code, you create complex asynchronous workflows without async/await or .then() chains. 
+**Animation Efficiency**
 
 In addition, efficient animation is built directly into the framework using the Web Animations API, delivering CSS-level efficiency.
 
-By adopting a compact style, TargetJS makes the journey from A to B efficient and explicit, with significantly less code than traditional frameworks.
+With its compact style, TargetJS makes the journey from A to B efficient and explicit, with significantly less code than traditional frameworks.
 
 ## ⚡ Quick Start (30 Seconds)
 
