@@ -20,7 +20,7 @@ TargetJS is built for this reality. It represents state as a destination or targ
 
 **The Unified Primitive: The Target**
 
-The framework also adds state, lifecycle, and the ability to add timing and callbacks to both class methods and fields. Both class methods and fields are treated uniformly and are called "targets" to be the new primitive construct of a class. Targets act as smart blocks that resemble living cells: self-contained and aware of their own progression.
+The framework also adds state, lifecycle, and the ability to add timing, looping, execution conditions, and callbacks to both class methods and fields. Both class methods and fields are treated uniformly and are called "targets" to be the new primitive construct of a class. Targets act as smart blocks that resemble living cells: self-contained and aware of their own progression.
 
 **UI as Sequence**
 
