@@ -30,9 +30,9 @@ Furthermore, UIs are built on sequences that unfold over time. For example:
 
 Instead of managing complex flags, the target structure mirrors these sequences directly through code order. Asynchronous operations are handled by adding reactivity to targets that defer execution until preceding tasks complete. This allows for complex asynchronous workflows without `async/await` or `.then()` chains. 
 
-**Animation Efficiency**
+**One Model**
 
-In addition, efficient animation is built directly into the framework using the Web Animations API, delivering CSS-level efficiency.
+Animation, data fetching and event handling follow the same target model including reactivity, lifecycle, state, and code order execution. This makes application natively synchronous across all its logic layers. The animation is also implemented using the Web Animations API to deliver CSS-level efficiency. 
 
 With its compact style, TargetJS makes the journey from A to B efficient and explicit, with significantly less code than traditional frameworks.
 
