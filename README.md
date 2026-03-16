@@ -16,7 +16,7 @@ Traditional frameworks model the UI as a function of state: change state, re-ren
 
 **State as a Destination**
 
-TargetJS is built for this reality. It represents state as a destination or target (hence the name). The values of class methods and fields become destinations that the framework iterates toward based on a configurable number of "steps." No steps means the state jumps immediately to the value. Adding steps transforms the change into a transition.
+TargetJS is built for this reality. It represents state as a destination or target (hence the name). The values of class methods and fields become targets that the framework iterates toward based on a configurable number of "steps." No steps means the state jumps immediately to the value. Adding steps transforms the change into a transition.
 
 **The Unified Primitive: The Target**
 
