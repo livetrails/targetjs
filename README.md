@@ -22,7 +22,7 @@ TargetJS treats state as a destination. Values are not only assigned. They can b
 
 In many applications, state, animation, events, loading, timing, and callbacks are all handled through separate concepts or APIs. This creates glue code and a mental split between them.
 
-TargetJS unifies them under one concept and one model. Methods and fields are unified and both become reactive units with their own state, lifecycle, timing, execution conditions, looping, and callbacks. In traditional applications, only methods are active participants; in TargetJS, fields are too.
+TargetJS unifies them under one concept and one model. Methods and fields are unified and both become reactive units with their own state, lifecycle, timing, execution conditions, looping, and callbacks. This shifts fields from passive values to active participants, reducing boilerplate and keeping application logic consolidated.
 
 **Tracing the code of UI sequence is complicated**
 
