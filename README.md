@@ -10,31 +10,31 @@ TargetJS is a high-performance JavaScript UI framework with ultra-compact syntax
 It can be used as a full-featured framework or as a lightweight library alongside other frameworks. It is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
 
-## The Philosophy Behind TargetJS
+## What problems TargetJS solves
 
-Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A to B, the UI immediately jumps to B. The framework doesn’t naturally represent the *journey* from A to B. But modern, rich user experiences are journeys, not jumps. 
+**UI frameworks model the final result, not transition**
 
-**State as a Destination**
+Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A → B, the UI immediately jumps to B. The framework doesn’t naturally represent the journey from A → B. But modern, rich user experiences are more like: A → transition → B.
 
-TargetJS is built for this reality. It represents state as a destination or target (hence the name). The values of class methods and fields become targets that the framework iterates toward based on a configurable number of "steps." No steps means the state jumps immediately to the value. Adding steps transforms the change into a transition.
+TargetJS treats state as a destination. Values are not only assigned. They can be approached over time through configurable steps. This makes transitions a native part of state change rather than an afterthought. TargetJS also delivers CSS-level transition efficiency.
 
-**The Unified Primitive: The Target**
+**Fragmentation across too many mental models**
 
-The framework also adds state, lifecycle, and the ability to add timing, looping, execution conditions, and callbacks to both class methods and fields. Both class methods and fields are treated uniformly and are called "targets" to be the new primitive construct of a class. Targets act as smart blocks that resemble living cells: self-contained and aware of their own progression.
+In many applications, state, animation, events, loading, timing, and callbacks are all handled through separate concepts or APIs. This creates glue code and a mental split between them.
 
-**UI as Sequence**
+TargetJS unifies them under one concept and one model. Methods and fields are unified and both become reactive units with their own state, lifecycle, timing, execution conditions, looping, and callbacks. In traditional applications, only methods are active participants; in TargetJS, fields are too.
 
-Furthermore, UIs are built on sequences that unfold over time. For example:
+**Tracing the code of UI sequence is complicated**
 
-> Click → Animate button → Chain secondary animation → Fetch data → Render list → Animate items → Pause → Animate an important item
+Real UIs often follow sequences like this:
 
-Instead of managing complex flags, the target structure mirrors these sequences directly through code order. Asynchronous operations are handled by adding reactivity to targets that defer execution until preceding tasks complete. This allows for complex asynchronous workflows without `async/await` or `.then()` chains. 
+Click → animate button → fetch data → render results → animate items → highlight one item
 
-**One Model**
+In traditional code, that sequence is often scattered across different places such as event handlers, effects, promises, and callbacks.
 
-Animation, data fetching and event handling follow the same target model including reactivity, lifecycle, state, and code order execution. This makes application natively synchronous across all its logic layers. The animation is also implemented using the Web Animations API to deliver CSS-level efficiency. 
+TargetJS code order and target reactivity allow the implementation to more closely mirror the actual UI sequence.
 
-With its compact style, TargetJS makes the journey from A to B efficient and explicit, with significantly less code than traditional frameworks.
+With its compact style, TargetJS makes the journey from A → B efficient and explicit, with significantly less code than traditional frameworks.
 
 ## ⚡ Quick Start (30 Seconds)
 
