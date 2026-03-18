@@ -18,15 +18,15 @@ Traditional frameworks model the UI as a function of state: change state, re-ren
 
 TargetJS treats state as a destination. Values are not only assigned. They can be approached over time through configurable steps. This makes transitions a native part of state change rather than an afterthought. TargetJS also delivers CSS-level transition efficiency.
 
-**Fragmentation across too many mental models**
+**Fragmentation across multiple mental models**
 
 In many applications, state, animation, events, loading, timing, and callbacks are all handled through separate concepts or APIs. This creates glue code and a mental split between them.
 
 TargetJS unifies them under one concept and one model. Methods and fields are unified and both become reactive units with their own state, lifecycle, timing, execution conditions, looping, and callbacks. This shifts fields from passive values to active participants, reducing boilerplate and keeping application logic consolidated.
 
-**Tracing the code of UI sequence is complicated**
+**UI sequences are difficult to trace in code**
 
-Real UIs often follow sequences like this:
+UIs often follow sequences like this:
 
 Click → animate button → fetch data → render results → animate items → highlight one item
 
