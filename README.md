@@ -1,4 +1,4 @@
-# TargetJS: UI Development as a Sequence
+# TargetJS: State as Destination, UI as Sequence
 
 **[targetjs.io](https://targetjs.io)** 
 [![MIT LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/livetrails/targetjs/blob/main/LICENSE) 
@@ -10,19 +10,31 @@ TargetJS is a high-performance JavaScript UI framework with ultra-compact syntax
 It can be used as a full-featured framework or as a lightweight library alongside other frameworks. It is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
 
-## The Philosophy Behind TargetJS
+## What problems TargetJS solves
 
-Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A to B, the UI immediately jumps to B. The framework doesn’t naturally represent the *journey* from A to B. But modern, rich user experiences are journeys, not jumps. They are built on sequences that unfold over time. For example:
+**UI frameworks model the final result, not transition**
 
-> Click → Animate button → Chain secondary animation → Fetch data → Render list → Animate items → Pause → Animate an important item
+Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A → B, the UI immediately jumps to B. The framework doesn’t naturally represent the journey from A → B. But modern, rich user experiences are more like: A → transition → B.
 
-TargetJS is built for this reality. Instead of managing complex flags, your code structure mirrors these sequences directly.
+TargetJS treats state as a destination. Values are not only assigned. They can be approached over time through configurable steps. This makes transitions a native part of state change rather than an afterthought. TargetJS also delivers CSS-level transition efficiency.
 
-It achieves this through Targets. A Target is a self-contained unit that merges data (fields) and logic (methods) into a single reactive block. Each Target has its own internal state, timing, and lifecycle, acting like a living cell within your app. By simply ordering them in your code, you create complex asynchronous workflows without async/await or .then() chains. 
+**Fragmentation across multiple mental models**
 
-In addition, efficient animation is built directly into the framework using the Web Animations API, delivering CSS-level efficiency.
+In many applications, state, animation, events, loading, timing, and callbacks are all handled through separate concepts or APIs. This creates glue code and a mental split between them.
 
-By adopting a compact style, TargetJS makes the journey from A to B efficient and explicit, with significantly less code than traditional frameworks.
+TargetJS unifies them under one concept and one model. Methods and fields are unified and both become reactive units with their own state, lifecycle, timing, execution conditions, looping, and callbacks. This shifts fields from passive values to active participants, reducing boilerplate and keeping application logic consolidated.
+
+**UI sequences are difficult to trace in code**
+
+UIs often follow sequences like this:
+
+Click → animate button → fetch data → render results → animate items → highlight one item
+
+In traditional code, that sequence is often scattered across different places such as event handlers, effects, promises, and callbacks.
+
+TargetJS code order and target reactivity allow the implementation to more closely mirror the actual UI sequence.
+
+With its compact style, TargetJS makes the journey from A → B efficient and explicit, with significantly less code than traditional frameworks.
 
 ## ⚡ Quick Start (30 Seconds)
 
@@ -48,17 +60,39 @@ App({
 }).mount("#app");
 ```
 
-## Understanding TargetJS Syntax
+## Targets
 
-These symbols tell the framework **when** a target should run.
+In TargetJS, targets are the fundamental unit of behavior. 
+Methods, properties, and objects are internally transformed into targets that the framework schedules and executes.
 
-| Symbol   | Name     | Behavior                                                                                                                 |
-| -------- | -------- | -------------------------------------------------------------------------------------------------------------------------|
-| `name`   | Standard | Runs immediately in the order it appears.                                                                                |
-| `name$`  | Reactive | Runs every time the previous sibling target runs.                                                                    |
-| `name$$` | Deferred | Runs only after the entire preceding target chain including children, animations, and API calls has fully completed. |
-| `_name`  | Inactive | Does not run automatically. Trigger it manually via `.activateTarget()`.                                                 |
- 
+
+### Execution Syntax
+
+Target names can include special symbols that determine **when they execute**.
+
+| Symbol | Name | Behavior |
+|------|------|------|
+| `name` | Standard | Runs immediately in the order it appears. |
+| `name$` | Reactive | Runs every time the previous sibling target runs. |
+| `name$$` | Deferred | Runs only after the entire preceding target chain (including children, animations, and API calls) completes. |
+| `_name` | Inactive | Does not run automatically. Trigger it manually via `.activateTarget()`. |
+
+
+### Target Controls
+
+A target can also be defined as an object with optional controls that manage its lifecycle and execution.
+
+| Property | Description |
+|------|------|
+| `value` | The data or function that determines the target's state. |
+| `steps` | Turns a value change into an animation. |
+| `interval` | Delay (ms) between steps or executions. |
+| `cycles` | Number of times the target repeats. |
+| `loop` | Boolean form of repetition for continuous execution. |
+| `enabledOn` | Determines whether the target is enabled for execution. |
+| `easing` | Predefined easing function controlling how values update over steps. |
+| `onComplete` | Callback triggered when this target (and its children) finishes. |
+| `onValueChange` | Callback triggered when the target emits a new value. |
 
 ## Examples: Like Button → Animated Like (in 3 Steps)
 
@@ -112,7 +146,7 @@ App({
     this.setTarget('backgroundColor', { value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12 });
   },
   heart$$: {  // Wait for the button animation to finish, THEN add and animate the heart.
-    html: "♥", color: "crimson", fontSize: 20;
+    html: "♥", color: "crimson", fontSize: 20,
     fly() {
       const cx = (this.parent.getWidth() - this.getWidth()) / 2;
       this.setTarget('x', { value: [cx, cx + 22, cx - 16, cx + 10, cx ], steps: 50, cycles: 2 }); // Repeat it twice
@@ -172,7 +206,6 @@ Each target has its own state and lifecycle. Targets execute automatically in th
 1. Deeper Examples:
     - [Loading Five Users Example](#loading-five-users-example)
     - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
-1. [Target Methods](#target-methods)
 1. [Special Target Names](#special-target-names)
 1. [How to Debug in TargetJS](#how-to-debug-in-targetjs)
 1. [Documentation](#documentation)
@@ -421,46 +454,42 @@ App({
 ```
 ---
 
-## Technical Reference
+## Special Target Names
 
-### Target Methods
+Some target names have built-in meaning and interact directly with the DOM, layout system, or browser events.  
+Because these behaviors are expressed as targets, they still participate in the same execution system and dependency flows as any other target.
 
-Every target can be an object with these optional controls:
+**Styles**
 
-1. **value**
-The data or function that determines the target's state.
+These targets update CSS properties and transforms:
 
-1. **steps**
-Turns a value change into an animation (e.g., steps: 20).
+- `width`, `height`
+- `opacity`
+- `x`, `y`, `z`
+- `rotate`, `rotateX`, `rotateY`, `rotateZ`
+- `scale`
+- `backgroundColor`, `color`
 
-1. **interval**
-The delay (ms) between steps or executions.
+These can be animated simply by adding `steps`.
 
-1. **cycles**
-How many times to repeat the target.
+**Structure**
 
-1. **onComplete**
-Callback when this target (and its children) finishes.
+These targets define the structure of the interface:
 
-1. **enabledOn**
-Determines whether the target is enabled for execution.
+- `children` or `addChildren` – adds new children each time the target executes
+- `html` – inner HTML content, often simple text
+- `element` – specify the DOM element type (e.g., `div`, `canvas`)
 
-1. **loop**
-Managed the repetition of target execution. Similar to `cycles` but uses boolean instead.
+**Events**
 
-1. **easing**
-A string that defines a predefined easing function that controls how the actual value is updated in relation to the steps.
+These targets respond to browser events:
 
-1. **onValueChange**
-This callback is triggered when `value` emits a new value.
-
-### Special Target Names
-
-TargetJS maps directly to the DOM for zero-friction styling. For example:
-
-- **Styles**: `width`, `height`, `opacity`, `x`, `y`, `rotate`, `scale`, `backgroundColor`.
-- **Structure**: `html`, `children`, `element`, `domHolder`.
-- **Events**: `onClick`, `onScroll`, `onKey`, `onVisibleChildrenChange`, `onResize`.
+- `onClick`
+- `onScroll`
+- `onKey`
+- `onResize`
+- `onEnter` / `onLeave`
+- `onVisibleChildrenChange`
 
 ## How to Debug in TargetJS
 
