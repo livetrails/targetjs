@@ -89,13 +89,9 @@ class LoadingManager {
         return `${document.URL}_${tmodel.oid}_${targetName}`;
     }
 
-    getLoadTargetName(targetName) {
-        return `load-${targetName}`;
-    }
-
     addToTModelKeyMap(tmodel, targetName, fetchId, cacheId) {
         const key = this.getTModelKey(tmodel, targetName);
-        const loadTargetName = this.getLoadTargetName(targetName);
+        const loadTargetName = TUtil.getLoadTargetName(targetName);
 
         const loadingComplete = this.isLoadingComplete(tmodel, targetName);
 
@@ -118,7 +114,7 @@ class LoadingManager {
         this.tmodelKeyMap[key].fetchMap[fetchId].order = this.tmodelKeyMap[key].entryCount;
         this.tmodelKeyMap[key].entryCount++;
         tmodel.val(loadTargetName).push(undefined);
-
+        
         if (cacheId && this.isFetched(cacheId)) {
             this.fetchingAPIMap[fetchId].startTime = TUtil.now();
             this.handleSuccess(this.fetchingAPIMap[fetchId], this.cacheMap[cacheId].result);
@@ -168,7 +164,7 @@ class LoadingManager {
         if (!modelEntry) {
             return false;
         }
-        const loadTargetName = this.getLoadTargetName(targetName);
+        const loadTargetName = TUtil.getLoadTargetName(targetName);
         const targetValue = tmodel.val(loadTargetName);
 
         return Array.isArray(targetValue) && TUtil.isDefined(targetValue[modelEntry.activeIndex]);
@@ -182,7 +178,7 @@ class LoadingManager {
             return undefined;
         }
 
-        const loadTargetName = this.getLoadTargetName(prevTargetName);
+        const loadTargetName = TUtil.getLoadTargetName(prevTargetName);
         const targetValue = tmodel.val(loadTargetName);
         let result;
 
@@ -237,7 +233,7 @@ class LoadingManager {
         targets.forEach(({ tmodel, targetName }) => {
             const key = this.getTModelKey(tmodel, targetName);
             const tmodelEntry = this.tmodelKeyMap[key];
-            const loadTargetName = this.getLoadTargetName(targetName);
+            const loadTargetName = TUtil.getLoadTargetName(targetName);
 
             if (!tmodelEntry || !tmodelEntry.fetchMap[fetchId]) {
                 return;
@@ -250,13 +246,13 @@ class LoadingManager {
             let targetResults = tmodel.val(loadTargetName);
 
             if (targetResults) {
-                if (!targetResults[fetchEntry.order]) {
+                if (!TUtil.isDefined(targetResults[fetchEntry.order])) {
                     tmodelEntry.resultCount++;
                 }
                 targetResults[fetchEntry.order] = res.result;
             }
 
-            tmodel.val(targetName, targetResults?.length === 1 && tmodel.getTargetCycles(targetName) <= 1 ? targetResults[0] : targetResults);
+            tmodel.val(targetName, res.result);
 
             const newStatus = this.calculateTargetStatus(tmodel, targetName);
             tmodel.setTargetStatus(targetName, newStatus);  
@@ -279,7 +275,7 @@ class LoadingManager {
         targets.forEach(({ tmodel, targetName }) => {
             const key = this.getTModelKey(tmodel, targetName);
             const tmodelEntry = this.tmodelKeyMap[key];
-            const loadTargetName = this.getLoadTargetName(targetName);
+            const loadTargetName = TUtil.getLoadTargetName(targetName);
 
             if (!tmodelEntry || !tmodelEntry.fetchMap[fetchId]) {
                 return;
@@ -297,13 +293,13 @@ class LoadingManager {
             let targetResults = tmodel.val(loadTargetName);
 
             if (targetResults) {
-                if (!targetResults[fetchEntry.order]) {
+                if (!TUtil.isDefined(targetResults[fetchEntry.order])) {
                     tmodelEntry.resultCount++;
                 }
                 targetResults[fetchEntry.order] = res;
             }
 
-            tmodel.val(targetName, targetResults?.length === 1 && tmodel.getTargetCycles(targetName) <= 1 ? targetResults[0] : targetResults);
+            tmodel.val(targetName, res);
 
             tmodelEntry.errorCount++;
 

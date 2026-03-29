@@ -324,7 +324,7 @@ class EventListener {
         } else {
             tmodel = this.getTModelFromEvent(event);
         } 
-                        
+                                
         const newEvent = { eventName, eventItem, eventType, originalName, tmodel, originalEvent: event, timeStamp: now };
 
         if (this.lastEvent?.eventItem) {
@@ -541,7 +541,7 @@ class EventListener {
                 }
                 break;
         }
-        
+                
         getRunScheduler().schedule(0, `${originalName}-${eventName}-${(event.target.tagName || '').toUpperCase()}`);        
     }
     

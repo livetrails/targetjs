@@ -208,7 +208,7 @@ class TModelManager {
 
     needsRerender(tmodel) {
         if (tmodel.hasDom() && TUtil.isDefined(tmodel.getHtml()) &&
-                (tmodel.$dom.html() !== tmodel.getHtml() || tmodel.$dom.textOnly !== tmodel.isTextOnly())) {
+                (tmodel.$dom.innerHTML() !== tmodel.getHtml() || tmodel.$dom.textOnly !== tmodel.isTextOnly())) {
             return true;
         }
 

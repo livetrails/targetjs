@@ -123,6 +123,7 @@ class TModel extends BaseModel {
         this.deletedChildren.push(child);   
         this.removeFromUpdatingChildren(child);
         this.removeFromActiveChildren(child);
+        this.removeFromAnimatingChildren(child);
         this.childrenUpdateFlag = true;
         getLocationManager().calcChildren(this);
         this.markLayoutDirty('removeChild');
@@ -459,6 +460,10 @@ class TModel extends BaseModel {
         }
         
         return parentValue;
+    }
+    
+    getLoadedItems(targetName) {
+        return this.val(TUtil.getLoadTargetName(targetName));
     }
     
     delVal(key) {

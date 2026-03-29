@@ -584,7 +584,7 @@ class LocationManager {
     }
 
     runEventTargets(tmodel, eventTargets) {
-
+        
         eventTargets.forEach(targetName => {
             const target = tmodel.targets[targetName];
                         

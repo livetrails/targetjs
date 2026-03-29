@@ -403,14 +403,18 @@ class TargetUtil {
        
     static arePreviousTargetsComplete(tmodel, key) {
         const keyIndex = tmodel.functionTargetNames.findIndex(name => key === name);
- 
+
         for (var i = keyIndex - 1; i >= 0; i--) {
             var targetName = tmodel.functionTargetNames[i];
-
+            
             if (tmodel.isTargetImperative(targetName)) {
                 continue;
             }
-                   
+            
+            if (tmodel.activatedTargets.indexOf(targetName) >= 0) {
+                return "activated targets";
+            }
+                  
             if (tmodel.hasUpdatingImperativeTargets(targetName)) {
                 return  tmodel.oid + "." + targetName + ": " + tmodel.getUpdatingImperativeTargets(targetName);
             }
@@ -419,7 +423,7 @@ class TargetUtil {
                const activeChildrenList = [ ...(tmodel.activeChildrenMap?.values() ?? []) ];
                return  tmodel.oid + "." + targetName + " ==> " + tmodel.getTargetStatus(targetName) + ", " + tmodel.isTargetCompleteDeep(targetName) + ":: " + activeChildrenList.map(t => t.oid + ':' + t.hasAnyUpdates()) + ", " + [ ...TargetUtil.getUpdatingChildren(tmodel, targetName).keys() ]; 
                //return false;
-            }            
+            }         
         }
         return true;
     }
