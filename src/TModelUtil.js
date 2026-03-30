@@ -194,6 +194,9 @@ class TModelUtil {
             if (width > 0 || (width === 0 && child.lastVal('width') > 0)) {
                 child.addToStyleTargetList('width');
             }
+            
+            child.markLayoutDirty('width');
+            
             getRunScheduler().schedule(15, 'resize');
         }
     }
@@ -219,6 +222,8 @@ class TModelUtil {
             if (height > 0 || (height === 0 && child.lastVal('height') > 0)) {
                 child.addToStyleTargetList('height');
             }
+            
+            child.markLayoutDirty('height'); 
 
             getRunScheduler().schedule(15, 'resize');
         }

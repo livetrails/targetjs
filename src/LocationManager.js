@@ -434,7 +434,7 @@ class LocationManager {
             } else {
                 viewport.nextLocation();
             }
-                
+            
             container.calcContentWidthHeight();
         } 
     }

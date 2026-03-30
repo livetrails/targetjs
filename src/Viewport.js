@@ -1,3 +1,4 @@
+import { TModelUtil } from "./TModelUtil.js";
 
 /**
  * It calculates the locations and visibility of objects
@@ -127,7 +128,7 @@ class Viewport {
         const topBaseHeight = child.getTopBaseHeight() * scale;
                
         let maxHeight = child.getHeight() * scale + this.currentChild.getTopMargin() + this.currentChild.getBottomMargin();
-        let maxWidth = child.getItemOverflowMode() === 'always' ? this.container.getWidth() : child.getBaseWidth() * scale +  this.currentChild.getLeftMargin() + this.currentChild.getRightMargin();
+        let maxWidth = child.getItemOverflowMode() === 'always' && TModelUtil.isWidthDefined(this.container) ? this.container.getWidth() : child.getBaseWidth() * scale +  this.currentChild.getLeftMargin() + this.currentChild.getRightMargin();
         
         if (child.type !== 'BI' && this.container.type === 'BI') {
             const layout = this.computeBoundary(child, 'layout');
