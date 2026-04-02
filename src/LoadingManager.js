@@ -13,12 +13,17 @@ class LoadingManager {
         this.tmodelKeyMap = {};
         this.fetchingAPIMap = {};
         this.fetchingImageMap = {};
+            
+        this.fetchSeq = 0;
+
     }
 
     clear() {
         this.tmodelKeyMap = {};
         this.fetchingAPIMap = {};
         this.fetchingImageMap = {};
+        
+        this.fetchSeq = 0;
     }
 
     fetchCommon(fetchId, cacheId, tmodel, fetchMap, fetchFn) {
@@ -82,9 +87,13 @@ class LoadingManager {
     }
 
     getFetchKey(tmodel, url, query) {
-        return query ? `${tmodel.oid}_${url}_${tmodel.getTargetCycle(tmodel.key)}_${JSON.stringify(query)}` : `${tmodel.oid}_${url}_${tmodel.getTargetCycle(tmodel.key)}`;
-    }
+        const base = query
+            ? `${tmodel.oid}_${url}_${tmodel.getTargetCycle(tmodel.key)}_${JSON.stringify(query)}`
+            : `${tmodel.oid}_${url}_${tmodel.getTargetCycle(tmodel.key)}`;
 
+        return `${base}_${++this.fetchSeq}`;
+    }
+    
     getTModelKey(tmodel, targetName) {
         return `${document.URL}_${tmodel.oid}_${targetName}`;
     }

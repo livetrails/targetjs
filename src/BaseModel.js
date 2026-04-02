@@ -932,12 +932,24 @@ class BaseModel {
         }
     }
 
-    activateTarget(key, value) {
+    activateTarget(key, value, options) {
+        let actualValue = value;
+        let actualOptions = options;
+
+        if (value?.reset && Object.keys(value).length === 1 && !options) {
+            actualValue = undefined;
+            actualOptions = value;
+        }
+
         if (this.canTargetBeActivated(key)) {
-            if (TUtil.isDefined(value)) {
-                this.val(`___${key}`, value);
+            if (actualOptions?.reset) {
+                TargetUtil.resetTargetPipelineState(this, key);
             }
-           
+
+            if (TUtil.isDefined(actualValue)) {
+                this.val(`___${key}`, actualValue);
+            }
+
             if (this.isVisible()) {
                 this.markLayoutDirty(key);
             }

@@ -157,8 +157,7 @@ static isObjectTarget(key, value) {
         
         return TUtil.isDefined(target.interval) 
                 && !TUtil.isDefined(target.steps) 
-                && !TUtil.isDefined(target.cycles) 
-                && !TUtil.isDefined(target.value);
+                && !TUtil.isDefined(target.cycles);
     }
     
     static isPrimitiveArray(value) {

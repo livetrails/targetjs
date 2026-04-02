@@ -1,6 +1,7 @@
 import { getLocationManager, tRoot, getScreenHeight, getScreenWidth, getEvents } from "./App.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
+import { TargetParser } from "./TargetParser" ;
 
 /**
  * 
@@ -283,9 +284,13 @@ class TUtil {
     }    
     
     static runTargetValue(tmodel, target, key, cycle, lastValue) {
+        if (TargetParser.isIntervalTarget(target) && cycle === 1) {
+            return;
+        }
+        
         const cleanKey = TargetUtil.getTargetName(key);  
         const isExternalEvent = TargetData.allEventMap[cleanKey];
-
+        
         if (isExternalEvent) {
             return typeof target.value === 'function' ? target.value.call(tmodel, getEvents().getCurrentOriginalEvent(), cycle, lastValue) : TUtil.isDefined(target.value) ? target.value : target;        
         } else if (tmodel.val(`___${key}`)) {

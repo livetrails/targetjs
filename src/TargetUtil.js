@@ -173,7 +173,7 @@ class TargetUtil {
                 const nextCompleteCount = tmodel.targetValues[nextTarget]?.completeCount ?? 0;
                 if (targetValue.completeCount > nextCompleteCount) {
                     canActivate = true;
-                }
+                }             
             } else {
                 const nextTargetUpdateCount = targetValue.nextTargetUpdateCount ?? 0;
                 canActivate = targetValue.updateCount > nextTargetUpdateCount;
@@ -641,6 +641,103 @@ class TargetUtil {
         
         return { originalTModel, originalTargetName };
     }
+    
+    static resetTargetPipelineState(tmodel, targetName, visited = new Set()) {
+        if (!tmodel || !targetName) {
+            return;
+        }
+        
+        const target = tmodel.targets[targetName];
+
+        TargetUtil.resetSingleTargetState(tmodel, targetName);
+
+        if (target.childAction?.length) {
+            target.childAction.forEach(child => {
+                if (child) {
+                    TargetUtil.resetTargetChildState(child, visited);
+                }
+            });
+            target.childAction = [];
+        }
+
+        if (target.addChildAction?.length) {
+            target.addChildAction.forEach(child => {
+                if (child) {
+                    TargetUtil.resetTargetChildState(child, visited);
+                }
+            });
+            target.addChildAction = [];
+        }
+            
+        const nextTarget = target?.activateNextTarget;
+
+        if (!nextTarget) {
+            return;
+        }
+        
+        const nextTargetDef = tmodel.targets[nextTarget];
+
+        if (!nextTargetDef || (!nextTarget.endsWith('$') && nextTargetDef.active === false)) {
+            return;
+        }
+
+        TargetUtil.resetTargetPipelineState(tmodel, nextTarget, visited);
+    }
+    
+    static resetTargetChildState(tmodel, visited) {
+        const sig = `${tmodel.oid}`;
+        
+        if (visited.has(sig)) {
+            return;
+        }
+        
+        visited.add(sig);
+        
+        const names = Object.keys(tmodel.targetValues);
+        
+        for (let i = 0; i < names.length; i++) {
+            const key = names[i];
+            
+            const target = tmodel.targets[key];
+            
+            TargetUtil.resetSingleTargetState(tmodel, key);
+
+            if (target?.childAction?.length) {
+                target.childAction.forEach(child => {
+                    if (child) {
+                        TargetUtil.resetTargetChildState(child, visited);
+                    }
+                });
+                target.childAction = [];
+            }
+
+            if (target?.addChildAction?.length) {
+                target.addChildAction.forEach(child => {
+                    if (child) {
+                        TargetUtil.resetTargetChildState(child, visited);
+                    }
+                });
+                target.addChildAction = [];
+            }  
+        }
+    }
+    
+    static resetSingleTargetState(tmodel, key) {
+        const targetValue = tmodel.targetValues[key];
+
+        if (targetValue) {
+            targetValue.completeCount = 0;
+            targetValue.nextTargetUpdateCount = 0;
+        }
+
+        tmodel.cancelAnimation();
+        tmodel.activatedTargets.length = 0;
+        tmodel.removeFromActiveTargets(key);
+        tmodel.removeFromAnimatingMap(key);
+        tmodel.removeFromUpdatingTargets(key);
+        TargetUtil.clearPendingTargets(tmodel, key);
+    }
+
 }
 
 export { TargetUtil };
