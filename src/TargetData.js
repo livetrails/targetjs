@@ -232,7 +232,9 @@ class TargetData {
         heightFromDom: true,
         widthFromDom: true,
         fetch: true,
-        fetchImage: true
+        fetchImage: true,
+        isVisible: true,
+        canDeleteDom: true
     };
 
     static ignoreRerun = {
@@ -481,7 +483,7 @@ class TargetData {
             const parent = tmodel.getParent();
             const resizeLast = getResizeLastUpdate();
             const parentLast = parent ? parent.getDimLastUpdate() : 0;
-            const resizeLastUpdate = parentLast > resizeLast ? parentLast : resizeLast;
+            const resizeLastUpdate = parentLast > resizeLast ? parentLast : resizeLast;       
             return resizeLastUpdate > lastUpdate;            
         }
     };
@@ -491,7 +493,6 @@ class TargetData {
         onEnd: tmodel => getEvents().isEndEvent() && getEvents().isEndHandler(tmodel),
         onAnySwipe: () => getEvents().isSwipeEvent() && TUtil.isDefined(getEvents().swipeStartX),
         onHover: tmodel => getEvents().isMoveEvent() && getEvents().isHoverHandler(tmodel),
-
         onClick: tmodel => getEvents().isClickEvent() && getEvents().isClickHandler(tmodel),
         onAnyClick: () => getEvents().isClickEvent(),
         onEnter: tmodel => getEvents().isEnterHandler(tmodel),
@@ -561,12 +562,13 @@ class TargetData {
         ...TargetData.styleSet,
         ...Object.keys(TargetData.defaultActualValues()),
         ...Object.keys(TargetData.allEventMap),
-        ...Object.keys(TargetData.internalEventMap),        
+        ...Object.keys(TargetData.internalEventMap),
+        ...Object.keys(TargetData.mustExecuteTargets),
         'html', 'isInFlow', 'domHolder', 'domParent', 'gap', 'widthFromDom', 'heightFromDom',
         'requiresDom', 'preventDefault', 'canDeleteDom', 'textOnly', 'styling', '$dom',
         'defaultStyling', 'reuseDomDefinition', 'canHaveDom', 'excludeXYCalc', 'excludeX', 'excludeY',
         'containerOverflowMode', 'itemOverflowMode', 'baseElement', 'element', 'otype',
-        'calculateChildren','domIsland', 'bracketThreshold', 'bracketSize', 'sourceDom'
+        'calculateChildren','domIsland', 'bracketThreshold', 'bracketSize', 'shouldBeBracketed', 'sourceDom'
     ]);
     
     static activationKeywordSet = new Set([

@@ -1,4 +1,4 @@
-import { getLocationManager, tRoot, getScreenHeight, getScreenWidth, getEvents } from "./App.js";
+import { getLocationManager, tRoot, getEvents } from "./App.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
 import { TargetParser } from "./TargetParser" ;
@@ -9,64 +9,123 @@ import { TargetParser } from "./TargetParser" ;
  */
 class TUtil {
     static calcVisibility(child) {
-        // keep the "x updating" fast-path
-        
         const parent = child.getRealParent();
         const onVisibleChildrenChange = parent?.targets['onVisibleChildrenChange'] ?? false;
-        
+
         if (!onVisibleChildrenChange && child.isVisible() && (child.isTargetUpdating(child.allTargetMap['x']) || child.isTargetUpdating(child.allTargetMap['y']))) {
             return true;
         }
-        
+
+        const domParent = child.getDomParent();
+        const scale = (domParent.getMeasuringScale() || 1) * child.getMeasuringScale();
+
         const x = child.absX;
         const y = child.absY;
-        const domParent = child.getDomParent();
-
-        const scale = (domParent.getMeasuringScale() || 1) * child.getMeasuringScale();
-        const maxWidth = TUtil.isDefined(child.getWidth()) ? scale * child.getWidth() : 0;
-        const maxHeight = TUtil.isDefined(child.getHeight()) ? scale * child.getHeight() : 0;
+        const width = TUtil.isDefined(child.getWidth()) ? scale * child.getWidth() : 0;
+        const height = TUtil.isDefined(child.getHeight()) ? scale * child.getHeight() : 0;
+        const visibilityMargin = 20;
 
         if (!child.visibilityStatus) {
             child.visibilityStatus = {};
         }
 
         const status = child.visibilityStatus;
+        const clip = this.getVisibilityClipRect(child.getParent());
 
-        const validateInParent = child.validateVisibilityInParent() && parent !== tRoot();
+        if (clip) {
+            status.right = (x - visibilityMargin) <= clip.r;
+            status.left = (x + width + visibilityMargin) >= clip.x;
+            status.bottom = (y - child.getTopMargin() - visibilityMargin) <= clip.b;
+            status.top = (y + height + visibilityMargin) >= clip.y;
 
-        const parentX = validateInParent ? Math.max(domParent.absX, parent.absX) : 0;
-        const parentY = validateInParent ? Math.max(domParent.absY, parent.absY) : 0;
-        const parentW = validateInParent ? Math.min(domParent.getWidth(), parent.getWidth()) : getScreenWidth();
-        const parentH = validateInParent ? Math.min(domParent.getHeight(), parent.getHeight()) : getScreenHeight();
-        
-        const screenX = 0;
-        const screenY = 0;
-        const screenW = getScreenWidth();
-        const screenH = getScreenHeight();
+            status.clipX = clip.x;
+            status.clipY = clip.y;
+            status.clipR = clip.r;
+            status.clipB = clip.b;
+            status.parent = clip.source;
 
-        const clipX = Math.max(parentX, screenX);
-        const clipY = Math.max(parentY, screenY);
-        const clipR = Math.min(parentX + parentW, screenX + screenW);
-        const clipB = Math.min(parentY + parentH, screenY + screenH);
+            status.isVisible = status.left && status.right && status.top && status.bottom;
+        } else {
+            status.right = true;
+            status.left = true;
+            status.bottom = true;
+            status.top = true;
 
-        status.right = x <= clipR;
-        status.left = (x + maxWidth) >= clipX;
-        status.bottom = (y - child.getTopMargin()) <= clipB;
-        status.top = (y + maxHeight) >= clipY;
+            status.clipX = undefined;
+            status.clipY = undefined;
+            status.clipR = undefined;
+            status.clipB = undefined;
+            status.parent = "none";
+            status.isVisible = true;
+        }
 
-        status.clipX = clipX;
-        status.clipY = clipY;
-        status.clipR = clipR;
-        status.clipB = clipB;
         status.x = x;
         status.y = y;
-        status.width = maxWidth;
-        status.height = maxHeight;
-        status.parent = validateInParent ? parent : "screen";
+        status.width = width;
+        status.height = height;
 
-        status.isVisible = status.left && status.right && status.top && status.bottom;
         child.actualValues.isVisible = status.isVisible;
         return status.isVisible;
+    }
+
+    static getVisibilityClipRect(container) {
+        let rect = null;
+
+        while (container && container !== tRoot()) {
+            if (this.shouldClipByAncestor(container)) {
+                const ancestorRect = this.getAncestorViewportRect(container);
+                rect = rect ? this.intersectVisibilityRects(rect, ancestorRect) : ancestorRect;
+
+                if (rect.r <= rect.x || rect.b <= rect.y) {
+                    break;
+                }
+            }
+
+            container = container.getParent();
+        }
+
+        return rect;
+    }
+
+    static shouldClipByAncestor(ancestor) {
+        return ancestor.managesOwnScroll();
+    }
+
+    static getAncestorViewportRect(ancestor) {
+        const domScrollLeft = ancestor.$dom?.getScrollLeft() || 0;
+        const domScrollTop = ancestor.$dom?.getScrollTop() || 0;
+
+        return {
+            x: ancestor.absX + domScrollLeft,
+            y: ancestor.absY + domScrollTop,
+            r: ancestor.absX + domScrollLeft + ancestor.getWidth(),
+            b: ancestor.absY + domScrollTop + ancestor.getHeight(),
+            source: ancestor
+        };
+    }
+
+    static intersectVisibilityRects(a, b) {
+        return {
+            x: Math.max(a.x, b.x),
+            y: Math.max(a.y, b.y),
+            r: Math.min(a.r, b.r),
+            b: Math.min(a.b, b.b),
+            source: b.source
+        };
+    }
+    
+    static updateClipRect(tmodel) {
+        const parent = tmodel.getParent();
+        const inheritedClip = parent?.visibilityClipRect || null;
+
+        if (this.shouldClipByAncestor(tmodel)) {
+            const localRect = this.getLocalViewportRect(tmodel);
+            tmodel.visibilityClipRect = inheritedClip ? this.intersectVisibilityRects(inheritedClip, localRect) : localRect;
+        } else {
+            tmodel.visibilityClipRect = inheritedClip;
+        }
+
+        return tmodel.visibilityClipRect;
     }
 
     static contains(container, tmodel) {

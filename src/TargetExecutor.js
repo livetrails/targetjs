@@ -71,7 +71,7 @@ class TargetExecutor {
             TargetExecutor.assignListTarget(tmodel, key, targetValue, value.list, value.list[0], vSteps, vInterval, vEasing, vCycles);
         } else if (TargetParser.isTargetSpecObject(value)) {
 
-            const valueArray = TargetParser.getValueStepsCycles(tmodel, value, key);
+            const valueArray = TargetParser.getValueStepsCycles(tmodel, key, value);
             let newValue    = valueArray[0];
             let newSteps    = valueArray[1];
             let newInterval = valueArray[2];
@@ -97,7 +97,7 @@ class TargetExecutor {
                 let newCycles = cycles;
                 
                 if (typeof newValue === 'object' && !TargetParser.isListTarget(newValue)) {
-                    const valueArray = TargetParser.getValueStepsCycles(tmodel, completeValue[objectKey], objectKey);
+                    const valueArray = TargetParser.getValueStepsCycles(tmodel, objectKey, completeValue[objectKey]);
                     newValue = valueArray[0];
                     newSteps = TUtil.isDefined(valueArray[1]) ? valueArray[1] : steps;
                     newInterval = TUtil.isDefined(valueArray[2]) ? valueArray[2] : interval;
@@ -109,7 +109,7 @@ class TargetExecutor {
             });
         } else {
             if (typeof value === 'object' && !TargetParser.isListTarget(value)) {
-                const valueArray = TargetParser.getValueStepsCycles(tmodel, value, key);
+                const valueArray = TargetParser.getValueStepsCycles(tmodel, key, value);
                 if (value !== valueArray[0]) {
                     value    = valueArray[0];
                     steps    = TUtil.isDefined(valueArray[1]) ? valueArray[1] : steps;
@@ -171,7 +171,7 @@ class TargetExecutor {
         const cycles = tmodel.getTargetCycles(key);
         const step = tmodel.getTargetStep(key);
         const steps = tmodel.getTargetSteps(key);
-        
+
         if (targetValue.snapAnimation) {
             return 'done';
         } else if (step < steps) {
@@ -254,7 +254,7 @@ class TargetExecutor {
             ? tmodel.targets[key].initialValue
             : undefined;
 
-        const valueArray = TargetParser.getValueStepsCycles(tmodel, tmodel.targets[key], key, cycle);
+        const valueArray = TargetParser.getValueStepsCycles(tmodel, key, tmodel.targets[key], cycle);
 
         const newValue    = valueArray[0];
         const newSteps    = valueArray[1] || 0;

@@ -53,10 +53,8 @@ class TModel extends BaseModel {
     createViewport() {
         this.viewport = this.viewport || new Viewport();
 
-        const scrollLeft = -this.getScrollLeft();
-        const scrollTop = -this.getScrollTop();
         
-        const x = scrollLeft, y = scrollTop;
+        const x = -this.getScrollLeft(), y = -this.getScrollTop();
         
         this.viewport.xNext = x;
         this.viewport.xNorth = x;
@@ -64,8 +62,8 @@ class TModel extends BaseModel {
         this.viewport.xSouth = x;
         this.viewport.xWest = x;
         
-        this.viewport.scrollLeft = scrollLeft;
-        this.viewport.scrollTop = scrollTop;        
+        this.viewport.scrollLeft = -(this.getScrollLeft() + (this.getParent()?.$dom?.getScrollLeft() ?? 0));
+        this.viewport.scrollTop = -(this.getScrollTop() + (this.getParent()?.$dom?.getScrollTop() ?? 0));        
         
         this.viewport.absX = this.absX;
         this.viewport.absY = this.absY;
@@ -106,8 +104,8 @@ class TModel extends BaseModel {
     adjustViewport() {}    
 
     calcAbsolutePosition(x, y) {
-        this.absX = TUtil.isDefined(this.val('absX')) ? this.val('absX') : this.getParent().absX - (this.getParent().$dom?.getScrollLeft() ?? 0) + x;
-        this.absY = TUtil.isDefined(this.val('absY')) ? this.val('absY') : this.getParent().absY - (this.getParent().$dom?.getScrollTop() ?? 0) + y;
+        this.absX = TUtil.isDefined(this.val('absX')) ? this.val('absX') : this.getParent().absX + x;
+        this.absY = TUtil.isDefined(this.val('absY')) ? this.val('absY') : this.getParent().absY + y;
     }
     
     calcAbsolutePositionFromDom() {
@@ -177,7 +175,7 @@ class TModel extends BaseModel {
                     this.addToActiveChildren(child);
                 }   
                         
-                TargetUtil.markChildAction(this, TargetUtil.currentTargetName, child);
+                TargetUtil.markChildAction(this, TargetUtil.currentTargetName, child);      
             }
         }
         return this;
@@ -383,19 +381,23 @@ class TModel extends BaseModel {
     getDirtyLayout() {
         return this.dirtyLayout;
     }
-
+    
     shouldCalculateChildren() {
         if (TUtil.isDefined(this.val('calculateChildren'))) {
             return this.val('calculateChildren');
         }
-                
+
         if (!this.isIncluded() || (this.isDomIsland() && !this.hasDom())) {
             return false;
         }
-        
 
-        const result = (this.isVisible() && (this.hasEventDirty() || this.dirtyLayout !== false)) || this.isNowVisible;
-                
+        const hasDirtyLayout = this.dirtyLayout !== false;
+        const hasDirtyEvent = this.hasEventDirty();
+        const hasDom = this.hasDom();
+        const visible = this.isVisible();
+
+        const result = this.currentStatus === 'active' || hasDirtyLayout || (visible && hasDirtyEvent) || this.isNowVisible || (hasDom && hasDirtyEvent);
+
         this.currentStatus = undefined;
 
         return result;

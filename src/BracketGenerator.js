@@ -56,6 +56,7 @@ class BracketGenerator {
                 const index = parent.allChildrenList.indexOf(child);
                 if (index >= 0) {
                     parent.allChildrenList.splice(index, 1);
+                    BracketGenerator.markBracketDirty(parent);
                     if (parent.allChildrenList.length === 0) {
                         deleteChildRecursively(parent.parent, parent);
                     }
@@ -74,7 +75,7 @@ class BracketGenerator {
             if (bracket.allChildrenList.length === 0) {
                 return currentIndex;
             }
-
+            
             const containsBrackets = bracket.allChildrenList[0] instanceof Bracket;
             if (containsBrackets) {
                 bracket.startIndex = currentIndex;
@@ -115,12 +116,15 @@ class BracketGenerator {
             bracket.startIndex = Math.min(bracket.startIndex, index);
             bracket.endIndex = bracket.startIndex + bracket.allChildrenList.length;  
             bracket.currentStatus = 'new';
+            bracket.markLayoutDirty('update');
 
             bracket = targetBracket.getParent();
             while (bracket instanceof Bracket) {
                 bracket.startIndex = Math.min(bracket.startIndex, index);
                 bracket.endIndex = Math.max(bracket.endIndex, index + 1);
-                bracket.currentStatus = 'new';                
+                bracket.currentStatus = 'new'; 
+                bracket.markLayoutDirty('update');
+
                 bracket = bracket.getParent();
             }
 
@@ -153,12 +157,16 @@ class BracketGenerator {
                 bracket.parent.allChildrenList.splice(index, 1, ...chunks);
             }
             
+            BracketGenerator.markBracketDirty(bracket);
+            
             if (bracket.parent.allChildrenList.length >= bracketSize) {
                 const rebuiltChildren = BracketGenerator.buildTreeBottomUp(page, bracket.parent.allChildrenList);          
                 bracket.parent.allChildrenList = rebuiltChildren;
                                 
                 bracket.parent.allChildrenList.forEach(child => {
                     child.parent = bracket.parent;
+                                
+                    BracketGenerator.markBracketDirty(child);
                 });
                 
                 // Update grandparent relationships
@@ -184,7 +192,12 @@ class BracketGenerator {
                 BracketGenerator.bracketMap[page.oid] = BracketGenerator.buildTreeBottomUp(page, topBrackets);
             }
         }
-    }
+        
+        chunks.forEach(chunk => BracketGenerator.markBracketDirty(chunk));
+        if (chunks[0].parent instanceof Bracket) {
+            BracketGenerator.markBracketDirty(chunks[0].parent);
+        }           
+   }
 
     static findOrCreateBracket(page, index, brackets = BracketGenerator.bracketMap[page.oid]) {
         for (const bracket of brackets) {
@@ -201,7 +214,7 @@ class BracketGenerator {
 
         if (brackets.length > page.getBracketSize()) {
             const topBrackets = BracketGenerator.buildTreeBottomUp(page, brackets);
-            BracketGenerator.bracketMap[page.oid].brackets = topBrackets;
+            BracketGenerator.bracketMap[page.oid] = topBrackets;
         }
 
         return newBracket;
@@ -253,6 +266,15 @@ class BracketGenerator {
         BracketGenerator.bracketMap = {};
         BracketGenerator.pageMap = {};
         BracketGenerator.all = {};
+    }
+    
+    static markBracketDirty(bracket) {
+        let current = bracket;
+        while (current && current.type === 'BI') {
+            current.currentStatus = 'new';
+            current.markLayoutDirty('update');
+            current = current.parent;
+        }
     }
 }
 

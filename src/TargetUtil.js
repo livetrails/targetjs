@@ -727,7 +727,9 @@ class TargetUtil {
 
         if (targetValue) {
             targetValue.completeCount = 0;
+            targetValue.resetFlag = true;
             targetValue.nextTargetUpdateCount = 0;
+            targetValue.status = 'complete';
         }
 
         tmodel.cancelAnimation();

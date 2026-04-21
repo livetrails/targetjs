@@ -170,7 +170,7 @@ class LocationManager {
                     container.calcContentWidthHeight();
                 }
                 
-                if (child.hasEventDirty() || getEvents().getEventType() || getEvents().hasDelta()) {
+                 if (child.hasEventDirty() || getEvents().getEventType() || getEvents().hasDelta()) {
                    this.checkExternalEvents(child);
                    if (child.hasEventDirty()) {
                        child.processedEventEpoch = child.eventDirtyEpoch;
@@ -206,7 +206,7 @@ class LocationManager {
             
             viewport.setCurrentChild(child);
 
-            if (!child.getDirtyLayout() && !child.currentStatus) {
+            if (!child.getDirtyLayout() && !child.currentStatus && child.activeTargetList.length === 0) {
 
                 this.calcNextLocation(child, container, viewport);
                 job.index++;
@@ -229,7 +229,7 @@ class LocationManager {
             const prevY = child.actualValues.y;
             const prevWidth = child.getMinWidth();
 
-            if (child.isIncluded() && container.manageChildTargetExecution(child)) {
+            if (child.isIncluded()) {
                 this.calculateTargets(child);
             }
             
@@ -283,8 +283,7 @@ class LocationManager {
                         index: 0
                     });
                                         
-                } else if (!child.isVisible() && child.makeChildrenInvisible !== false) {
-                    child.makeChildrenInvisible = false;
+                } else if (!child.isVisible()) {
                     TUtil.getDeepList(child).forEach(t => {                   
                         t.actualValues.isVisible = false;
                         this.addToLocationList(t);
@@ -420,7 +419,7 @@ class LocationManager {
         }
         
         this.calculateVisibility(child);
-        
+       
         if (!child.isVisible() && child.hasChildren()) {
             TUtil.getDeepList(child).forEach(t => {
                 t.actualValues.isVisible = false;
@@ -468,7 +467,6 @@ class LocationManager {
         }
         
         if (tmodel.isNowInvisible) {
-            tmodel.makeChildrenInvisible = undefined;
             this.addToLocationList(tmodel);
         }
         

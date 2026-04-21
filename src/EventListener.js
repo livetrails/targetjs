@@ -306,8 +306,8 @@ class EventListener {
         if (!event) {
             return;
         }
-                
-        const { type: originalName } = event; 
+                        
+        const { type: originalName } = event;        
         const eventItem = this.allEvents[originalName];
         
         if (!eventItem) {
@@ -315,7 +315,7 @@ class EventListener {
         }
                                       
         let { eventName, inputType, eventType, order: eventOrder, queue, rateLimit } = eventItem;
-          
+           
         const now = TUtil.now();
                 
         let tmodel;
@@ -324,7 +324,7 @@ class EventListener {
         } else {
             tmodel = this.getTModelFromEvent(event);
         } 
-                                
+                                        
         const newEvent = { eventName, eventItem, eventType, originalName, tmodel, originalEvent: event, timeStamp: now };
 
         if (this.lastEvent?.eventItem) {

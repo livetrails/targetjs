@@ -120,18 +120,8 @@ class Bracket extends TModel {
     
     shouldCalculateChildren() {     
         
-        if (this.currentStatus === 'new' || this.isNowVisible) {
-            const visibleChild = this.getChildren().find(child => child.calcVisibility());
+        if (this.currentStatus === 'new' || this.isNowVisible || this.isNowInvisible) {
             this.currentStatus = undefined;
-            if (visibleChild) {
-                this.currentStatus = 'new';
-                let parent = this.parent;
-                while(parent && parent.type === 'BI') {
-                    parent.currentStatus = 'new';
-                    parent = parent.parent;
-                }
-            } 
-            
             return true;
         }
         

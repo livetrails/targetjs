@@ -104,15 +104,6 @@ class AnimationManager {
             tmodel.addToAnimatingMap(originalKey, rec);
             this.recordMap.set(recId, rec);
         }
-               
-        const finalize = () => {
-            this.finalizeAnimation(anim);
-        };
-
-        anim.addEventListener("finish", finalize, { once: true });
-        anim.addEventListener("cancel", finalize, { once: true });
-
-        anim.finished.then(finalize).catch(finalize);
 
         this.startProgressPoller();
     }
@@ -168,6 +159,8 @@ class AnimationManager {
 
             getRunScheduler().scheduleOnlyIfEarlier(1, `animate-${tmodel.oid}---${originalKey}`);
         }
+        
+        getRunScheduler().schedule(35, `finalizeAnimation`);
     }
     
     startProgressPoller() {

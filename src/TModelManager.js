@@ -1,6 +1,6 @@
 import { $Dom } from "./$Dom.js";
 import { TUtil } from "./TUtil.js";
-import { App, getLocationManager, getEvents, getAnimationManager } from "./App.js";
+import { App, getLocationManager, getEvents, getAnimationManager, tRoot } from "./App.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
 
@@ -58,6 +58,7 @@ class TModelManager {
     analyze() {
         const lastVisibleMap = { ...this.visibleOidMap };
         this.clearFrameLists();
+        const activated = [];
 
         for (const tmodel of getLocationManager().hasLocationList) {         
             lastVisibleMap[tmodel.oid] = undefined; 
@@ -79,8 +80,15 @@ class TModelManager {
                 delete this.visibleOidMap[tmodel.oid]; 
             }
             
+            const hasDom = tmodel.hasDom();
+            const keepDom = hasDom ? this.shouldPreserveDom(tmodel) : false;
+            
+            if (keepDom) {
+                this.visibleOidMap[tmodel.oid] = tmodel;
+            }
+            
             if (tmodel.hasDom()) { 
-                if (!tmodel.canHaveDom() || !tmodel.isIncluded() || (tmodel.canDeleteDom() && !visible)) {                    
+                if (!tmodel.canHaveDom() || !tmodel.isIncluded() || (tmodel.canDeleteDom() && !visible && !keepDom)) {
                     this.addToInvisibleDom(tmodel);
                     tmodel.getChildren().forEach(tmodel => {
                         this.addToRecursiveInvisibleDom(tmodel);
@@ -88,7 +96,23 @@ class TModelManager {
                 }
             }
             
-            if (visible || tmodel.isActivated()) {
+            if (visible || tmodel.isActivated() || keepDom) {
+
+                const state = tmodel.state();
+
+                if (state.updatingTargetList?.length > 0 || tmodel.hasAnimatingTargets()) {
+                    this.lists.updatingTModels.push(tmodel);
+                    this.lists.updatingTargets = [...this.lists.updatingTargets, ...state.updatingTargetList];
+                }
+                
+                if (state.activeTargetList?.length > 0) {
+                    this.lists.activeTModels.push(tmodel);
+                    this.lists.activeTargets = [...this.lists.activeTargets, ...state.activeTargetList];
+                }
+                              
+            }
+            
+            if (visible || tmodel.isActivated() || (keepDom && (this.needsRestyle(tmodel) || tmodel.isNowInvisible))) {
                 if (this.needsRerender(tmodel)) {
                     this.lists.rerender.push(tmodel);            
                 }
@@ -104,25 +128,18 @@ class TModelManager {
                 if (this.needsRelocation(tmodel)) {
                     this.lists.relocation.push(tmodel);            
                 }
-
+                
                 const state = tmodel.state();
-
-                if (state.updatingTargetList?.length > 0 || tmodel.hasAnimatingTargets()) {
-                    this.lists.updatingTModels.push(tmodel);
-                    this.lists.updatingTargets = [...this.lists.updatingTargets, ...state.updatingTargetList];
-                }
-
-                if (state.activeTargetList?.length > 0) {
-                    this.lists.activeTModels.push(tmodel);
-                    this.lists.activeTargets = [...this.lists.activeTargets, ...state.activeTargetList];
-                }
 
                 if (state.targetMethodMap && Object.keys(state.targetMethodMap).length > 0) {
                     this.targetMethodMap[tmodel.oid] = { ...state.targetMethodMap };
                     state.targetMethodMap = {};
+                }                  
+                
+                if (tmodel.isActivated()) {
+                    activated.push(tmodel);
                 }
 
-                tmodel.deactivate();
             }
 
             if (visible || tmodel.requiresDom()) {
@@ -136,6 +153,8 @@ class TModelManager {
                 } 
             }
         }
+        
+        activated.forEach(t => t.deactivate());
                 
         Object.values(lastVisibleMap).filter(v => v !== undefined).forEach(tmodel => {
             if (tmodel.hasDom()) {
@@ -153,6 +172,28 @@ class TModelManager {
                this.lists.reasyncStyle.length > 0 ? 4 :
                this.lists.invisibleDom.length > 0 ? 5 :
                this.lists.restyle.length > 0 ? 10 : -1;
+    }
+    
+    shouldPreserveDom(tmodel) {
+        let parent = tmodel.parent;
+        
+        if (!tmodel.isIncluded()) {
+            return false;
+        }
+
+        while (parent && parent !== tRoot()) {
+            if (TUtil.isDefined(parent.targets.canDeleteDom) && parent.val('canDeleteDom') === false) {
+                return true;
+            }
+
+            if (TUtil.isDefined(parent.targets.isVisible) && parent.val('isVisible') === true) {
+                return true;
+            }
+
+            parent = parent.parent;
+        }
+
+        return false;
     }
     
     isBracketVisible(tmodel) {
@@ -312,6 +353,13 @@ class TModelManager {
         if (tmodel.hasAnimatingTargets()) {
             getAnimationManager().pauseTModel(tmodel);
         }
+        
+        Object.keys(tmodel.targetValues).forEach(key => {
+            const targetValue = tmodel.targetValues[key];
+            if (targetValue.status === 'updating' && tmodel.updatingTargetList.indexOf(key) === -1) {
+                tmodel.setTargetStatus('active');
+            }
+        });
         
         const domParent = tmodel.getDomParent();
         if (domParent && domParent.$dom) {

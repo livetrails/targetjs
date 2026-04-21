@@ -396,10 +396,12 @@ class BaseModel {
         
         const oldStatus = targetValue.status;
 
-        if (status === 'done' && oldStatus !== 'done' && oldStatus !== 'complete') {
+        if (status === 'done' && oldStatus !== 'done' && oldStatus !== 'complete' && !targetValue.resetFlag) {
           targetValue.completeCount++;
           targetValue.completeTime = TUtil.now();
         }
+        
+        targetValue.resetFlag = false;
 
         targetValue.status = status;
         
@@ -554,7 +556,8 @@ class BaseModel {
         if (t.loop !== undefined) {
             const loop = (typeof t.loop === 'function') ? t.loop.call(this, key) : t.loop;
             if (loop === 'passive') {
-                return false;
+                const values = TargetParser.getValueStepsCycles(this, key);
+                return values[0] === this.getTargetValue(key) ? false : true;
             }
         }
 
@@ -573,7 +576,7 @@ class BaseModel {
         return Math.max(
             this.getLastUpdate('width') ?? 0,
             this.getLastUpdate('height') ?? 0,
-            this.getLastUpdate('size') ?? 0,
+            this.getLastUpdate('dim') ?? 0,
             this.domHeightTimestamp ?? 0,
             this.domWidthTimestamp ?? 0
         );

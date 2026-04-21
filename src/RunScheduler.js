@@ -108,7 +108,7 @@ class RunScheduler {
         if (tApp.debugLevel === 1) {
             TUtil.log(true)(`Request from: ${runId} delay: ${delay} runningStep:${this.runningStep} dom:${this.domProcessing} runs:${this.nextRuns.length} D:${this.delayProcess?.delay} events:${getEvents().eventQueue.length}`);
         }        
-             
+        
         if (this.phase === 0) {
             getEvents().captureEvents();
             tApp.targetManager.applyTargetValues(tRoot());

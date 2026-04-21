@@ -222,7 +222,7 @@ static isObjectTarget(key, value) {
     }
 
     
-    static getValueStepsCycles(tmodel, _target, key, cycle = tmodel.getTargetCycle(key)) {
+    static getValueStepsCycles(tmodel, key, _target = tmodel.targets[key], cycle = tmodel.getTargetCycle(key)) {
         const valueOnly = _target && _target.valueOnly;
         const lastValue = tmodel.val(key);
 

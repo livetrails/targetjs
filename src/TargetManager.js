@@ -201,11 +201,11 @@ class TargetManager {
                 tmodel.setTargetMethodName(key, "onStepsEnd");
             }
         }
-        
+
         TargetUtil.shouldActivateNextTarget(tmodel, key);
     }
     
-    
+        
     calculateTargetStatus(tmodel, targetValue, key) {
 
         const valuePointer = tmodel.getValueListPointer(key);
@@ -235,7 +235,7 @@ class TargetManager {
         const isTransform = TargetData.isTransformKey(cleanKey);
         
         const getFrameAtTime = (t) => {
-            const shifted = t + timeShift;
+            const shifted = Math.max(0, t + timeShift);
 
             for (let i = 0; i < batch.frames.length; i++) {
                 const frame = batch.frames[i];
@@ -313,7 +313,7 @@ class TargetManager {
             batch.easing = tmodel.getTargetEasing(key);
         }
 
-        batch.totalDuration = Math.max(batch.totalDuration, timeShift + keyDuration);
+        batch.totalDuration = Math.max(0, batch.totalDuration, timeShift + keyDuration);
 
         (batch.keyMap[cleanKey] ||= new Set()).add(key);
 
@@ -361,7 +361,7 @@ class TargetManager {
                     this.handleWebAnimationAPI(tmodel, cleanKey, key, targetValue, initialValue, theValue, steps, interval, c * cycleDuration, true);
                 }                
             }
-            
+                
             return;
         }
 
