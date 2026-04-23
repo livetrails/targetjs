@@ -283,11 +283,6 @@ class LocationManager {
                         index: 0
                     });
                                         
-                } else if (!child.isVisible()) {
-                    TUtil.getDeepList(child).forEach(t => {                   
-                        t.actualValues.isVisible = false;
-                        this.addToLocationList(t);
-                    });                  
                 }
             }       
         };
@@ -419,13 +414,6 @@ class LocationManager {
         }
         
         this.calculateVisibility(child);
-       
-        if (!child.isVisible() && child.hasChildren()) {
-            TUtil.getDeepList(child).forEach(t => {
-                t.actualValues.isVisible = false;
-                this.addToLocationList(t);
-            });   
-        }
 
         if (child.isInFlow()) {
             if (TUtil.isNumber(child.val('appendNewLine'))) {
@@ -444,8 +432,14 @@ class LocationManager {
         let nowVisible;
                             
         const lastVisibleTest = tmodel.visibilityStatus?.isVisible ?? undefined;
-        const nowVisibleTest =  tmodel.calcVisibility();
+                          
+        if (!tmodel.visibilityStatus) {
+            tmodel.visibilityStatus = {};
+        }
+        tmodel.visibilityStatus.lastIsVisible = tmodel.visibilityStatus.isVisible;
         
+        const nowVisibleTest =  tmodel.calcVisibility();
+
         if (TUtil.isDefined(tmodel.targets.isVisible)) {
             
             if (typeof tmodel.targets.isVisible.value === 'function') {

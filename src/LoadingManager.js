@@ -104,14 +104,9 @@ class LoadingManager {
 
         const loadingComplete = this.isLoadingComplete(tmodel, targetName);
 
-        if (loadingComplete || !this.tmodelKeyMap[key]) {
-            this.tmodelKeyMap[key] ??= { fetchMap: {}, entryCount: 0, resultCount: 0, errorCount: 0, activeIndex: 0, accessIndex: 0 };
-        }
-
-        if (loadingComplete || !tmodel.val(loadTargetName)) {
-            if (!tmodel.val(loadTargetName)) {
-                tmodel.val(loadTargetName, []);
-            }
+        if (loadingComplete || !this.tmodelKeyMap[key] || !tmodel.val(loadTargetName)) {
+            this.tmodelKeyMap[key] ??= { fetchMap: {}, entryCount: 0, resultCount: 0, errorCount: 0, activeIndex: 0, accessIndex: 0 };        
+            tmodel.val(loadTargetName, []);
         }
 
         if (!this.tmodelKeyMap[key].fetchMap[fetchId]) {

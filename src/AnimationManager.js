@@ -374,7 +374,7 @@ class AnimationManager {
         anim.cancel();
         
         tmodel.removeFromAnimatingMap(originalKey);
-
+       
         this.recordMap.delete(recId);        
     }
     

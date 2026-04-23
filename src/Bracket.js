@@ -9,6 +9,7 @@ class Bracket extends TModel {
     constructor(parent) {
         super("BI");
         this.parent = parent;
+        this.currentBrakcetStatus = 2;
     }
     
     canHaveDom() {
@@ -118,26 +119,27 @@ class Bracket extends TModel {
         this.absY = y + this.getRealParent().absY;
     }
     
-    shouldCalculateChildren() {     
-        
-        if (this.currentStatus === 'new' || this.isNowVisible || this.isNowInvisible) {
-            this.currentStatus = undefined;
+    shouldCalculateChildren() {
+        const nowVisible = this.isVisible();
+
+        if (this.currentBrakcetStatus >= 1 || this.isNowVisible || this.isNowInvisible) {
+            this.currentBrakcetStatus = Math.max(0, this.currentBrakcetStatus - 1);
             return true;
         }
-        
+
+        if (nowVisible) {
+            this.currentBrakcetStatus = Math.min(2, this.currentBrakcetStatus + 1);
+        }
+
         if (this.getDirtyLayout() === false) {
             return false;
         }
-        
-        if (this.isVisible()) {
-            return true;
-        }
 
-        return false;
+        return nowVisible;
     }
 
     getDirtyLayout() {
-        return this.getRealParent().managesOwnScroll ? this.getRealParent().backupDirtyLayout : this.dirtyLayout;
+        return this.getRealParent().managesOwnScroll() ? this.getRealParent().backupDirtyLayout : this.dirtyLayout;
     }
 
     validateVisibilityInParent() {
