@@ -1,7 +1,6 @@
 import { getLocationManager, tRoot, getEvents } from "./App.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
-import { TargetParser } from "./TargetParser" ;
 
 /**
  * 
@@ -343,9 +342,6 @@ class TUtil {
     }    
     
     static runTargetValue(tmodel, target, key, cycle, lastValue) {
-        if (TargetParser.isIntervalTarget(target) && cycle === 1) {
-            return;
-        }
         
         const cleanKey = TargetUtil.getTargetName(key);  
         const isExternalEvent = TargetData.allEventMap[cleanKey];

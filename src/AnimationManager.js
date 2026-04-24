@@ -102,6 +102,9 @@ class AnimationManager {
             };    
                 
             tmodel.addToAnimatingMap(originalKey, rec);
+            if (tmodel.targetValues[originalKey]) {
+                tmodel.targetValues[originalKey].status = 'updating';
+            }
             this.recordMap.set(recId, rec);
         }
 
@@ -600,6 +603,12 @@ class AnimationManager {
         
         if (!batch) {
             return;
+        }
+        
+        for (const [key] of tmodel.animatingMap) {
+            if (tmodel.targetValues[key]) {
+                tmodel.targetValues[key].status = 'pause';
+            }
         }
 
         const cutTime =  Math.min(TUtil.now() - batch.startTime, batch.totalDuration);

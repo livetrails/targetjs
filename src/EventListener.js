@@ -274,7 +274,7 @@ class EventListener {
         }
                 
         const lastEvent = this.eventQueue.shift();
-                         
+                                 
         if (this.canFindHandlers) {
             this.findEventHandlers(lastEvent);
         }
@@ -309,7 +309,7 @@ class EventListener {
                         
         const { type: originalName } = event;        
         const eventItem = this.allEvents[originalName];
-        
+                
         if (!eventItem) {
             return;
         }
@@ -324,7 +324,7 @@ class EventListener {
         } else {
             tmodel = this.getTModelFromEvent(event);
         } 
-                                        
+                              
         const newEvent = { eventName, eventItem, eventType, originalName, tmodel, originalEvent: event, timeStamp: now };
 
         if (this.lastEvent?.eventItem) {
@@ -364,7 +364,7 @@ class EventListener {
         tmodel?.markLayoutDirty('event');
                  
         this.lastEvent = newEvent;
-                                        
+                                      
         if (queue) {
             this.eventQueue.push(this.lastEvent); 
         }

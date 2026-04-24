@@ -80,8 +80,7 @@ class TModelManager {
                 delete this.visibleOidMap[tmodel.oid]; 
             }
             
-            const hasDom = tmodel.hasDom();
-            const keepDom = hasDom ? this.shouldPreserveDom(tmodel) : false;
+            const keepDom = this.shouldPreserveDom(tmodel);
             
             if (keepDom) {
                 this.visibleOidMap[tmodel.oid] = tmodel;
@@ -112,7 +111,7 @@ class TModelManager {
                               
             }
             
-            if (visible || tmodel.isActivated() || (keepDom && (this.needsRestyle(tmodel) || tmodel.isNowInvisible))) {
+            if (visible || tmodel.isActivated() || keepDom) {
                 if (this.needsRerender(tmodel)) {
                     this.lists.rerender.push(tmodel);            
                 }
@@ -142,7 +141,7 @@ class TModelManager {
 
             }
 
-            if (visible || tmodel.requiresDom()) {
+            if (visible || tmodel.requiresDom() || keepDom) {
                 if (tmodel.canHaveDom() && !tmodel.hasDom() && tmodel.isIncluded() && !this.noDomMap[tmodel.oid]) {
                     if (tmodel.getDomHolder()?.exists() || this.noDomMap[tmodel.getDomParent()?.oid]) {
                         this.lists.noDom.push(tmodel);

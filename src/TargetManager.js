@@ -33,11 +33,11 @@ class TargetManager {
             return;
         }
 
-        if (tmodel.isExecuted(key) && tmodel.getTargetStep(key) === tmodel.getTargetSteps(key)) {             
+        if (tmodel.isExecuted(key) && tmodel.getTargetStep(key) === tmodel.getTargetSteps(key)) { 
             if (tmodel.isScheduledPending(key)) {
                 return;
             }
-            const schedulePeriod = TUtil.scheduleExecution(tmodel, key);
+            const schedulePeriod = TUtil.scheduleExecution(tmodel, key);          
             if (schedulePeriod > 0) {
                 getRunScheduler().timeSchedule(schedulePeriod, `targetSchedule__${tmodel.oid}__${key}_${schedulePeriod}`);
                 return;

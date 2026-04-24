@@ -170,18 +170,18 @@ class TargetUtil {
         if (nextTarget) {
 
             if (isEndTrigger) {
-                const nextCompleteCount = tmodel.targetValues[nextTarget]?.completeCount ?? 0;
-                if (targetValue.completeCount > nextCompleteCount) {
+                const triggeredByCompleteCount = tmodel.targetValues[nextTarget]?.triggeredByCompleteCount ?? 0;
+                if (targetValue.completeCount > triggeredByCompleteCount) {
                     canActivate = true;
-                }             
+                }
             } else {
                 const nextTargetUpdateCount = targetValue.nextTargetUpdateCount ?? 0;
                 canActivate = targetValue.updateCount > nextTargetUpdateCount;
             }
 
             if ((!isEndTrigger && sideStep === 0 && (canActivate || isImperative)) ||
-                    (isEndTrigger && canActivate)) {
-                
+                (isEndTrigger && canActivate)) {
+
                 const prevOk = isEndTrigger ? TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) : false;
 
                 if (fetchAction) {
@@ -190,6 +190,7 @@ class TargetUtil {
                             TargetUtil.activateTargetOnce(tmodel, nextTarget);
                             nextTargetActivated = true;
                             TargetUtil.clearPendingTargets(tmodel, key);
+                            tmodel.targetValues[nextTarget].triggeredByCompleteCount = targetValue.completeCount;
                         } else {
                             TargetUtil.markPendingTargets(tmodel, key);
                         }
@@ -210,6 +211,7 @@ class TargetUtil {
                         TargetUtil.activateTarget(tmodel, nextTarget);
                         nextTargetActivated = true;
                         TargetUtil.clearPendingTargets(tmodel, key);
+                        tmodel.targetValues[nextTarget].triggeredByCompleteCount = targetValue.completeCount;
                     } else {
                         TargetUtil.markPendingTargets(tmodel, key);
                     }
@@ -727,6 +729,7 @@ class TargetUtil {
 
         if (targetValue) {
             targetValue.completeCount = 0;
+            targetValue.triggeredByCompleteCount = 0;
             targetValue.resetFlag = true;
             targetValue.nextTargetUpdateCount = 0;
             targetValue.status = 'complete';

@@ -30,7 +30,7 @@ class TargetExecutor {
     
     static executeDeclarativeTarget(tmodel, key) { 
         const cleanKey = TargetUtil.getTargetName(key);
-        tmodel.allTargetMap[cleanKey] = key;        
+        tmodel.allTargetMap[cleanKey] = key;    
         TargetExecutor.resolveTargetValue(tmodel, key);
         TargetExecutor.updateTarget(tmodel, tmodel.targetValues[key], key, false);
     }
@@ -218,7 +218,7 @@ class TargetExecutor {
         
         if (TUtil.isDefined(targetValue.valuePointer)) {
             targetValue.valuePointer = 0;
-        }
+        }   
 
         targetValue.initialValue = initialValue;
         targetValue.lastValue = targetValue.value;
@@ -250,6 +250,11 @@ class TargetExecutor {
     }
 
     static resolveTargetValue(tmodel, key, cycle = tmodel.getTargetCycle(key)) {
+        
+        if (TargetParser.isIntervalTarget(tmodel.targets[key]) && cycle === 1) {
+            return;
+        } 
+        
         const targetInitial = !tmodel.targetValues[key] && TUtil.isDefined(tmodel.targets[key].initialValue)
             ? tmodel.targets[key].initialValue
             : undefined;
@@ -270,8 +275,8 @@ class TargetExecutor {
         if (TargetParser.isIntervalTarget(newValue)) {
             TargetExecutor.assignSingleTarget(
                 targetValue, 
-                undefined,
                 undefined, 
+                targetInitial, 
                 0, 
                 2,
                 newValue.interval,
@@ -370,7 +375,7 @@ class TargetExecutor {
         } else {
             if (newSteps > 0 && !TUtil.areEqual(tmodel.val(key), newValue, tmodel.targets[key]?.deepEquality ?? false)) {
                 tmodel.resetTargetStep(key);
-            }
+            }         
             TargetExecutor.assignSingleTarget(targetValue, newValue, targetInitial, newSteps, newCycles, newInterval, easing);            
         }
     }
