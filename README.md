@@ -53,10 +53,10 @@ import { App } from "targetj";
 
 App({
   backgroundColor: 'blue', // Starts immediately
-  width: { value: [100, 200], steps: 100 }, // Starts immediately: animate width from 100px to 200px in 100 steps with 8 ms interval per step.
-  height: { value: [100, 200], steps: 100 }, // Starts immediately: animate height.
-  backgroundColor$$: { value: 'red', steps: 100 }, // Wait ($$) for width/height to finish
-  done$$() { console.log("Hello World!"); } // 3. Waits ($$) for the background color
+  width: { value: [100, 200], steps: 100, interval: 8 }, // Starts immediately: animate width from 100px to 200px in 100 steps with 8 ms interval per step.
+  height: { value: [100, 200], steps: 100, interval: 8 }, // Starts immediately: animate height.
+  backgroundColor$$: { value: 'red', steps: 100, interval: 8 }, // Wait ($$) for width/height to finish
+  done$$() { console.log("Hello World!"); } // 3. Waits ($$) for the background color, width/height to finish
 }).mount("#app");
 ```
 
