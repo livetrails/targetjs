@@ -258,7 +258,7 @@ TargetJS can run inside an existing app mounted into a DOM element managed by an
 
 ```javascript
 import React, { useLayoutEffect, useRef } from "react";
-import { App as TJApp } from "targetj";
+import { App as TApp } from "targetj";
 
 export default function TargetIsland() {
   const hostRef = useRef(null);
@@ -267,7 +267,7 @@ export default function TargetIsland() {
     const el = hostRef.current;
     if (!el) return;
 
-    TJApp({
+    TApp({
       width: { value: [100, 500], steps: 100 },
       height: 200,
       backgroundColor: "purple",
@@ -275,7 +275,7 @@ export default function TargetIsland() {
     }).mount(el);
 
     return () => {
-      TJApp.unmount();
+      TApp.unmount();
     };
   }, []);
 
