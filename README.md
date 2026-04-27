@@ -410,7 +410,6 @@ App({
       bottomMargin: 8,
       borderRadius: 12,
       backgroundColor: "white",
-      validateVisibilityInParent: true,
       boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
       photo: {
         x: 10, y: 10, width: 34, height: 34,
