@@ -501,9 +501,9 @@ TargetJS.tApp.start(); // Restart the application
 TargetJS.tApp.throttle = 0; // Slow down execution (milliseconds between cycles)
 TargetJS.tApp.debugLevel = 1; // Log cycle execution
 ```
-- Use `t()` in the browser console to find an object by its oid.
-- Use `t(oid).bug()` to inspect all the vital properties.
-- Use `t(oid).logTree()` to inspect the UI structure.
+- Use `t(id)` in the browser console to find an object by its element id.
+- Use `t(id).bug()` to inspect all the vital properties.
+- Use `t(id).logTree()` to inspect the UI structure.
 
 ## Documentation
 Explore the potential of TargetJS and dive into our interactive documentation at www.targetjs.io.
