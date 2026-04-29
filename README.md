@@ -5,7 +5,7 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a high-performance JavaScript UI framework with ultra-compact syntax. It replaces the "State → Render" model with a Code-Ordered Reactivity. It unifies UI, animations, APIs, event handling, and state into self-contained "Targets" that stack together like intelligent Lego pieces.
+TargetJS is a high-performance JavaScript UI framework with ultra-compact syntax. It replaces the "State → Render" model with "State → transition → Render". It unifies UI, animations, APIs, event handling, and state into self-contained "Targets" that stack together like intelligent Lego pieces using Code-Ordered Reactivity.
 
 It can be used as a full-featured framework or as a lightweight library alongside other frameworks. It is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
@@ -16,7 +16,7 @@ It can be used as a full-featured framework or as a lightweight library alongsid
 
 Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A → B, the UI immediately jumps to B. The framework doesn’t naturally represent the journey from A → B. But modern, rich user experiences are more like: A → transition → B.
 
-TargetJS treats state as a destination. Values are not only assigned. They can be approached over time through configurable steps. This makes transitions a native part of state change rather than an afterthought. TargetJS also delivers CSS-level transition efficiency.
+TargetJS treats state as a destination. Values are not only assigned. They can be approached over time through configurable steps. This makes transitions a native part of state change. TargetJS also delivers CSS-level transition efficiency.
 
 **Fragmentation across multiple mental models**
 
@@ -34,7 +34,7 @@ In traditional code, that sequence is often scattered across different places su
 
 TargetJS code order and target reactivity allow the implementation to more closely mirror the actual UI sequence.
 
-With its compact style, TargetJS makes the journey from A → B efficient and explicit, with significantly less code than traditional frameworks.
+With its compact style, TargetJS makes the journey from A → B explicit and efficient, with significantly less code than traditional frameworks.
 
 ## ⚡ Quick Start (30 Seconds)
 
@@ -53,17 +53,17 @@ import { App } from "targetj";
 
 App({
   backgroundColor: 'blue', // Starts immediately
-  width: { value: [100, 200], steps: 100 }, // Starts immediately: animate width from 100px to 200px in 100 steps with 8 ms interval per step.
-  height: { value: [100, 200], steps: 100 }, // Starts immediately: animate height.
-  backgroundColor$$: { value: 'red', steps: 100 }, // Wait ($$) for width/height to finish
-  done$$() { console.log("Hello World!"); } // 3. Waits ($$) for the background color
+  width: { value: [100, 200], steps: 100, interval: 8 }, // Starts immediately: animate width from 100px to 200px in 100 steps with 8 ms interval per step.
+  height: { value: [100, 200], steps: 100, interval: 8 }, // Starts immediately: animate height.
+  backgroundColor$$: { value: 'red', steps: 100, interval: 8 }, // Wait ($$) for width/height to finish
+  done$$() { console.log("Hello World!"); } // 3. Waits ($$) for the background color, width/height to finish
 }).mount("#app");
 ```
 
 ## Targets
 
-In TargetJS, targets are the fundamental unit of behavior. 
-Methods, properties, and objects are internally transformed into targets that the framework schedules and executes.
+In TargetJS, targets are the fundamental unit of behavior instead of methods. 
+Methods and properties both are internally transformed into targets that the framework schedules and executes.
 
 
 ### Execution Syntax
@@ -89,6 +89,7 @@ A target can also be defined as an object with optional controls that manage its
 | `interval` | Delay (ms) between steps or executions. |
 | `cycles` | Number of times the target repeats. |
 | `loop` | Boolean form of repetition for continuous execution. |
+| `active` | Boolean property controlling when `value` is executed. |
 | `enabledOn` | Determines whether the target is enabled for execution. |
 | `easing` | Predefined easing function controlling how values update over steps. |
 | `onComplete` | Callback triggered when this target (and its children) finishes. |
@@ -96,7 +97,7 @@ A target can also be defined as an object with optional controls that manage its
 
 ## Examples: Like Button → Animated Like (in 3 Steps)
 
-Let’s see how TargetJS handles a complex interaction that would usually require 50+ lines of React/CSS. The example demonstrates how to run four asynchronous operations in a strict sequential sequence, where each step waits for the previous ones to complete.
+Let’s see how TargetJS handles a complex interaction that would usually require 50+ lines of React/CSS. The example demonstrates how to run four asynchronous operations in a strict sequential sequence. In other words, each step has to wait for all the previous ones to complete.
 
 ### 1) Like button
 
@@ -257,7 +258,7 @@ TargetJS can run inside an existing app mounted into a DOM element managed by an
 
 ```javascript
 import React, { useLayoutEffect, useRef } from "react";
-import { App as TJApp } from "targetj";
+import { App as TApp } from "targetj";
 
 export default function TargetIsland() {
   const hostRef = useRef(null);
@@ -266,7 +267,7 @@ export default function TargetIsland() {
     const el = hostRef.current;
     if (!el) return;
 
-    TJApp({
+    TApp({
       width: { value: [100, 500], steps: 100 },
       height: 200,
       backgroundColor: "purple",
@@ -274,7 +275,7 @@ export default function TargetIsland() {
     }).mount(el);
 
     return () => {
-      TJApp.unmount();
+      TApp.unmount();
     };
   }, []);
 
@@ -409,7 +410,6 @@ App({
       bottomMargin: 8,
       borderRadius: 12,
       backgroundColor: "white",
-      validateVisibilityInParent: true,
       boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
       photo: {
         x: 10, y: 10, width: 34, height: 34,
@@ -501,9 +501,9 @@ TargetJS.tApp.start(); // Restart the application
 TargetJS.tApp.throttle = 0; // Slow down execution (milliseconds between cycles)
 TargetJS.tApp.debugLevel = 1; // Log cycle execution
 ```
-- Use `t()` in the browser console to find an object by its oid.
-- Use `t(oid).bug()` to inspect all the vital properties.
-- Use `t(oid).logTree()` to inspect the UI structure.
+- Use `t(id)` in the browser console to find an object by its element id.
+- Use `t(id).bug()` to inspect all the vital properties.
+- Use `t(id).logTree()` to inspect the UI structure.
 
 ## Documentation
 Explore the potential of TargetJS and dive into our interactive documentation at www.targetjs.io.
