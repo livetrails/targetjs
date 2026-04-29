@@ -438,7 +438,6 @@ class LocationManager {
         }
         tmodel.visibilityStatus.lastIsVisible = tmodel.visibilityStatus.isVisible;
         
-        const nowVisibleTest =  tmodel.calcVisibility();
 
         if (TUtil.isDefined(tmodel.targets.isVisible)) {
             
@@ -447,16 +446,21 @@ class LocationManager {
             } else {
                 nowVisible = !!tmodel.targets.isVisible;
             }
-
+            
+            tmodel.isNowVisible = !wasVisible && nowVisible;
+            tmodel.isNowInvisible = ((wasVisible || wasVisible === undefined) && !nowVisible);
+            
         } else {
+            const nowVisibleTest = tmodel.calcVisibility();
             nowVisible = nowVisibleTest;
+            tmodel.isNowVisible = (!wasVisible && nowVisible) || (!lastVisibleTest && nowVisibleTest);
+            tmodel.isNowInvisible = ((wasVisible || wasVisible === undefined) && !nowVisible) || (lastVisibleTest && !nowVisibleTest);
+                    
+            tmodel.actualValues.isVisible = nowVisible;    
         }
         
-        tmodel.actualValues.isVisible = nowVisible;    
-        tmodel.isNowVisible = (!wasVisible && nowVisible) || (!lastVisibleTest && nowVisibleTest);
-        tmodel.isNowInvisible = ((wasVisible || wasVisible === undefined) && !nowVisible) || (lastVisibleTest && !nowVisibleTest);
         
-        if (tmodel.isNowVisible) {
+        if (tmodel.isNowVisible || tmodel.isNowInvisible) {
             tmodel.markLayoutDirty('isNowVisible');
         }
         

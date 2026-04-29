@@ -383,6 +383,7 @@ class TargetData {
         oninput: 'onInput',
         onsubmit: 'onSubmit',
         onvisible: 'onVisible',
+        oninvisible: 'oInVisible',
         onresize: 'onResize',
         textalign: 'textAlign',
         preventdefault: 'preventDefault',
@@ -475,6 +476,7 @@ class TargetData {
     static internalEventMap = {
         onDomEvent: tmodel => tmodel.hasDomNow,
         onVisible: tmodel => tmodel.isNowVisible,
+        onInVisible: tmodel => tmodel.isNowInvisible,
         onResize: tmodel => {
             const lastUpdate = tmodel.getDimLastUpdate();
             if (!lastUpdate) {

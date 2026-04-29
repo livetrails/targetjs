@@ -174,6 +174,10 @@ class TModelManager {
     }
     
     shouldPreserveDom(tmodel) {
+        if (!tmodel.isVisible() && TUtil.isDefined(tmodel.targets.isVisible)) {
+            return false;
+        }
+        
         let parent = tmodel.parent;
         
         if (!tmodel.isIncluded()) {
@@ -181,12 +185,12 @@ class TModelManager {
         }
 
         while (parent && parent !== tRoot()) {
-            if (TUtil.isDefined(parent.targets.canDeleteDom) && parent.val('canDeleteDom') === false) {
-                return true;
+            if (TUtil.isDefined(parent.targets.canDeleteDom)) {
+                return parent.val('canDeleteDom') === false;
             }
 
-            if (TUtil.isDefined(parent.targets.isVisible) && parent.val('isVisible') === true) {
-                return true;
+            if (TUtil.isDefined(parent.targets.isVisible)) {
+                return parent.val('isVisible') === true;
             }
 
             parent = parent.parent;

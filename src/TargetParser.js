@@ -156,6 +156,7 @@ static isObjectTarget(key, value) {
         }
         
         return TUtil.isDefined(target.interval) 
+                && !TUtil.isDefined(target.loop)
                 && !TUtil.isDefined(target.steps) 
                 && !TUtil.isDefined(target.cycles);
     }
