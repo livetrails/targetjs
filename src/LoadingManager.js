@@ -105,7 +105,7 @@ class LoadingManager {
         const loadingComplete = this.isLoadingComplete(tmodel, targetName);
 
         if (loadingComplete || !this.tmodelKeyMap[key] || !tmodel.val(loadTargetName)) {
-            this.tmodelKeyMap[key] ??= { fetchMap: {}, entryCount: 0, resultCount: 0, errorCount: 0, activeIndex: 0, accessIndex: 0 };        
+            this.tmodelKeyMap[key] ??= { fetchMap: {}, entryCount: 0, resultCount: 0, errorCount: 0, activeIndex: 0, accessIndex: 0 };     
             tmodel.val(loadTargetName, []);
         }
 
@@ -142,7 +142,9 @@ class LoadingManager {
 
     isLoadingComplete(tmodel, targetName) {
         const key = this.getTModelKey(tmodel, targetName);
-        return this.tmodelKeyMap[key] ? this.tmodelKeyMap[key].resultCount === this.tmodelKeyMap[key].entryCount && this.tmodelKeyMap[key].activeIndex === this.tmodelKeyMap[key].entryCount : false;
+        return this.tmodelKeyMap[key] ? this.tmodelKeyMap[key].resultCount === this.tmodelKeyMap[key].entryCount 
+                    && this.tmodelKeyMap[key].activeIndex === this.tmodelKeyMap[key].entryCount 
+                    && this.tmodelKeyMap[key].resultCount === tmodel.getTargetCycles(targetName) : false;
     }
 
     resetLoadingError(tmodel, targetName) {
@@ -171,20 +173,20 @@ class LoadingManager {
         const loadTargetName = TUtil.getLoadTargetName(targetName);
         const targetValue = tmodel.val(loadTargetName);
 
-        return Array.isArray(targetValue) && TUtil.isDefined(targetValue[modelEntry.activeIndex]);
+        return Array.isArray(targetValue) && TUtil.isDefined(targetValue[modelEntry.activeIndex]) && TUtil.isDefined(targetValue[modelEntry.accessIndex]);
     }
 
     getLoadingItemValue(tmodel, prevTargetName, currentTargetName) {
         const key = this.getTModelKey(tmodel, prevTargetName);
         const tmodelEntry = this.tmodelKeyMap[key];
-
+        
         if (!tmodelEntry || tmodelEntry.accessIndex >= tmodelEntry.resultCount) {
             return undefined;
         }
 
         const loadTargetName = TUtil.getLoadTargetName(prevTargetName);
-        const targetValue = tmodel.val(loadTargetName);
-        let result;
+        const targetValue = tmodel.val(loadTargetName);      
+        let result;     
 
         if (targetValue) {
             if (currentTargetName?.endsWith('$$')) {
@@ -192,10 +194,10 @@ class LoadingManager {
                 tmodelEntry.accessIndex += result.length;
             } else if (TUtil.isDefined(targetValue[tmodelEntry.accessIndex])) {
                 result = targetValue[tmodelEntry.accessIndex];
-                tmodelEntry.accessIndex = Math.min(tmodelEntry.accessIndex + 1, tmodelEntry.entryCount - 1);
+                tmodelEntry.accessIndex = Math.min(tmodelEntry.accessIndex + 1, tmodelEntry.entryCount);
             }
         }
-
+        
         return result;
     }
 
@@ -215,7 +217,7 @@ class LoadingManager {
 
         const cycle = tmodel.getTargetCycle(key);
         const cycles = tmodel.getTargetCycles(key);
-                
+              
         if (tmodel.isTargetInLoop(key) || cycle < cycles - 1) {
             return 'active'; 
         } else if (!this.isLoadingSuccessful(tmodel, key)) {

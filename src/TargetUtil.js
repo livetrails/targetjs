@@ -107,7 +107,11 @@ class TargetUtil {
             const shouldWrap = method === 'value' || (typeof originalMethod === 'function' && TargetData.isLifeCycleMethod(method));
 
             if (shouldWrap) {
-                target[method] = function() {
+                if (originalMethod.__isBoundTargetMethod) {
+                    return;
+                }
+                
+                const wrappedMethod = function() {
                     if (!TargetData.lifecycleCoreSet.has(method)) {
                         TargetUtil.currentTargetName = key;
                         TargetUtil.currentTModel = tmodel;
@@ -115,7 +119,7 @@ class TargetUtil {
 
                     this.key = cleanKey;
                     this.value = this.val(cleanKey);
-                    this.prevTargetValue = getPrevValue();         
+                    this.prevTargetValue = getPrevValue(); 
                     this.isPrevTargetUpdated = isPrevTargetUpdated;
                     const result = typeof originalMethod === 'function'
                         ? originalMethod.apply(this, arguments)
@@ -123,6 +127,10 @@ class TargetUtil {
                     lastPrevUpdateTime = getPrevUpdateTime() ?? lastPrevUpdateTime;
                     return result;
                 };
+
+                wrappedMethod.__isBoundTargetMethod = true;
+
+                target[method] = wrappedMethod;
             }
         });
     }
@@ -166,7 +174,7 @@ class TargetUtil {
 
         let nextTargetActivated = false;
         let canActivate = false;
-        
+          
         if (nextTarget) {
 
             if (isEndTrigger) {
@@ -195,7 +203,7 @@ class TargetUtil {
                             TargetUtil.markPendingTargets(tmodel, key);
                         }
                     } else {
-                        while (getLoader().isNextLoadingItemSuccessful(tmodel, key)) {                      
+                        while (getLoader().isNextLoadingItemSuccessful(tmodel, key)) {   
                             if (tmodel.activatedTargets.indexOf(nextTarget) >= 0) {
                                 tmodel.activatedTargets.push(nextTarget);                            
                             } else {
@@ -203,7 +211,7 @@ class TargetUtil {
                             }
                             getLoader().nextActiveItem(tmodel, key);
                             nextTargetActivated = true;                              
-                        } 
+                        }
                     }
                 } else if (isEndTrigger) {                     
                     if (prevOk === true)  {

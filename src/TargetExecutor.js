@@ -347,8 +347,6 @@ class TargetExecutor {
             );            
             
         } else if (TargetParser.isFetchTarget(key, newValue)) {
-            getLoader().fetch(tmodel, newValue);
-            
             TargetExecutor.assignSingleTarget(
                 targetValue, 
                 newValue, 
@@ -358,9 +356,10 @@ class TargetExecutor {
                 newInterval,
                 easing
             );
-        } else if (TargetParser.isFetchImageTarget(key, newValue)) {
-            getLoader().fetchImage(tmodel, newValue);
-            
+                
+            getLoader().fetch(tmodel, newValue);
+
+        } else if (TargetParser.isFetchImageTarget(key, newValue)) {            
             TargetExecutor.assignSingleTarget(
                 targetValue, 
                 newValue, 
@@ -369,7 +368,10 @@ class TargetExecutor {
                 newCycles, 
                 newInterval,
                 easing
-            );    
+            ); 
+    
+            getLoader().fetchImage(tmodel, newValue);
+    
         } else if (TargetParser.isListTarget(newValue)) {
             TargetExecutor.assignListTarget(tmodel, key, targetValue, newValue.list, newValue.list[0], newSteps, newInterval, easing, newCycles);
         } else {
