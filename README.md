@@ -65,18 +65,21 @@ App({
 In TargetJS, targets are the fundamental unit of behavior instead of methods. 
 Methods and properties both are internally transformed into targets that the framework schedules and executes.
 
+### Mental Model
 
-### Execution Syntax
+A target can:
+- execute a method
+- hold a value
+- move toward that value over time
+- wait for previous targets
+- react when previous targets update
+- fetch data
+- react to an event
+- create children
+- run callbacks
+- control its own lifecycle
 
-Target names can include special symbols that determine **when they execute**.
-
-| Symbol | Name | Behavior |
-|------|------|------|
-| `name` | Standard | Runs immediately in the order it appears. |
-| `name$` | Reactive | Runs every time the previous sibling target runs. |
-| `name$$` | Deferred | Runs only after the entire preceding target chain (including children, animations, and API calls) completes. |
-| `_name` | Inactive | Does not run automatically. Trigger it manually via `.activateTarget()`. |
-
+This lets UI code follow the same order as the user experience.
 
 ### Target Controls
 
@@ -94,6 +97,20 @@ A target can also be defined as an object with optional controls that manage its
 | `easing` | Predefined easing function controlling how values update over steps. |
 | `onComplete` | Callback triggered when this target (and its children) finishes. |
 | `onValueChange` | Callback triggered when the target emits a new value. |
+| `onChange` | Callback triggered when the target emits a new value. |
+| `on<PropertyName>Step` | Callback triggered on every step of a specific property. |
+
+### Compact Execution Syntax
+
+Target names can include special symbols that define when they execute. This provides a compact alternative to implementing the same behavior with callbacks.
+
+| Symbol | Name | Behavior |
+|------|------|------|
+| `name` | Standard | Runs immediately in the order it appears. |
+| `name$` | Reactive | Runs every time the previous sibling target emits a new value. Equivalent to using `on<PropertyName>Step()` or `onValueChange()`. |
+| `name$$` | Deferred | Runs only after the entire preceding target chain, including children, animations, and API calls, completes. Equivalent to using `onComplete()`. |
+| `_name` | Inactive | Does not run automatically. Trigger it manually with `.activateTarget()`. Equivalent to `{ active: false }`. |
+
 
 ## Examples: Like Button → Animated Like (in 3 Steps)
 
