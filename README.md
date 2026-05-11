@@ -38,12 +38,11 @@ With its compact style, TargetJS makes the journey from A → B explicit and eff
 
 ## 🚀 Why TargetJS?
 
-2. Unified State: State isn't "elsewhere". It's built into every Target.
-3. Animation by Default: High-performance animations are baked into the logic.
-4. Ultra-Compact: Write 30% to 70% less code than standard frameworks.
-5. Lower Cognitive Load: Code reads from top to bottom, exactly how the user experiences the interaction.
-6. Zero Boilerplate Async: Target can handle the "wait" for you.
-
+1. Unified State: State isn't "elsewhere". It is built into every Target.
+2. Animation by Default: High-performance animations are baked into the logic.
+3. Ultra-Compact: Write 30% to 70% less code than standard frameworks.
+4. UI as Sequence: Code describes the UI story from top to bottom, exactly how the user experiences the interaction: "When this finishes, do that."
+5. Zero Boilerplate Async: Targets can handle waiting for asynchronous operations automatically.
 
 ## ⚡ Quick Start (30 Seconds)
 
