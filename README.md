@@ -123,7 +123,7 @@ Target names can include special symbols that define when they execute. This pro
 
 ## Examples: Like Button → Animated Like (in 3 Steps)
 
-Let’s see how TargetJS handles a complex interaction that would usually require 50+ lines of React/CSS. The example demonstrates how to run four asynchronous operations in a strict sequential sequence. In other words, each step has to wait for all the previous ones to complete.
+Let’s see how TargetJS handles a complex interaction that would usually require 50+ lines of React/CSS. The example demonstrates how to run four asynchronous operations in a strict sequence. In other words, each step has to wait for all the previous ones to complete.
 
 ### 1) Like button
 
