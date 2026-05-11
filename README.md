@@ -205,7 +205,7 @@ Each target has its own state and lifecycle. Targets execute automatically in th
 1. [Using TargetJS as a Library](#using-targetjs-as-a-library)
 1. [🚀 Why TargetJS?](#-why-targetjs)
 1. Deeper Examples:
-    - [Loading Five Users Example](#loading-five-users-example)
+    - [Search → Fetch → Replace → Highlight Example](#search--fetch--replace--highlight)
     - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
 1. [Special Target Names](#special-target-names)
 1. [How to Debug in TargetJS](#how-to-debug-in-targetjs)
@@ -293,80 +293,84 @@ export default function TargetIsland() {
 
 ## Deeper Examples
 
-### Loading Five Users Example
+### Search → Fetch → Replace → Highlight
 
-In this example, we load five separate users and display five boxes, each containing a user's name and email.
+This example shows how TargetJS models a UI workflow directly in code order:
+Click → animate button → fetch users → remove old results → add new results → pause → highlight one result
 
-- `fetch` calls five APIs to retrieve details for five users.
-- `child` is a special target that adds a new item to the parent each time it executes. Because it ends with `$` in this example, it executes every time an API call returns a result.
-- TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, `child` will not execute until the result for user0 has been received.
+The `fetch` target is initially set to `active: false`, which means it waits for an explicit trigger. When the user clicks, the `fetch` target is activated. TargetJS understands that fetching data is an asynchronous operation.
 
-  <img src="https://targetjs.io/img/fetch-5-users.gif" width="130" />
+The `$$` postfix means that a target waits for the preceding sibling targets to complete before running. In this example, `removeChildren$$` waits for `fetch` to complete before it begins. `addChildren$$` begins after both `fetch` and `removeChildren$$` are completed.
 
-```html
-<div id="users"></div>
-```
-```javascript
+Notice how `fetch`, `removeChildren$$`, and `addChildren$$` appear in the same order as the UI sequence. The code is organized around the experience itself.
+
+Lastly, `pause$$` adds a short pause before highlighting the first user with an animation. `setTarget` is an imperative way to implement targets within methods.
+
+
+```js
 import { App } from "targetj";
 
 App({
-    gap: 10,
-    fetch: ['https://targetjs.io/api/randomUser?id=user0',
-        'https://targetjs.io/api/randomUser?id=user1',
-        'https://targetjs.io/api/randomUser?id=user2',
-        'https://targetjs.io/api/randomUser?id=user3',
-        'https://targetjs.io/api/randomUser?id=user4'
-    ],
-    child$() {
-        // prevTargetValue Holds the previous target’s value. For fetch targets, this is each API result in code order,
-        // not the order in which responses arrive in the browser.
-        const user = this.prevTargetValue;
-        return {
-          width: 200,
-          height: 65,
-          borderRadius: 10,
-          boxSizing: "border-box",
-          padding: 10,
-          fontSize: 14,
-          backgroundColor: "#f0f0f0",
-          scale: { value: [0.8, 1], steps: 14, interval: 12 },
-          userName$$: {
-            padding: "10px 0 5px 10px",
-            boxSizing: "border-box",
-            fontWeight: 600,
-            opacity: { value: [0, 1], steps: 50 },
-            html: user.name
-          },
-          userEmail$$: {
-            paddingLeft: 10,
-            boxSizing: "border-box",
-            opacity: { value: [0, 0.7], steps: 50 },
-            html: user.email
-          }
-       };
-    }
-}).mount("#users");
-```
-
-It can also be written using a target’s `cycles` and `interval` properties/methods to fetch users at intervals instead of in a single batch. In this example, we set interval to 1000, making the API call once every second.
-
-  <img src="https://targetjs.io/img/fetch-5-users2.gif" width="130" />
-
-
-```javascript
-App({
-    gap: 10,
-    fetch: {
-        interval: 1000,
-        cycles: 5,
-        value(i) { return `https://targetjs.io/api/randomUser?id=user${i}`; }
+    searchButton: {
+        element: 'button',
+        type: 'button',
+        y: 20, x: 20,
+        width: 220, height: 60, lineHeight: 60,
+        borderRadius: 10, border: 0, backgroundColor: '#f5f5f5',
+        cursor: 'pointer', textAlign: 'center',
+        html: 'Search',
+        onClick() {
+            this.setTarget('scale', {value: [1, 1.15, 1], steps: 8, interval: 12 });
+            this.setTarget('backgroundColor', {value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12});
+            this.parent.getChild('users').activateTarget('fetch', { reset: true });
+        }
     },
-    child$() {   
-        return {
-          // …same as the previous example…
-        };
+    users: {
+        y: 90,
+        x: 20,
+        gap: 10,
+        containerOverflowMode: 'always',
+        fetch: {
+            active: false,
+            value: 'https://targetjs.io/api/randomUsers'
+        },
+        removeChildren$$() {
+            this.removeChildren();
+        },
+        addChildren$$: {
+            cycles() { return this.val('fetch').length; },
+            value(i) {
+                const user = this.val('fetch')[i];
+                return {
+                    width: 360,
+                    backgroundColor: "#fafafa",
+                    scale: {value: {list: [0.8, 1]}, steps: 14},
+                    boxShadow: "0 6px 16px rgba(0,0,0,.08)",
+                    containerOverflowMode: 'always',
+                     userName: {
+                        padding: 10,
+                        height: 30,
+                        fontWeight: 600,
+                        opacity: { value: [0, 1], steps: 50 },
+                        html() { return user.name; }
+                    },
+                    userEmail: {
+                        padding: 10,
+                        opacity: { value: [0, 0.7], steps: 50 },
+                        html() { return user.email; }
+                    }
+                };
+            },
+            pause$$: { interval: 150 },
+            highlightOne$$() {
+                const user = this.getChild(0);
+                user.setTarget('backgroundColor', { value: ['#fff7cc', '#fff1a8'], steps: 14 });
+                user.setTarget('scale', { value: [1, 1.04, 1], steps: 14 });
+                user.setTarget('boxShadow', '0 10px 24px rgba(0,0,0,.14)');
+            }
+        }
     }
-}).mount("#users");
+}).mount('#app');
 ```
 
 ### Infinite Loading and Scrolling Example
