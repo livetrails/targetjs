@@ -36,6 +36,15 @@ TargetJS code order and target reactivity allow the implementation to more close
 
 With its compact style, TargetJS makes the journey from A → B explicit and efficient, with significantly less code than traditional frameworks.
 
+## 🚀 Why TargetJS?
+
+2. Unified State: State isn't "elsewhere". It's built into every Target.
+3. Animation by Default: High-performance animations are baked into the logic.
+4. Ultra-Compact: Write 30% to 70% less code than standard frameworks.
+5. Lower Cognitive Load: Code reads from top to bottom, exactly how the user experiences the interaction.
+6. Zero Boilerplate Async: Target can handle the "wait" for you.
+
+
 ## ⚡ Quick Start (30 Seconds)
 
 **1. Install**
@@ -220,7 +229,6 @@ Each target has its own state and lifecycle. Targets execute automatically in th
 
 1. [📦 Alternative Installation Via CDN](#-alternative-installation-via-cdn)
 1. [Using TargetJS as a Library](#using-targetjs-as-a-library)
-1. [🚀 Why TargetJS?](#-why-targetjs)
 1. Deeper Examples:
     - [Search → Fetch → Replace → Highlight Example](#search--fetch--replace--highlight)
     - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
@@ -299,14 +307,6 @@ export default function TargetIsland() {
   return <div ref={hostRef} style={{ width: 100, height: 200, overflow: "hidden" }} />;
 }
 ```
-
-## 🚀 Why TargetJS?
-
-1. Zero Boilerplate Async: The $$ postfix handles the "wait" for you.
-2. Unified State: State isn't "elsewhere". It's built into every Target.
-3. Animation by Default: High-performance animations are baked into the logic.
-4. Ultra-Compact: Write 70% less code than standard frameworks.
-5. Lower Cognitive Load: Code reads from top to bottom, exactly how the user experiences the interaction.
 
 ## Deeper Examples
 
