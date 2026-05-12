@@ -115,8 +115,8 @@ Target names can include special symbols that define when they execute. This pro
 | Symbol | Name | Behavior |
 |------|------|------|
 | `name` | Standard | Runs immediately in the order it appears. |
-| `name$` | Reactive | Runs every time the previous sibling target emits a new value. Equivalent to using `on<PropertyName>Step()` or `onValueChange()`. |
-| `name$$` | Deferred | Runs only after the entire preceding target chain, including children, animations, and API calls, completes. Equivalent to using `onComplete()`. |
+| `name$` | Reactive | Runs every time the previous sibling target updates. Equivalent to using `on<PropertyName>Step()` or `onValueChange()` to activate the next target . |
+| `name$$` | Deferred | Runs only after the entire preceding target chain, including children, animations, and API calls, completes. Equivalent to using `onComplete()` to activate the next target. |
 | `_name` | Inactive | Does not run automatically. Trigger it manually with `.activateTarget()`. Equivalent to `{ active: false }`. |
 
 
