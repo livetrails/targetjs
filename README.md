@@ -1,4 +1,4 @@
-# TargetJS: State as Destination, UI as Sequence
+# TargetJS: State as Destination, Code Order as UI Sequence
 
 **[targetjs.io](https://targetjs.io)** 
 [![MIT LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/livetrails/targetjs/blob/main/LICENSE) 
