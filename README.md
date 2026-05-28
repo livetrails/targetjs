@@ -1,11 +1,13 @@
-# TargetJS: State as Destination, UI as Sequence
+# TargetJS: State as Destination, Code Order as UI Sequence
 
 **[targetjs.io](https://targetjs.io)** 
 [![MIT LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/livetrails/targetjs/blob/main/LICENSE) 
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a high-performance JavaScript UI framework with ultra-compact syntax. It replaces the "State → Render" model with "State → transition → Render". It unifies UI, animations, APIs, event handling, and state into self-contained "Targets" that stack together like intelligent Lego pieces using Code-Ordered Reactivity.
+Most frameworks are great at rendering the next state. TargetJS is designed for the journey between states.
+
+TargetJS is a JavaScript UI framework that replaces the "State → Render" model with "State → transition → Render". It also lets code order directly define the UI sequence. It unifies UI, animations, API calls, event handling, and state into self-contained "Targets" that stack together like intelligent Lego pieces using Code-Ordered Reactivity.
 
 It can be used as a full-featured framework or as a lightweight library alongside other frameworks. It is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
@@ -36,6 +38,14 @@ TargetJS code order and target reactivity allow the implementation to more close
 
 With its compact style, TargetJS makes the journey from A → B explicit and efficient, with significantly less code than traditional frameworks.
 
+## 🚀 Why TargetJS?
+
+1. Unified State: State isn't "elsewhere". It is built into every Target.
+2. Animation by Default: High-performance animations are baked into the logic.
+3. Ultra-Compact: Write 30% to 70% less code than standard frameworks.
+4. UI as Sequence: Code describes the UI story from top to bottom, exactly how the user experiences the interaction: "When this finishes, do that."
+5. Zero Boilerplate Async: Targets can handle waiting for asynchronous operations automatically.
+
 ## ⚡ Quick Start (30 Seconds)
 
 **1. Install**
@@ -65,18 +75,21 @@ App({
 In TargetJS, targets are the fundamental unit of behavior instead of methods. 
 Methods and properties both are internally transformed into targets that the framework schedules and executes.
 
+### Mental Model
 
-### Execution Syntax
+A target can:
+- execute a method
+- hold a value
+- move toward that value over time
+- wait for previous targets
+- react when previous targets update
+- fetch data
+- react to an event
+- create children
+- run callbacks
+- control its own lifecycle
 
-Target names can include special symbols that determine **when they execute**.
-
-| Symbol | Name | Behavior |
-|------|------|------|
-| `name` | Standard | Runs immediately in the order it appears. |
-| `name$` | Reactive | Runs every time the previous sibling target runs. |
-| `name$$` | Deferred | Runs only after the entire preceding target chain (including children, animations, and API calls) completes. |
-| `_name` | Inactive | Does not run automatically. Trigger it manually via `.activateTarget()`. |
-
+This lets UI code follow the same order as the user experience.
 
 ### Target Controls
 
@@ -94,10 +107,24 @@ A target can also be defined as an object with optional controls that manage its
 | `easing` | Predefined easing function controlling how values update over steps. |
 | `onComplete` | Callback triggered when this target (and its children) finishes. |
 | `onValueChange` | Callback triggered when the target emits a new value. |
+| `onChange` | Callback triggered when the target emits a new value. |
+| `on<PropertyName>Step` | Callback triggered on every step of a specific property. |
+
+### Compact Execution Syntax
+
+Target names can include special symbols that define when they execute. This provides a compact alternative to implementing the same behavior with callbacks.
+
+| Symbol | Name | Behavior |
+|------|------|------|
+| `name` | Standard | Runs immediately in the order it appears. |
+| `name$` | Reactive | Runs every time the previous sibling target updates. Equivalent to using `on<PropertyName>Step()` or `onValueChange()` to activate the next target . |
+| `name$$` | Deferred | Runs only after the entire preceding target chain, including children, animations, and API calls, completes. Equivalent to using `onComplete()` to activate the next target. |
+| `_name` | Inactive | Does not run automatically. Trigger it manually with `.activateTarget()`. Equivalent to `{ active: false }`. |
+
 
 ## Examples: Like Button → Animated Like (in 3 Steps)
 
-Let’s see how TargetJS handles a complex interaction that would usually require 50+ lines of React/CSS. The example demonstrates how to run four asynchronous operations in a strict sequential sequence. In other words, each step has to wait for all the previous ones to complete.
+Let’s see how TargetJS handles a complex interaction that would usually require 50+ lines of React/CSS. The example demonstrates how to run four asynchronous operations in a strict sequence. In other words, each step has to wait for all the previous ones to complete.
 
 ### 1) Like button
 
@@ -203,9 +230,8 @@ Each target has its own state and lifecycle. Targets execute automatically in th
 
 1. [📦 Alternative Installation Via CDN](#-alternative-installation-via-cdn)
 1. [Using TargetJS as a Library](#using-targetjs-as-a-library)
-1. [🚀 Why TargetJS?](#-why-targetjs)
 1. Deeper Examples:
-    - [Loading Five Users Example](#loading-five-users-example)
+    - [Search → Fetch → Replace → Highlight Example](#search--fetch--replace--highlight)
     - [Infinite Loading and Scrolling Example](#infinite-loading-and-scrolling-example)
 1. [Special Target Names](#special-target-names)
 1. [How to Debug in TargetJS](#how-to-debug-in-targetjs)
@@ -283,90 +309,86 @@ export default function TargetIsland() {
 }
 ```
 
-## 🚀 Why TargetJS?
-
-1. Zero Boilerplate Async: The $$ postfix handles the "wait" for you.
-2. Unified State: State isn't "elsewhere". It's built into every Target.
-3. Animation by Default: High-performance animations are baked into the logic.
-4. Ultra-Compact: Write 70% less code than standard frameworks.
-5. Lower Cognitive Load: Code reads from top to bottom, exactly how the user experiences the interaction.
-
 ## Deeper Examples
 
-### Loading Five Users Example
+### Search → Fetch → Replace → Highlight
 
-In this example, we load five separate users and display five boxes, each containing a user's name and email.
+This example shows how TargetJS models a UI workflow directly in code order:
+Click → animate button → fetch users → remove old results → add new results → pause → highlight one result
 
-- `fetch` calls five APIs to retrieve details for five users.
-- `child` is a special target that adds a new item to the parent each time it executes. Because it ends with `$` in this example, it executes every time an API call returns a result.
-- TargetJS ensures that API results are processed in the same sequence as the API calls. For example, if the user1 API result arrives before user0, `child` will not execute until the result for user0 has been received.
+The `fetch` target is initially set to `active: false`, which means it waits for an explicit trigger. When the user clicks, the `fetch` target is activated. TargetJS understands that fetching data is an asynchronous operation.
 
-  <img src="https://targetjs.io/img/fetch-5-users.gif" width="130" />
+The `$$` postfix means that a target waits for the preceding sibling targets to complete before running. In this example, `removeChildren$$` waits for `fetch` to complete before it begins. `addChildren$$` begins after both `fetch` and `removeChildren$$` are completed.
 
-```html
-<div id="users"></div>
-```
-```javascript
+Notice how `fetch`, `removeChildren$$`, and `addChildren$$` appear in the same order as the UI sequence. The code is organized around the experience itself.
+
+Lastly, `pause$$` adds a short pause before highlighting the first user with an animation. `setTarget` is an imperative way to implement targets within methods.
+
+
+```js
 import { App } from "targetj";
 
 App({
-    gap: 10,
-    fetch: ['https://targetjs.io/api/randomUser?id=user0',
-        'https://targetjs.io/api/randomUser?id=user1',
-        'https://targetjs.io/api/randomUser?id=user2',
-        'https://targetjs.io/api/randomUser?id=user3',
-        'https://targetjs.io/api/randomUser?id=user4'
-    ],
-    child$() {
-        // prevTargetValue Holds the previous target’s value. For fetch targets, this is each API result in code order,
-        // not the order in which responses arrive in the browser.
-        const user = this.prevTargetValue;
-        return {
-          width: 200,
-          height: 65,
-          borderRadius: 10,
-          boxSizing: "border-box",
-          padding: 10,
-          fontSize: 14,
-          backgroundColor: "#f0f0f0",
-          scale: { value: [0.8, 1], steps: 14, interval: 12 },
-          userName$$: {
-            padding: "10px 0 5px 10px",
-            boxSizing: "border-box",
-            fontWeight: 600,
-            opacity: { value: [0, 1], steps: 50 },
-            html: user.name
-          },
-          userEmail$$: {
-            paddingLeft: 10,
-            boxSizing: "border-box",
-            opacity: { value: [0, 0.7], steps: 50 },
-            html: user.email
-          }
-       };
-    }
-}).mount("#users");
-```
-
-It can also be written using a target’s `cycles` and `interval` properties/methods to fetch users at intervals instead of in a single batch. In this example, we set interval to 1000, making the API call once every second.
-
-  <img src="https://targetjs.io/img/fetch-5-users2.gif" width="130" />
-
-
-```javascript
-App({
-    gap: 10,
-    fetch: {
-        interval: 1000,
-        cycles: 5,
-        value(i) { return `https://targetjs.io/api/randomUser?id=user${i}`; }
+    searchButton: {
+        element: 'button',
+        type: 'button',
+        y: 20, x: 20,
+        width: 220, height: 60, lineHeight: 60,
+        borderRadius: 10, border: 0, backgroundColor: '#f5f5f5',
+        cursor: 'pointer', textAlign: 'center',
+        html: 'Search',
+        onClick() {
+            this.setTarget('scale', {value: [1, 1.15, 1], steps: 8, interval: 12 });
+            this.setTarget('backgroundColor', {value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12});
+            this.parent.getChild('users').activateTarget('fetch', { reset: true });
+        }
     },
-    child$() {   
-        return {
-          // …same as the previous example…
-        };
+    users: {
+        y: 90,
+        x: 20,
+        gap: 10,
+        containerOverflowMode: 'always',
+        fetch: {
+            active: false,
+            value: 'https://targetjs.io/api/randomUsers'
+        },
+        removeChildren$$() {
+            this.removeChildren();
+        },
+        addChildren$$: {
+            cycles() { return this.val('fetch').length; },
+            value(i) {
+                const user = this.val('fetch')[i];
+                return {
+                    width: 360,
+                    backgroundColor: "#fafafa",
+                    scale: {value: {list: [0.8, 1]}, steps: 14},
+                    boxShadow: "0 6px 16px rgba(0,0,0,.08)",
+                    containerOverflowMode: 'always',
+                     userName: {
+                        padding: 10,
+                        height: 30,
+                        fontWeight: 600,
+                        opacity: { value: [0, 1], steps: 50 },
+                        html() { return user.name; }
+                    },
+                    userEmail: {
+                        padding: 10,
+                        opacity: { value: [0, 0.7], steps: 50 },
+                        html() { return user.email; }
+                    }
+                };
+            },
+            pause$$: { interval: 150 },
+            highlightOne$$() {
+                const user = this.getChild(0);
+                user.setTarget('backgroundColor', { value: ['#fff7cc', '#fff1a8'], steps: 14 });
+                user.setTarget('scale', { value: [1, 1.04, 1], steps: 14 });
+                user.setTarget('boxShadow', '0 10px 24px rgba(0,0,0,.14)');
+            }
+        }
     }
-}).mount("#users");
+}).mount('#app');
 ```
 
 ### Infinite Loading and Scrolling Example
