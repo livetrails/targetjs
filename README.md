@@ -378,14 +378,14 @@ App({
                         html() { return user.email; }
                     }
                 };
-            },
-            pause$$: { interval: 150 },
-            highlightOne$$() {
-                const user = this.getChild(0);
-                user.setTarget('backgroundColor', { value: ['#fff7cc', '#fff1a8'], steps: 14 });
-                user.setTarget('scale', { value: [1, 1.04, 1], steps: 14 });
-                user.setTarget('boxShadow', '0 10px 24px rgba(0,0,0,.14)');
             }
+        },
+        pause$$: { interval: 150 },
+        highlightOne$$() {
+            const user = this.getChild(0);
+            user.setTarget('backgroundColor', { value: ['#fff7cc', '#fff1a8'], steps: 14 });
+            user.setTarget('scale', { value: [1, 1.04, 1], steps: 14 });
+            user.setTarget('boxShadow', '0 10px 24px rgba(0,0,0,.14)');
         }
     }
 }).mount('#app');
@@ -425,42 +425,47 @@ App({
   height() { return getScreenHeight(); },
   x() { return (getScreenWidth() - this.getWidth()) / 2; },
   containerOverflowMode: "always",
-  addChildren() {
-    return Array.from({ length: 10 }, (_, i) => ({
-      height: 56,
-      width() { return this.parent.getWidth(); },
-      bottomMargin: 8,
-      borderRadius: 12,
-      backgroundColor: "white",
-      boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
-      photo: {
-        x: 10, y: 10, width: 34, height: 34,
-        borderRadius: "50%",
-        backgroundColor: "#ddd"
-      },
-      userName: {
-        x: 60, y: 10, width: 180, height: 30,
-        overflow: "hidden",
-        borderRadius: 5,
-        backgroundColor: "#ddd"
-      },
-      pause$$: { interval: 100 },
-      fetch$$: "https://targetjs.io/api/randomUser",
-      reveal$$() {
-        const userName = this.getChild("userName");
-        userName.setTarget("html", this.val("fetch$$").name);
-        userName.setTarget("backgroundColor", { value: "white", steps: 20 });
-        this.getChild("photo").setTarget("backgroundColor", { value: "#" + Math.random().toString(16).slice(-6), steps: 20 });
-      },
-    }));
+  addChildren: {
+    waitForChildren: 'visible',
+    value() {
+      return Array.from({ length: 10 }, (_, i) => ({
+        height: 56,
+        width() { return this.parent.getWidth(); },
+        bottomMargin: 8,
+        borderRadius: 12,
+        backgroundColor: "white",
+        boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+        photo: {
+          x: 10, y: 10, width: 34, height: 34,
+          borderRadius: "50%",
+          backgroundColor: "#ddd"
+        },
+        userName: {
+          x: 60, y: 10, width: 180, height: 30,
+          overflow: "hidden",
+          borderRadius: 5,
+          backgroundColor: "#ddd"
+        },
+        pause$$: { interval: 100 },
+        fetch$$: "https://targetjs.io/api/randomUser",
+        reveal$$() {
+          const userName = this.getChild("userName");
+          userName.setTarget("html", this.val("fetch$$").name);
+          userName.setTarget("backgroundColor", { value: "white", steps: 20 });
+          this.getChild("photo").setTarget("backgroundColor", { value: "#" + Math.random().toString(16).slice(-6), steps: 20 });
+        },
+      }));
+    }
   },
   wave$$: {
     interval: 30,
     cycles() { return this.visibleChildren.length; },
     value(i) {
       const child = this.visibleChildren[i];
-      child.setTarget("scale", { value: [1, 1.06, 1], steps: 18 });
-      child.setTarget("opacity", { value: [1, 0.92, 1], steps: 18 });
+      if (child) {
+        child.setTarget("scale", { value: [1, 1.06, 1], steps: 18 });
+        child.setTarget("opacity", { value: [1, 0.92, 1], steps: 18 });
+      }  
     }
   },
   onScroll() {
