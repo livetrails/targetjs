@@ -568,7 +568,8 @@ class TModel extends BaseModel {
             return !!this.val('managesOwnScroll');
         }
 
-        return !!this.allTargetMap['onScroll'] || !!this.allTargetMap['onScrollLeft'] || !!this.allTargetMap['onScrollTop'] || !!this.allTargetMap['onWindowScroll'];
+        return !!this.allTargetMap['onScroll'] || !!this.allTargetMap['onScrollLeft'] || !!this.allTargetMap['onScrollTop'] 
+                || !!this.allTargetMap['onWindowScroll'];
     }
     
     calcVisibility() {

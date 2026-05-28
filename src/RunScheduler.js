@@ -39,9 +39,7 @@ class RunScheduler {
 
         await new Promise(resolve => requestAnimationFrame(resolve));
 
-        if (this.delayProcess?.timeoutId) {
-            clearTimeout(this.delayProcess.timeoutId);
-        }
+        this.clearDelayProcess();
 
         this.nextRuns = [];
         this.domProcessing = 0;
@@ -250,20 +248,41 @@ class RunScheduler {
             this.needsRerun();
         });
     }
+    
+    clearDelayProcess() {
+        if (this.delayProcess?.timeoutId) {
+            clearTimeout(this.delayProcess.timeoutId);
+            this.delayProcess.timeoutId = undefined;
+        }
 
+        this.delayProcess = undefined;
+    }
+    
     setDelayProcess(runId, insertTime, interval, runTime, delay) {
-        this.delayProcess = {
+        const delayProcess = {
             runId,
             insertTime,
-            runTime: runTime,
+            runTime,
             interval,
-            timeoutId: setTimeout(async () => {
-                this.delayProcess.timeoutId = undefined;
+            delay,
+            timeoutId: undefined
+        };
 
-                await this.run(delay, runId);
+        delayProcess.timeoutId = setTimeout(async () => {
+            if (this.delayProcess !== delayProcess) {
+                return;
+            }
+
+            delayProcess.timeoutId = undefined;
+
+            await this.run(delay, runId);
+
+            if (this.delayProcess === delayProcess) {
                 this.executeNextRun();
-            }, Math.max(0, delay))
-        };    
+            }
+        }, Math.max(0, delay));
+
+        this.delayProcess = delayProcess;
     }
 
     executeNextRun() {
@@ -291,7 +310,7 @@ class RunScheduler {
             const newDelay = Math.max(1, nextValidRun.delay - (now - nextValidRun.insertTime));              
             this.setDelayProcess(nextValidRun.runId, nextValidRun.insertTime, nextValidRun.delay, now + newDelay, newDelay);
         } else {
-            this.delayProcess = undefined;
+            this.clearDelayProcess();
         }
     }
 
@@ -335,6 +354,51 @@ class RunScheduler {
             delay: newDelay
         });
     }
+    
+    getSnapshot() {
+        const now = TUtil.now();
+        const runs = [];
+
+        const addRun = run => {
+            if (!run) {
+                return;
+            }
+
+            const runTime = TUtil.isDefined(run.runTime) ? run.runTime: run.insertTime + run.delay;
+
+            runs.push({
+                runId: run.runId,
+                delay: Math.max(0, runTime - now)
+            });
+        };
+
+        addRun(this.delayProcess);
+        this.nextRuns.forEach(addRun);
+
+        const immediateRuns = runs.filter(run => run.delay === 0);
+        const delayedRuns = runs.filter(run => run.delay > 0);
+
+        const result = [];
+
+        if (immediateRuns.length) {
+            result.push({
+                runId: immediateRuns.map(run => run.runId).join('-'),
+                delay: 0
+            });
+        }
+
+        delayedRuns.forEach(run => {
+            result.push(run);
+        });
+
+        return result;
+    }
+
+    restoreSnapshot(snapshot = []) {
+        snapshot.forEach(run => {
+            this.schedule(run.delay, `restore-${run.runId}`);
+        });
+    }    
 }
 
 export { RunScheduler };

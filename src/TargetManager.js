@@ -28,7 +28,7 @@ class TargetManager {
             tmodel.removeFromActiveTargets(key);
             return;
         }
-
+        
         if (tmodel.isExecuted(key) && tmodel.hasUpdatingImperativeTargets(key)) {
             return;
         }

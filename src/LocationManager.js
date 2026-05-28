@@ -447,6 +447,7 @@ class LocationManager {
                 nowVisible = !!tmodel.targets.isVisible;
             }
             
+            tmodel.actualValues.isVisible = nowVisible;
             tmodel.isNowVisible = !wasVisible && nowVisible;
             tmodel.isNowInvisible = ((wasVisible || wasVisible === undefined) && !nowVisible);
             

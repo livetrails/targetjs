@@ -1,4 +1,4 @@
-import { getLocationManager, tRoot, getEvents } from "./App.js";
+import { getLocationManager, tRoot, getEvents, getScreenHeight, getScreenWidth } from "./App.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
 
@@ -30,7 +30,7 @@ class TUtil {
 
         const status = child.visibilityStatus;
         const clip = this.getVisibilityClipRect(child.getParent());
-
+        
         if (clip) {
             status.right = (x - visibilityMargin) <= clip.r;
             status.left = (x + width + visibilityMargin) >= clip.x;
@@ -68,7 +68,7 @@ class TUtil {
     }
 
     static getVisibilityClipRect(container) {
-        let rect = null;
+        let rect = TUtil.getScreenViewportRect();
 
         while (container && container !== tRoot()) {
             if (this.shouldClipByAncestor(container)) {
@@ -84,6 +84,16 @@ class TUtil {
         }
 
         return rect;
+    }
+    
+    static getScreenViewportRect() {
+        return {
+            x: 0,
+            y: 0,
+            r: getScreenWidth(),
+            b: getScreenHeight(),
+            source: "screen"
+        };
     }
 
     static shouldClipByAncestor(ancestor) {

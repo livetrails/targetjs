@@ -47,9 +47,8 @@ class PageManager {
             App.oids = {};
             App.tmodelIdMap = {};            
             tApp.tRoot = tApp.tRootFactory();
-            this.lastLink = link;
-                        
-            tApp.start();
+            this.lastLink = link;  
+            await tApp.start();             
         } else {
             tApp.tRoot = this.pageCache[link].tRoot;
             App.oids = this.pageCache[link].oids;
@@ -72,7 +71,9 @@ class PageManager {
             window.scrollTo(this.pageCache[link].scrollLeft, this.pageCache[link].scrollTop);
             
             this.lastLink = link;  
-            tApp.start();    
+            await tApp.start(); 
+            
+            getRunScheduler().restoreSnapshot(this.pageCache[link].runSnapshot);
         }
     }
 
@@ -111,7 +112,8 @@ class PageManager {
                 visibleOidMap: { ...tApp.manager.visibleOidMap },
                 scrollLeft: $Dom.getWindowScrollLeft() || 0,
                 scrollTop: $Dom.getWindowScrollTop() || 0,  
-                tRoot: tApp.tRoot
+                tRoot: tApp.tRoot,
+                runSnapshot: getRunScheduler().getSnapshot()
             };
         }
 
@@ -135,7 +137,8 @@ class PageManager {
             visibleOidMap: { ...tApp.manager.visibleOidMap },
             scrollLeft: $Dom.getWindowScrollLeft() || 0,
             scrollTop: $Dom.getWindowScrollTop() || 0,
-            tRoot: tApp.tRoot
+            tRoot: tApp.tRoot,
+            runSnapshot: getRunScheduler().getSnapshot()
         };
         
         if (updateHistory) {  

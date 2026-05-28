@@ -90,7 +90,9 @@ class TModelManager {
                 if (!tmodel.canHaveDom() || !tmodel.isIncluded() || (tmodel.canDeleteDom() && !visible && !keepDom)) {
                     this.addToInvisibleDom(tmodel);
                     tmodel.getChildren().forEach(tmodel => {
-                        this.addToRecursiveInvisibleDom(tmodel);
+                        if (!tmodel.managesOwnScroll()) {
+                            this.addToRecursiveInvisibleDom(tmodel);
+                        }
                     });                        
                 }
             }
@@ -225,7 +227,9 @@ class TModelManager {
             }
 
             tmodel.getChildren().forEach(tmodel => {
-                this.addToRecursiveInvisibleDom(tmodel);
+                if (!tmodel.managesOwnScroll()) {
+                    this.addToRecursiveInvisibleDom(tmodel);
+                }
             });
         }
     }
@@ -251,12 +255,13 @@ class TModelManager {
     }
 
     needsRerender(tmodel) {
-        if (tmodel.hasDom() && TUtil.isDefined(tmodel.getHtml()) &&
-                (tmodel.$dom.innerHTML() !== tmodel.getHtml() || tmodel.$dom.textOnly !== tmodel.isTextOnly())) {
-            return true;
+        const html = tmodel.getHtml();
+
+        if (!tmodel.hasDom() || !TUtil.isDefined(html)) {
+            return false;
         }
 
-        return false;
+        return tmodel.$dom.innerHTML() !== String(html) || tmodel.$dom.textOnly !== tmodel.isTextOnly();
     }
 
     needsRestyle(tmodel) {
