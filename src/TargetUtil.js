@@ -430,9 +430,9 @@ class TargetUtil {
             }
             
             if (tmodel.isTargetCompleteDeep(targetName) !== true) {
-               const activeChildrenList = [ ...(tmodel.activeChildrenMap?.values() ?? []) ];
-               return  tmodel.oid + "." + targetName + " ==> " + tmodel.getTargetStatus(targetName) + ", " + tmodel.isTargetCompleteDeep(targetName) + ":: " + activeChildrenList.map(t => t.oid + ':' + t.hasAnyUpdates()) + ", " + [ ...TargetUtil.getUpdatingChildren(tmodel, targetName).keys() ]; 
-               //return false;
+               //const activeChildrenList = [ ...(tmodel.activeChildrenMap?.values() ?? []) ];
+               //return  tmodel.oid + "." + targetName + " ==> " + tmodel.getTargetStatus(targetName) + ", " + tmodel.isTargetCompleteDeep(targetName) + ":: " + activeChildrenList.map(t => t.oid + ':' + t.hasAnyUpdates()) + ", " + [ ...TargetUtil.getUpdatingChildren(tmodel, targetName).keys() ]; 
+               return false;
             }         
         }
         return true;
@@ -465,15 +465,15 @@ class TargetUtil {
                 return 'not done';
             }
             
-            if (target.childAction?.length > 0 && TargetUtil.getUpdatingChildren(tmodel, key).size > 0) {         
+            if (target.childAction?.length > 0 && TargetUtil.getUpdatingChildren(tmodel, key, target.waitForChildren).size > 0) {         
                 return 'updating children';
             }
             
-            if (target.childAction?.length > 0 && TargetUtil.getActiveChildren(tmodel).size > 0) {
+            if (target.childAction?.length > 0 && TargetUtil.getActiveChildren(tmodel, target.waitForChildren).size > 0) {
                 return 'active children';
             }
             
-            if (target.childAction?.length > 0 && TargetUtil.areTargetChildrenComplete(target.childAction) !== true) {
+            if (target.childAction?.length > 0 && TargetUtil.areTargetChildrenComplete(target.childAction, target.waitForChildren) !== true) {
                 return 'incomplete children';
             }
             
@@ -485,29 +485,31 @@ class TargetUtil {
         return true;        
     }
     
-    static areTargetChildrenComplete(children) {
+    static areTargetChildrenComplete(children, waitForChildren = 'all') {
         if (!children) {
             return true;
         }
-                
+
         for (const child of children) {
-            if (!child.isVisible() && child.visibilityStatus) {
+            if (TargetUtil.shouldIgnoreChildForCompletion(child, waitForChildren)) {
                 continue;
             }
+
             if (App.tmodelIdMap[child.oid] && !TargetUtil.isTModelComplete(child)) {
                 return false;
             }
+
             if (child.hasChildren()) {
-                if (!TargetUtil.areTargetChildrenComplete(child.getChildren())) {
+                if (!TargetUtil.areTargetChildrenComplete(child.getChildren(), waitForChildren)) {
                     return false;
                 }
             }
         }
-        
+    
         return true;
     }
     
-    static getUpdatingChildren(tmodel, originalTargetName) {
+    static getUpdatingChildren(tmodel, originalTargetName, waitForChildren = "all") {
         const childrenMap = new Map(); 
         
         const children = [
@@ -515,7 +517,10 @@ class TargetUtil {
           ...(tmodel.animatingChildrenMap?.values() ?? [])
         ];
                 
-        children.filter(child => child.isVisible() || !child.visibilityStatus).forEach(child => {
+        children.forEach(child => {
+            if (TargetUtil.shouldIgnoreChildForCompletion(child, waitForChildren)) {
+                return;
+            }            
             const updatingList = [
               ...(child.updatingTargetList ?? []),
               ...(child.animatingMap ? [...child.animatingMap.keys()] : [])
@@ -548,18 +553,34 @@ class TargetUtil {
         return childrenMap;
     } 
     
-    static getActiveChildren(tmodel) {
+    static getActiveChildren(tmodel, waitForChildren = 'all') {
         const childrenMap = new Map(); 
 
         const children = [ ...(tmodel.activeChildrenMap?.values() ?? []) ];
                 
-        children.filter(child => child.isVisible() || !child.visibilityStatus).forEach(child => {
+        children.forEach(child => {
+            if (TargetUtil.shouldIgnoreChildForCompletion(child, waitForChildren)) {
+                return;
+            }    
+            
             if (child.activeTargetList.length) {
                 childrenMap.set(child.oid, child);
             }
         });
         
         return childrenMap;
+    }
+    
+    static shouldIgnoreChildForCompletion(child, waitForChildren) {
+        if (waitForChildren === "none") {
+            return true;
+        }
+
+        if (waitForChildren === "visible") {
+            return child.visibilityStatus && !child.isVisible();
+        }
+
+        return false;
     }
 
     static activateSingleTarget(tmodel, targetName) {
