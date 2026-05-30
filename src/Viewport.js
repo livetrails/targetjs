@@ -24,7 +24,7 @@ class Viewport {
         this.yWest = 0;
         this.yEast = 0;
         this.ySouth = 0;
-                
+                        
         this.container = undefined;
         
         this.time = 0;
@@ -151,12 +151,20 @@ class Viewport {
         this.yNext += topBaseHeight;
         this.xSouth = this.xNext;
         this.yEast = this.yNext;
-
+        
         this.xEast = Math.max(this.xNext, this.xEast);
         this.ySouth = Math.max(ySouth, this.ySouth) ;
-
+             
         child.getRealParent().viewport.xEast = Math.max(child.getRealParent().viewport.xEast, this.xEast);
         child.getRealParent().viewport.ySouth = Math.max(child.getRealParent().viewport.ySouth, this.ySouth);
+        
+        if (this.container.getContainerOverflowMode() === 'always' || this.currentChild.getItemOverflowMode() === 'always') {
+            this.yEast = child.getRealParent().viewport.ySouth;
+            this.yNext = child.getRealParent().viewport.ySouth;
+
+            this.xNext = child.getRealParent().viewport.xWest;
+            this.xSouth = child.getRealParent().viewport.xWest;
+        }           
     }
 }
 

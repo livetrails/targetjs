@@ -220,7 +220,7 @@ class LocationManager {
 
             viewport.setLocation();
             
-            if (viewport.isOverflow()) {
+            if (viewport.isOverflow()) {     
                 viewport.overflow();
                 viewport.setLocation();
             }               
