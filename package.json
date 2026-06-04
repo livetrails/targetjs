@@ -1,7 +1,7 @@
 {
   "name": "targetj",
-  "version": "1.0.233",
-  "description": "TargetJS: UI Development as a Sequence.",
+  "version": "1.0.234",
+  "description": "TargetJS: JavaScript UI framework where state is a destination and code order defines the UI sequence",
   "keywords": ["targetjs"],
   "main": "Export.js",
   "homepage": "https://targetjs.io",

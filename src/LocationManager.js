@@ -31,7 +31,9 @@ class LocationManager {
 
         this.resumePausedList = [];
         this.resumePausedMap = {};
-        this.resumeScheduled = false;        
+        this.resumeScheduled = false;
+        
+        this.calcEpoch = 0;
     }
     
     clear() {
@@ -45,7 +47,7 @@ class LocationManager {
 
         this.resumePausedList = [];
         this.resumePausedMap = {};
-        this.resumeScheduled = false;
+        this.resumeScheduled = false; 
     }
     
     calculateActivated() {
@@ -76,6 +78,8 @@ class LocationManager {
     }
 
     async calculateAll(budgetMs = 8) {
+        const calcEpoch = this.calcEpoch;
+
         if (this.calcBusy) {
             this.calcQueued = true;
             return;
@@ -87,24 +91,27 @@ class LocationManager {
         this.hasLocationMap = {};
         this.locationListStats = [];
 
-        const stack = [];
-
-        stack.push({
+        const stack = [{
             container: tRoot(),
             stage: 'init',
             children: [],
             viewport: undefined,
             index: 0
-        });
+        }];
 
         const ctx = {
             budgetMs,
-            sliceStart: TUtil.now()
+            sliceStart: TUtil.now(),
+            calcEpoch
         };
 
         await this.processStack(stack, ctx);
+
+        if (ctx.calcEpoch !== this.calcEpoch) {
+            return;
+        }
+
         this.processAfterStack();
-        
         this.scheduleResumePaused();
 
         this.calcBusy = false;
@@ -113,6 +120,12 @@ class LocationManager {
             this.calcQueued = false;
             return this.calculateAll(budgetMs);
         }
+    }
+    
+    cancelCurrentCalculation() {
+        this.calcEpoch++;
+        this.calcBusy = false;
+        this.calcQueued = false;
     }
 
     async processStack(stack, ctx) {
@@ -288,8 +301,17 @@ class LocationManager {
         };
 
         while (stack.length) {
+            if (ctx.calcEpoch !== this.calcEpoch) {
+                return;
+            }
+
             if ((TUtil.now() - ctx.sliceStart) > ctx.budgetMs) {
                 await new Promise(requestAnimationFrame);
+
+                if (ctx.calcEpoch !== this.calcEpoch) {
+                    return;
+                }
+
                 ctx.sliceStart = TUtil.now();
                 continue;
             }

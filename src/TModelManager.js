@@ -1,6 +1,6 @@
 import { $Dom } from "./$Dom.js";
 import { TUtil } from "./TUtil.js";
-import { App, getLocationManager, getEvents, getAnimationManager, tRoot } from "./App.js";
+import { getLocationManager, getEvents, getAnimationManager, tRoot } from "./App.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
 
@@ -63,7 +63,7 @@ class TModelManager {
         for (const tmodel of getLocationManager().hasLocationList) {         
             lastVisibleMap[tmodel.oid] = undefined; 
             
-            if (!App.tmodelIdMap[tmodel.oid]) {
+            if (!tmodel.exists()) {
                 if (tmodel.hasDom()) {
                     this.addToInvisibleDom(tmodel);
                 }
@@ -160,7 +160,7 @@ class TModelManager {
         Object.values(lastVisibleMap).filter(v => v !== undefined).forEach(tmodel => {
             if (tmodel.hasDom()) {
                 
-                if (!App.tmodelIdMap[tmodel.oid] || !tmodel.isIncluded()) {   
+                if (!tmodel.exists() || !tmodel.isIncluded()) {   
                     this.addToInvisibleDom(tmodel);
                 } 
             }
@@ -399,6 +399,7 @@ class TModelManager {
             const pending = tmodel.pendingTargets;
             if (pending?.size) {
                 for (const target of [...pending]) {
+                   TargetUtil.cleanupTarget(tmodel, target);
                    TargetUtil.shouldActivateNextTarget(tmodel, target);
                 }
             }

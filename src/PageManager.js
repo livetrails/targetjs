@@ -36,55 +36,64 @@ class PageManager {
         DomInit.initPageDoms(tApp.tRoot.$dom);
     }
 
-    async openPage(link) {        
-        await tApp.stop();
-        await tApp.reset();
-                
+    async openPage(link, shouldReset = true) {
+        if (shouldReset) {
+            await tApp.stop();
+            getLocationManager().cancelCurrentCalculation();
+            await tApp.reset();
+        }
+
         link = TUtil.getFullLink(link);
-        
+
         if (!this.pageCache[link]) {
-            tApp.tRoot.$dom.innerHTML(""); 
+            tApp.tRoot.$dom.innerHTML("");
             App.oids = {};
-            App.tmodelIdMap = {};            
+            App.tmodelIdMap = {};
             tApp.tRoot = tApp.tRootFactory();
-            this.lastLink = link;  
-            await tApp.start();             
+            this.lastLink = link;
+            await tApp.start();
         } else {
             tApp.tRoot = this.pageCache[link].tRoot;
             App.oids = this.pageCache[link].oids;
             App.tmodelIdMap = this.pageCache[link].tmodelIdMap;
-            
+
             tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
             tApp.tRoot.$dom.innerHTML(this.pageCache[link].html);
-            
+
             const visibles = Object.values(this.pageCache[link].visibleOidMap);
             const newVisibles = DomInit.initCacheDoms(visibles);
             visibles.forEach(tmodel => {
                 tmodel.visibilityStatus = undefined;
             });
+            
+            tApp.manager.activatePendingTargetsAfterDom(visibles);
 
             tApp.manager.visibleOidMap = { ...this.pageCache[link].visibleOidMap };
             newVisibles.forEach(visible => {
                 tApp.manager.visibleOidMap[visible.oid] = visible;
             });
-            
+
             window.scrollTo(this.pageCache[link].scrollLeft, this.pageCache[link].scrollTop);
-            
-            this.lastLink = link;  
-            await tApp.start(); 
-            
+
+            this.lastLink = link;
+            await tApp.start();
+
             getRunScheduler().restoreSnapshot(this.pageCache[link].runSnapshot);
         }
     }
 
-    async openLinkFromHistory(state) {        
-        if (state.link) {
-            this.onPageClose();
-            await this.openLink(state.link, false);
-        } else if (state.browserUrl) {
-            history.replaceState({ link: state.browserUrl }, "", state.browserUrl);
-            await this.openPage(state.browserUrl);
+    async openLinkFromHistory(state) {
+        const link = state.link || state.browserUrl;
+
+        if (!link) {
+            return;
         }
+
+        if (state.browserUrl) {
+            history.replaceState({ link }, "", link);
+        }
+
+        await this.openLink(link, false);
     }
     
     onPageClose() {        
@@ -97,32 +106,40 @@ class PageManager {
 
     async openLink(link, updateHistory = true) {
         link = TUtil.getFullLink(link);
-                
+
         if (this.lastLink) {
+            const runSnapshot = getRunScheduler().getSnapshot();
+            
+            await tApp.stop();
+
+            getLocationManager().cancelCurrentCalculation();
+
+            this.onPageClose();
+
             tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
             const html = tApp.tRoot.$dom.innerHTML();
-            
-            this.onPageClose();
-                              
+
             this.pageCache[this.lastLink] = {
                 link: this.lastLink,
-                html: html,
+                html,
                 oids: { ...App.oids },
-                tmodelIdMap:  { ...App.tmodelIdMap },
+                tmodelIdMap: { ...App.tmodelIdMap },
                 visibleOidMap: { ...tApp.manager.visibleOidMap },
                 scrollLeft: $Dom.getWindowScrollLeft() || 0,
-                scrollTop: $Dom.getWindowScrollTop() || 0,  
+                scrollTop: $Dom.getWindowScrollTop() || 0,
                 tRoot: tApp.tRoot,
-                runSnapshot: getRunScheduler().getSnapshot()
+                runSnapshot
             };
+
+            await tApp.reset();
         }
 
         if (updateHistory) {
             history.pushState({ link }, "", link);
         }
-        
-        await this.openPage(link);
-                
+
+        await this.openPage(link, false);
+
         getRunScheduler().schedule(0, "pagemanager-processOpenLink");
     }
 

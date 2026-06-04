@@ -305,8 +305,20 @@ class TModel extends BaseModel {
         }
         
         return this;        
-    }   
+    }  
     
+    exists() {
+        const parent = this.getParent();
+
+        if (!parent) {
+            return false;
+        }
+
+        parent.getChildren();
+
+        return parent.allChildrenMap[this.oid] === this;
+    }
+
     addToParentVisibleChildren() {
         if (this.isVisible() && this.isInFlow() && this.getParent()) {
             this.getParent().visibleChildren.push(this);

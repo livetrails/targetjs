@@ -197,7 +197,7 @@ class TargetUtil {
                         if (prevOk === true) {  
                             TargetUtil.activateTargetOnce(tmodel, nextTarget);
                             nextTargetActivated = true;
-                            TargetUtil.clearPendingTargets(tmodel, key);
+                            TargetUtil.clearPendingTargetsForNextTarget(tmodel, nextTarget);
                             tmodel.targetValues[nextTarget].triggeredByCompleteCount = targetValue.completeCount;
                         } else {
                             TargetUtil.markPendingTargets(tmodel, key);
@@ -218,7 +218,7 @@ class TargetUtil {
                         tmodel.removeFromActiveTargets(nextTarget);
                         TargetUtil.activateTarget(tmodel, nextTarget);
                         nextTargetActivated = true;
-                        TargetUtil.clearPendingTargets(tmodel, key);
+                        TargetUtil.clearPendingTargetsForNextTarget(tmodel, nextTarget);
                         tmodel.targetValues[nextTarget].triggeredByCompleteCount = targetValue.completeCount;
                     } else {
                         TargetUtil.markPendingTargets(tmodel, key);
@@ -265,25 +265,43 @@ class TargetUtil {
         (tmodel.pendingTargets ||= new Set()).add(key);
     }
 
-    static clearPendingTargets(tmodel, key) {
-        
+    static clearPendingTarget(tmodel, key) {
         const pending = tmodel.pendingTargets;
-        
+
         if (!pending) {
             return;
         }
 
         pending.delete(key);
+
         if (pending.size === 0) {
             tmodel.pendingTargets = undefined;
         }
     }
-    
-    static cleanupTarget(tmodel, key) {
-        if (tmodel.isTargetComplete(key) || !TargetUtil.isTargetFullyCompleted(tmodel, key)) {
+
+    static clearPendingTargetsForNextTarget(tmodel, nextTarget) {
+        const pending = tmodel.pendingTargets;
+
+        if (!pending) {
             return;
         }
-        
+
+        for (const key of [...pending]) {
+            if (tmodel.targets[key]?.activateNextTarget === nextTarget) {
+                pending.delete(key);
+            }
+        }
+
+        if (pending.size === 0) {
+            tmodel.pendingTargets = undefined;
+        }
+    }   
+
+    static cleanupTarget(tmodel, key) {
+        if (tmodel.isTargetComplete(key) || !TargetUtil.isTargetFullyCompleted(tmodel, key)) {
+            return false;
+        }
+                
         tmodel.setTargetComplete(key);
         const target = tmodel.targets[key];
        
@@ -304,6 +322,8 @@ class TargetUtil {
         } 
         
         TargetUtil.bubbleInvokerCompletion(tmodel, key);
+        
+        return true;
     }
     
     static bubbleInvokerCompletion(tmodel, key, visited = new Set(), cleaned = new Set(), levelUp = 0) {
@@ -495,13 +515,13 @@ class TargetUtil {
                 continue;
             }
 
-            if (App.tmodelIdMap[child.oid] && !TargetUtil.isTModelComplete(child)) {
-                return false;
+            if (child.exists() && !TargetUtil.isTModelComplete(child)) {
+                return child.oid;
             }
 
             if (child.hasChildren()) {
                 if (!TargetUtil.areTargetChildrenComplete(child.getChildren(), waitForChildren)) {
-                    return false;
+                    return child.oid;
                 }
             }
         }
@@ -656,7 +676,10 @@ class TargetUtil {
         tmodel.clearAnimatingChildren();
         
         getLocationManager().domIslandSet.delete(tmodel);
-        delete App.tmodelIdMap[tmodel.oid];
+        
+        if (App.tmodelIdMap[tmodel.oid] === tmodel) {
+            delete App.tmodelIdMap[tmodel.oid];
+        }
     } 
 
     static getOriginalNames(tmodel, key) {
@@ -769,7 +792,7 @@ class TargetUtil {
         tmodel.removeFromActiveTargets(key);
         tmodel.removeFromAnimatingMap(key);
         tmodel.removeFromUpdatingTargets(key);
-        TargetUtil.clearPendingTargets(tmodel, key);
+        TargetUtil.clearPendingTarget(tmodel, key);
     }
 
 }
