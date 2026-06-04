@@ -1,13 +1,13 @@
 # TargetJS: State as Destination, Code Order as UI Sequence
 
+### Most frameworks are great at rendering state. TargetJS is designed for the journey between states.
+
 **[targetjs.io](https://targetjs.io)** 
 [![MIT LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/livetrails/targetjs/blob/main/LICENSE) 
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-Most frameworks are great at rendering the next state. TargetJS is designed for the journey between states.
-
-TargetJS is a JavaScript UI framework that replaces the "State → Render" model with "State → transition → Render". It also lets code order directly define the UI sequence. It unifies UI, animations, API calls, event handling, and state into self-contained "Targets" that stack together like intelligent Lego pieces using Code-Ordered Reactivity.
+TargetJS is a JavaScript UI framework that replaces the "State → Render" model with "State → Transition → Render". It also lets code order directly define the UI sequence. It unifies UI, animations, API calls, event handling, and state into self-contained "Targets" that stack together like intelligent Lego pieces using Code-Ordered Reactivity.
 
 It can be used as a full-featured framework or as a lightweight library alongside other frameworks. It is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
