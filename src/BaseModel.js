@@ -946,7 +946,7 @@ class BaseModel {
 
         if (this.canTargetBeActivated(key)) {
             if (actualOptions?.reset) {
-                TargetUtil.resetTargetPipelineState(this, key);
+                TargetUtil.resetTargetState(this, key);
             }
 
             if (TUtil.isDefined(actualValue)) {

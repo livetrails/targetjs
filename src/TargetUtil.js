@@ -696,11 +696,31 @@ class TargetUtil {
         return { originalTModel, originalTargetName };
     }
     
-    static resetTargetPipelineState(tmodel, targetName, visited = new Set()) {
+    static resetTargetState(tmodel, targetName) {
         if (!tmodel || !targetName) {
             return;
         }
         
+        TargetUtil.resetSingleTargetState(tmodel, targetName);
+
+        const target = tmodel.targets[targetName];
+
+        const nextTarget = target?.activateNextTarget;
+
+        const nextTargetDef = tmodel.targets[nextTarget];
+
+        if (!nextTargetDef || (!nextTarget.endsWith('$') && nextTargetDef.active === false)) {
+            return;
+        }
+
+        TargetUtil.resetTargetPipelineState(tmodel, nextTarget);
+    }
+    
+    static resetTargetPipelineState(tmodel, targetName, visited = new Set()) {
+        if (!tmodel || !targetName) {
+            return;
+        }
+
         const target = tmodel.targets[targetName];
 
         TargetUtil.resetSingleTargetState(tmodel, targetName);

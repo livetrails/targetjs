@@ -39,7 +39,7 @@ class TargetManager {
             }
             const schedulePeriod = TUtil.scheduleExecution(tmodel, key);          
             if (schedulePeriod > 0) {
-                getRunScheduler().timeSchedule(schedulePeriod, `targetSchedule__${tmodel.oid}__${key}_${schedulePeriod}`);
+                getRunScheduler().schedule(schedulePeriod, `targetSchedule__${tmodel.oid}`);
                 return;
             }
         }
@@ -75,7 +75,7 @@ class TargetManager {
             schedulePeriod = TUtil.scheduleExecution(tmodel, key);
             
             if (schedulePeriod > 0) {  
-                getRunScheduler().schedule(schedulePeriod, `setActualValues-${tmodel.oid}__${key}_${schedulePeriod}`);
+                getRunScheduler().schedule(schedulePeriod, `setActualValues-${tmodel.oid}`);
             } else {
                 tmodel.resetScheduleTimeStamp(key);
                 this.setActualValue(tmodel, key);
@@ -332,7 +332,7 @@ class TargetManager {
         }
 
         if (!tmodel.isTargetImperative(key) && !tmodel.isTargetEnabled(key)) {
-            getRunScheduler().schedule(15, `setActualValue-postpone-${tmodel.oid}__${key}`);
+            getRunScheduler().schedule(15, `setActualValue-postpone-${tmodel.oid}}`);
             return;
         }
 

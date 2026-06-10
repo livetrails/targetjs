@@ -45,6 +45,7 @@ class EventListener {
         
         this.currentEventName = '';
         this.currentEventType = '';
+        this.currentEventTModel = undefined;
         this.currentOriginalEvent = undefined;
         this.currentKey = '';
         
@@ -73,6 +74,14 @@ class EventListener {
         
         this.windowScrollX = window.scrollX | 0;
         this.windowScrollY = window.scrollY | 0;
+        
+        this.windowScrollEndTimer = 0;
+        
+        this.scrollEndTimeStamp = {
+            x: 0,
+            y: 0
+        };
+        
         this.windowEpoch = 0;
         this.eventEpoch = 0;
 
@@ -185,14 +194,15 @@ class EventListener {
     }
     
     resetEventsOnTimeout() {
-        if (this.currentTouch.deltaY || this.currentTouch.deltaX || this.currentTouch.pinchDelta) {
-            const diff = this.touchTimeStamp - TUtil.now();
-                                          
-            if (diff > 100) {                         
+        if (this.scrollEndTimeStamp.x > 0 || this.scrollEndTimeStamp.y > 0 || this.currentTouch.pinchDelta) {
+            const now = TUtil.now();
+            const diff = Math.max(this.scrollEndTimeStamp.x - now, this.scrollEndTimeStamp.y - now);
+
+            if (diff > 100) {
                 this.currentTouch.deltaY *= 0.95;
                 this.currentTouch.deltaX *= 0.95;
                 this.currentTouch.pinchDelta *= 0.95;
-                
+
                 if (Math.abs(this.currentTouch.deltaY) < 0.1) {
                     this.currentTouch.deltaY = 0;
                 }
@@ -201,21 +211,27 @@ class EventListener {
                 }
                 if (Math.abs(this.currentTouch.pinchDelta) < 0.1) {
                     this.currentTouch.pinchDelta = 0;
-                }                
-                if (this.currentTouch.deltaX === 0 && this.currentTouch.deltaY === 0 && this.currentTouch.pinchDelta === 0) { 
-                    this.touchTimeStamp = 0;
-                }                
+                }
             }
-            
-            if (diff <= 0 || this.touchTimeStamp === 0) {
+
+            if (diff <= 0) {
                 this.currentTouch.deltaY = 0;
                 this.currentTouch.deltaX = 0;
                 this.currentTouch.pinchDelta = 0;
                 this.currentTouch.dir = '';
-                this.touchTimeStamp = 0;
             }
-            
-            getRunScheduler().schedule(10, 'scroll decay');      
+        
+            if (!this.currentTouch.deltaX && this.scrollEndTimeStamp.x && now >= this.scrollEndTimeStamp.x && this.touchCount === 0) {
+                this.scrollEndTimeStamp.x = 0;
+                this.queueScrollEndEvent('x', this.currentHandlers.scrollLeft);
+            }
+
+            if (!this.currentTouch.deltaY && this.scrollEndTimeStamp.y && now >= this.scrollEndTimeStamp.y && this.touchCount === 0) {
+                this.queueScrollEndEvent('y', this.currentHandlers.scrollTop);
+                this.scrollEndTimeStamp.y = 0;
+            }
+ 
+            getRunScheduler().schedule(10, 'scroll decay');
         }
     }
     
@@ -268,14 +284,15 @@ class EventListener {
         if (this.eventQueue.length === 0) {
             this.currentEventName = '';
             this.currentEventType = '';
+            this.currentEventTModel = undefined;
             this.currentOriginalEvent = undefined;
             this.currentKey = '';
             return;
         }
                 
         const lastEvent = this.eventQueue.shift();
-                                 
-        if (this.canFindHandlers) {
+                          
+        if (this.canFindHandlers && !lastEvent.synthetic) {
             this.findEventHandlers(lastEvent);
         }
         
@@ -290,6 +307,7 @@ class EventListener {
         
         this.currentEventName = lastEvent.eventName;
         this.currentEventType = lastEvent.eventType;
+        this.currentEventTModel = lastEvent.tmodel;
         this.currentOriginalEvent = lastEvent.originalEvent;
         this.currentTouch.key = '';      
     }
@@ -313,7 +331,7 @@ class EventListener {
         if (!eventItem) {
             return;
         }
-                                      
+              
         let { eventName, inputType, eventType, order: eventOrder, queue, rateLimit } = eventItem;
            
         const now = TUtil.now();
@@ -417,7 +435,8 @@ class EventListener {
                 }
                 
                 if (this.touchCount > 0) {
-                    this.touchTimeStamp = now + 10;
+                    this.scrollEndTimeStamp.x = 0;
+                    this.scrollEndTimeStamp.y = 0;
                     
                     this.move(event);
                     event.stopPropagation();
@@ -472,7 +491,7 @@ class EventListener {
                     event.preventDefault();
                     event.stopPropagation();
                 }
-                this.touchTimeStamp = now + 500;
+                this.touchCount = 0;
                 this.wheel(event);
                 break;
 
@@ -534,17 +553,97 @@ class EventListener {
                     this.windowScrollX = window.scrollX | 0;
                     this.windowScrollY = window.scrollY | 0;
                     getLocationManager().domIslandSet.forEach(t => {
-                        t.markLayoutDirty('winScroll-event');
+                        t.markLayoutDirty('window-scroll-event');
                     });
+
+                    clearTimeout(this.windowScrollEndTimer);
+
+                    this.windowScrollEndTimer = setTimeout(() => {
+                        this.queueWindowScrollEndEvent('x', tmodel);
+                        this.queueWindowScrollEndEvent('y', tmodel);
+                        this.windowScrollEndTimer = 0;
+                    }, 120);
+
                 } else {
-                    tmodel.markLayoutDirty('winScroll-event');
+                    tmodel.markLayoutDirty('container-scroll-event');
+
+                    clearTimeout(tmodel.scrollEndTimer);
+
+                    tmodel.scrollEndTimer = setTimeout(() => {
+                        this.queueWindowScrollEndEvent('x', tmodel, 'container');
+                        this.queueWindowScrollEndEvent('y', tmodel, 'container');
+                        tmodel.scrollEndTimer = 0;
+                    }, 120);
                 }
+
                 break;
         }
                 
         getRunScheduler().schedule(0, `${originalName}-${eventName}-${(event.target.tagName || '').toUpperCase()}`);        
     }
     
+    queueScrollEndEvent(axis, handler) {
+        if (!handler) {
+            return;
+        }
+
+        const eventType = axis === 'x' ? 'scrollleftend' : 'scrolltopend';
+
+        this.removeScrollEndEvents(axis);
+
+        this.eventQueue.push({
+            eventName: eventType,
+            eventType,
+            originalName: eventType,
+            tmodel: handler,
+            originalEvent: undefined,
+            timeStamp: TUtil.now(),
+            synthetic: true
+        });
+
+
+        this.eventEpoch++;
+
+        handler.markEventDirty();
+        handler.markLayoutDirty(eventType);
+        
+        getRunScheduler().schedule(0, eventType);
+    }
+
+    queueWindowScrollEndEvent(axis, tmodel, scrollSource = 'window') {
+        const eventType = axis === 'x' ? 'windowscrollleftend' : 'windowscrolltopend';
+
+        this.removeScrollEndEvents(axis);
+
+        this.eventQueue.push({
+            eventName: eventType,
+            eventType,
+            originalName: eventType,
+            tmodel,
+            originalEvent: undefined,
+            timeStamp: TUtil.now(),
+            synthetic: true,
+            scrollSource
+        });
+
+        this.eventEpoch++;
+
+        getLocationManager().domIslandSet.forEach(t => {
+            t.markEventDirty();
+            t.markLayoutDirty(eventType);
+        });
+
+        getRunScheduler().schedule(0, eventType);
+    } 
+    
+    removeScrollEndEvents(axis) {
+        const types = axis === 'x'
+            ? new Set(['scrollleftend', 'windowscrollleftend'])
+            : new Set(['scrolltopend', 'windowscrolltopend']);
+
+        this.eventQueue = this.eventQueue.filter(event => !types.has(event.eventType));
+    }
+
     resizeRoot() {
         TargetExecutor.executeDeclarativeTarget(tRoot(), 'screenWidth');
         TargetExecutor.executeDeclarativeTarget(tRoot(), 'screenHeight');
@@ -605,7 +704,6 @@ class EventListener {
         this.clearEnd();
         this.clearTouch();
         this.eventQueue.length = 0;
-        this.touchTimeStamp = 0;
         this.touchCount = 0; 
         this.canFindHandlers = true;
         this.lastEvent = undefined;
@@ -613,7 +711,11 @@ class EventListener {
         this.eventTargetMap = {};
         this.swipeStartX = 0;
         this.swipeStartY = 0;
-        this.hovered.clear();        
+        this.hovered.clear(); 
+        clearTimeout(this.windowScrollEndTimer);
+        this.windowScrollEndTimer = 0;
+        this.scrollEndTimeStamp.x = 0;
+        this.scrollEndTimeStamp.y = 0;
     }
 
     deltaX() {
@@ -724,6 +826,10 @@ class EventListener {
         return this.currentEventType;
     }  
     
+    getEventTModel() {
+        return this.currentEventTModel;
+    }
+    
     isClickHandler(handler) {
         return this.getClickHandler() === handler && this.isClickEvent();
     }
@@ -789,6 +895,22 @@ class EventListener {
 
     isScrollTopHandler(handler) {
         return this.currentHandlers.scrollTop === handler;
+    }
+    
+    isScrollLeftEndHandler(handler) {
+        return this.currentHandlers.scrollLeft === handler && this.currentEventType === 'scrollleftend';
+    }
+
+    isScrollTopEndHandler(handler) {
+        return this.currentHandlers.scrollTop === handler && this.currentEventType === 'scrolltopend';
+    } 
+    
+    isScrolling() {
+        return this.scrollEndTimeStamp.x > 0 || this.scrollEndTimeStamp.y > 0;
+    }
+
+    isWindowScrolling() {
+        return this.windowScrollEndTimer > 0;
     }
 
     isPinchHandler(handler) {
@@ -871,15 +993,15 @@ class EventListener {
                         
             if (this.currentTouch.orientation === 'horizontal' && Math.abs(deltaX) > 0 && period > 0) {
                 momentum = TUtil.momentum(0, deltaX, period);
-                this.touchTimeStamp = this.end0.timeStamp + momentum.duration;
-                if ((this.touchTimeStamp - TUtil.now()) > 0) {                
+                this.scrollEndTimeStamp.x = this.end0.timeStamp + momentum.duration;
+                if ((this.scrollEndTimeStamp.x - TUtil.now()) > 0) {                
                     this.currentTouch.deltaX = momentum.distance;
                     this.currentTouch.manualMomentumFlag = true;
                 }
             } else if (this.currentTouch.orientation === 'vertical' && Math.abs(deltaY) > 0 && period > 0) {
                 momentum = TUtil.momentum(0, deltaY, period);
-                this.touchTimeStamp = this.end0.timeStamp + momentum.duration;
-                if ((this.touchTimeStamp - TUtil.now()) > 0) {                    
+                this.scrollEndTimeStamp.y = this.end0.timeStamp + momentum.duration;
+                if ((this.scrollEndTimeStamp.y - TUtil.now()) > 0) {                    
                     this.currentTouch.deltaY = momentum.distance;
                     this.currentTouch.manualMomentumFlag = true;
                 }
@@ -901,11 +1023,18 @@ class EventListener {
                 this.currentTouch.orientation === 'vertical') {
             this.currentTouch.orientation = 'vertical';
         }
+                
+        const now = TUtil.now();
+        const endDelay = source === 'touch' ? 0 : 500;
         
         if (this.currentTouch.orientation === 'horizontal') {
-            this.currentTouch.dir = deltaX < 0 ? 'left' : deltaX > 0 ? 'right' : this.currentTouch.dir;            
+            this.currentTouch.dir = deltaX < 0 ? 'left' : deltaX > 0 ? 'right' : this.currentTouch.dir; 
+            this.scrollEndTimeStamp.x = now + endDelay;
+            this.removeScrollEndEvents('x');            
         }  else {
-            this.currentTouch.dir = deltaY < 0 ? 'up' : deltaY > 0 ? 'down' : this.currentTouch.dir;            
+            this.currentTouch.dir = deltaY < 0 ? 'up' : deltaY > 0 ? 'down' : this.currentTouch.dir;
+            this.scrollEndTimeStamp.y = now + endDelay;
+            this.removeScrollEndEvents('y');            
         }
         
         this.currentTouch.source = source;
@@ -916,6 +1045,12 @@ class EventListener {
         
         this.currentTouch.deltaX = this.currentTouch.prevDeltaX;        
         this.currentTouch.deltaY = this.currentTouch.prevDeltaY;
+        
+        if (this.scrollEndTimeStamp.x > 0 || this.scrollEndTimeStamp.y > 0) {
+            getRunScheduler().schedule(endDelay, 'scroll-end-check');        
+        }
+        
+
     }
 
     wheel(event) {
