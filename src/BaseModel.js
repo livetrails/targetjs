@@ -442,16 +442,16 @@ class BaseModel {
         return this.targetValues[key]?.status === 'complete' ? true : this.targetValues[key] === undefined ? undefined : false;
     }
     
-    isTargetCompleteDeep(key) {
-        return TargetUtil.isTargetCompleteDeep(this, key);
+    isTargetTreeComplete(key) {
+        return TargetUtil.isTargetTreeComplete(this, key) === true;
     }
     
     isTargetFullyCompleted(key) {
-        return TargetUtil.isTargetFullyCompleted(this, key);
+        return TargetUtil.isTargetFullyCompleted(this, key) === true;
     }
     
     arePreviousTargetsComplete(key) {
-        return TargetUtil.arePreviousTargetsComplete(this, key);
+        return TargetUtil.arePreviousTargetsComplete(this, key) === true;
     }
     
     cleanupTarget(key) {
@@ -956,16 +956,7 @@ class BaseModel {
             if (this.isVisible()) {
                 this.markLayoutDirty(key);
             }
-            
-            const target = this.targets[key];
-            
-            if (target?.childAction?.length) {
-                target.childAction = [];
-            }
-            if (target?.addChildAction?.length) {
-                target.addChildAction = [];
-            }
-                                
+                                            
             const invokerTModel = TargetUtil.currentTModel;
             const invokerTarget = TargetUtil.currentTargetName;
 

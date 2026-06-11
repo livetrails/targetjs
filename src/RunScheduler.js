@@ -371,7 +371,14 @@ class RunScheduler {
             const diffTime = (r.insertTime + r.delay) - (newInsertTime + newDelay);
 
             if (diffTime === 0) {
-                r.runId += '-' + newRunId;
+                r.count = (r.count ?? 1) + 1;
+
+                if (r.runId.length < 500) {
+                    r.runId += '-' + newRunId;
+                } else if (!r.runId.endsWith('-...')) {
+                    r.runId += '-...';
+                }
+
                 return;
             }
 

@@ -218,7 +218,6 @@ class EventListener {
                 this.currentTouch.deltaY = 0;
                 this.currentTouch.deltaX = 0;
                 this.currentTouch.pinchDelta = 0;
-                this.currentTouch.dir = '';
             }
         
             if (!this.currentTouch.deltaX && this.scrollEndTimeStamp.x && now >= this.scrollEndTimeStamp.x && this.touchCount === 0) {
@@ -548,6 +547,13 @@ class EventListener {
                 break;
                 
             case 'scroll':
+                clearTimeout(this.windowScrollEndTimer);
+
+                this.windowScrollEndTimer = setTimeout(() => {
+                    this.queueWindowScrollEndEvent('x', tmodel);
+                    this.queueWindowScrollEndEvent('y', tmodel);
+                    this.windowScrollEndTimer = 0;
+                }, 120);
                 if (isWindowEvent) {
                     this.windowEpoch++;
                     this.windowScrollX = window.scrollX | 0;
@@ -555,14 +561,6 @@ class EventListener {
                     getLocationManager().domIslandSet.forEach(t => {
                         t.markLayoutDirty('window-scroll-event');
                     });
-
-                    clearTimeout(this.windowScrollEndTimer);
-
-                    this.windowScrollEndTimer = setTimeout(() => {
-                        this.queueWindowScrollEndEvent('x', tmodel);
-                        this.queueWindowScrollEndEvent('y', tmodel);
-                        this.windowScrollEndTimer = 0;
-                    }, 120);
 
                 } else {
                     tmodel.markLayoutDirty('container-scroll-event');
