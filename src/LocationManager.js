@@ -5,7 +5,7 @@ import { TargetData } from "./TargetData.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { AnimationUtil } from "./AnimationUtil.js";
 import { TargetExecutor } from "./TargetExecutor.js";
-import { getTargetManager, tRoot, getEvents, getAnimationManager } from "./App.js";
+import { getTargetManager, tRoot, getEvents, getAnimationManager, getRunScheduler } from "./App.js";
 
 /*
  * It calculates the locations and dimensions of all objects and triggers the calculation of all targets. 
@@ -489,10 +489,52 @@ class LocationManager {
         
         if (tmodel.isNowInvisible) {
             this.addToLocationList(tmodel);
+            this.pauseSchedules(tmodel);
         }
+        
+        if (tmodel.isNowVisible) {
+            this.resumeSchedules(tmodel);
+        }   
         
         tmodel.addToParentVisibleChildren();        
     }
+    
+    pauseSchedules(tmodel) {
+        if (tmodel.type === 'BI') {
+            return;
+        }
+        const keys = new Set([
+            ...tmodel.activeTargetList,
+            ...tmodel.updatingTargetList
+        ]);
+
+        for (const key of keys) {
+            const target = tmodel.targets[key];
+            if (TUtil.isDefined(tmodel.getScheduleTimeStamp(key)) && target?.pauseOn === 'hidden') {
+                TUtil.pauseSchedule(tmodel, key);
+            }
+        }
+    }
+
+    resumeSchedules(tmodel) {
+        if (tmodel.type === 'BI') {
+            return;
+        }
+        
+        const keys = new Set([
+            ...tmodel.activeTargetList,
+            ...tmodel.updatingTargetList
+        ]);
+
+        for (const key of keys) {
+            const target = tmodel.targets[key];
+            const remaining = tmodel.getScheduleRemainingTime(key);
+            if (TUtil.isDefined(remaining) && target?.pauseOn === 'hidden') {
+                TUtil.resumeSchedule(tmodel, key);
+                getRunScheduler().schedule(remaining, 'resume-' + tmodel.oid + '-' + key);
+            }
+        }
+    }    
 
     calculateTargets(tmodel) {
         if (tmodel.hasDom() && tmodel.pausedBatch) {
@@ -610,7 +652,7 @@ class LocationManager {
             if (tmodel.isTargetEnabled(targetName) && !tmodel.isTargetUpdating(target)) {
                 if (tmodel.targetValues[targetName]) {
                     tmodel.targetValues[targetName].status = '';
-                }
+                }              
                 TargetExecutor.prepareTarget(tmodel, targetName);
                 TargetExecutor.resolveTargetValue(tmodel, targetName);
                 TargetExecutor.updateTarget(tmodel, tmodel.targetValues[targetName], targetName, false);

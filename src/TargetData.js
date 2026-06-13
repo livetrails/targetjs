@@ -523,7 +523,6 @@ class TargetData {
         onWindowScroll: tmodel => getEvents().getEventType() === 'scroll' && getEvents().getEventTModel() === tmodel,
         onWindowScrollTopEnd: tmodel => getEvents().getEventType() === 'windowscrolltopend' && getEvents().getEventTModel() === tmodel,
         onWindowScrollLeftEnd: tmodel => getEvents().getEventType() === 'windowscrollleftend' && getEvents().getEventTModel() === tmodel,        
-        
         onPopState: () => getEvents().getEventType() === 'popstate',
         onChange: tmodel => getEvents().getEventType() === 'change' && getEvents().isFormHandler(tmodel),
         onInput: tmodel => getEvents().getEventType() === 'input' &&  getEvents().isFormHandler(tmodel),
@@ -564,7 +563,7 @@ class TargetData {
     
     static eventSet = new Set([
         ...Object.keys(TargetData.allEventMap),
-        ...Object.keys(TargetData.internalEventMap),
+        ...Object.keys(TargetData.internalEventMap)
     ]);
 
     static styleSet = new Set([

@@ -21,7 +21,7 @@ class TModelManager {
             reasyncStyle: [],
             reattach: [],
             relocation: [],
-            invisibleDom: [],
+            deletedDom: [],
             noDom: [],
             updatingTModels: [],
             activeTModels: [],
@@ -29,6 +29,7 @@ class TModelManager {
             activeTargets: []
         };
         this.visibleOidMap = {};
+        this.preservedDomMap = {};
         this.targetMethodMap = {};
         this.noDomMap = {};
     }
@@ -51,23 +52,29 @@ class TModelManager {
     
     clearAll() {
         this.visibleOidMap = {};
+        this.preservedDomMap = {};
         this.clearFrameLists();
         this.deleteDoms();     
     }
 
     analyze() {
         const lastVisibleMap = { ...this.visibleOidMap };
+        const lastPreservedMap = { ...this.preservedDomMap };
+        
         this.clearFrameLists();
         const activated = [];
 
         for (const tmodel of getLocationManager().hasLocationList) {         
             lastVisibleMap[tmodel.oid] = undefined; 
+            lastPreservedMap[tmodel.oid] = undefined;
             
             if (!tmodel.exists()) {
                 if (tmodel.hasDom()) {
-                    this.addToInvisibleDom(tmodel);
+                    this.addToDeletedDom(tmodel);
                 }
                 delete this.visibleOidMap[tmodel.oid];
+                delete this.preservedDomMap[tmodel.oid];
+
                 continue;
             }            
 
@@ -75,29 +82,32 @@ class TModelManager {
             
             if (visible && tmodel.isIncluded()) {
                 this.visibleOidMap[tmodel.oid] = tmodel;
+                delete this.preservedDomMap[tmodel.oid];
                 this.lists.visible.push(tmodel);                 
             } else {
-                delete this.visibleOidMap[tmodel.oid]; 
+                delete this.visibleOidMap[tmodel.oid];
             }
             
-            const keepDom = this.shouldPreserveDom(tmodel);
+            const preserveDom = this.shouldPreserveDom(tmodel);
             
-            if (keepDom) {
-                this.visibleOidMap[tmodel.oid] = tmodel;
+            if (!visible && preserveDom && tmodel.hasDom()) {
+                this.preservedDomMap[tmodel.oid] = tmodel;
+            } else {
+                delete this.preservedDomMap[tmodel.oid];
             }
             
             if (tmodel.hasDom()) { 
-                if (!tmodel.canHaveDom() || !tmodel.isIncluded() || (tmodel.canDeleteDom() && !visible && !keepDom)) {
-                    this.addToInvisibleDom(tmodel);
+                if (!tmodel.canHaveDom() || !tmodel.isIncluded() || (tmodel.canDeleteDom() && !visible && !preserveDom)) {
+                    this.addToDeletedDom(tmodel);
                     tmodel.getChildren().forEach(tmodel => {
                         if (!tmodel.managesOwnScroll()) {
-                            this.addToRecursiveInvisibleDom(tmodel);
+                            this.addToRecursiveDeletedDom(tmodel);
                         }
                     });                        
                 }
             }
             
-            if (visible || tmodel.isActivated() || keepDom) {
+            if (visible || tmodel.isActivated()) {
 
                 const state = tmodel.state();
 
@@ -113,7 +123,7 @@ class TModelManager {
                               
             }
             
-            if (visible || tmodel.isActivated() || keepDom) {
+            if (visible || tmodel.isActivated()) {
                 if (this.needsRerender(tmodel)) {
                     this.lists.rerender.push(tmodel);            
                 }
@@ -143,7 +153,7 @@ class TModelManager {
 
             }
 
-            if (visible || tmodel.requiresDom() || keepDom) {
+            if (visible || tmodel.requiresDom()) {
                 if (tmodel.canHaveDom() && !tmodel.hasDom() && tmodel.isIncluded() && !this.noDomMap[tmodel.oid]) {
                     if (tmodel.getDomHolder()?.exists() || this.noDomMap[tmodel.getDomParent()?.oid]) {
                         this.lists.noDom.push(tmodel);
@@ -157,11 +167,11 @@ class TModelManager {
         
         activated.forEach(t => t.deactivate());
                 
-        Object.values(lastVisibleMap).filter(v => v !== undefined).forEach(tmodel => {
+        Object.values({ ...lastVisibleMap, ...lastPreservedMap }).filter(v => v !== undefined).forEach(tmodel => {
             if (tmodel.hasDom()) {
                 
                 if (!tmodel.exists() || !tmodel.isIncluded()) {   
-                    this.addToInvisibleDom(tmodel);
+                    this.addToDeletedDom(tmodel);
                 } 
             }
         });
@@ -171,20 +181,21 @@ class TModelManager {
                this.lists.relocation.length > 0 ? 2 :
                this.lists.rerender.length > 0 ? 3 :
                this.lists.reasyncStyle.length > 0 ? 4 :
-               this.lists.invisibleDom.length > 0 ? 5 :
+               this.lists.deletedDom.length > 0 ? 5 :
                this.lists.restyle.length > 0 ? 10 : -1;
     }
     
     shouldPreserveDom(tmodel) {
+        if (!tmodel.isIncluded()) {
+            return false;
+        }
+        
         if (!tmodel.isVisible() && TUtil.isDefined(tmodel.targets.isVisible)) {
             return false;
         }
         
         let parent = tmodel.parent;
         
-        if (!tmodel.isIncluded()) {
-            return false;
-        }
 
         while (parent && parent !== tRoot()) {
             if (TUtil.isDefined(parent.targets.canDeleteDom)) {
@@ -218,32 +229,41 @@ class TModelManager {
         return true;
     }
     
-    addToRecursiveInvisibleDom(tmodel) {
+    addToRecursiveDeletedDom(tmodel) {
         delete this.visibleOidMap[tmodel.oid];
+        delete this.preservedDomMap[tmodel.oid];
         
-        if (!this.lists.invisibleDom.includes(tmodel)) {
+        if (!this.lists.deletedDom.includes(tmodel)) {
             if (tmodel.hasDom()) {
-                this.lists.invisibleDom.push(tmodel);
+                this.lists.deletedDom.push(tmodel);
             }
 
             tmodel.getChildren().forEach(tmodel => {
                 if (!tmodel.managesOwnScroll()) {
-                    this.addToRecursiveInvisibleDom(tmodel);
+                    this.addToRecursiveDeletedDom(tmodel);
                 }
             });
         }
     }
     
-    addToInvisibleDom(tmodel) {
-        delete this.visibleOidMap[tmodel.oid];     
+    addToDeletedDom(tmodel) {
+        delete this.visibleOidMap[tmodel.oid];
+        delete this.preservedDomMap[tmodel.oid];
 
-        if (!this.lists.invisibleDom.includes(tmodel)) {
-            this.lists.invisibleDom.push(tmodel);
+        if (!this.lists.deletedDom.includes(tmodel)) {
+            this.lists.deletedDom.push(tmodel);
         }
     }
         
     getVisibles() {
         return Object.values(this.visibleOidMap);
+    }
+    
+    getAvailableDoms() {
+        return Object.values({
+            ...this.preservedDomMap,
+            ...this.visibleOidMap
+        });
     }
     
     needsRelocation(tmodel) {
@@ -346,7 +366,7 @@ class TModelManager {
     };
     
     deleteDoms() {   
-        for (const tmodel of this.lists.invisibleDom) {
+        for (const tmodel of this.lists.deletedDom) {
             if (tmodel.val('sourceDom')) {
                 continue;
             }
@@ -354,7 +374,7 @@ class TModelManager {
             this.deleteDom(tmodel);
         }
         
-        this.lists.invisibleDom.length = 0;
+        this.lists.deletedDom.length = 0;
     }
     
     deleteDom(tmodel) {

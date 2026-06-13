@@ -99,7 +99,7 @@ class PageManager {
     onPageClose() {        
         tApp.resizeLastUpdate = TUtil.now();
         getEvents().resizeRoot();
-        tApp.manager.getVisibles().forEach(tmodel => {
+        tApp.manager.getAvailableDoms().forEach(tmodel => {
             getLocationManager().runEventTargets(tmodel, ['onPageClose']);             
         });          
     }

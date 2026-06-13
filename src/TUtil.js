@@ -329,7 +329,7 @@ class TUtil {
     static scheduleExecution(tmodel, key) {
         const interval = tmodel.getTargetInterval(key);
         const now = TUtil.now();
-        
+
         if (interval <= 0) {
             return 0;
         }
@@ -339,18 +339,57 @@ class TUtil {
             return 0;
         }
 
+        const remaining = tmodel.getScheduleRemainingTime(key);
+
+        if (TUtil.isDefined(remaining)) {
+            tmodel.setScheduleTimeStamp(key, now - Math.max(interval - remaining, 0));
+            tmodel.resetScheduleRemainingTime(key);
+            return remaining;
+        }
+
         const lastScheduledTime = tmodel.getScheduleTimeStamp(key);
-        
+
         if (TUtil.isDefined(lastScheduledTime)) {
             const elapsed = now - lastScheduledTime;
             return Math.max(interval - elapsed, 0);
         }
 
         tmodel.setScheduleTimeStamp(key, now);
-        
+
         return interval;
-    }    
+    }
     
+    static pauseSchedule(tmodel, key) {
+        const interval = tmodel.getTargetInterval(key);
+        const lastScheduledTime = tmodel.getScheduleTimeStamp(key);
+
+        if (interval <= 0 || !TUtil.isDefined(lastScheduledTime)) {
+            return;
+        }
+
+        const now = TUtil.now();
+        const elapsed = now - lastScheduledTime;
+        const remaining = Math.max(interval - elapsed, 0);
+
+        tmodel.setScheduleRemainingTime(key, remaining);
+        tmodel.resetScheduleTimeStamp(key);
+    }
+
+    static resumeSchedule(tmodel, key) {
+        const remaining = tmodel.getScheduleRemainingTime(key);
+
+        if (!TUtil.isDefined(remaining)) {
+            return;
+        }
+
+        const now = TUtil.now();
+
+        const interval = tmodel.getTargetInterval(key);
+        tmodel.setScheduleTimeStamp(key, now - Math.max(interval - remaining, 0));
+
+        tmodel.resetScheduleRemainingTime(key);
+    }    
+
     static runTargetValue(tmodel, target, key, cycle, lastValue) {
         
         const cleanKey = TargetUtil.getTargetName(key);  

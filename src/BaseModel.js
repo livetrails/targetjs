@@ -527,11 +527,42 @@ class BaseModel {
     }
 
     isScheduledPending(key) {
+        const remainingTime = this.getScheduleRemainingTime(key);
+
+        if (TUtil.isDefined(remainingTime)) {
+            return remainingTime > 0;
+        }
+
         const lastScheduledTime = this.getScheduleTimeStamp(key); 
         const interval = this.getTargetInterval(key);
-        return lastScheduledTime && lastScheduledTime + interval > TUtil.now();
+
+        return TUtil.isDefined(lastScheduledTime) && lastScheduledTime + interval > TUtil.now();
     }
     
+    getScheduleRemainingTime(key) {
+        return this.targetValues[key]?.scheduleRemainingTime;
+    }
+
+    setScheduleRemainingTime(key, remainingTime) {
+        const targetValue = this.targetValues[key];
+
+        if (!targetValue) {
+            return;
+        }
+
+        targetValue.scheduleRemainingTime = remainingTime;
+    }
+
+    resetScheduleRemainingTime(key) {
+        const targetValue = this.targetValues[key];
+
+        if (!targetValue) {
+            return;
+        }
+
+        delete targetValue.scheduleRemainingTime;
+    }
+
     isTargetInLoop(key) {
         const t = this.targets[key];
         if (!t) {

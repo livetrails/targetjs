@@ -312,7 +312,7 @@ class TargetUtil {
         
         const fetchAction = target?.fetchAction;
         
-        if (fetchAction && getLoader().isLoadingComplete(tmodel, key)) {
+        if (fetchAction && getLoader().isLoadingSuccessful(tmodel, key)) {
             const index = tmodel.fetchActionTargetList.indexOf(key);
             if (index >= 0) {
                 tmodel.fetchActionTargetList.splice(index, 1);

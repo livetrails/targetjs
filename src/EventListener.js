@@ -539,7 +539,7 @@ class EventListener {
             case 'resize':
                 this.windowEpoch++;
                 this.resizeRoot();
-                getManager().getVisibles().forEach(t => {
+                getManager().getAvailableDoms().forEach(t => {
                     if (t.targets['onResize']) {
                         t.markLayoutDirty('resize-event');
                     }
@@ -1009,48 +1009,46 @@ class EventListener {
 
     setDeltaXDeltaY(deltaX, deltaY, source) {
         const diff = Math.abs(deltaX) - Math.abs(deltaY);
-        
+
         if (diff >= 1) {
             if (this.currentTouch.orientation === 'none' ||
-                    (this.currentTouch.orientation === 'vertical' && diff >= 2) ||
-                    this.currentTouch.orientation === 'horizontal') {
+                (this.currentTouch.orientation === 'vertical' && diff >= 2) ||
+                this.currentTouch.orientation === 'horizontal') {
                 this.currentTouch.orientation = 'horizontal';
             }
-        } else if (this.currentTouch.orientation === 'none' || 
-                (this.currentTouch.orientation === 'horizontal' && diff <= -2) || 
-                this.currentTouch.orientation === 'vertical') {
+        } else if (this.currentTouch.orientation === 'none' ||
+            (this.currentTouch.orientation === 'horizontal' && diff <= -2) ||
+            this.currentTouch.orientation === 'vertical') {
             this.currentTouch.orientation = 'vertical';
         }
-                
+
         const now = TUtil.now();
         const endDelay = source === 'touch' ? 0 : 500;
-        
+
         if (this.currentTouch.orientation === 'horizontal') {
-            this.currentTouch.dir = deltaX < 0 ? 'left' : deltaX > 0 ? 'right' : this.currentTouch.dir; 
+            this.currentTouch.dir = deltaX < 0 ? 'left' : deltaX > 0 ? 'right' : this.currentTouch.dir;
             this.scrollEndTimeStamp.x = now + endDelay;
-            this.removeScrollEndEvents('x');            
-        }  else {
+            this.removeScrollEndEvents('x');
+        } else {
             this.currentTouch.dir = deltaY < 0 ? 'up' : deltaY > 0 ? 'down' : this.currentTouch.dir;
             this.scrollEndTimeStamp.y = now + endDelay;
-            this.removeScrollEndEvents('y');            
+            this.removeScrollEndEvents('y');
         }
-        
+
         this.currentTouch.source = source;
 
         // Accumulate movement deltas before they get reset in `captureEvents` to sync with the task cycle when movement is too fast
-        this.currentTouch.prevDeltaX += deltaX;              
+        this.currentTouch.prevDeltaX += deltaX;
         this.currentTouch.prevDeltaY += deltaY;
-        
-        this.currentTouch.deltaX = this.currentTouch.prevDeltaX;        
+
+        this.currentTouch.deltaX = this.currentTouch.prevDeltaX;
         this.currentTouch.deltaY = this.currentTouch.prevDeltaY;
-        
-        if (this.scrollEndTimeStamp.x > 0 || this.scrollEndTimeStamp.y > 0) {
-            getRunScheduler().schedule(endDelay, 'scroll-end-check');        
+
+        if (endDelay && (this.scrollEndTimeStamp.x > 0 || this.scrollEndTimeStamp.y > 0)) {
+            getRunScheduler().schedule(endDelay, 'scroll-end-check');
         }
-        
-
     }
-
+    
     wheel(event) {
         let deltaX = 0;
         let deltaY = 0;
