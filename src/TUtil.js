@@ -1,142 +1,13 @@
-import { getLocationManager, tRoot, getEvents, getScreenHeight, getScreenWidth } from "./App.js";
+import { getLocationManager, tRoot, getEvents } from "./App.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
+import { TModel } from "./TModel.js";
 
 /**
  * 
- * It provide a variety of helping functions that are used by the framework.
+ * It provides a variety of helping functions that are used by the framework.
  */
 class TUtil {
-    static calcVisibility(child) {
-        const parent = child.getRealParent();
-        const onVisibleChildrenChange = parent?.targets['onVisibleChildrenChange'] ?? false;
-
-        if (!onVisibleChildrenChange && child.isVisible() && (child.isTargetUpdating(child.allTargetMap['x']) || child.isTargetUpdating(child.allTargetMap['y']))) {
-            return true;
-        }
-
-        const domParent = child.getDomParent();
-        const scale = (domParent.getMeasuringScale() || 1) * child.getMeasuringScale();
-
-        const x = child.absX;
-        const y = child.absY;
-        const width = TUtil.isDefined(child.getWidth()) ? scale * child.getWidth() : 0;
-        const height = TUtil.isDefined(child.getHeight()) ? scale * child.getHeight() : 0;
-        const visibilityMargin = 20;
-
-        if (!child.visibilityStatus) {
-            child.visibilityStatus = {};
-        }
-
-        const status = child.visibilityStatus;
-        const clip = this.getVisibilityClipRect(child.getParent());
-        
-        if (clip) {
-            status.right = (x - visibilityMargin) <= clip.r;
-            status.left = (x + width + visibilityMargin) >= clip.x;
-            status.bottom = (y - child.getTopMargin() - visibilityMargin) <= clip.b;
-            status.top = (y + height + visibilityMargin) >= clip.y;
-
-            status.clipX = clip.x;
-            status.clipY = clip.y;
-            status.clipR = clip.r;
-            status.clipB = clip.b;
-            status.parent = clip.source;
-
-            status.isVisible = status.left && status.right && status.top && status.bottom;
-        } else {
-            status.right = true;
-            status.left = true;
-            status.bottom = true;
-            status.top = true;
-
-            status.clipX = undefined;
-            status.clipY = undefined;
-            status.clipR = undefined;
-            status.clipB = undefined;
-            status.parent = "none";
-            status.isVisible = true;
-        }
-
-        status.x = x;
-        status.y = y;
-        status.width = width;
-        status.height = height;
-
-        child.actualValues.isVisible = status.isVisible;
-        return status.isVisible;
-    }
-
-    static getVisibilityClipRect(container) {
-        let rect = TUtil.getScreenViewportRect();
-
-        while (container && container !== tRoot()) {
-            if (this.shouldClipByAncestor(container)) {
-                const ancestorRect = this.getAncestorViewportRect(container);
-                rect = rect && !container.allTargetMap['onWindowScroll'] ? this.intersectVisibilityRects(rect, ancestorRect) : ancestorRect;
-
-                if (rect.r <= rect.x || rect.b <= rect.y) {
-                    break;
-                }
-            }
-
-            container = container.getRealParent();
-        }
-
-        return rect;
-    }
-    
-    static getScreenViewportRect() {
-        return {
-            x: 0,
-            y: 0,
-            r: getScreenWidth(),
-            b: getScreenHeight(),
-            source: "screen"
-        };
-    }
-
-    static shouldClipByAncestor(ancestor) {
-        return ancestor.managesOwnScroll();
-    }
-
-    static getAncestorViewportRect(ancestor) {
-        const domScrollLeft = ancestor.$dom?.getScrollLeft() || 0;
-        const domScrollTop = ancestor.$dom?.getScrollTop() || 0;
-
-        return {
-            x: ancestor.absX + domScrollLeft,
-            y: ancestor.absY + domScrollTop,
-            r: ancestor.absX + domScrollLeft + ancestor.getWidth(),
-            b: ancestor.absY + domScrollTop + ancestor.getHeight(),
-            source: ancestor
-        };
-    }
-
-    static intersectVisibilityRects(a, b) {
-        return {
-            x: Math.max(a.x, b.x),
-            y: Math.max(a.y, b.y),
-            r: Math.min(a.r, b.r),
-            b: Math.min(a.b, b.b),
-            source: b.source
-        };
-    }
-    
-    static updateClipRect(tmodel) {
-        const parent = tmodel.getParent();
-        const inheritedClip = parent?.visibilityClipRect || null;
-
-        if (this.shouldClipByAncestor(tmodel)) {
-            const localRect = this.getLocalViewportRect(tmodel);
-            tmodel.visibilityClipRect = inheritedClip ? this.intersectVisibilityRects(inheritedClip, localRect) : localRect;
-        } else {
-            tmodel.visibilityClipRect = inheritedClip;
-        }
-
-        return tmodel.visibilityClipRect;
-    }
-
     static contains(container, tmodel) {
         if (!container || !tmodel) {
             return false;
@@ -424,6 +295,59 @@ class TUtil {
             destTargets[key] = sourceTargets[key];
             tmodel1.processNewTarget(key, keyIndex);            
         });
+    }
+    
+    static cloneTargetDefinition(value, seen = new WeakMap()) {
+        if (!TUtil.isDefined(value) || typeof value !== 'object') {
+            return value;
+        }
+
+        // Keep functions shared. They are behavior, not per-instance state.
+        if (typeof value === 'function') {
+            return value;
+        }
+
+        // Avoid cloning DOM wrappers, real DOM nodes, TModels, etc.
+        if (
+            value instanceof TModel ||
+            value instanceof Element ||
+            value instanceof Node ||
+            value instanceof Date ||
+            value instanceof RegExp
+        ) {
+            return value;
+        }
+
+        if (seen.has(value)) {
+            return seen.get(value);
+        }
+
+        if (Array.isArray(value)) {
+            const arr = [];
+            seen.set(value, arr);
+
+            for (const item of value) {
+                arr.push(TUtil.cloneTargetDefinition(item, seen));
+            }
+
+            return arr;
+        }
+
+        const proto = Object.getPrototypeOf(value);
+
+        // Only deep-clone plain objects.
+        if (proto !== Object.prototype && proto !== null) {
+            return value;
+        }
+
+        const cloned = {};
+        seen.set(value, cloned);
+
+        for (const key of Object.keys(value)) {
+            cloned[key] = TUtil.cloneTargetDefinition(value[key], seen);
+        }
+
+        return cloned;
     }
 }
 

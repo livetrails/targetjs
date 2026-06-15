@@ -473,13 +473,17 @@ class EventListener {
                 const clickHandler = SearchUtil.findFirstClickHandler(tmodel);
 
                 const canAcceptClick = !this.start0 || (clickHandler === this.currentHandlers.click && (clickHandler !== this.currentHandlers.swipe || this.getSwipeDistance() < 5));
-
+                
                 if (clickHandler && canAcceptClick) {
+                    clickHandler.markEventDirty();
+                    clickHandler.markLayoutDirty('event');
+                 
                     this.eventQueue.length = 0;
                     this.eventQueue.push({eventName, eventItem, eventType, originalName, tmodel, originalEvent: event, timeStamp: now});
                 }
 
                 this.clearEnd();
+                this.clearStart();
                 this.touchCount = 0;
                 event.stopPropagation();
                 break;

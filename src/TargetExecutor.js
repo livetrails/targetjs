@@ -285,7 +285,7 @@ class TargetExecutor {
         } else if (TargetParser.isChildTarget(key, newValue)) {
                         
             tmodel.addChild(newValue);
-
+            
             TargetExecutor.assignSingleTarget(
                 targetValue, 
                 newValue,
@@ -315,7 +315,7 @@ class TargetExecutor {
                 easing
             );
         } else if (TargetParser.isChildObjectTarget(key, tmodel.targets[key])) {
-                                    
+
             const child = new TModel(key, tmodel.targets[key]);
             tmodel.addChild(child);
             

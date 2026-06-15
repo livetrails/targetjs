@@ -2,6 +2,7 @@ import { BaseModel } from "./BaseModel.js";
 import { App, getLocationManager, getRunScheduler, getEvents } from "./App.js";
 import { Viewport } from "./Viewport.js";
 import { TUtil } from "./TUtil.js";
+import { VisibilityUtil } from "./VisibilityUtil.js";
 import { TargetData } from "./TargetData.js";
 import { SearchUtil } from "./SearchUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
@@ -153,14 +154,15 @@ class TModel extends BaseModel {
             
             if (!(child instanceof TModel)) {
                 const foundKey = Object.keys(this.actualValues).find(key => this.actualValues[key] === child);
-                
+                const childDefinition = TUtil.cloneTargetDefinition(child);
+
                 if (foundKey) {
-                    child = new TModel(child.id || foundKey, child);
+                    child = new TModel(childDefinition.id || foundKey, childDefinition);
                 } else {
-                    child = new TModel(`${this.oid}_`, child);                    
+                    child = new TModel(`${this.oid}_`, childDefinition);                    
                 }
             }
-        
+            
             if (!child.toDiscard) { 
                 
                 App.tmodelIdMap[child.oid] = child;
@@ -173,8 +175,8 @@ class TModel extends BaseModel {
                 }
                 if (child.activeTargetList.length > 0) {
                     this.addToActiveChildren(child);
-                }   
-                        
+                }         
+                      
                 TargetUtil.markChildAction(this, TargetUtil.currentTargetName, child);      
             }
         }
@@ -328,6 +330,10 @@ class TModel extends BaseModel {
     markEventDirty() {
         this.eventDirtyEpoch = getEvents().eventEpoch;
 
+        if (this.bracket) {
+            this.bracket.markEventDirty();
+        }
+        
         if (this.parent) {
             this.parent.markEventDirty();
         }
@@ -585,7 +591,7 @@ class TModel extends BaseModel {
     }
     
     calcVisibility() {
-        return TUtil.calcVisibility(this);
+        return VisibilityUtil.calcVisibility(this);
     }
     
     validateVisibilityInParent() {

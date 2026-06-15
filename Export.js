@@ -35,6 +35,7 @@ import * as Easing from './build/Easing.js';
 import * as TargetExecutor from './build/TargetExecutor.js';
 import * as AnimationManager from './build/AnimationManager.js';
 import * as AnimationUtil from './build/AnimationUtil.js';
+import * as VisibilityUtil from './build/VisibilityUtil.js';
 
 const TargetJS = {
   ...App,
@@ -53,7 +54,8 @@ const TargetJS = {
   ...Easing,
   ...TargetExecutor,
   ...AnimationManager,
-  ...AnimationUtil
+  ...AnimationUtil,
+  ...VisibilityUtil
 };
 
 if (typeof window !== 'undefined') {

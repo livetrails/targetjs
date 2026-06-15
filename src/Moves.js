@@ -97,24 +97,33 @@ class Moves {
         return bounce;
     }
     
-    static shake(tmodel, width = tmodel.getWidth(), height = tmodel.getHeight(), {
+    static shake(tmodel, {
+            xStart = undefined,
+            width = undefined,
+            height = undefined,
             bFactor = 0.6, 
             cFactor = 0.3,
             strength = 20
         } = {}) 
     {
-        const xStart = (tmodel.getParentValue('width') - width) / 2;
-        const yStart = tmodel.getY();            
-        const widthStart = width;
-        const heightStart = height;
-           
+        const widthStart = TUtil.isDefined(width) ? width : tmodel.getWidth();
+        const heightStart = TUtil.isDefined(height) ? height : tmodel.getHeight();
+
+        const resolvedXStart = TUtil.isDefined(xStart) ? xStart : tmodel.getX()
+
+        const yStart = tmodel.getY();
+
         const bounce = Moves.bounce(yStart - strength, yStart, {
-            xStart, widthStart, heightStart, bFactor, cFactor 
+            xStart: resolvedXStart,
+            widthStart,
+            heightStart,
+            bFactor,
+            cFactor,
+            rIncrement: 0
         });
-        
 
         return {
-            x: bounce.x, 
+            x: bounce.x,
             width: bounce.width
         };
     }

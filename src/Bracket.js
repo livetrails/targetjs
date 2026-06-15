@@ -121,6 +121,11 @@ class Bracket extends TModel {
     
     shouldCalculateChildren() {
         const nowVisible = this.isVisible();
+        const hasEventDirty = this.hasEventDirty();
+
+        if (hasEventDirty) {
+            return true;
+        }
 
         if (this.currentBrakcetStatus >= 1 || this.isNowVisible || this.isNowInvisible) {
             this.currentBrakcetStatus = Math.max(0, this.currentBrakcetStatus - 1);
@@ -139,9 +144,10 @@ class Bracket extends TModel {
     }
 
     getDirtyLayout() {
-        return this.getRealParent().managesOwnScroll() ? this.getRealParent().backupDirtyLayout : this.dirtyLayout;
-    }
+        const parentDirty = this.getRealParent().managesOwnScroll() ? this.getRealParent().backupDirtyLayout : false;
 
+        return this.dirtyLayout || parentDirty || false;
+    }
     validateVisibilityInParent() {
         return true;
     }

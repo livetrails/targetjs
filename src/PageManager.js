@@ -106,7 +106,7 @@ class PageManager {
 
     async openLink(link, updateHistory = true) {
         link = TUtil.getFullLink(link);
-
+        
         if (this.lastLink) {
             const runSnapshot = getRunScheduler().getSnapshot();
             

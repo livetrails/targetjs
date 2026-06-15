@@ -191,7 +191,7 @@ class TargetUtil {
                 (isEndTrigger && canActivate)) {
 
                 const prevOk = isEndTrigger ? TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) : false;
-                
+
                 if (fetchAction) {
                     if (isEndTrigger) {
                         if (prevOk === true) {  
@@ -451,7 +451,7 @@ class TargetUtil {
             
             if (tmodel.isTargetTreeComplete(targetName) !== true) {
                //const activeChildrenList = [ ...TargetUtil.getActiveChildren(tmodel, tmodel.targets[targetName].completionScope).values() ];
-               //return  tmodel.oid + "." + targetName + " ==> " + tmodel.getTargetStatus(targetName) + ", " + tmodel.isTargetTreeComplete(targetName) + ":: " + activeChildrenList.map(t => t.oid + ':' + t.hasAnyUpdates()) + ", " + [ ...TargetUtil.getUpdatingChildren(tmodel, targetName).keys() ]; 
+               //return  tmodel.oid + "." + targetName + " ==> " + tmodel.getTargetStatus(targetName) + ", " + tmodel.isTargetTreeComplete(targetName) + ":: " + activeChildrenList.map(t => t.oid + ':' + t.hasAnyUpdates()) + ", " + [ ...TargetUtil.getUpdatingChildren(tmodel, targetName, tmodel.targets[targetName].completionScope).keys() ]; 
                return false;
             }         
         }
@@ -592,6 +592,10 @@ class TargetUtil {
     }
     
     static shouldIgnoreChildForCompletion(child, completionScope) {
+        if (!child.exists()) {
+            return true;
+        }
+        
         if (completionScope === "none") {
             return true;
         }
