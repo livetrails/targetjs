@@ -699,56 +699,38 @@ class TargetUtil {
         
         return { originalTModel, originalTargetName };
     }
-    
-    static resetTargetState(tmodel, targetName, visited = new Set()) {
+
+    static resetTargetState(tmodel, targetName, options = {}, visited = new Set()) {
         if (!tmodel || !targetName) {
             return;
         }
-        
+
         TargetUtil.resetSingleTargetState(tmodel, targetName);
+        TargetUtil.resetTargetChildActions(tmodel, targetName, options, visited);
 
         const target = tmodel.targets[targetName];
-
         const nextTarget = target?.activateNextTarget;
-
         const nextTargetDef = tmodel.targets[nextTarget];
 
         if (!nextTargetDef || (!nextTarget.endsWith('$') && nextTargetDef.active === false)) {
             return;
         }
-        
-        TargetUtil.resetTargetsBetween(tmodel, targetName, nextTarget, visited);
 
-        TargetUtil.resetTargetPipelineState(tmodel, nextTarget, visited);
+        TargetUtil.resetTargetsBetween(tmodel, targetName, nextTarget, options, visited);
+        TargetUtil.resetTargetPipelineState(tmodel, nextTarget, options, visited);
     }
 
-    static resetTargetPipelineState(tmodel, targetName, visited = new Set()) {
+    static resetTargetPipelineState(tmodel, targetName, options = {}, visited = new Set()) {
         if (!tmodel || !targetName) {
             return;
         }
 
-        const target = tmodel.targets[targetName];
-
         TargetUtil.resetSingleTargetState(tmodel, targetName);
+        TargetUtil.resetTargetChildActions(tmodel, targetName, options, visited);
 
-        if (target.childAction?.length) {
-            target.childAction.forEach(child => {
-                if (child) {
-                    TargetUtil.resetTargetChildState(child, visited);
-                }
-            });
-        }
-
-        if (target.addChildAction?.length) {
-            target.addChildAction.forEach(child => {
-                if (child) {
-                    TargetUtil.resetTargetChildState(child, visited);
-                }
-            });
-        }
-
+        const target = tmodel.targets[targetName];
         const nextTarget = target?.activateNextTarget;
-        
+
         if (!nextTarget) {
             return;
         }
@@ -758,16 +740,16 @@ class TargetUtil {
         if (!nextTargetDef || (!nextTarget.endsWith('$') && nextTargetDef.active === false)) {
             return;
         }
-        
-        TargetUtil.resetTargetsBetween(tmodel, targetName, nextTarget, visited);
-        TargetUtil.resetTargetPipelineState(tmodel, nextTarget, visited);
+
+        TargetUtil.resetTargetsBetween(tmodel, targetName, nextTarget, options, visited);
+        TargetUtil.resetTargetPipelineState(tmodel, nextTarget, options, visited);
     }
     
-    static resetTargetsBetween(tmodel, fromTarget, toTarget, visited) {
+    static resetTargetsBetween(tmodel, fromTarget, toTarget, options = {}, visited = new Set()) {
         const names = tmodel.functionTargetNames;
         const fromIndex = names.indexOf(fromTarget);
         const toIndex = names.indexOf(toTarget);
-        
+
         if (fromIndex < 0 || toIndex < 0 || toIndex <= fromIndex) {
             return;
         }
@@ -776,62 +758,59 @@ class TargetUtil {
             const key = names[i];
 
             TargetUtil.resetSingleTargetState(tmodel, key);
-
-            const target = tmodel.targets[key];
-
-            if (target?.childAction?.length) {
-                target.childAction.forEach(child => {
-                    if (child) {
-                        TargetUtil.resetTargetChildState(child, visited);
-                    }
-                });
-            }
-
-            if (target?.addChildAction?.length) {
-                target.addChildAction.forEach(child => {
-                    if (child) {
-                        TargetUtil.resetTargetChildState(child, visited);
-                    }
-                });
-            }
+            TargetUtil.resetTargetChildActions(tmodel, key, options, visited);
         }
     }
     
-    static resetTargetChildState(tmodel, visited) {
+    static resetTargetChildState(tmodel, options = {}, visited = new Set()) {
         const sig = `${tmodel.oid}`;
-        
+
         if (visited.has(sig)) {
             return;
         }
-        
+
         visited.add(sig);
-        
+
         const names = Object.keys(tmodel.targetValues);
-        
+
         for (let i = 0; i < names.length; i++) {
             const key = names[i];
-            
-            const target = tmodel.targets[key];
-            
-            TargetUtil.resetSingleTargetState(tmodel, key);
 
-            if (target?.childAction?.length) {
-                target.childAction.forEach(child => {
-                    if (child) {
-                        TargetUtil.resetTargetChildState(child, visited);
-                    }
-                });
-                target.childAction = [];
+            TargetUtil.resetSingleTargetState(tmodel, key);
+            TargetUtil.resetTargetChildActions(tmodel, key, options, visited);
+        }
+    }
+    
+    static resetTargetChildActions(tmodel, key, options = {}, visited = new Set()) {
+        const target = tmodel.targets[key];
+
+        if (!target) {
+            return;
+        }
+
+        const childActions = target.childAction ? [...target.childAction] : [];
+        const addChildActions = target.addChildAction ? [...target.addChildAction] : [];
+
+        childActions.forEach(child => {
+            if (child) {
+                TargetUtil.resetTargetChildState(child, options, visited);
+            }
+        });
+
+        addChildActions.forEach(child => {
+            if (child) {
+                TargetUtil.resetTargetChildState(child, options, visited);
+            }
+        });
+
+        if (options.clearChildActions) {
+            if (Array.isArray(target.childAction)) {
+                target.childAction.length = 0;
             }
 
-            if (target?.addChildAction?.length) {
-                target.addChildAction.forEach(child => {
-                    if (child) {
-                        TargetUtil.resetTargetChildState(child, visited);
-                    }
-                });
-                target.addChildAction = [];
-            }  
+            if (Array.isArray(target.addChildAction)) {
+                target.addChildAction.length = 0;
+            }
         }
     }
     
@@ -854,20 +833,13 @@ class TargetUtil {
         TargetUtil.clearPendingTarget(tmodel, key);
     }
     
-    static removeChildFromTargetActions(parent, child) {
-        if (!parent || !child) {
-            return;
-        }
+    static getResetOptions(options) {
+        const reset = options?.reset;
 
-        for (const target of Object.values(parent.targets)) {
-            if (target.childAction?.length) {
-                target.childAction = target.childAction.filter(c => c !== child);
-            }
-
-            if (target.addChildAction?.length) {
-                target.addChildAction = target.addChildAction.filter(c => c !== child);
-            }
-        }
+        return {
+            shouldReset: reset === true || reset === 'pipeline' || reset === 'tree' || reset === 'all',
+            clearChildActions: reset === 'tree' || reset === 'all'
+        };
     }
 }
 

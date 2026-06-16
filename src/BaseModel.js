@@ -976,8 +976,10 @@ class BaseModel {
         }
 
         if (this.canTargetBeActivated(key)) {
-            if (actualOptions?.reset) {
-                TargetUtil.resetTargetState(this, key);
+            const resetOptions = TargetUtil.getResetOptions(actualOptions);
+
+            if (resetOptions.shouldReset) {
+                TargetUtil.resetTargetState(this, key, resetOptions);
             }
 
             if (TUtil.isDefined(actualValue)) {

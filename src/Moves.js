@@ -109,7 +109,7 @@ class Moves {
         const widthStart = TUtil.isDefined(width) ? width : tmodel.getWidth();
         const heightStart = TUtil.isDefined(height) ? height : tmodel.getHeight();
 
-        const resolvedXStart = TUtil.isDefined(xStart) ? xStart : tmodel.getX()
+        const resolvedXStart = TUtil.isDefined(xStart) ? xStart : tmodel.getX();
 
         const yStart = tmodel.getY();
 
