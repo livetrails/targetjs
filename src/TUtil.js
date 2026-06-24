@@ -197,70 +197,6 @@ class TUtil {
         return false;
     }
     
-    static scheduleExecution(tmodel, key) {
-        const interval = tmodel.getTargetInterval(key);
-        const now = TUtil.now();
-
-        if (interval <= 0) {
-            return 0;
-        }
-
-        if (tmodel.isTargetImperative(key) && tmodel.getTargetStep(key) === 0) {
-            tmodel.setScheduleTimeStamp(key, now);
-            return 0;
-        }
-
-        const remaining = tmodel.getScheduleRemainingTime(key);
-
-        if (TUtil.isDefined(remaining)) {
-            tmodel.setScheduleTimeStamp(key, now - Math.max(interval - remaining, 0));
-            tmodel.resetScheduleRemainingTime(key);
-            return remaining;
-        }
-
-        const lastScheduledTime = tmodel.getScheduleTimeStamp(key);
-
-        if (TUtil.isDefined(lastScheduledTime)) {
-            const elapsed = now - lastScheduledTime;
-            return Math.max(interval - elapsed, 0);
-        }
-
-        tmodel.setScheduleTimeStamp(key, now);
-
-        return interval;
-    }
-    
-    static pauseSchedule(tmodel, key) {
-        const interval = tmodel.getTargetInterval(key);
-        const lastScheduledTime = tmodel.getScheduleTimeStamp(key);
-
-        if (interval <= 0 || !TUtil.isDefined(lastScheduledTime)) {
-            return;
-        }
-
-        const now = TUtil.now();
-        const elapsed = now - lastScheduledTime;
-        const remaining = Math.max(interval - elapsed, 0);
-
-        tmodel.setScheduleRemainingTime(key, remaining);
-        tmodel.resetScheduleTimeStamp(key);
-    }
-
-    static resumeSchedule(tmodel, key) {
-        const remaining = tmodel.getScheduleRemainingTime(key);
-
-        if (!TUtil.isDefined(remaining)) {
-            return;
-        }
-
-        const now = TUtil.now();
-
-        const interval = tmodel.getTargetInterval(key);
-        tmodel.setScheduleTimeStamp(key, now - Math.max(interval - remaining, 0));
-
-        tmodel.resetScheduleRemainingTime(key);
-    }    
-
     static runTargetValue(tmodel, target, key, cycle, lastValue) {
         
         const cleanKey = TargetUtil.getTargetName(key);  
@@ -348,6 +284,113 @@ class TUtil {
         }
 
         return cloned;
+    }
+    
+    static advanceTargetByElapsed(tmodel, key) {
+        const targetValue = tmodel.targetValues[key];
+
+        if (!targetValue) {
+            return {
+                step: 0,
+                valuePointer: 1,
+                done: false
+            };
+        }
+
+        if (!targetValue.pausedAt) {
+            return {
+                step: tmodel.getTargetStep(key),
+                valuePointer: targetValue.valueList?.length
+                    ? tmodel.getValueListPointer(key)
+                    : 0,
+                done: false
+            };
+        }
+        
+        const elapsedMs = TUtil.now() - targetValue.pausedAt;
+
+        if (targetValue.valueList?.length) {
+            return TUtil.advanceValueListTargetByElapsed(tmodel, key, elapsedMs);
+        } else {
+            return TUtil.advanceSimpleTargetByElapsed(tmodel, key, elapsedMs);
+        }
+    }
+    
+    static advanceSimpleTargetByElapsed(tmodel, key, elapsedMs) {
+        const steps = tmodel.getTargetSteps(key);
+        const interval = tmodel.getTargetInterval(key) || 8;
+        let step = tmodel.getTargetStep(key);
+
+        const remainingSteps = Math.max(steps - step, 0);
+
+        if (remainingSteps <= 0) {
+
+            return {
+                step: steps,
+                valuePointer: 0,
+                done: true
+            };
+        }
+
+        const advancedSteps = interval > 0 ? TUtil.limit(Math.floor(elapsedMs / interval), 0, remainingSteps) : remainingSteps;
+
+        return { step: step + advancedSteps, valuePointer: 0 };
+    }
+    
+    static advanceValueListTargetByElapsed(tmodel, key, elapsedMs) {
+        const targetValue = tmodel.targetValues[key];
+
+        const valueList = targetValue.valueList;
+        const stepList = targetValue.stepList || [1];
+        const intervalList = targetValue.intervalList || [targetValue.interval || 8];
+
+        let valuePointer = tmodel.getValueListPointer(key);
+        let step = tmodel.getTargetStep(key);
+
+        let remainingMs = elapsedMs;
+
+        while (remainingMs > 0 && valuePointer < valueList.length) {
+            const segmentSteps = stepList[(valuePointer - 1) % stepList.length];
+            const interval = intervalList[(valuePointer - 1) % intervalList.length] || 8;
+
+            step = TUtil.limit(step, 0, segmentSteps);
+
+            const segmentRemainingSteps = Math.max(segmentSteps - step, 0);
+            const segmentRemainingMs = segmentRemainingSteps * interval;
+
+            if (remainingMs >= segmentRemainingMs) {
+                remainingMs -= segmentRemainingMs;
+                valuePointer++;
+                step = 0;
+                continue;
+            }
+
+            const advancedSteps = TUtil.limit(
+                Math.floor(remainingMs / interval),
+                0,
+                segmentRemainingSteps
+            );
+
+            step += advancedSteps;
+
+            return {
+                step,
+                steps: segmentSteps,
+                valuePointer,
+                done: false
+            };
+        }
+
+        const finalPointer = valueList.length;
+        const finalStepIndex = Math.max(0, valueList.length - 2);
+        const finalSteps = stepList[finalStepIndex % stepList.length];
+
+        return {
+            step: finalSteps,
+            steps: finalSteps,
+            valuePointer: finalPointer,
+            done: true
+        };
     }
 }
 

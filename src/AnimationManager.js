@@ -13,29 +13,43 @@ class AnimationManager {
         this.isShuttingDown = false;        
         this.toid = 'blank';
     } 
-    
-    animate(tmodel, batch, hooks) {
-        if (this.isShuttingDown || !tmodel.hasDom()) {
+     
+    animate(tmodel, batch = AnimationUtil.emptyBatch(), hooks, pausedKeys) {
+        if (this.isShuttingDown) {
+            return;
+        }
+
+        batch.frames.sort((a, b) => a.keyTime - b.keyTime);
+ 
+        if (tmodel.lastBatch) {
+            const cutTime = Math.min(TUtil.now() - tmodel.lastBatch.startTime, tmodel.lastBatch.totalDuration);
+
+            tmodel.lastBatch = this.cutLastBatch(tmodel, tmodel.lastBatch, cutTime);
+
+            AnimationUtil.rebaseCutBatchMeta(tmodel, tmodel.lastBatch);
+
+
+            if (pausedKeys?.size) {
+                //this.fixTModelStyleFromFrame(tmodel, tmodel.lastBatch.frames[0]);
+                AnimationUtil.addToUpdatingList(tmodel, pausedKeys);
+                AnimationUtil.removeKeysFromBatch(tmodel.lastBatch, pausedKeys);
+            }
+            
+            this.callFireOnEndOnConflict(tmodel, tmodel.lastBatch, batch);
+            this.mergeBatches(tmodel.lastBatch, batch);
+            
+            this.deleteAnimation(tmodel);
+        }
+        
+        if (!tmodel.hasDom() || !batch.frames.length || !Object.keys(batch.keyMap).length) {
             return;
         }
         
         const el = tmodel.$dom.getElement();
-        
-        batch.frames.sort((a, b) => a.keyTime  - b.keyTime);
-        
+       
         this.cancelElementAnimationsForKeys(el, Object.keys(batch.keyMap));
 
-        if (tmodel.lastBatch) {
-            const cutTime =  Math.min(TUtil.now() - tmodel.lastBatch.startTime, tmodel.lastBatch.totalDuration);
-                        
-            this.cutLastBatch(tmodel, tmodel.lastBatch, cutTime); 
-            this.callFireOnEndOnConflict(tmodel, tmodel.lastBatch, batch);
-            this.mergeBatches(tmodel.lastBatch, batch);
-
-            this.deleteAnimation(tmodel);
-        }
-        
-       const totalDuration = Math.max(batch.totalDuration, 1);
+        const totalDuration = Math.max(batch.totalDuration, 1);
        
         const originalKeys = [...new Set(Object.values(batch.keyMap).flatMap(set => [...set]))];
         
@@ -71,7 +85,7 @@ class AnimationManager {
             iterations: 1,
             easing: batch.easing || "linear"
         };
-              
+                      
         batch.startTime = TUtil.now();
         
         tmodel.lastBatch = batch;
@@ -102,13 +116,33 @@ class AnimationManager {
             };    
                 
             tmodel.addToAnimatingMap(originalKey, rec);
-            if (tmodel.targetValues[originalKey]) {
-                tmodel.targetValues[originalKey].status = 'updating';
+            tmodel.setScheduleTimeStamp(originalKey, batch.startTime + totalDuration);
+            const targetValue = tmodel.targetValues[originalKey];
+            if (targetValue) {
+                targetValue.status = 'updating';
             }
             this.recordMap.set(recId, rec);
         }
 
         this.startProgressPoller();
+    }
+    
+    pauseAnimations(tmodel, keys) {
+        let keySet;
+
+        if (!keys) {
+            keySet = new Set(tmodel.animatingMap?.keys() ?? []);
+        } else if (keys instanceof Map) {
+            keySet = new Set(keys.keys());
+        } else {
+            keySet = new Set(keys);
+        }
+
+        if (!keySet.size) {
+            return;
+        }
+
+        this.animate(tmodel, AnimationUtil.emptyBatch(), AnimationUtil.getAnimationHooks(), keySet);
     }
 
     finalizeAnimation(anim) {  
@@ -133,6 +167,7 @@ class AnimationManager {
                 const value = lastFrame ? lastFrame.value : this.getAt(tmodel.finalRawFrame, cleanKey);                
                 this.setAt(tmodel, cleanKey, value);
                 tmodel.val(originalKey, value);
+                tmodel.resetScheduleTimeStamp(originalKey);
                 const targetValue = tmodel.targetValues[originalKey];
                 if (targetValue) {
                     targetValue.step = tmodel.getTargetSteps(originalKey);
@@ -178,22 +213,30 @@ class AnimationManager {
             let hasPlaying = false;
 
             for (const [, record] of this.recordMap) {
-                if (record.status === 'canceled') {
+                if (record.status === 'canceled' || record.status === 'finished') {
                     continue
                 } else if (record.status === 'playing') {
                     hasPlaying = true;
                 }
-                
-                this.updateTModelFromRecord(record);
-                
+                                             
                 const ps = record.anim.playState;
                 const ct = record.anim.effect?.getComputedTiming?.();
-                const finished = ps === "finished" || ps === "idle" || (ct && ct.progress >= 0.999999);
+                const progress = ct?.progress ?? 0;
+                let finished = ps === "finished" || ps === "idle" || (progress >= 0.999999);
                 
                 if (finished) {
                     record.status = 'done';
                     animsToFinalize.add(record.anim);
                 }
+                
+                if (progress > 0 && record.status !== 'finished') {
+                    const result = AnimationUtil.updateTModelFromRecord(record);
+                    if (result?.status === 'finished') {
+                        record.status = 'finished';
+                    }
+                }
+                
+
             }
 
             for (const anim of animsToFinalize) {
@@ -265,7 +308,7 @@ class AnimationManager {
 
                     const v = TModelUtil.easingMorph(tmodel, originalKey, from, to, step, steps);
                     this.setAt(frames[i], cleanKey, v);
-                    frames[i].keyMeta.set(cleanKey, { steps: step, interval });
+                    frames[i].keyMeta.set(cleanKey, { steps: step, interval, done: false });
                 }
             }
         }
@@ -276,39 +319,48 @@ class AnimationManager {
             const lastValue = this.getAt(lastFrame, cleanKey);
             for (let i = lastIndex + 1; i < frames.length; i++) {
                 this.setAt(frames[i], cleanKey, lastValue);
-                frames[i].keyMeta.set(cleanKey, { steps: 0 });
+                frames[i].keyMeta.set(cleanKey, { steps: 0, done: true });
             }
         }
-    }    
+    } 
     
-    freezeTModelAtCurrentTime(tmodel) {
-        const batch = tmodel.lastBatch;
-        
-        const cutTime = Math.min(TUtil.now() - batch.startTime, batch.totalDuration);
-
-        this.cutLastBatch(tmodel, batch, cutTime);
-
-        const frame0 = batch.frames[0];
-        if (!frame0) {
+    fixTModelStyleFromFrame(tmodel, frame) {
+        if (!tmodel.hasDom() || !frame) {
             return;
         }
 
-        const out = { ...frame0.styleMap };
+        const out = { ...frame.styleMap };
 
-        const hasTf = Object.keys(frame0.tfMap).length > 0;
-        
+        const hasTf = Object.keys(frame.tfMap).length > 0;
+
         if (hasTf) {
             Object.keys(tmodel.tfMap).forEach(key => {
                 tmodel.tfMap[key] = tmodel.val(key);
             });
-            const tfMap = { ...tmodel.tfMap, ...frame0.tfMap };
-            frame0.tfMap = tfMap;
+
+            const tfMap = { ...tmodel.tfMap, ...frame.tfMap };
+            frame.tfMap = tfMap;
+
             out.transform = TModelUtil.getTransformString(tmodel, tfMap);
         }
 
         AnimationUtil.addUnitsToFrame(out);
-        
         AnimationUtil.fixStyleByAnimation(tmodel, out);
+    }
+    
+    freezeTModelAtCurrentTime(tmodel) {        
+        if (!tmodel.lastBatch) {
+            return;
+        }
+
+        const cutTime = Math.min(
+            TUtil.now() - tmodel.lastBatch.startTime,
+            tmodel.lastBatch.totalDuration
+        );
+
+        tmodel.lastBatch = this.cutLastBatch(tmodel, tmodel.lastBatch, cutTime);
+
+        this.fixTModelStyleFromFrame(tmodel, tmodel.lastBatch.frames[0]);
     }
 
     collectFramesForKey(batch, cleanKey) {
@@ -330,6 +382,8 @@ class AnimationManager {
                 time: frame.keyTime,
                 steps: meta?.steps,
                 interval: meta?.interval,
+                stepOffset: meta?.stepOffset || 0,
+                done: !!meta?.done,
                 offset: frame.keyTime / total
             });
         }
@@ -341,34 +395,6 @@ class AnimationManager {
     
     getRecordId(tmodel, key) {
         return `${tmodel.oid}-${key}`;
-    }
-
-    updateTModelFromRecord(record) {
-        const { tmodel, originalKey, cleanKey } = record;
-
-        const result = this.getValueFromAnim(record);
-
-        if (!result) {
-            return;
-        }
-        
-        const { value, step } = result;
-                         
-        this.setAt(tmodel, cleanKey, value);
-        
-        tmodel.val(originalKey, value);
-        if (tmodel.targetValues[originalKey]) {
-            tmodel.targetValues[originalKey].step = step;
-            tmodel.setActual(originalKey, value);
-
-            if (record.needsFireOnStep) {
-                const needsRefire = record.hooks.fireOnStep(tmodel, originalKey, step);
-
-                if (!needsRefire) { 
-                    record.needsFireOnStep = false;
-                }
-            }
-        }
     }
     
     delete(record) {
@@ -418,7 +444,7 @@ class AnimationManager {
         for (const [, record] of this.recordMap) {
             const { tmodel } = record;
                             
-            this.updateTModelFromRecord(record);
+            AnimationUtil.updateTModelFromRecord(record);
             
             this.delete(record);            
             
@@ -446,59 +472,6 @@ class AnimationManager {
         this.isShuttingDown = false;
     }
     
-    getValueFromAnim(record) {
-        const {originalKey, anim, frames} = record;
-        
-        if (!frames) {            
-            return;
-        }
-
-        const ct = anim.effect?.getComputedTiming?.();
-        if (!ct) {
-            return;
-        }
-        
-        let p = TUtil.isDefined(ct.progress) ? TUtil.limit(ct.progress, 0, 1) : 1;
-        
-        const last = frames.length - 1;
-        let k = 0;
-        if (p <= frames[0].offset) {
-            k = 0;
-        } else if (p >= frames[last].offset) {
-            k = last - 1;
-        } else {
-            for (let i = 0; i < last; i++) {
-                if (p >= frames[i].offset && p < frames[i + 1].offset) {
-                    k = i;
-                    break;
-                }
-            }
-        }
-
-        const left = frames[k];
-        const right = frames[k + 1];
-
-        const from = left.value;
-        const to = right.value;
-
-        const segStart = left.offset;
-        const segEnd = right.offset;
-        const segSpan = segEnd - segStart;
-        
-        if (segSpan > 0) {
-            const u = TUtil.limit((p - segStart) / segSpan, 0, 1);
-
-            let steps = right.steps;
-
-            let step = Math.round(u * steps);
-            step = TUtil.limit(step, 0, steps);
-
-            const value = TModelUtil.morph(originalKey, from, to, u);
-            
-            return { value, step, steps };
-        }
-    }
-    
     cutLastBatch(tmodel, batch, cutTime) {
         
         let i = 0;
@@ -522,7 +495,9 @@ class AnimationManager {
             frame.keyTime = Math.max(0, frame.keyTime - cutTime);
         });
 
-        batch.totalDuration = batch.frames.length ? batch.frames[batch.frames.length - 1].keyTime : 0;            
+        batch.totalDuration = batch.frames.length ? batch.frames[batch.frames.length - 1].keyTime : 0;
+        
+        return batch;
     }
     
     callFireOnEndOnConflict(tmodel, lastBatch, newBatch) {
@@ -546,7 +521,7 @@ class AnimationManager {
                 const oldRec = this.recordMap.get(recId);
 
                 if (oldRec && oldRec.status === 'playing') {
-                    this.updateTModelFromRecord(oldRec);
+                    AnimationUtil.updateTModelFromRecord(oldRec);
                     oldRec.status = 'complete';
                     oldRec.hooks.fireOnEnd(oldRec.tmodel, oldOriginal);
                     oldRec.tmodel.removeFromAnimatingMap(oldOriginal);
@@ -597,29 +572,6 @@ class AnimationManager {
 
         newBatch.totalDuration = newBatch.frames.length ? newBatch.frames[newBatch.frames.length - 1].keyTime : 0; 
     }
-    
-    pauseTModel(tmodel) {
-        const batch = tmodel.lastBatch;
-        
-        if (!batch) {
-            return;
-        }
-        
-        for (const [key] of tmodel.animatingMap) {
-            if (tmodel.targetValues[key]) {
-                tmodel.targetValues[key].status = 'pause';
-            }
-        }
-
-        const cutTime =  Math.min(TUtil.now() - batch.startTime, batch.totalDuration);
-
-        this.cutLastBatch(tmodel, batch, cutTime);
-
-        tmodel.pausedBatch = batch;
-        tmodel.lastBatch = undefined;
-        
-        this.deleteAnimation(tmodel);
-    } 
     
     areFramesEqual(a, b) {
         const keysA = Object.keys(a);

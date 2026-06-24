@@ -3,11 +3,20 @@ import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { getAnimationManager, getTargetManager } from "./App.js";
-
+import { ScheduleUtil } from "./ScheduleUtil.js"
+import { TUtil } from "./TUtil.js";
 /**
  * It provides helper functions for Animation.
  */
 class AnimationUtil {
+    
+    static emptyBatch() {
+        return {
+            frames: [],
+            keyMap: {},
+            totalDuration: 0
+        };
+    }
     
     static overrideAnimatedKeyWithSnap(tmodel, keys, values) {
         const keyList = Array.isArray(keys) ? keys : [keys];
@@ -157,7 +166,316 @@ class AnimationUtil {
             fireOnStep: (tm, key, step) => getTargetManager().fireOnStep(tm, key, step),
             fireOnEnd: (tm, key) => getTargetManager().fireOnEnd(tm, key)
         };
-    } 
+    }
+    
+    static addToUpdatingList(tmodel, originalKeys, { pauseSchedule = true } = {}) {
+        const recordMap = getAnimationManager().recordMap;
+        const records = [];
+
+        for (const [, record] of recordMap) {
+            if (record.tmodel !== tmodel) {
+                continue;
+            }
+
+            if (originalKeys && !originalKeys.has(record.originalKey)) {
+                continue;
+            }
+
+            records.push(record);
+        }
+
+        const now = TUtil.now();
+
+        for (const record of records) {
+
+            const { originalKey } = record;
+            const targetValue = tmodel.targetValues[originalKey];
+
+            if (targetValue) {
+
+                if (pauseSchedule) {
+                    const finishTime = tmodel.getScheduleTimeStamp(originalKey);
+
+                    if (TUtil.isDefined(finishTime)) {
+                        const remaining = Math.max(0, finishTime - now);
+                        tmodel.setScheduleRemainingTime(originalKey, remaining);
+                        tmodel.resetScheduleTimeStamp(originalKey);
+                        tmodel.addToUpdatingTargets(originalKey);
+                        tmodel.removeFromAnimatingMap(originalKey);
+                        targetValue.pausedAt = now;
+                    }
+                } else {
+                    targetValue.pausedAt = now;
+                    tmodel.resetScheduleTimeStamp(originalKey);
+                    tmodel.resetScheduleRemainingTime(originalKey);
+                    tmodel.removeFromAnimatingMap(originalKey);
+                    (tmodel.noDomUpdatingTargets ||= new Set()).add(originalKey);
+                }
+            }
+
+        }
+    }
+
+    static removeKeysFromBatch(batch, originalKeys) {
+        if (!batch || !originalKeys?.size) {
+            return;
+        }
+
+        for (const frame of batch.frames) {
+            for (const originalKey of originalKeys) {
+                const cleanKey = TargetUtil.getTargetName(originalKey);
+                delete frame.styleMap[cleanKey];
+                delete frame.tfMap[cleanKey];
+
+                if (frame.keyMeta) {
+                    frame.keyMeta.delete(cleanKey);
+                }
+            }
+        }
+
+        for (const originalKey of originalKeys) {
+            const cleanKey = TargetUtil.getTargetName(originalKey);
+            delete batch.keyMap[cleanKey];
+        }
+
+        batch.frames = batch.frames.filter(frame => {
+            return Object.keys(frame.styleMap).length ||
+                   Object.keys(frame.tfMap).length;
+        });
+
+        batch.totalDuration = batch.frames.length ? batch.frames[batch.frames.length - 1].keyTime : 0;
+    }
+        
+    static updateTModelFromRecord(record) {
+        const { tmodel, originalKey, cleanKey } = record;
+        
+        if (!tmodel.hasDom()) {
+            return;
+        }
+
+        const result = AnimationUtil.getValueFromAnim(record);
+
+        if (!result) {
+            return;
+        }
+        
+        const { value, step, steps, valuePointer, framePointer } = result;
+        
+        getAnimationManager().setAt(tmodel, cleanKey, value);
+        
+        tmodel.val(originalKey, value);
+        const targetValue = tmodel.targetValues[originalKey];
+        
+        if (targetValue) {
+
+            if (TUtil.isDefined(step) && TUtil.isDefined(steps) && steps > 0) {
+                targetValue.step = step;
+            }
+
+            if (TUtil.isDefined(valuePointer)) {
+                targetValue.valuePointer = valuePointer;
+            }
+      
+            tmodel.setActual(originalKey, value);
+                
+            const fireKey = `${framePointer}:${step}`;
+
+
+            if (record.needsFireOnStep && step > 0 && steps > 0 && record.lastFireOnStepKey !== fireKey) {
+                record.lastFireOnStepKey = fireKey;
+                
+                const needsRefire = record.hooks.fireOnStep(tmodel, originalKey, step);
+                
+                if (!needsRefire) { 
+                    record.needsFireOnStep = false;
+                }
+            }
+        }
+        
+        return result;
+    }
+    
+    static getValueFromAnim(record) {
+        const { originalKey, anim, frames } = record;
+        
+        if (!frames) {            
+            return;
+        }
+
+        const ct = anim.effect?.getComputedTiming?.();
+        if (!ct) {
+            return;
+        }
+        
+        let p = TUtil.isDefined(ct.progress) ? TUtil.limit(ct.progress, 0, 1) : 1;
+        
+        const last = frames.length - 1;
+        let framePointer = 0;
+        if (p <= frames[0].offset) {
+            framePointer = 0;
+        } else if (p >= frames[last].offset) {
+            framePointer = last - 1;
+        } else {
+            for (let i = 0; i < last; i++) {
+                if (p >= frames[i].offset && p < frames[i + 1].offset) {
+                    framePointer = i;
+                    break;
+                }
+            }
+        }
+
+        const left = frames[framePointer];
+        const right = frames[framePointer + 1];
+
+        const from = left.value;
+        const to = right.value;
+
+        const segStart = left.offset;
+        const segEnd = right.offset;
+        const segSpan = segEnd - segStart;
+        
+        if (segSpan > 0) {
+            const u = TUtil.limit((p - segStart) / segSpan, 0, 1);
+            const value = TModelUtil.morph(originalKey, from, to, u);
+
+            const segmentSteps = right.steps;
+            
+            if (!TUtil.isDefined(segmentSteps) || segmentSteps <= 0) {
+                return {
+                    value,
+                    framePointer,
+                    from,
+                    to,
+                    valuePointer: right.valuePointer,
+                    status: right.done ? 'finished' : 'playing'
+                };
+            }
+            
+            const stepOffset = right.stepOffset || 0;
+
+            let localStep = Math.round(u * segmentSteps);
+            localStep = TUtil.limit(localStep, 0, segmentSteps);
+
+            const step = stepOffset + localStep;
+            const steps = stepOffset + segmentSteps;
+
+            const status = (step === steps && left.done) || right.done ? 'finished' : 'playing';
+
+            return {
+                value,
+                step,   
+                steps,           
+                localStep,        
+                segmentSteps,    
+                stepOffset,
+                valuePointer: right.valuePointer,
+                framePointer,
+                from,
+                to,
+                status
+            };        
+        } 
+    }
+    
+    static detachAnimationsOnDeleteDom(tmodel) {
+        const recordMap = getAnimationManager().recordMap;
+        const pauseKeys = new Set();
+        const catchupKeys = new Set();
+
+        for (const [, record] of recordMap) {
+            if (record.tmodel !== tmodel) {
+                continue;
+            }
+
+            if (ScheduleUtil.shouldPauseTarget(tmodel, record.originalKey)) {
+                pauseKeys.add(record.originalKey);
+            } else {
+                catchupKeys.add(record.originalKey);
+            }
+        }
+
+        if (pauseKeys.size) {
+            AnimationUtil.addToUpdatingList(tmodel, pauseKeys);
+        }
+
+        if (catchupKeys.size) {
+            AnimationUtil.addToUpdatingList(tmodel, catchupKeys, {
+                pauseSchedule: false
+            });
+        }
+
+        AnimationUtil.deleteDetachedRecords(tmodel, new Set([...pauseKeys, ...catchupKeys]));
+    }
+    
+    static deleteDetachedRecords(tmodel, keys) {
+        const recordMap = getAnimationManager().recordMap;
+
+        for (const [recId, record] of recordMap) {
+            if (record.tmodel !== tmodel) {
+                continue;
+            }
+
+            if (!keys.has(record.originalKey)) {
+                continue;
+            }
+
+            record.status = 'detached';
+
+            try {
+                record.anim.cancel();
+            } catch {}
+
+            tmodel.removeFromAnimatingMap(record.originalKey);
+            recordMap.delete(recId);
+        }
+
+        tmodel.clearAnimatingMap();
+        tmodel.lastBatch = undefined;
+        tmodel.finalKeyframe = undefined;
+        tmodel.finalRawFrame = undefined;
+    }
+    
+    static rebaseCutBatchMeta(tmodel, batch) {
+        if (!batch || !batch.frames?.length) {
+            return;
+        }
+
+        for (const [cleanKey, originalKeys] of Object.entries(batch.keyMap)) {
+            for (const originalKey of originalKeys) {
+                const targetValue = tmodel.targetValues[originalKey];
+
+                if (!targetValue) {
+                    continue;
+                }
+
+                const currentStep = targetValue.step || 0;
+
+                for (let i = 1; i < batch.frames.length; i++) {
+                    const frame = batch.frames[i];
+
+                    if (getAnimationManager().getAt(frame, cleanKey) === undefined) {
+                        continue;
+                    }
+
+                    const meta = frame.keyMeta?.get(cleanKey);
+
+                    if (!meta || !TUtil.isDefined(meta.steps)) {
+                        continue;
+                    }
+
+                    const oldOffset = meta.stepOffset || 0;
+                    const oldTotal = oldOffset + meta.steps;
+
+                    if (currentStep > oldOffset && currentStep < oldTotal) {
+                        meta.stepOffset = currentStep;
+                        meta.steps = oldTotal - currentStep;
+                    }
+
+                    break;
+                }
+            }
+        }
+    }    
 }
 
 export { AnimationUtil };

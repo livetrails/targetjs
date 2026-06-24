@@ -72,8 +72,6 @@ class Bracket extends TModel {
         return this.getRealParent().getBracketSize();
     }
     
-    addToParentVisibleChildren() {}
-
     createViewport() {
         this.viewport = this.viewport || new Viewport();
 

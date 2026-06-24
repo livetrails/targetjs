@@ -320,12 +320,6 @@ class TModel extends BaseModel {
 
         return parent.allChildrenMap[this.oid] === this;
     }
-
-    addToParentVisibleChildren() {
-        if (this.isVisible() && this.isInFlow() && this.getParent()) {
-            this.getParent().visibleChildren.push(this);
-        }
-    }
         
     markEventDirty() {
         this.eventDirtyEpoch = getEvents().eventEpoch;
@@ -555,6 +549,9 @@ class TModel extends BaseModel {
             { height: this.getHeight() },
             { activeTargetList: this.activeTargetList },
             { updatingTargetList: this.updatingTargetList },
+            { animatingMap: [ ...(this.animatingMap ? [ ...this.animatingMap.keys() ] : []) ] },
+            { noDomUpdatingTargets: [ ...(this.noDomUpdatingTargets ? [ ...this.noDomUpdatingTargets ] : []) ] },
+            { pendingTargets: [ ...(this.pendingTargets ? [ ...this.pendingTargets ] : []) ] },
             { updatingChildren: this.updatingChildrenMap ? [ ...this.updatingChildrenMap.keys() ] : [] },
             { activeChildren: this.activeChildrenMap ? [ ...this.activeChildrenMap.keys() ] : [] },            
             { children: this.getChildren() },

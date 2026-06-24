@@ -3,9 +3,10 @@ import { TUtil } from "./TUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
 import { TModelUtil } from "./TModelUtil.js";
+import { ScheduleUtil } from "./ScheduleUtil.js"
 import { AnimationUtil } from "./AnimationUtil.js";
 import { TargetExecutor } from "./TargetExecutor.js";
-import { getTargetManager, tRoot, getEvents, getAnimationManager, getRunScheduler } from "./App.js";
+import { getTargetManager, tRoot, getEvents } from "./App.js";
 
 /*
  * It calculates the locations and dimensions of all objects and triggers the calculation of all targets. 
@@ -28,10 +29,6 @@ class LocationManager {
         
         this.calcBusy = false;
         this.calcQueued = false;
-
-        this.resumePausedList = [];
-        this.resumePausedMap = {};
-        this.resumeScheduled = false;
         
         this.calcEpoch = 0;
     }
@@ -43,11 +40,7 @@ class LocationManager {
         this.activatedMap = {};
         this.domIslandSet.clear();
         this.calcBusy = false;
-        this.calcQueued = false; 
-
-        this.resumePausedList = [];
-        this.resumePausedMap = {};
-        this.resumeScheduled = false; 
+        this.calcQueued = false;
     }
     
     calculateActivated() {
@@ -112,7 +105,6 @@ class LocationManager {
         }
 
         this.processAfterStack();
-        this.scheduleResumePaused();
 
         this.calcBusy = false;
 
@@ -489,61 +481,16 @@ class LocationManager {
         
         if (tmodel.isNowInvisible) {
             this.addToLocationList(tmodel);
-            this.pauseSchedules(tmodel);
         }
         
-        if (tmodel.isNowVisible) {
-            this.resumeSchedules(tmodel);
-        }   
+        ScheduleUtil.pauseResumeSchedule(tmodel);
         
-        tmodel.addToParentVisibleChildren();        
+        if (tmodel.type !== 'BI' && tmodel.isVisible() && tmodel.isInFlow() && tmodel.getParent()) {
+            tmodel.getParent().visibleChildren.push(tmodel);
+        }      
     }
     
-    pauseSchedules(tmodel) {
-        if (tmodel.type === 'BI') {
-            return;
-        }
-        const keys = new Set([
-            ...tmodel.activeTargetList,
-            ...tmodel.updatingTargetList
-        ]);
-
-        for (const key of keys) {
-            const target = tmodel.targets[key];
-            if (TUtil.isDefined(tmodel.getScheduleTimeStamp(key)) && target?.pauseOn === 'hidden') {
-                TUtil.pauseSchedule(tmodel, key);
-            }
-        }
-    }
-
-    resumeSchedules(tmodel) {
-        if (tmodel.type === 'BI') {
-            return;
-        }
-        
-        const keys = new Set([
-            ...tmodel.activeTargetList,
-            ...tmodel.updatingTargetList
-        ]);
-
-        for (const key of keys) {
-            const target = tmodel.targets[key];
-            const remaining = tmodel.getScheduleRemainingTime(key);
-            if (TUtil.isDefined(remaining) && target?.pauseOn === 'hidden') {
-                TUtil.resumeSchedule(tmodel, key);
-                getRunScheduler().schedule(remaining, 'resume-' + tmodel.oid + '-' + key);
-            }
-        }
-    }    
-
     calculateTargets(tmodel) {
-        if (tmodel.hasDom() && tmodel.pausedBatch) {
-            if (!this.resumePausedMap[tmodel.oid]) {
-                this.resumePausedMap[tmodel.oid] = true;
-                this.resumePausedList.push(tmodel);
-            }
-        }
-
         this.checkInternalEvents(tmodel);
         
         let guard = 0;
@@ -555,6 +502,8 @@ class LocationManager {
                 getTargetManager().applyTargetValue(tmodel, key);
             }
         }
+        
+        ScheduleUtil.pauseResumeSchedule(tmodel);
         
         getTargetManager().applyTargetValues(tmodel);
         if (tmodel.updatingTargetList.length > 0) {
@@ -580,37 +529,6 @@ class LocationManager {
         tmodel.isNowVisible = false;
         tmodel.hasDomNow = false;
         tmodel.targetExecutionCount++;
-    }
-    
-    scheduleResumePaused() {
-        if (this.resumeScheduled || !this.resumePausedList.length) {
-            return;
-        }
-        
-        this.resumeScheduled = true;
-
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                this.resumeScheduled = false;
-
-                const list = this.resumePausedList.slice();
-                this.resumePausedList.length = 0;
-                this.resumePausedMap = {};
-
-                for (const tmodel of list) {
-                    const batch = tmodel.pausedBatch;
-                    if (!batch || !tmodel.hasDom()) {
-                        continue;
-                    }
-
-                    const el = tmodel.$dom.getElement();
-                    if (el && el.isConnected && document.visibilityState === 'visible') {
-                        getAnimationManager().animate(tmodel, batch, AnimationUtil.getAnimationHooks());
-                        tmodel.pausedBatch = undefined;
-                    }
-                }
-            });
-        });
     }
   
     checkExternalEvents(tmodel) {

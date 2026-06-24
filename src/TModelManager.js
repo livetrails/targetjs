@@ -1,8 +1,9 @@
 import { $Dom } from "./$Dom.js";
 import { TUtil } from "./TUtil.js";
-import { getLocationManager, getEvents, getAnimationManager, tRoot } from "./App.js";
+import { getLocationManager, getEvents, getTargetManager, tRoot } from "./App.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
+import { AnimationUtil } from "./AnimationUtil.js";
 
 /**
  * It analyzes all objects and based on their needs, creates or removes DOM elements, restyles objects, and rerenders them. 
@@ -379,15 +380,15 @@ class TModelManager {
     
     deleteDom(tmodel) {
         if (tmodel.hasAnimatingTargets()) {
-            getAnimationManager().pauseTModel(tmodel);
+            AnimationUtil.detachAnimationsOnDeleteDom(tmodel);
         }
         
-        Object.keys(tmodel.targetValues).forEach(key => {
-            const targetValue = tmodel.targetValues[key];
-            if (targetValue.status === 'updating' && tmodel.updatingTargetList.indexOf(key) === -1) {
-                tmodel.setTargetStatus('active');
-            }
-        });
+//        Object.keys(tmodel.targetValues).forEach(key => {
+//            const targetValue = tmodel.targetValues[key];
+//            if (targetValue.status === 'updating' && tmodel.updatingTargetList.indexOf(key) === -1) {
+//                tmodel.setTargetStatus(key, 'active');
+//            }
+//        });
         
         const domParent = tmodel.getDomParent();
         if (domParent && domParent.$dom) {
@@ -415,17 +416,44 @@ class TModelManager {
     
     activatePendingTargetsAfterDom(tmodels) {
         for (const tmodel of tmodels) {
+            if (!tmodel.hasDom()) {
+                continue;
+            }
+        
+            if (tmodel.noDomUpdatingTargets) {
+                for (const target of [...tmodel.noDomUpdatingTargets]) {
+                   tmodel.addToUpdatingTargets(target);
+                }
+                
+                tmodel.noDomUpdatingTargets = undefined;
+            }
         
             const pending = tmodel.pendingTargets;
-            if (pending?.size) {
+            if (pending) {
                 for (const target of [...pending]) {
                    TargetUtil.cleanupTarget(tmodel, target);
                    TargetUtil.shouldActivateNextTarget(tmodel, target);
                 }
             }
+            
+             
         }
     }
+    
+    catchupNoDomTargetsBeforeStyle(tmodel) {
+        if (!tmodel.noDomUpdatingTargets?.size) {
+            return;
+        }
 
+        for (const key of [...tmodel.noDomUpdatingTargets]) {
+            getTargetManager().catchupTargetByElapsed(tmodel, key);
+            tmodel.addToUpdatingTargets(key);
+        }
+
+        tmodel.noDomUpdatingTargets = undefined;
+        
+    }
+    
     createDoms() {   
         if (this.lists.noDom.length === 0) { 
             return;
@@ -499,10 +527,13 @@ class TModelManager {
         }
 
         for (const tmodel of styleBatch) {
-            if (tmodel.hasDom()){
+            if (tmodel.hasDom()) {
                 tmodel.hasDomNow = true;
                 tmodel.markLayoutDirty('hasDomNow');
-            }          
+            }
+
+            this.catchupNoDomTargetsBeforeStyle(tmodel);
+
             TModelUtil.initStyleMaps(tmodel);
             TModelUtil.fixStyle(tmodel);
             TModelUtil.fixAsyncStyle(tmodel);

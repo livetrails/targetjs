@@ -4,6 +4,7 @@ import { TUtil } from "./TUtil.js";
 import { TargetParser } from "./TargetParser" ;
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
+import { ScheduleUtil } from "./ScheduleUtil.js";
 import { $Dom } from "./$Dom.js";
 
 /**
@@ -371,14 +372,6 @@ class BaseModel {
         return this;
     }
 
-    resetScheduleTimeStamp(key) {
-        if (this.targetValues[key]) {
-            this.targetValues[key].scheduleTimeStamp = undefined;
-        }
-
-        return this;
-    }
-
     resetTargetInitialValue(key) {
         if (this.targetValues[key]) {
             this.targetValues[key].initialValue = undefined;
@@ -419,7 +412,6 @@ class BaseModel {
             this.removeFromActiveTargets(key);
             this.removeFromUpdatingTargets(key);
         }
-        
     }
 
     getTargetStatus(key) {
@@ -543,14 +535,15 @@ class BaseModel {
         return this.targetValues[key]?.scheduleRemainingTime;
     }
 
-    setScheduleRemainingTime(key, remainingTime) {
+    setScheduleRemainingTime(key, value) {
         const targetValue = this.targetValues[key];
 
         if (!targetValue) {
             return;
         }
 
-        targetValue.scheduleRemainingTime = remainingTime;
+        targetValue.scheduleRemainingTime = value;
+        ScheduleUtil.syncSchedulingMap(this, key);
     }
 
     resetScheduleRemainingTime(key) {
@@ -560,7 +553,30 @@ class BaseModel {
             return;
         }
 
-        delete targetValue.scheduleRemainingTime;
+        targetValue.scheduleRemainingTime = undefined;
+        ScheduleUtil.syncSchedulingMap(this, key);
+    }
+
+    setScheduleTimeStamp(key, value) {
+        const targetValue = this.targetValues[key];
+
+        if (!targetValue) {
+            return;
+        }
+
+        targetValue.scheduleTimeStamp = value;
+        ScheduleUtil.syncSchedulingMap(this, key);
+    }
+
+    resetScheduleTimeStamp(key) {
+        const targetValue = this.targetValues[key];
+
+        if (!targetValue) {
+            return;
+        }
+
+        targetValue.scheduleTimeStamp = undefined;
+        ScheduleUtil.syncSchedulingMap(this, key);
     }
 
     isTargetInLoop(key) {
@@ -682,7 +698,7 @@ class BaseModel {
     }
     
     getValueListPointer(key) {
-        return this.targetValues[key]?.valuePointer ?? 0;
+        return this.targetValues[key]?.valuePointer ?? 1;
     }    
 
     incrementTargetCycle(key) {
@@ -702,12 +718,6 @@ class BaseModel {
             this.targetValues[key].interval = value;
         }
         return this.targetValues[key].interval;
-    }
-
-    setScheduleTimeStamp(key, value) {
-        if (this.targetValues[key]) {
-            this.targetValues[key].scheduleTimeStamp = value;
-        }
     }
 
     setTargetInitialValue(key, value) {
@@ -874,7 +884,24 @@ class BaseModel {
         const { originalTargetName } = TargetUtil.getOriginalNames(this, key);
 
         return this.animatingMap.has(key) && this.animatingMap.get(key).originalTargetName === originalTargetName;
-    }    
+    } 
+    
+    addToSchedulingMap(key) {
+        this.schedulingMap ||= new Set();
+        this.schedulingMap.add(key);
+    }
+
+    removeFromSchedulingMap(key) {
+        if (!this.schedulingMap) {
+            return;
+        }
+
+        this.schedulingMap.delete(key);
+
+        if (this.schedulingMap.size === 0) {
+            this.schedulingMap = undefined;
+        }
+    }
     
     addToUpdatingChildren(child) {
         this.updatingChildrenMap ||= new Map();
@@ -1011,7 +1038,7 @@ class BaseModel {
                 targetValue.step = 0;
                 targetValue.cycle = 0;
                 targetValue.valuePointer = Array.isArray(targetValue.valueList) ? 1 : 0;
-                targetValue.initialValue = undefined;
+                targetValue.initialValue = undefined;             
             } else {
                 this.targetValues[key] = targetValue;
                 targetValue.cycles = this.targets[key]?.cycles ?? targetValue.cycles;                
