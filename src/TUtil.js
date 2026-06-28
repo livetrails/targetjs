@@ -300,10 +300,8 @@ class TUtil {
         if (!targetValue.pausedAt) {
             return {
                 step: tmodel.getTargetStep(key),
-                valuePointer: targetValue.valueList?.length
-                    ? tmodel.getValueListPointer(key)
-                    : 0,
-                done: false
+                valuePointer: targetValue.valueList?.length ? tmodel.getValueListPointer(key) : 0,
+                done: tmodel.getTargetStep(key) === tmodel.getTargetSteps(key)
             };
         }
         

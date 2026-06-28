@@ -547,6 +547,7 @@ class TModel extends BaseModel {
             { y: this.getY() },
             { width: this.getWidth() },
             { height: this.getHeight() },
+            { targets: this.originalTargetNames },
             { activeTargetList: this.activeTargetList },
             { updatingTargetList: this.updatingTargetList },
             { animatingMap: [ ...(this.animatingMap ? [ ...this.animatingMap.keys() ] : []) ] },

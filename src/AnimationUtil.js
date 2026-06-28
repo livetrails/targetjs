@@ -102,7 +102,7 @@ class AnimationUtil {
         }
         
         const keys = Object.keys(frame);
-
+        
         for (const key of keys) {
             if (key === 'offset') {
                 continue;
@@ -168,7 +168,7 @@ class AnimationUtil {
         };
     }
     
-    static addToUpdatingList(tmodel, originalKeys, { pauseSchedule = true } = {}) {
+    static addToUpdatingTargets(tmodel, originalKeys) {
         const recordMap = getAnimationManager().recordMap;
         const records = [];
 
@@ -187,35 +187,54 @@ class AnimationUtil {
         const now = TUtil.now();
 
         for (const record of records) {
-
             const { originalKey } = record;
             const targetValue = tmodel.targetValues[originalKey];
 
-            if (targetValue) {
-
-                if (pauseSchedule) {
-                    const finishTime = tmodel.getScheduleTimeStamp(originalKey);
-
-                    if (TUtil.isDefined(finishTime)) {
-                        const remaining = Math.max(0, finishTime - now);
-                        tmodel.setScheduleRemainingTime(originalKey, remaining);
-                        tmodel.resetScheduleTimeStamp(originalKey);
-                        tmodel.addToUpdatingTargets(originalKey);
-                        tmodel.removeFromAnimatingMap(originalKey);
-                        targetValue.pausedAt = now;
-                    }
-                } else {
-                    targetValue.pausedAt = now;
-                    tmodel.resetScheduleTimeStamp(originalKey);
-                    tmodel.resetScheduleRemainingTime(originalKey);
-                    tmodel.removeFromAnimatingMap(originalKey);
-                    (tmodel.noDomUpdatingTargets ||= new Set()).add(originalKey);
-                }
+            if (!targetValue) {
+                continue;
             }
 
+
+            targetValue.pausedAt = now;
+
+            tmodel.setTargetStatus(originalKey, 'updating');
+            tmodel.removeFromAnimatingMap(originalKey);
         }
     }
+    
+    static addToNODomUpdatingTargets(tmodel, originalKeys) {
+        const recordMap = getAnimationManager().recordMap;
+        const records = [];
 
+        for (const [, record] of recordMap) {
+            if (record.tmodel !== tmodel) {
+                continue;
+            }
+
+            if (originalKeys && !originalKeys.has(record.originalKey)) {
+                continue;
+            }
+
+            records.push(record);
+        }
+
+        const now = TUtil.now();
+
+        for (const record of records) {
+            const { originalKey } = record;
+            const targetValue = tmodel.targetValues[originalKey];
+
+            if (!targetValue) {
+                continue;
+            }
+
+            targetValue.pausedAt = now;
+
+            tmodel.removeFromAnimatingMap(originalKey);
+            (tmodel.noDomUpdatingTargets ||= new Set()).add(originalKey);
+        }
+    }
+    
     static removeKeysFromBatch(batch, originalKeys) {
         if (!batch || !originalKeys?.size) {
             return;
@@ -394,14 +413,12 @@ class AnimationUtil {
             }
         }
 
-        if (pauseKeys.size) {
-            AnimationUtil.addToUpdatingList(tmodel, pauseKeys);
+        if (pauseKeys.size) {         
+            AnimationUtil.addToUpdatingTargets(tmodel, pauseKeys);
         }
 
         if (catchupKeys.size) {
-            AnimationUtil.addToUpdatingList(tmodel, catchupKeys, {
-                pauseSchedule: false
-            });
+            AnimationUtil.addToNODomUpdatingTargets(tmodel, catchupKeys);
         }
 
         AnimationUtil.deleteDetachedRecords(tmodel, new Set([...pauseKeys, ...catchupKeys]));
@@ -475,7 +492,126 @@ class AnimationUtil {
                 }
             }
         }
-    }    
+    }
+            
+    static handleWebAnimationAPI(tmodel, cleanKey, key, targetValue, from, to, valuePointer, step, steps, interval, timeShift, skipStartFrame = false) { 
+        const batch = (tmodel.waapiBatch ||= {
+            frames: [],
+            easing: undefined,            
+            keyMap: {},
+            totalDuration: 0
+        });
+
+        const isTransform = TargetData.isTransformKey(cleanKey);
+
+        const getFrameAtTime = (t) => {
+            const shifted = Math.max(0, t + timeShift);
+
+            for (let i = 0; i < batch.frames.length; i++) {
+                const frame = batch.frames[i];
+                if (Math.abs(frame.keyTime - shifted) < 0.0001) {
+                    return frame;
+                }
+            }
+            const frame = { keyTime: shifted, tfMap: {}, styleMap: {}, keyMeta: new Map() };
+            batch.frames.push(frame);
+            return frame;
+        };
+
+        const setFrameValue = (frame, value) => {
+            if (isTransform) {
+                frame.tfMap[cleanKey] = value;
+            } else {
+                frame.styleMap[cleanKey] = value;
+            }
+        };
+
+        let keyDuration = 0;
+
+        if (targetValue.valueList && targetValue.valueList.length) {
+            const valueList = targetValue.valueList;
+            const stepList = targetValue.stepList || [1];
+            const intervalList = targetValue.intervalList || [interval || 8];
+
+
+            if (!skipStartFrame) {
+                const frame0 = getFrameAtTime(0);
+                setFrameValue(frame0, from);
+            }
+
+            for (let i = valuePointer; i < valueList.length; i++) {
+                const segmentSteps = stepList[(i - 1) % stepList.length];
+                const intervalValue = intervalList[(i - 1) % intervalList.length] || 8;
+
+                const stepOffset = i === valuePointer ? step : 0;
+                const remainingSteps = Math.max(segmentSteps - stepOffset, 0);
+
+                if (remainingSteps <= 0) {
+                    continue;
+                }
+
+                const duration = remainingSteps * intervalValue;
+
+                keyDuration += duration;
+
+                const frame = getFrameAtTime(keyDuration);
+
+                setFrameValue(frame, valueList[i]);
+
+                frame.keyMeta.set(cleanKey, {
+                    steps: remainingSteps,
+                    interval: intervalValue,
+                    stepOffset,
+                    valuePointer: i
+                });
+            }
+        } else {
+            interval = interval || 8;
+
+            const remainingSteps = Math.max(steps - step, 0);
+
+            if (remainingSteps <= 0) {
+                tmodel.val(key, to);
+                targetValue.step = steps;
+                return 0;
+            }
+
+            keyDuration = remainingSteps * interval;
+
+            if (!skipStartFrame) {
+                const frame0 = getFrameAtTime(0);
+                setFrameValue(frame0, from);
+            }
+
+            const frame1 = getFrameAtTime(keyDuration);
+
+            setFrameValue(frame1, to);
+
+            frame1.keyMeta.set(cleanKey, {
+                steps: remainingSteps,
+                interval,
+                stepOffset: step
+            });
+        }
+
+        if (keyDuration <= 0) {
+            tmodel.removeFromUpdatingTargets(key);
+            return 0;
+        }
+
+        if (tmodel.getTargetEasing(key)) {
+            batch.easing = tmodel.getTargetEasing(key);
+        }
+
+        batch.totalDuration = Math.max(0, batch.totalDuration, timeShift + keyDuration);
+
+        (batch.keyMap[cleanKey] ||= new Set()).add(key);
+
+        tmodel.removeFromUpdatingTargets(key);
+        tmodel.addToAnimatingMap(key);
+
+        return keyDuration;
+    }
 }
 
 export { AnimationUtil };

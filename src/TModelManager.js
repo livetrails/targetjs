@@ -383,13 +383,6 @@ class TModelManager {
             AnimationUtil.detachAnimationsOnDeleteDom(tmodel);
         }
         
-//        Object.keys(tmodel.targetValues).forEach(key => {
-//            const targetValue = tmodel.targetValues[key];
-//            if (targetValue.status === 'updating' && tmodel.updatingTargetList.indexOf(key) === -1) {
-//                tmodel.setTargetStatus(key, 'active');
-//            }
-//        });
-        
         const domParent = tmodel.getDomParent();
         if (domParent && domParent.$dom) {
             domParent.$dom.removeElement(tmodel.$dom.element); 
@@ -416,13 +409,14 @@ class TModelManager {
     
     activatePendingTargetsAfterDom(tmodels) {
         for (const tmodel of tmodels) {
+            
             if (!tmodel.hasDom()) {
                 continue;
             }
         
             if (tmodel.noDomUpdatingTargets) {
                 for (const target of [...tmodel.noDomUpdatingTargets]) {
-                   tmodel.addToUpdatingTargets(target);
+                   tmodel.addTargetToStatusList(target);
                 }
                 
                 tmodel.noDomUpdatingTargets = undefined;
@@ -435,8 +429,6 @@ class TModelManager {
                    TargetUtil.shouldActivateNextTarget(tmodel, target);
                 }
             }
-            
-             
         }
     }
     
@@ -447,7 +439,7 @@ class TModelManager {
 
         for (const key of [...tmodel.noDomUpdatingTargets]) {
             getTargetManager().catchupTargetByElapsed(tmodel, key);
-            tmodel.addToUpdatingTargets(key);
+            tmodel.setTargetStatus(key, 'updating');
         }
 
         tmodel.noDomUpdatingTargets = undefined;
@@ -489,8 +481,6 @@ class TModelManager {
             }
         }
             
-        this.activatePendingTargetsAfterDom(this.lists.noDom);
-
         for (const tmodel of needsDom) {
             const domHolder = tmodel.getDomHolder();
                         
@@ -539,7 +529,7 @@ class TModelManager {
             TModelUtil.fixAsyncStyle(tmodel);
         }
         
-        this.activatePendingTargetsAfterDom(styleBatch);
+        this.activatePendingTargetsAfterDom(this.lists.noDom);
         
         getEvents().attachEvents(this.lists.noDom.filter(t => t.externalEventMap?.size > 0));
     }        

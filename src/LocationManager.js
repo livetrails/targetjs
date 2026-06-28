@@ -3,7 +3,7 @@ import { TUtil } from "./TUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
 import { TModelUtil } from "./TModelUtil.js";
-import { ScheduleUtil } from "./ScheduleUtil.js"
+import { ScheduleUtil } from "./ScheduleUtil.js";
 import { AnimationUtil } from "./AnimationUtil.js";
 import { TargetExecutor } from "./TargetExecutor.js";
 import { getTargetManager, tRoot, getEvents } from "./App.js";
@@ -602,7 +602,7 @@ class LocationManager {
         }
     }
     
-    fixLocation(tmodel, prevX, prevY, force) {
+    fixLocation(tmodel, prevX, prevY) {
 
         if (tmodel.hasValidAnimation()) {
             const keysToSnap = [];
@@ -611,11 +611,12 @@ class LocationManager {
             const xChanged = tmodel.actualValues.x !== prevX;
             const yChanged = tmodel.actualValues.y !== prevY;
 
-            if (xChanged && (!tmodel.isKeyAnimating(tmodel.allTargetMap['x']) || force)) {
+            if (xChanged && tmodel.getTargetStatus(tmodel.allTargetMap['x']) !== 'updating') {
                 keysToSnap.push('x');
                 valuesToSnap.push(tmodel.val('x'));
             }
-            if (yChanged && (!tmodel.isKeyAnimating(tmodel.allTargetMap['y']) || force)) {
+            
+            if (yChanged && tmodel.getTargetStatus(tmodel.allTargetMap['y']) !== 'updating') {
                 keysToSnap.push('y');
                 valuesToSnap.push(tmodel.val('y'));
             }                    
@@ -625,7 +626,7 @@ class LocationManager {
                 return;
             }
         }
-        
+    
         this.addToTransformTargetList(tmodel, 'x');
         this.addToTransformTargetList(tmodel, 'y');
     }

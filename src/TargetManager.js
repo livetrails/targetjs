@@ -6,7 +6,6 @@ import { TargetUtil } from "./TargetUtil.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { SearchUtil } from "./SearchUtil.js";
 import { ScheduleUtil } from "./ScheduleUtil.js";
-import { TargetData } from "./TargetData.js";
 import { AnimationUtil } from "./AnimationUtil.js";
 
 /**
@@ -55,7 +54,7 @@ class TargetManager {
             }
             return;
         }
-
+        
         tmodel.resetScheduleTimeStamp(key);
 
         TargetExecutor.prepareTarget(tmodel, key);
@@ -234,124 +233,6 @@ class TargetManager {
         }
     }    
 
-    handleWebAnimationAPI(tmodel, cleanKey, key, targetValue, from, to, valuePointer, step, steps, interval, timeShift, skipStartFrame = false) { 
-        const batch = (tmodel.waapiBatch ||= {
-            frames: [],
-            easing: undefined,            
-            keyMap: {},
-            totalDuration: 0
-        });
-
-        const isTransform = TargetData.isTransformKey(cleanKey);
-
-        const getFrameAtTime = (t) => {
-            const shifted = Math.max(0, t + timeShift);
-
-            for (let i = 0; i < batch.frames.length; i++) {
-                const frame = batch.frames[i];
-                if (Math.abs(frame.keyTime - shifted) < 0.0001) {
-                    return frame;
-                }
-            }
-            const frame = { keyTime: shifted, tfMap: {}, styleMap: {}, keyMeta: new Map() };
-            batch.frames.push(frame);
-            return frame;
-        };
-
-        const setFrameValue = (frame, value) => {
-            if (isTransform) {
-                frame.tfMap[cleanKey] = value;
-            } else {
-                frame.styleMap[cleanKey] = value;
-            }
-        };
-
-        let keyDuration = 0;
-
-        if (targetValue.valueList && targetValue.valueList.length) {
-            const valueList = targetValue.valueList;
-            const stepList = targetValue.stepList || [1];
-            const intervalList = targetValue.intervalList || [interval || 8];
-
-
-            if (!skipStartFrame) {
-                const frame0 = getFrameAtTime(0);
-                setFrameValue(frame0, from);
-            }
-
-            for (let i = valuePointer; i < valueList.length; i++) {
-                const segmentSteps = stepList[(i - 1) % stepList.length];
-                const intervalValue = intervalList[(i - 1) % intervalList.length] || 8;
-
-                const stepOffset = i === valuePointer ? step : 0;
-                const remainingSteps = Math.max(segmentSteps - stepOffset, 0);
-
-                if (remainingSteps <= 0) {
-                    continue;
-                }
-
-                const duration = remainingSteps * intervalValue;
-
-                keyDuration += duration;
-
-                const frame = getFrameAtTime(keyDuration);
-
-                setFrameValue(frame, valueList[i]);
-
-                frame.keyMeta.set(cleanKey, {
-                    steps: remainingSteps,
-                    interval: intervalValue,
-                    stepOffset,
-                    valuePointer: i
-                });
-            }
-        } else {
-            interval = interval || 8;
-
-            const remainingSteps = Math.max(steps - step, 0);
-                
-            if (remainingSteps <= 0) {
-                tmodel.val(key, to);
-                targetValue.step = steps;
-                return 0;
-            }
-
-            keyDuration = remainingSteps * interval;
-
-            if (!skipStartFrame) {
-                const frame0 = getFrameAtTime(0);
-                setFrameValue(frame0, from);
-            }
-
-            const frame1 = getFrameAtTime(keyDuration);
-
-            setFrameValue(frame1, to);
-
-            frame1.keyMeta.set(cleanKey, {
-                steps: remainingSteps,
-                interval,
-                stepOffset: step
-            });
-        }
-
-        if (keyDuration <= 0) {
-            tmodel.removeFromUpdatingTargets(key);
-            return 0;
-        }
-
-        if (tmodel.getTargetEasing(key)) {
-            batch.easing = tmodel.getTargetEasing(key);
-        }
-
-        batch.totalDuration = Math.max(0, batch.totalDuration, timeShift + keyDuration);
-
-        (batch.keyMap[cleanKey] ||= new Set()).add(key);
-
-        tmodel.removeFromUpdatingTargets(key);
-
-        return keyDuration;
-    }
-    
     catchupTargetByElapsed(tmodel, key, { fireEnd = false } = {}) {
         const targetValue = tmodel.targetValues[key];
 
@@ -366,7 +247,7 @@ class TargetManager {
         const theValue = tmodel.getTargetValue(key);
         const steps = tmodel.getTargetSteps(key);
 
-        if (progress.done) {
+        if (progress.done) {          
             const finalValue = targetValue.valueList?.length ? targetValue.valueList[targetValue.valueList.length - 1] : theValue;
 
             tmodel.val(key, finalValue);
@@ -386,8 +267,7 @@ class TargetManager {
             return {
                 done: true,
                 step: steps,
-                valuePointer: targetValue.valuePointer,
-                value: finalValue
+                valuePointer: targetValue.valuePointer
             };
         }
 
@@ -401,7 +281,7 @@ class TargetManager {
         const value = step > 0
             ? TModelUtil.easingMorph(tmodel, key, initialValue, theValue, step, steps)
             : initialValue;
-
+                
         tmodel.val(key, value);
         tmodel.setActual(key, value);
         tmodel.addToStyleTargetList(key);
@@ -409,15 +289,10 @@ class TargetManager {
         targetValue.step = step;
         targetValue.valuePointer = valuePointer;
         
-        if (fireEnd) {
-            this.fireOnEnd(tmodel, key);
-        }
-
         return {
             done: false,
             step,
-            valuePointer,
-            value
+            valuePointer
         };
     }
 
@@ -450,10 +325,9 @@ class TargetManager {
 
         if (tmodel.canBeAnimated(state.cleanKey)) {
             this.animateActualValue(tmodel, key, targetValue, state, step, valuePointer);
-            return;
+        } else {
+            this.updateActualValue(tmodel, key, targetValue, state, step, valuePointer);
         }
-
-        this.updateActualValue(tmodel, key, targetValue, state, step, valuePointer);
     }
 
     canUpdateTarget(tmodel, key) {
@@ -499,11 +373,11 @@ class TargetManager {
 
         const cycles = tmodel.isTargetImperative(key) ? tmodel.getTargetCycles(key) : 0;
 
-        const cycleDuration = this.handleWebAnimationAPI(tmodel, state.cleanKey, key, targetValue, newValue, state.theValue, valuePointer, 
+        const cycleDuration = AnimationUtil.handleWebAnimationAPI(tmodel, state.cleanKey, key, targetValue, newValue, state.theValue, valuePointer, 
                 step, state.steps, state.interval, 0);
 
         for (let c = 1; c < cycles; c++) {
-            this.handleWebAnimationAPI(tmodel, state.cleanKey, key, targetValue, newValue, state.theValue, valuePointer, 
+            AnimationUtil.handleWebAnimationAPI(tmodel, state.cleanKey, key, targetValue, newValue, state.theValue, valuePointer, 
                 step, state.steps, state.interval, c * cycleDuration, true);
         }
     }  

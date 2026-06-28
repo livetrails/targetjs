@@ -40,33 +40,34 @@ class ScheduleUtil {
         return interval;
     }
     
-    static syncSchedulingMap(tmodel, key) {
-        const targetValue = tmodel.targetValues[key];
+    static getSchedulingKeys(tmodel) {
+        const keys = [];
 
-        if (!targetValue) {
-            return;
+        for (const [key, targetValue] of Object.entries(tmodel.targetValues)) {
+            if (
+                TUtil.isDefined(targetValue.scheduleTimeStamp) ||
+                TUtil.isDefined(targetValue.scheduleRemainingTime)
+            ) {
+                keys.push(key);
+            }
         }
 
-        if (TUtil.isDefined(targetValue.scheduleTimeStamp) || TUtil.isDefined(targetValue.scheduleRemainingTime)) {
-            tmodel.addToSchedulingMap(key);
-        } else {
-            tmodel.removeFromSchedulingMap(key);
-        }
+        return keys;
     }
     
     static pauseResumeSchedule(tmodel) {
         if (tmodel.type === 'BI') {
             return;
         }
+
+        const schedulingKeys = ScheduleUtil.getSchedulingKeys(tmodel);
         
-        if (!tmodel.schedulingMap && !tmodel.animatingMap) {
+        if (!schedulingKeys.length && !tmodel.animatingMap) {
             return;
         }
 
-        const schedulingKeys = new Set(tmodel.schedulingMap ?? []);
         const animatingKeys = new Set(tmodel.animatingMap?.keys() ?? []);
-
-        const keys = new Set([ ...schedulingKeys, ...animatingKeys ]);
+        const keys = new Set([...schedulingKeys, ...animatingKeys]);
 
         if (!keys.size) {
             return;
@@ -93,15 +94,31 @@ class ScheduleUtil {
 
             if (TUtil.isDefined(remaining)) {
                 ScheduleUtil.resumeSchedule(tmodel, key);
-                getRunScheduler().schedule(remaining, 'resume-' + tmodel.oid + '-' + key);
+
+                tmodel.addTargetToStatusList(key);
+
+                getRunScheduler().scheduleOnlyIfEarlier(remaining, `resume-${tmodel.oid}-${key}`);
+
+                continue;
+            }
+
+            if (TUtil.isDefined(tmodel.getScheduleTimeStamp(key))) {
+                const delay = ScheduleUtil.scheduleExecution(tmodel, key);
+
+                tmodel.addTargetToStatusList(key);
+
+                getRunScheduler().scheduleOnlyIfEarlier(
+                    delay,
+                    `resume-${tmodel.oid}-${key}`
+                );
             }
         }
 
         if (animationsToPause.size) {
             getAnimationManager().pauseAnimations(tmodel, animationsToPause);
         }
-    } 
-    
+    }
+
     static pauseSchedule(tmodel, key) {
         const interval = tmodel.getTargetInterval(key);
         const lastScheduledTime = tmodel.getScheduleTimeStamp(key);
@@ -138,17 +155,31 @@ class ScheduleUtil {
     static shouldPauseTarget(tmodel, key) {
         const t = tmodel.isTargetImperative(key) ? tmodel.targetValues[key] : tmodel.targets[key];
 
-        if (t?.pauseOn === undefined) {
+        const pauseOn = t?.pauseOn;
+
+        if (pauseOn === undefined || pauseOn === false) {
             return false;
         }
 
-        if (typeof t.pauseOn === 'function') {
-            return !!t.pauseOn.call(tmodel, key);
+        if (pauseOn === true) {
+            return true;
         }
 
-        return !!t.pauseOn;
+        if (typeof pauseOn === 'function') {
+            return !!pauseOn.call(tmodel, key);
+        }
+
+        if (pauseOn === 'hidden') {
+            return !tmodel.isVisible();
+        }
+
+        if (pauseOn === 'noDom') {
+            return !tmodel.hasDom();
+        }
+
+        return false;
     }
-    
+
 }
 
 export { ScheduleUtil };

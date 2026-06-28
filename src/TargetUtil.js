@@ -191,7 +191,7 @@ class TargetUtil {
                 (isEndTrigger && canActivate)) {
 
                 const prevOk = isEndTrigger ? TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) : false;
-
+                
                 if (fetchAction) {
                     if (isEndTrigger) {
                         if (prevOk === true) {  
@@ -397,7 +397,8 @@ class TargetUtil {
             && !tmodel.hasActiveChildren()
             && !(state.lastChildrenUpdate?.deletions?.length)
             && !(state.lastChildrenUpdate?.additions?.length)
-            && !tmodel.pausedBatch
+            && !tmodel.noDomUpdatingTargets
+            && !tmodel.pendingTargets
             && !getManager().needsReattach(tmodel);
     }
     

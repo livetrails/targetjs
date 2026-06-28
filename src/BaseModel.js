@@ -4,7 +4,6 @@ import { TUtil } from "./TUtil.js";
 import { TargetParser } from "./TargetParser" ;
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
-import { ScheduleUtil } from "./ScheduleUtil.js";
 import { $Dom } from "./$Dom.js";
 
 /**
@@ -380,40 +379,56 @@ class BaseModel {
         return this;
     }
     
+    addTargetToStatusList(key) {
+        const targetValue = this.targetValues[key];
+
+        if (!targetValue) {
+            return;
+        }
+
+        if (targetValue.status === 'fetching') {
+            this.removeFromActiveTargets(key);
+            this.removeFromUpdatingTargets(key);
+            this.getParent()?.addToActiveChildren(this);
+            return;
+        }
+
+        if (this.isTargetUpdating(key)) {
+            this.addToUpdatingTargets(key);
+            this.removeFromActiveTargets(key);
+            return;
+        }
+
+        if (this.isTargetActive(key)) {
+            this.addToActiveTargets(key);
+            this.removeFromUpdatingTargets(key);
+            return;
+        }
+
+        this.removeFromActiveTargets(key);
+        this.removeFromUpdatingTargets(key);
+    }
+    
     setTargetStatus(key, status) {
         const targetValue = this.targetValues[key];
 
         if (!targetValue) {
             return;
         }
-        
+
         const oldStatus = targetValue.status;
 
         if (status === 'done' && oldStatus !== 'done' && oldStatus !== 'complete' && !targetValue.resetFlag) {
-          targetValue.completeCount++;
-          targetValue.completeTime = TUtil.now();
+            targetValue.completeCount++;
+            targetValue.completeTime = TUtil.now();
         }
-        
+
         targetValue.resetFlag = false;
-
         targetValue.status = status;
-        
-        if (targetValue.status === 'fetching') {
-            this.removeFromActiveTargets(key);
-            this.removeFromUpdatingTargets(key);
-            this.getParent().addToActiveChildren(this); 
-        } else if (this.isTargetUpdating(key)) {
-            this.addToUpdatingTargets(key);
-            this.removeFromActiveTargets(key);
-        } else if (this.isTargetActive(key)) {
-            this.addToActiveTargets(key);
-            this.removeFromUpdatingTargets(key);
-        } else {
-            this.removeFromActiveTargets(key);
-            this.removeFromUpdatingTargets(key);
-        }
-    }
 
+        this.addTargetToStatusList(key);
+    }
+    
     getTargetStatus(key) {
         return this.targetValues[key]?.status ?? '';
     }
@@ -543,7 +558,6 @@ class BaseModel {
         }
 
         targetValue.scheduleRemainingTime = value;
-        ScheduleUtil.syncSchedulingMap(this, key);
     }
 
     resetScheduleRemainingTime(key) {
@@ -554,7 +568,6 @@ class BaseModel {
         }
 
         targetValue.scheduleRemainingTime = undefined;
-        ScheduleUtil.syncSchedulingMap(this, key);
     }
 
     setScheduleTimeStamp(key, value) {
@@ -565,7 +578,6 @@ class BaseModel {
         }
 
         targetValue.scheduleTimeStamp = value;
-        ScheduleUtil.syncSchedulingMap(this, key);
     }
 
     resetScheduleTimeStamp(key) {
@@ -576,7 +588,6 @@ class BaseModel {
         }
 
         targetValue.scheduleTimeStamp = undefined;
-        ScheduleUtil.syncSchedulingMap(this, key);
     }
 
     isTargetInLoop(key) {
@@ -771,7 +782,6 @@ class BaseModel {
         }
         
         getAnimationManager().deleteAnimation(this);
-        this.pausedBatch = undefined;
     }
     
     hasTargetUpdates(key) {
@@ -827,7 +837,7 @@ class BaseModel {
         const updatingList = [
           ...(this.updatingTargetList ?? []),
           ...(this.hasAnimatingTargets() ? [...this.animatingMap.keys()] : [])
-        ];        
+        ];  
         
         for (const target of updatingList) {
             if (this.isTargetImperative(target) && this.targetValues[target].originalTargetName === originalTargetName) {
@@ -867,12 +877,12 @@ class BaseModel {
         this.getParent()?.removeFromAnimatingChildren(this);
     }
     
-    addToAnimatingMap(key, record = true) {
+    addToAnimatingMap(key) {
         if (this.targetValues[key]?.snapAnimation) {
             return;
         }
         this.animatingMap ||= new Map();        
-        this.animatingMap.set(key, record);
+        this.animatingMap.set(key, true);
         this.getParent()?.addToAnimatingChildren(this);
     }
     
@@ -885,23 +895,6 @@ class BaseModel {
 
         return this.animatingMap.has(key) && this.animatingMap.get(key).originalTargetName === originalTargetName;
     } 
-    
-    addToSchedulingMap(key) {
-        this.schedulingMap ||= new Set();
-        this.schedulingMap.add(key);
-    }
-
-    removeFromSchedulingMap(key) {
-        if (!this.schedulingMap) {
-            return;
-        }
-
-        this.schedulingMap.delete(key);
-
-        if (this.schedulingMap.size === 0) {
-            this.schedulingMap = undefined;
-        }
-    }
     
     addToUpdatingChildren(child) {
         this.updatingChildrenMap ||= new Map();
