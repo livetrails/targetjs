@@ -91,7 +91,7 @@ class AnimationManager {
         });
         
         const compactKeyframes = this.filterRedundantKeyframes(keyframes);
-      
+        
         const timing = {
             duration: totalDuration,
             fill: "none",
@@ -130,8 +130,8 @@ class AnimationManager {
                 
             tmodel.addToAnimatingMap(originalKey);
             const targetValue = tmodel.targetValues[originalKey];
-            if (targetValue) {
-                targetValue.status = 'updating';
+            if (targetValue) {                
+                targetValue.status = !targetValue.snapAnimation ? 'updating' : targetValue.status;
             }
             this.recordMap.set(recId, rec);
         }

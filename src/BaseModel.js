@@ -449,8 +449,12 @@ class BaseModel {
         return this.targetValues[key]?.status === 'complete' ? true : this.targetValues[key] === undefined ? undefined : false;
     }
     
-    isTargetTreeComplete(key) {
-        return TargetUtil.isTargetTreeComplete(this, key) === true;
+    isTargetTreeComplete(key, completionScope) {
+        return TargetUtil.isTargetTreeComplete(this, key, completionScope) === true;
+    }
+    
+    isTargetVisibleTreeComplete(key) {
+        return this.isTargetTreeComplete(key, 'visible');
     }
     
     isTargetFullyCompleted(key) {

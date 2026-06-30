@@ -153,6 +153,10 @@ class ScheduleUtil {
 
     
     static shouldPauseTarget(tmodel, key) {
+        if (!tmodel.isExecuted(key)) {
+            return false;
+        }
+        
         const t = tmodel.isTargetImperative(key) ? tmodel.targetValues[key] : tmodel.targets[key];
 
         const pauseOn = t?.pauseOn;

@@ -40,7 +40,7 @@ class AnimationUtil {
             needsAnimation = true;
             
             const value = valueList[i];
-            const targetValue = tmodel.targetValues[key];
+            const targetValue = tmodel.targetValues[key] || TargetUtil.emptyValue();
          
             const cleanKey = TargetUtil.getTargetName(key);
 
@@ -57,12 +57,10 @@ class AnimationUtil {
 
            (keyMap[cleanKey] = new Set()).add(key);
 
-            if (targetValue) {
-                targetValue.value = value;
-                targetValue.steps = 1;
-                targetValue.interval = 0;
-                targetValue.snapAnimation = true;
-            }
+            targetValue.value = value;
+            targetValue.steps = 1;
+            targetValue.interval = 0;
+            targetValue.snapAnimation = true;
         }
         
         if (!needsAnimation) {
@@ -70,8 +68,7 @@ class AnimationUtil {
         }
 
         const frames = [];
-
-
+        
         frames.push({
             keyTime: 0,
             tfMap: tfMap0,
@@ -184,8 +181,6 @@ class AnimationUtil {
             records.push(record);
         }
 
-        const now = TUtil.now();
-
         for (const record of records) {
             const { originalKey } = record;
             const targetValue = tmodel.targetValues[originalKey];
@@ -194,15 +189,12 @@ class AnimationUtil {
                 continue;
             }
 
-
-            targetValue.pausedAt = now;
-
             tmodel.setTargetStatus(originalKey, 'updating');
             tmodel.removeFromAnimatingMap(originalKey);
         }
     }
     
-    static addToNODomUpdatingTargets(tmodel, originalKeys) {
+    static addToNODomUpdatingTargets(tmodel, originalKeys) {     
         const recordMap = getAnimationManager().recordMap;
         const records = [];
 

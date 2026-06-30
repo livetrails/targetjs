@@ -52,7 +52,7 @@ class TargetExecutor {
         return targetValue;
     }
 
-    static executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel, cycles = 1) {
+    static executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel, cycles = 1, options = {}) {
         let targetValue;
         
         if (typeof key === 'string') {
@@ -60,7 +60,7 @@ class TargetExecutor {
             key = !key.endsWith('+') ? key + "+" : key;
             tmodel.allTargetMap[cleanKey] = key;
         }
-        
+                
         if (TargetParser.isListTarget(value)) {
             const vSteps = TUtil.isDefined(value.steps) ? value.steps : steps;
             const vInterval = TUtil.isDefined(value.interval) ? value.interval : interval;
@@ -70,7 +70,8 @@ class TargetExecutor {
             targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel);
             TargetExecutor.assignListTarget(tmodel, key, targetValue, value.list, value.list[0], vSteps, vInterval, vEasing, vCycles);
         } else if (TargetParser.isTargetSpecObject(value)) {
-
+            const options = TargetExecutor.getTargetOptions(value);
+            
             const valueArray = TargetParser.getValueStepsCycles(tmodel, key, value);
             let newValue    = valueArray[0];
             let newSteps    = valueArray[1];
@@ -81,10 +82,9 @@ class TargetExecutor {
             steps    = TUtil.isDefined(newSteps) ? newSteps : steps;
             interval = TUtil.isDefined(newInterval) ? newInterval : interval;
             easing   = TUtil.isDefined(newEasing) ? newEasing : easing;
-
             cycles = TUtil.isDefined(newCycles) ? newCycles : cycles;
 
-            TargetExecutor.executeImperativeTarget(tmodel, key, newValue, steps, interval, easing, originalTargetName, originalTModel, cycles);
+            TargetExecutor.executeImperativeTarget(tmodel, key, newValue, steps, interval, easing, originalTargetName, originalTModel, cycles, options);
             return;            
             
         } else if (TargetParser.isObjectTarget(key, value)) {
@@ -95,8 +95,10 @@ class TargetExecutor {
                 let newInterval = interval;
                 let newEasing = easing;
                 let newCycles = cycles;
+                let newOptions = options;
                 
                 if (typeof newValue === 'object' && !TargetParser.isListTarget(newValue)) {
+                    newOptions = TargetExecutor.getTargetOptions(newValue);
                     const valueArray = TargetParser.getValueStepsCycles(tmodel, objectKey, completeValue[objectKey]);
                     newValue = valueArray[0];
                     newSteps = TUtil.isDefined(valueArray[1]) ? valueArray[1] : steps;
@@ -105,7 +107,7 @@ class TargetExecutor {
                     newCycles = TUtil.isDefined(valueArray[4]) ? valueArray[4] : cycles;
                 }
 
-                TargetExecutor.executeImperativeTarget(tmodel, objectKey, newValue, newSteps, newInterval, newEasing, originalTargetName, originalTModel, newCycles);
+                TargetExecutor.executeImperativeTarget(tmodel, objectKey, newValue, newSteps, newInterval, newEasing, originalTargetName, originalTModel, newCycles, newOptions);
             });
         } else {
             if (typeof value === 'object' && !TargetParser.isListTarget(value)) {
@@ -117,7 +119,7 @@ class TargetExecutor {
                     easing   = TUtil.isDefined(valueArray[3]) ? valueArray[3] : easing;
                     cycles   = TUtil.isDefined(valueArray[4]) ? valueArray[4] : cycles;
                     
-                    TargetExecutor.executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel, cycles);
+                    TargetExecutor.executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel, cycles, options);
                 } else {
                     targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel, cycles);
                     TargetExecutor.assignSingleTarget(targetValue, value, undefined, steps, cycles, interval, easing);
@@ -134,6 +136,8 @@ class TargetExecutor {
         }
 
         if (targetValue) {
+            TargetExecutor.assignTargetOptions(targetValue, options);
+            
             TargetExecutor.updateTarget(tmodel, targetValue, key, true);
             if (tmodel.isTargetDone(key)) {
                 TargetUtil.shouldActivateNextTarget(tmodel, key); 
@@ -150,15 +154,18 @@ class TargetExecutor {
         }
         
         targetValue.executionFlag = true;
-        targetValue.executionCount++,
+        targetValue.executionCount++;
 
-        tmodel.addToStyleTargetList(key, enforce);
+        if (!targetValue.snapAnimation) {
+            tmodel.addToStyleTargetList(key, enforce); 
+        }
+        
         tmodel.setTargetMethodName(key, 'value'); 
 
         const newStatus = TargetExecutor.calculateTargetStatus(tmodel, targetValue, key);
         
         tmodel.setTargetStatus(key, newStatus);
-        
+
         if (!TargetData.ignoreRerun[key] && tmodel.shouldScheduleRun(key)) {
             getRunScheduler().schedule(1, 'updateTarget2-' + tmodel.oid);
         }
@@ -247,6 +254,32 @@ class TargetExecutor {
         }
 
         AnimationUtil.overrideAnimatedKeyWithSnap(tmodel, key, newValue);
+    }
+    
+    static getTargetOptions(value) {
+        const options = {};
+
+        if (!value || typeof value !== 'object') {
+            return options;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(value, 'pauseOn')) {
+            options.pauseOn = value.pauseOn;
+        }
+
+        return options;
+    }
+    
+    static assignTargetOptions(targetValue, options) {
+        if (!options) {
+            return;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(options, 'pauseOn')) {
+            targetValue.pauseOn = options.pauseOn;
+        } else {
+            delete targetValue.pauseOn;
+        }
     }
 
     static resolveTargetValue(tmodel, key, cycle = tmodel.getTargetCycle(key)) {

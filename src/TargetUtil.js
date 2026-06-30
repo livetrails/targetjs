@@ -24,6 +24,7 @@ class TargetUtil {
             completeCount: 0,
             completeTime: 0,
             executionCount: 0,
+            visibleCompleteCount: 0,
             status: '',
             executionFlag: false,
             isImperative: false,
@@ -298,6 +299,9 @@ class TargetUtil {
     }   
 
     static cleanupTarget(tmodel, key) {
+
+        TargetUtil.cleanupVisibleComplete(tmodel, key);
+        
         if (tmodel.isTargetComplete(key) || !TargetUtil.isTargetFullyCompleted(tmodel, key)) {
             return false;
         }
@@ -324,6 +328,39 @@ class TargetUtil {
         TargetUtil.bubbleInvokerCompletion(tmodel, key);
         
         return true;
+    }
+    
+    static cleanupVisibleComplete(tmodel, key, target = tmodel.targets[key]) {
+        if (!target || typeof target.onVisibleComplete !== "function") {
+            return false;
+        }
+
+        const targetValue = tmodel.targetValues[key];
+
+        if (!targetValue) {
+            return false;
+        }
+
+        if (TargetUtil.isTargetTreeComplete(tmodel, key, 'visible') !== true) {
+            return false;
+        }
+
+        const signature = TargetUtil.getVisibleCompletionSignature(tmodel);
+
+        if (targetValue.visibleCompleteSignature === signature) {
+            return false;
+        }
+
+        targetValue.visibleCompleteSignature = signature;
+
+        target.onVisibleComplete.call(tmodel);
+        tmodel.setTargetMethodName(key, "onVisibleComplete");
+
+        return true;
+    }
+    
+    static getVisibleCompletionSignature(tmodel) {
+        return tmodel.visibleChildren.map(child => child.oid).sort().join('|');
     }
     
     static bubbleInvokerCompletion(tmodel, key, visited = new Set(), cleaned = new Set(), levelUp = 0) {
@@ -459,11 +496,13 @@ class TargetUtil {
         return true;
     }
 
-    static isTargetTreeComplete(tmodel, key) {
+    static isTargetTreeComplete(tmodel, key, completionScopeOverride) {
         
         const target = tmodel.targets[key];
                 
         if (target) {
+            const completionScope = completionScopeOverride ?? target.completionScope;
+
             const targetType = typeof target.value;
 
             if (TargetData.controlTargetMap[key]) {
@@ -486,15 +525,15 @@ class TargetUtil {
                 return 'not done';
             }
             
-            if (target.childAction?.length > 0 && TargetUtil.getUpdatingChildren(tmodel, key, target.completionScope).size > 0) {         
+            if (target.childAction?.length > 0 && TargetUtil.getUpdatingChildren(tmodel, key, completionScope).size > 0) {         
                 return 'updating children';
             }
             
-            if (target.childAction?.length > 0 && TargetUtil.getActiveChildren(tmodel, target.completionScope).size > 0) {
+            if (target.childAction?.length > 0 && TargetUtil.getActiveChildren(tmodel, completionScope).size > 0) {
                 return 'active children';
             }
             
-            if (target.childAction?.length > 0 && TargetUtil.areTargetChildrenComplete(target.childAction, target.completionScope) !== true) {
+            if (target.childAction?.length > 0 && TargetUtil.areTargetChildrenComplete(target.childAction, completionScope) !== true) {
                 return 'incomplete children';
             }
             
@@ -823,6 +862,7 @@ class TargetUtil {
             targetValue.triggeredByCompleteCount = 0;
             targetValue.resetFlag = true;
             targetValue.nextTargetUpdateCount = 0;
+            targetValue.visibleCompleteSignature = undefined;
             targetValue.status = '';
         }
 

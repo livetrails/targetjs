@@ -515,14 +515,16 @@ class TModelManager {
         for (const { domHolder, fragment } of holdersMap.values()) {
             domHolder.appendElement(fragment);
         }
-
+        
+        for (const tmodel of this.lists.noDom) {
+            this.catchupNoDomTargetsBeforeStyle(tmodel);
+        }
+        
         for (const tmodel of styleBatch) {
             if (tmodel.hasDom()) {
                 tmodel.hasDomNow = true;
                 tmodel.markLayoutDirty('hasDomNow');
             }
-
-            this.catchupNoDomTargetsBeforeStyle(tmodel);
 
             TModelUtil.initStyleMaps(tmodel);
             TModelUtil.fixStyle(tmodel);

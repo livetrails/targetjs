@@ -32,7 +32,7 @@ class TargetManager {
         if (ScheduleUtil.shouldPauseTarget(tmodel, key)) {
             return;
         }
-
+        
         if (tmodel.isExecuted(key) && tmodel.hasUpdatingImperativeTargets(key)) {
             return;
         }
@@ -240,7 +240,7 @@ class TargetManager {
             return { done: false };
         }
 
-        const progress = TUtil.advanceTargetByElapsed(tmodel, key);
+            const progress = TUtil.advanceTargetByElapsed(tmodel, key);
         const step = progress.step ?? tmodel.getTargetStep(key);
         const valuePointer = progress.valuePointer ?? tmodel.getValueListPointer(key);
 
