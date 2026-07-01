@@ -422,7 +422,7 @@ class LocationManager {
             this.addToTransformTargetList(child, 'x');
             this.addToTransformTargetList(child, 'y');
         }
-                
+               
         if (child.styleTargetMap?.size > 0 || child.updatingTargetList.length > 0) {          
             this.addToLocationList(child);
         }
@@ -619,7 +619,7 @@ class LocationManager {
             if (yChanged && tmodel.getTargetStatus(tmodel.allTargetMap['y']) !== 'updating') {
                 keysToSnap.push('y');
                 valuesToSnap.push(tmodel.val('y'));
-            }                    
+            }                  
 
             if (keysToSnap.length > 0) {
                 AnimationUtil.overrideAnimatedKeyWithSnap(tmodel, keysToSnap, valuesToSnap);

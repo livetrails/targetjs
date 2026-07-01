@@ -133,7 +133,6 @@ class ScheduleUtil {
 
         tmodel.setScheduleRemainingTime(key, remaining);
         tmodel.resetScheduleTimeStamp(key);
-        tmodel.targetValues[key].pausedAt = TUtil.now();
     }
 
     static resumeSchedule(tmodel, key) {

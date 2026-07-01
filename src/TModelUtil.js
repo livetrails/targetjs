@@ -119,13 +119,12 @@ class TModelUtil {
         let transformUpdate = false;
            
         for (const [key] of tmodel.styleTargetMap) {
-            
             if (tmodel.isKeyAnimating(key)) {
                 continue;
             }
                       
             if (TargetData.transformMap[key]) {
-                const value = TModelUtil.getTransformValue(tmodel, key);             
+                const value = TModelUtil.getTransformValue(tmodel, key);   
                 if (tmodel.tfMap[key] !== value) {
                     tmodel.tfMap[key] = value;
                     transformUpdate = true;

@@ -188,6 +188,12 @@ class AnimationUtil {
             if (!targetValue) {
                 continue;
             }
+            
+            tmodel.noDomUpdatingTargets?.delete(originalKey);
+
+            if (tmodel.noDomUpdatingTargets?.size === 0) {
+                tmodel.noDomUpdatingTargets = undefined;
+            }
 
             tmodel.setTargetStatus(originalKey, 'updating');
             tmodel.removeFromAnimatingMap(originalKey);
@@ -220,7 +226,7 @@ class AnimationUtil {
                 continue;
             }
 
-            targetValue.pausedAt = now;
+            targetValue.catchupAt = now;
 
             tmodel.removeFromAnimatingMap(originalKey);
             (tmodel.noDomUpdatingTargets ||= new Set()).add(originalKey);

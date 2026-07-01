@@ -553,6 +553,7 @@ class TModel extends BaseModel {
             { animatingMap: [ ...(this.animatingMap ? [ ...this.animatingMap.keys() ] : []) ] },
             { noDomUpdatingTargets: [ ...(this.noDomUpdatingTargets ? [ ...this.noDomUpdatingTargets ] : []) ] },
             { pendingTargets: [ ...(this.pendingTargets ? [ ...this.pendingTargets ] : []) ] },
+            { styleTargetMap: [ ...(this.styleTargetMap ? [ ...this.styleTargetMap.keys() ] : []) ] },
             { updatingChildren: this.updatingChildrenMap ? [ ...this.updatingChildrenMap.keys() ] : [] },
             { activeChildren: this.activeChildrenMap ? [ ...this.activeChildrenMap.keys() ] : [] },            
             { children: this.getChildren() },

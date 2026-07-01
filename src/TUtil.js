@@ -297,15 +297,15 @@ class TUtil {
             };
         }
 
-        if (!targetValue.pausedAt) {
+        if (!targetValue.catchupAt) {
             return {
                 step: tmodel.getTargetStep(key),
                 valuePointer: targetValue.valueList?.length ? tmodel.getValueListPointer(key) : 0,
                 done: tmodel.getTargetStep(key) === tmodel.getTargetSteps(key)
             };
         }
-        
-        const elapsedMs = TUtil.now() - targetValue.pausedAt;
+
+        const elapsedMs = TUtil.now() - targetValue.catchupAt;
 
         if (targetValue.valueList?.length) {
             return TUtil.advanceValueListTargetByElapsed(tmodel, key, elapsedMs);
@@ -313,7 +313,7 @@ class TUtil {
             return TUtil.advanceSimpleTargetByElapsed(tmodel, key, elapsedMs);
         }
     }
-    
+
     static advanceSimpleTargetByElapsed(tmodel, key, elapsedMs) {
         const steps = tmodel.getTargetSteps(key);
         const interval = tmodel.getTargetInterval(key) || 8;

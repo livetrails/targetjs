@@ -65,7 +65,7 @@ class TModelManager {
         this.clearFrameLists();
         const activated = [];
 
-        for (const tmodel of getLocationManager().hasLocationList) {         
+        for (const tmodel of getLocationManager().hasLocationList) {
             lastVisibleMap[tmodel.oid] = undefined; 
             lastPreservedMap[tmodel.oid] = undefined;
             
@@ -80,7 +80,7 @@ class TModelManager {
             }            
 
             const visible = tmodel.isVisible();
-            
+
             if (visible && tmodel.isIncluded()) {
                 this.visibleOidMap[tmodel.oid] = tmodel;
                 delete this.preservedDomMap[tmodel.oid];
@@ -122,6 +122,12 @@ class TModelManager {
                     this.lists.activeTargets = [...this.lists.activeTargets, ...state.activeTargetList];
                 }
                               
+            }
+            
+            if (preserveDom && !visible && !tmodel.isActivated()) {
+                if (this.needsRestyle(tmodel)) {
+                    this.lists.restyle.push(tmodel);               
+                }
             }
             
             if (visible || tmodel.isActivated()) {
@@ -525,7 +531,7 @@ class TModelManager {
                 tmodel.hasDomNow = true;
                 tmodel.markLayoutDirty('hasDomNow');
             }
-
+            
             TModelUtil.initStyleMaps(tmodel);
             TModelUtil.fixStyle(tmodel);
             TModelUtil.fixAsyncStyle(tmodel);

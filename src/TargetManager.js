@@ -240,7 +240,7 @@ class TargetManager {
             return { done: false };
         }
 
-            const progress = TUtil.advanceTargetByElapsed(tmodel, key);
+        const progress = TUtil.advanceTargetByElapsed(tmodel, key);
         const step = progress.step ?? tmodel.getTargetStep(key);
         const valuePointer = progress.valuePointer ?? tmodel.getValueListPointer(key);
 
@@ -258,7 +258,7 @@ class TargetManager {
             targetValue.valuePointer = targetValue.valueList?.length ?? valuePointer;
             targetValue.value = finalValue;
 
-            delete targetValue.pausedAt;
+            delete targetValue.catchupAt;
 
             if (fireEnd) {
                 this.fireOnEnd(tmodel, key);
