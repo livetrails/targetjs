@@ -179,7 +179,7 @@ class TargetManager {
             originalTarget = originalTModel ? originalTModel.targets[originalTargetName] : null;
         }
 
-        const newStatus = this.calculateTargetStatus(tmodel, targetValue, key);
+        const newStatus = this.calculateTargetStatus(tmodel, key);
         tmodel.setTargetStatus(key, newStatus); 
         
         if (tmodel.isTargetImperative(key)) { 
@@ -196,6 +196,7 @@ class TargetManager {
                 tmodel.incrementTargetCycle(key);
                 tmodel.resetTargetStep(key);
                 tmodel.resetTargetInitialValue(key);
+                delete targetValue.valuePointer;
             }
         } else {
             if (tmodel.getTargetCycle(key) < tmodel.getTargetCycles(key) - 1) {
@@ -203,6 +204,7 @@ class TargetManager {
                 tmodel.resetTargetStep(key);
                 tmodel.resetTargetInitialValue(key);
                 tmodel.resetTargetExecutionFlag(key);
+                delete targetValue.valuePointer;
                 TargetExecutor.executeDeclarativeTarget(tmodel, key);
             }
 
@@ -216,8 +218,13 @@ class TargetManager {
     }
     
         
-    calculateTargetStatus(tmodel, targetValue, key) {
-
+    calculateTargetStatus(tmodel, key) {
+        const targetValue = tmodel.targetValues[key];
+        
+        if (!targetValue) {
+            return;
+        }
+        
         const valuePointer = tmodel.getValueListPointer(key);
         const cycle = tmodel.getTargetCycle(key);
         const cycles = tmodel.getTargetCycles(key);
@@ -241,11 +248,13 @@ class TargetManager {
         }
 
         const progress = TUtil.advanceTargetByElapsed(tmodel, key);
-        const step = progress.step ?? tmodel.getTargetStep(key);
-        const valuePointer = progress.valuePointer ?? tmodel.getValueListPointer(key);
-
+        const step = progress.step;
+        const valuePointer = progress.valuePointer;
+        const cycle = progress.cycle;
+        
         const theValue = tmodel.getTargetValue(key);
         const steps = tmodel.getTargetSteps(key);
+        const cycles = tmodel.getTargetCycles(key);
 
         if (progress.done) {          
             const finalValue = targetValue.valueList?.length ? targetValue.valueList[targetValue.valueList.length - 1] : theValue;
@@ -257,6 +266,7 @@ class TargetManager {
             targetValue.step = steps;
             targetValue.valuePointer = targetValue.valueList?.length ?? valuePointer;
             targetValue.value = finalValue;
+            targetValue.cycle = cycles;
 
             delete targetValue.catchupAt;
 
@@ -267,6 +277,7 @@ class TargetManager {
             return {
                 done: true,
                 step: steps,
+                cycle: cycles,
                 valuePointer: targetValue.valuePointer
             };
         }
@@ -288,10 +299,12 @@ class TargetManager {
 
         targetValue.step = step;
         targetValue.valuePointer = valuePointer;
+        targetValue.cycle = cycle;
         
         return {
             done: false,
             step,
+            cycle,
             valuePointer
         };
     }
@@ -305,7 +318,7 @@ class TargetManager {
         if (!this.canUpdateTarget(tmodel, key)) {
             return;
         }
-
+       
         const state = this.getTargetUpdateState(tmodel, key);
 
         if (!TUtil.isDefined(state.initialValue)) {

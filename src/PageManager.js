@@ -65,7 +65,7 @@ class PageManager {
             visibles.forEach(tmodel => {
                 tmodel.visibilityStatus = undefined;
             });
-            
+                        
             tApp.manager.activatePendingTargetsAfterDom(visibles);
 
             tApp.manager.visibleOidMap = { ...this.pageCache[link].visibleOidMap };

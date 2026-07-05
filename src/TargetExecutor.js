@@ -15,10 +15,10 @@ class TargetExecutor {
     static prepareTarget(tmodel, key) {
         TargetUtil.currentTargetName = key;
         TargetUtil.currentTModel = tmodel;
-        
-        if (tmodel.isExecuted(key) && tmodel.getTargetCycles(key) > 1) {
+                
+        if (tmodel.isExecuted(key)) {
 
-            if (tmodel.getTargetCycle(key) < tmodel.getTargetCycles(key) - 1) {
+            if (tmodel.getTargetCycles(key) > 1 && tmodel.getTargetCycle(key) < tmodel.getTargetCycles(key) - 1) {
                 tmodel.incrementTargetCycle(key);
             } else {
                 tmodel.resetTargetCycle(key);
@@ -50,6 +50,17 @@ class TargetExecutor {
         }        
         
         return targetValue;
+    }
+    
+    static resetImperativeProgress(targetValue) {
+        targetValue.step = 0;
+        targetValue.cycle = 0;
+
+        if (Array.isArray(targetValue.valueList)) {
+            targetValue.valuePointer = 1;
+        } else {
+            targetValue.valuePointer = 0;
+        }
     }
 
     static executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel, cycles = 1, options = {}) {
@@ -123,19 +134,15 @@ class TargetExecutor {
                 } else {
                     targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel, cycles);
                     TargetExecutor.assignSingleTarget(targetValue, value, undefined, steps, cycles, interval, easing);
-                    targetValue.step = 0; 
-                    targetValue.cycle = 0;                   
-
                 }
             } else {
                 targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel, cycles);
                 TargetExecutor.assignSingleTarget(targetValue, value, undefined, steps, cycles, interval, easing);
-                targetValue.step = 0;
-                targetValue.cycle = 0;
             }
         }
 
         if (targetValue) {
+            TargetExecutor.resetImperativeProgress(targetValue);
             TargetExecutor.assignTargetOptions(targetValue, options);
             
             TargetExecutor.updateTarget(tmodel, targetValue, key, true);

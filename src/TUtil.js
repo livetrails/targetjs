@@ -292,6 +292,7 @@ class TUtil {
         if (!targetValue) {
             return {
                 step: 0,
+                cycle: 0,
                 valuePointer: 1,
                 done: false
             };
@@ -300,8 +301,9 @@ class TUtil {
         if (!targetValue.catchupAt) {
             return {
                 step: tmodel.getTargetStep(key),
+                cycle: tmodel.getTargetCycle(key),
                 valuePointer: targetValue.valueList?.length ? tmodel.getValueListPointer(key) : 0,
-                done: tmodel.getTargetStep(key) === tmodel.getTargetSteps(key)
+                done: tmodel.getTargetStep(key) >= tmodel.getTargetSteps(key)
             };
         }
 
@@ -317,22 +319,62 @@ class TUtil {
     static advanceSimpleTargetByElapsed(tmodel, key, elapsedMs) {
         const steps = tmodel.getTargetSteps(key);
         const interval = tmodel.getTargetInterval(key) || 8;
+        const cycles = tmodel.getTargetCycles(key);
         let step = tmodel.getTargetStep(key);
+        let cycle = tmodel.getTargetCycle(key);
 
-        const remainingSteps = Math.max(steps - step, 0);
-
-        if (remainingSteps <= 0) {
-
+        if (steps <= 0) {
             return {
                 step: steps,
                 valuePointer: 0,
+                cycle: cycles,
                 done: true
             };
         }
 
-        const advancedSteps = interval > 0 ? TUtil.limit(Math.floor(elapsedMs / interval), 0, remainingSteps) : remainingSteps;
+        let remainingMs = elapsedMs;
 
-        return { step: step + advancedSteps, valuePointer: 0 };
+        while (remainingMs > 0 && cycle < cycles) {
+            const remainingSteps = Math.max(steps - step, 0);
+            const remainingSegmentMs = remainingSteps * interval;
+
+            if (remainingMs >= remainingSegmentMs) {
+                remainingMs -= remainingSegmentMs;
+                cycle++;
+
+                if (cycle >= cycles) {
+                    return {
+                        step: steps,
+                        valuePointer: 0,
+                        cycle: cycles,
+                        done: true
+                    };
+                }
+
+                step = 0;
+                continue;
+            }
+
+            const advancedSteps = TUtil.limit(Math.floor(remainingMs / interval), 0, remainingSteps);
+
+            step += advancedSteps;
+
+            return {
+                step,
+                steps,
+                valuePointer: 0,
+                cycle,
+                done: false
+            };
+        }
+
+        return {
+            step,
+            steps,
+            valuePointer: 0,
+            cycle,
+            done: cycle >= cycles
+        };
     }
     
     static advanceValueListTargetByElapsed(tmodel, key, elapsedMs) {
@@ -342,52 +384,81 @@ class TUtil {
         const stepList = targetValue.stepList || [1];
         const intervalList = targetValue.intervalList || [targetValue.interval || 8];
 
+        const cycles = tmodel.getTargetCycles(key);
+
+        let cycle = tmodel.getTargetCycle(key);
         let valuePointer = tmodel.getValueListPointer(key);
         let step = tmodel.getTargetStep(key);
+        
+        if (tmodel.oid === 'heart$$') {
+            const total = cycle > 0 ? step + cycle * stepList[0] * (valuePointer - 1) : step + stepList[0] * (valuePointer - 1);
+            console.log("initially: " + tmodel.oid + ", " + key + ', ' + elapsedMs + ', ' + (elapsedMs / 8) + " => " + total + ", " + step + '/' + stepList + ', ' + cycle + '/' + cycles + ', ' + valuePointer + '/' + valueList.length);
+        }
 
         let remainingMs = elapsedMs;
 
-        while (remainingMs > 0 && valuePointer < valueList.length) {
-            const segmentSteps = stepList[(valuePointer - 1) % stepList.length];
-            const interval = intervalList[(valuePointer - 1) % intervalList.length] || 8;
+        while (remainingMs > 0 && cycle < cycles) {
+            while (remainingMs > 0 && valuePointer < valueList.length) {
+                const segmentSteps = stepList[(valuePointer - 1) % stepList.length];
+                const interval = intervalList[(valuePointer - 1) % intervalList.length] || 8;
 
-            step = TUtil.limit(step, 0, segmentSteps);
+                step = TUtil.limit(step, 0, segmentSteps);
 
-            const segmentRemainingSteps = Math.max(segmentSteps - step, 0);
-            const segmentRemainingMs = segmentRemainingSteps * interval;
+                const remainingSteps = Math.max(segmentSteps - step, 0);
+                const remainingSegmentMs = remainingSteps * interval;
 
-            if (remainingMs >= segmentRemainingMs) {
-                remainingMs -= segmentRemainingMs;
-                valuePointer++;
-                step = 0;
-                continue;
+                if (remainingMs >= remainingSegmentMs) {
+                    remainingMs -= remainingSegmentMs;
+                    valuePointer++;
+                    step = 0;
+                    continue;
+                }
+
+                const advancedSteps = TUtil.limit(
+                    Math.floor(remainingMs / interval),
+                    0,
+                    remainingSteps
+                );
+
+                step += advancedSteps;
+
+                return {
+                    step,
+                    steps: segmentSteps,
+                    valuePointer,
+                    cycle,
+                    done: false
+                };
             }
 
-            const advancedSteps = TUtil.limit(
-                Math.floor(remainingMs / interval),
-                0,
-                segmentRemainingSteps
-            );
+            cycle++;
 
-            step += advancedSteps;
+            if (cycle >= cycles) {
+                const finalPointer = valueList.length;
+                const finalStepIndex = Math.max(0, valueList.length - 2);
+                const finalSteps = stepList[finalStepIndex % stepList.length];
 
-            return {
-                step,
-                steps: segmentSteps,
-                valuePointer,
-                done: false
-            };
+                return {
+                    step: finalSteps,
+                    steps: finalSteps,
+                    valuePointer: finalPointer,
+                    cycle: cycles,
+                    done: true
+                };
+            }
+
+            valuePointer = 1;
+            step = 0;
         }
 
-        const finalPointer = valueList.length;
-        const finalStepIndex = Math.max(0, valueList.length - 2);
-        const finalSteps = stepList[finalStepIndex % stepList.length];
+        const currentSteps = stepList[(valuePointer - 1) % stepList.length];
 
         return {
-            step: finalSteps,
-            steps: finalSteps,
-            valuePointer: finalPointer,
-            done: true
+            step,
+            steps: currentSteps,
+            valuePointer,
+            cycle,
+            done: cycle >= cycles
         };
     }
 }

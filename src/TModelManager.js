@@ -419,7 +419,7 @@ class TModelManager {
             if (!tmodel.hasDom()) {
                 continue;
             }
-        
+
             if (tmodel.noDomUpdatingTargets) {
                 for (const target of [...tmodel.noDomUpdatingTargets]) {
                    tmodel.addTargetToStatusList(target);
@@ -430,9 +430,9 @@ class TModelManager {
         
             const pending = tmodel.pendingTargets;
             if (pending) {
-                for (const target of [...pending]) {
-                   TargetUtil.cleanupTarget(tmodel, target);
-                   TargetUtil.shouldActivateNextTarget(tmodel, target);
+                for (const key of [...pending]) {
+                   TargetUtil.cleanupTarget(tmodel, key);
+                   TargetUtil.shouldActivateNextTarget(tmodel, key);
                 }
             }
         }
@@ -444,8 +444,8 @@ class TModelManager {
         }
 
         for (const key of [...tmodel.noDomUpdatingTargets]) {
-            getTargetManager().catchupTargetByElapsed(tmodel, key);
-            tmodel.setTargetStatus(key, 'updating');
+            const newStatus = getTargetManager().calculateTargetStatus(tmodel, key);
+            tmodel.setTargetStatus(key, newStatus);
         }
 
         tmodel.noDomUpdatingTargets = undefined;

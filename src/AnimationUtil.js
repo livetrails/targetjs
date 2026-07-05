@@ -276,7 +276,7 @@ class AnimationUtil {
             return;
         }
         
-        const { value, step, steps, valuePointer, framePointer } = result;
+        const { value, step, steps, cycle, valuePointer } = result;
         
         getAnimationManager().setAt(tmodel, cleanKey, value);
         
@@ -292,10 +292,14 @@ class AnimationUtil {
             if (TUtil.isDefined(valuePointer)) {
                 targetValue.valuePointer = valuePointer;
             }
+            
+            if (TUtil.isDefined(cycle)) {
+                targetValue.cycle = cycle;
+            }
       
             tmodel.setActual(originalKey, value);
                 
-            const fireKey = `${framePointer}:${step}`;
+            const fireKey = `${cycle}:${valuePointer}:${step}`;
 
 
             if (record.needsFireOnStep && step > 0 && steps > 0 && record.lastFireOnStepKey !== fireKey) {
@@ -314,20 +318,22 @@ class AnimationUtil {
     
     static getValueFromAnim(record) {
         const { originalKey, anim, frames } = record;
-        
-        if (!frames) {            
+
+        if (!frames) {
             return;
         }
 
         const ct = anim.effect?.getComputedTiming?.();
+
         if (!ct) {
             return;
         }
-        
-        let p = TUtil.isDefined(ct.progress) ? TUtil.limit(ct.progress, 0, 1) : 1;
-        
+
+        const p = TUtil.isDefined(ct.progress) ? TUtil.limit(ct.progress, 0, 1) : 1;
+
         const last = frames.length - 1;
         let framePointer = 0;
+
         if (p <= frames[0].offset) {
             framePointer = 0;
         } else if (p >= frames[last].offset) {
@@ -350,50 +356,52 @@ class AnimationUtil {
         const segStart = left.offset;
         const segEnd = right.offset;
         const segSpan = segEnd - segStart;
-        
-        if (segSpan > 0) {
-            const u = TUtil.limit((p - segStart) / segSpan, 0, 1);
-            const value = TModelUtil.morph(originalKey, from, to, u);
 
-            const segmentSteps = right.steps;
-            
-            if (!TUtil.isDefined(segmentSteps) || segmentSteps <= 0) {
-                return {
-                    value,
-                    framePointer,
-                    from,
-                    to,
-                    valuePointer: right.valuePointer,
-                    status: right.done ? 'finished' : 'playing'
-                };
-            }
-            
-            const stepOffset = right.stepOffset || 0;
+        if (segSpan <= 0) {
+            return;
+        }
 
-            let localStep = Math.round(u * segmentSteps);
-            localStep = TUtil.limit(localStep, 0, segmentSteps);
+        const u = TUtil.limit((p - segStart) / segSpan, 0, 1);
+        const value = TModelUtil.morph(originalKey, from, to, u);
 
-            const step = stepOffset + localStep;
-            const steps = stepOffset + segmentSteps;
+        const remainingSteps = right.steps;
 
-            const status = (step === steps && left.done) || right.done ? 'finished' : 'playing';
-
+        if (!TUtil.isDefined(remainingSteps) || remainingSteps <= 0) {
             return {
                 value,
-                step,   
-                steps,           
-                localStep,        
-                segmentSteps,    
-                stepOffset,
-                valuePointer: right.valuePointer,
                 framePointer,
+                step: right.segmentSteps,
+                steps: right.segmentSteps,
                 from,
                 to,
-                status
-            };        
-        } 
+                valuePointer: right.valuePointer ?? left.valuePointer ?? 0,
+                cycle: right.cycle ?? left.cycle ?? 0,
+                status: right.done ? "finished" : "playing"
+            };
+        }
+
+        let localStep = Math.round(u * remainingSteps);
+        localStep = TUtil.limit(localStep, 0, remainingSteps);
+
+        const stepOffset = right.stepOffset || 0;
+        const segmentSteps = right.segmentSteps ?? (stepOffset + remainingSteps);
+
+        const step = TUtil.limit(stepOffset + localStep, 0, segmentSteps);
+        
+        const status = right.done ? "finished" : "playing";
+
+        return {
+            value,
+            step,
+            steps: segmentSteps,
+            valuePointer: right.valuePointer ?? left.valuePointer ?? 0,
+            cycle: right.cycle ?? left.cycle ?? 0,
+            from,
+            to,
+            status
+        };
     }
-    
+
     static detachAnimationsOnDeleteDom(tmodel) {
         const recordMap = getAnimationManager().recordMap;
         const pauseKeys = new Set();
@@ -410,7 +418,7 @@ class AnimationUtil {
                 catchupKeys.add(record.originalKey);
             }
         }
-
+        
         if (pauseKeys.size) {         
             AnimationUtil.addToUpdatingTargets(tmodel, pauseKeys);
         }
@@ -491,14 +499,51 @@ class AnimationUtil {
             }
         }
     }
-            
-    static handleWebAnimationAPI(tmodel, cleanKey, key, targetValue, from, to, valuePointer, step, steps, interval, timeShift, skipStartFrame = false) { 
+
+    static removeCleanKeyFromBatch(batch, cleanKey) {
+        if (!batch) {
+            return false;
+        }
+
+        let removed = false;
+
+        for (const frame of batch.frames) {
+            if (frame.tfMap?.[cleanKey] !== undefined || frame.styleMap?.[cleanKey] !== undefined) {
+                removed = true;
+            }
+
+            delete frame.tfMap[cleanKey];
+            delete frame.styleMap[cleanKey];
+            frame.keyMeta?.delete(cleanKey);
+        }
+
+        delete batch.keyMap[cleanKey];
+
+        batch.frames = batch.frames.filter(frame => {
+            return Object.keys(frame.tfMap).length ||
+                   Object.keys(frame.styleMap).length;
+        });
+
+        batch.totalDuration = batch.frames.length
+            ? batch.frames[batch.frames.length - 1].keyTime
+            : 0;
+
+        return removed;
+    }
+    
+    static handleWebAnimationAPI(tmodel, cleanKey, key, targetValue, from, to, valuePointer, step, steps, interval, timeShift, skipStartFrame = false) {         
         const batch = (tmodel.waapiBatch ||= {
             frames: [],
             easing: undefined,            
             keyMap: {},
             totalDuration: 0
         });
+        
+        const replacedExistingKey = AnimationUtil.removeCleanKeyFromBatch(batch, cleanKey);
+
+        if (replacedExistingKey) {
+            timeShift = 0;
+        }
 
         const isTransform = TargetData.isTransformKey(cleanKey);
 
@@ -531,37 +576,46 @@ class AnimationUtil {
             const stepList = targetValue.stepList || [1];
             const intervalList = targetValue.intervalList || [interval || 8];
 
-
+            const cycles = targetValue.cycles ?? 1;
+            let cycle = targetValue.cycle ?? 0;
+            let pointer = valuePointer;
+            
             if (!skipStartFrame) {
                 const frame0 = getFrameAtTime(0);
                 setFrameValue(frame0, from);
             }
 
-            for (let i = valuePointer; i < valueList.length; i++) {
-                const segmentSteps = stepList[(i - 1) % stepList.length];
-                const intervalValue = intervalList[(i - 1) % intervalList.length] || 8;
+            while (cycle < cycles) {
+                for (let i = pointer; i < valueList.length; i++) {
+                    const segmentSteps = stepList[(i - 1) % stepList.length];
+                    const intervalValue = intervalList[(i - 1) % intervalList.length] || 8;
 
-                const stepOffset = i === valuePointer ? step : 0;
-                const remainingSteps = Math.max(segmentSteps - stepOffset, 0);
+                    const stepOffset = cycle === (targetValue.cycle ?? 0) && i === valuePointer ? step : 0;
 
-                if (remainingSteps <= 0) {
-                    continue;
+                    const remainingSteps = Math.max(segmentSteps - stepOffset, 0);
+
+                    if (remainingSteps <= 0) {
+                        continue;
+                    }
+
+                    const duration = remainingSteps * intervalValue;
+                    keyDuration += duration;
+
+                    const frame = getFrameAtTime(keyDuration);
+                    setFrameValue(frame, valueList[i]);
+                    
+                    frame.keyMeta.set(cleanKey, {
+                        steps: remainingSteps,
+                        segmentSteps,
+                        interval: intervalValue,
+                        stepOffset,
+                        valuePointer: i,
+                        cycle
+                    });
                 }
 
-                const duration = remainingSteps * intervalValue;
-
-                keyDuration += duration;
-
-                const frame = getFrameAtTime(keyDuration);
-
-                setFrameValue(frame, valueList[i]);
-
-                frame.keyMeta.set(cleanKey, {
-                    steps: remainingSteps,
-                    interval: intervalValue,
-                    stepOffset,
-                    valuePointer: i
-                });
+                cycle++;
+                pointer = 1;
             }
         } else {
             interval = interval || 8;
@@ -586,9 +640,12 @@ class AnimationUtil {
             setFrameValue(frame1, to);
 
             frame1.keyMeta.set(cleanKey, {
-                steps: remainingSteps,
-                interval,
-                stepOffset: step
+               steps: remainingSteps,
+               segmentSteps: steps,
+               interval,
+               stepOffset: step,
+               valuePointer: 0,
+               cycle: targetValue.cycle ?? 0
             });
         }
 

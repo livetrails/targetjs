@@ -98,7 +98,7 @@ class AnimationManager {
             iterations: 1,
             easing: batch.easing || "linear"
         };
-                      
+                              
         batch.startTime = TUtil.now();
         
         tmodel.lastBatch = batch;
@@ -135,7 +135,7 @@ class AnimationManager {
             }
             this.recordMap.set(recId, rec);
         }
-
+        
         this.startProgressPoller();
     }
     
@@ -207,13 +207,13 @@ class AnimationManager {
             let hasPlaying = false;
 
             for (const [, record] of this.recordMap) {
-                if (record.status === 'canceled' || record.status === 'finished' || record.status === 'detached') {
+                if (record.status === 'canceled' || record.status === 'detached') {
                     continue;
                 }
 
                 const { tmodel, originalKey } = record;
 
-                if (ScheduleUtil.shouldPauseTarget(tmodel, originalKey)) {
+                if (record.status !== 'finished' && ScheduleUtil.shouldPauseTarget(tmodel, originalKey)) {
                     let keys = pauseMap.get(tmodel);
 
                     if (!keys) {
@@ -294,15 +294,12 @@ class AnimationManager {
                 if (tmodel.isTargetImperative(originalKey)) {
                     targetValue.cycle = targetValue.cycles;
                 }
-
             }
         }         
     }
 
     backfillKeyAcrossFramesUsingMorph(tmodel, originalKey, frames) {
         const cleanKey = TargetUtil.getTargetName(originalKey);
-
-        const times = frames.map(f => f.keyTime);
 
         const idxs = [];
         for (let i = 0; i < frames.length; i++) {
@@ -312,51 +309,92 @@ class AnimationManager {
         }
 
         if (idxs.length >= 2) {
-
             for (let m = 0; m < idxs.length - 1; m++) {
                 const i0 = idxs[m];
                 const i1 = idxs[m + 1];
 
-                const from = this.getAt(frames[i0], cleanKey);
-                const to = this.getAt(frames[i1], cleanKey);
+                const leftFrame = frames[i0];
+                const rightFrame = frames[i1];
 
-                const meta = frames[i1].keyMeta.get(cleanKey);
-                if (!meta) {
+                const from = this.getAt(leftFrame, cleanKey);
+                const to = this.getAt(rightFrame, cleanKey);
+
+                const rightMeta = rightFrame.keyMeta.get(cleanKey);
+                if (!rightMeta) {
                     continue;
                 }
-                const steps = meta.steps;
-                const interval = meta.interval;
-                const duration = steps * interval;
 
-                const t0 = times[i0];
-                const t1 = times[i1];
-                
-                const u = (t1 - t0) / duration;
-                
-                for (let i = i0 + 1; i < i1; i++) {
-                    const t = times[i];
-                    const elapsed = (t - t0);
+                const spanSteps = rightMeta.steps;
+                const baseStepOffset = rightMeta.stepOffset || 0;
+                const segmentSteps = rightMeta.segmentSteps;
 
-                    let step = TUtil.limit(Math.round(elapsed / (u * interval)), 0, steps);
+                const t0 = leftFrame.keyTime;
+                const t1 = rightFrame.keyTime;
+                const spanTime = t1 - t0;
 
-                    const v = TModelUtil.easingMorph(tmodel, originalKey, from, to, step, steps);
-                    this.setAt(frames[i], cleanKey, v);
-                    frames[i].keyMeta.set(cleanKey, { steps: step, interval, done: false });
+                if (!TUtil.isDefined(spanSteps) || spanSteps <= 0 || spanTime <= 0) {
+                    continue;
                 }
+
+                let previousLogicalStep = baseStepOffset;
+
+                for (let i = i0 + 1; i < i1; i++) {
+                    const frame = frames[i];
+                    const progress = TUtil.limit((frame.keyTime - t0) / spanTime, 0, 1);
+
+                    const logicalStep = TUtil.limit(baseStepOffset + Math.round(progress * spanSteps), 0, segmentSteps);
+
+                    const stepsFromPreviousFrame = Math.max(logicalStep - previousLogicalStep, 0);
+
+                    const v = TModelUtil.easingMorph(tmodel, originalKey, from, to, logicalStep, segmentSteps);
+
+                    this.setAt(frame, cleanKey, v);
+
+                    frame.keyMeta.set(cleanKey, {
+                        ...rightMeta,
+                        steps: stepsFromPreviousFrame,
+                        stepOffset: previousLogicalStep,
+                        segmentSteps: segmentSteps,
+                        done: false
+                    });
+
+                    previousLogicalStep = logicalStep;
+                }
+
+                rightFrame.keyMeta.set(cleanKey, {
+                    ...rightMeta,
+                    steps: Math.max(segmentSteps - previousLogicalStep, 0),
+                    stepOffset: previousLogicalStep,
+                    segmentSteps: segmentSteps,
+                    done: false
+                });
             }
         }
-        
+
         if (idxs.length) {
             const lastIndex = idxs[idxs.length - 1];
             const lastFrame = frames[lastIndex];
             const lastValue = this.getAt(lastFrame, cleanKey);
+            const lastMeta = lastFrame.keyMeta.get(cleanKey);
+
+            const segmentSteps = lastMeta.segmentSteps;
+
             for (let i = lastIndex + 1; i < frames.length; i++) {
-                this.setAt(frames[i], cleanKey, lastValue);
-                frames[i].keyMeta.set(cleanKey, { steps: 0, done: true });
+                const frame = frames[i];
+
+                this.setAt(frame, cleanKey, lastValue);
+
+                frame.keyMeta.set(cleanKey, {
+                    ...lastMeta,
+                    steps: 0,
+                    stepOffset: segmentSteps,
+                    segmentSteps: segmentSteps,
+                    done: true
+                });
             }
         }
-    } 
-    
+    }
+  
     fixTModelStyleFromFrame(tmodel, frame) {
         if (!tmodel.hasDom() || !frame) {
             return;
@@ -413,16 +451,19 @@ class AnimationManager {
             out.push({
                 value,
                 time: frame.keyTime,
+                offset: frame.keyTime / total,
                 steps: meta?.steps,
+                segmentSteps: meta?.segmentSteps,
                 interval: meta?.interval,
                 stepOffset: meta?.stepOffset || 0,
-                done: !!meta?.done,
-                offset: frame.keyTime / total
+                valuePointer: meta?.valuePointer,
+                cycle: meta?.cycle,
+                done: !!meta?.done
             });
         }
 
         out.sort((a, b) => a.time - b.time);
-                
+                        
         return out.length >= 2 ? out : undefined;
     }
     
