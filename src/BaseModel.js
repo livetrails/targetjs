@@ -59,13 +59,17 @@ class BaseModel {
     get movedChildren() { return this.state().movedChildren ??= []; }
     get lastChildrenUpdate() { return this.state().lastChildrenUpdate ??= { additions: [], deletions: [] }; }
     get visibleChildren() { return this.state().visibleChildren ??= []; }
-        
+    get passiveTargetList() { return this.state().passiveTargetList ??= []; }
+    get passiveTargetMap() { return this.state().passiveTargetMap ??= {}; }
+    
     set targetValues(val) { this.state().targetValues = val; }
     set actualValues(val) { this.state().actualValues = val; }
     set activeTargetMap(val) { this.state().activeTargetMap = val; }
     set activeTargetList(val) { this.state().activeTargetList = val; }
     set updatingTargetMap(val) { this.state().updatingTargetMap = val; }
     set updatingTargetList(val) { this.state().updatingTargetList = val; }
+    set passiveTargetList(val) { this.state().passiveTargetList = val; }
+    set passiveTargetMap(val) { this.state().passiveTargetMap = val; }    
 
     getParent() {
         return this.parent;
@@ -136,6 +140,13 @@ class BaseModel {
         if (!TUtil.isDefined(target)) {
             this.delVal(key);
             return;
+        }
+        
+        if (target.loop === 'passive' || typeof target.loop === 'function') {
+            if (!this.passiveTargetMap[key]) {
+                this.passiveTargetMap[key] = true;
+                this.passiveTargetList.push(key);
+            }
         }
         
         const targetType = typeof target;
@@ -602,7 +613,18 @@ class BaseModel {
 
         const loop = (typeof t.loop === 'function') ? t.loop.call(this, key) : t.loop;
 
-        return loop === true || loop === 'passive';
+        return loop === true;
+    }
+
+    isTargetPassiveLoop(key) {
+        const t = this.targets[key];
+        if (!t) {
+            return false;
+        }
+
+        const loop = (typeof t.loop === 'function') ? t.loop.call(this, key) : t.loop;
+
+        return loop === 'passive';
     }
 
     shouldScheduleRun(key) {
@@ -615,15 +637,44 @@ class BaseModel {
             return !!t.triggerRerun;
         }
 
-        if (t.loop !== undefined) {
-            const loop = (typeof t.loop === 'function') ? t.loop.call(this, key) : t.loop;
-            if (loop === 'passive') {
-                const values = TargetParser.getValueStepsCycles(this, key);
-                return values[0] === this.getTargetValue(key) ? false : true;
-            }
+        const loop = (typeof t.loop === 'function') ? t.loop.call(this, key) : t.loop;
+
+        if (loop === 'passive') {
+            const values = TargetParser.getValueStepsCycles(this, key);
+            const nextValue = values[0];
+            const currentTargetValue = this.getTargetValue(key);
+
+            return !TUtil.areEqual(nextValue, currentTargetValue, t.deepEquality ?? false);
         }
 
         return true;
+    }
+    
+    activateChangedPassiveTargets() {
+        if (!this.passiveTargetList?.length) {
+            return false;
+        }
+
+        let activated = false;
+
+        for (const key of this.passiveTargetList) {
+            if (!this.isTargetPassiveLoop(key)) {
+                continue;
+            }
+
+            if (this.isTargetUpdating(key) || this.animatingMap?.has(key)) {
+                continue;
+            }
+
+            if (!this.shouldScheduleRun(key)) {
+                continue;
+            }
+
+            this.addToActiveTargets(key);
+            activated = true;
+        }
+
+        return activated;
     }
 
     getTargetInitialValue(key) {
@@ -844,7 +895,7 @@ class BaseModel {
         ];  
         
         for (const target of updatingList) {
-            if (this.isTargetImperative(target) && this.targetValues[target].originalTargetName === originalTargetName) {
+            if (this.isTargetImperative(target) && (this.targetValues[target].originalTargetName === originalTargetName || TargetUtil.getTargetName(target) === originalTargetName)) {
                 return true;
             }
         }

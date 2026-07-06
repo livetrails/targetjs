@@ -195,9 +195,7 @@ class RunScheduler {
                     || getManager().lists.reasyncStyle.length > 0
                     || getEvents().eventQueue.length > 0
                     || getLocationManager().activatedList.length > 0) {
-                if (getLocationManager().activatedList.length > 0) {
-                    this.schedule(1, `getManager-locationManager-activatedList`); 
-                } else if (getManager().lists.updatingTModels.length > 0) {
+                if (getManager().lists.updatingTModels.length > 0) {
                     this.schedule(1, `getManager-needsRerun-updatingTModels`);
                 } else if (getManager().lists.activeTModels.length > 0) {
                     const activeTModel = getManager().lists.activeTModels.find(tmodel => {

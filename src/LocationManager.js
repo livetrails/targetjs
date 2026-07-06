@@ -111,7 +111,7 @@ class LocationManager {
         if (this.calcQueued) {
             this.calcQueued = false;
             return this.calculateAll(budgetMs);
-        }
+        }     
     }
     
     cancelCurrentCalculation() {
@@ -135,7 +135,7 @@ class LocationManager {
             const child = children[index];
 
             if (child) {
-                if (child.getDirtyLayout() && ((child.isComplete() && !child.hasChildren()) || !child.isVisible())) {
+                if (child.getDirtyLayout() && ((child.isComplete() && !child.hasChildren()))) {
                     child.removeLayoutDirty(child, child.dirtyLayout.oids ? Object.keys(child.dirtyLayout.oids) : undefined);
                 }
             }
@@ -228,19 +228,15 @@ class LocationManager {
             if (viewport.isOverflow()) {     
                 viewport.overflow();
                 viewport.setLocation();
+                child.markLayoutDirty('overflow');  
             }               
                         
             const prevX = child.actualValues.x;
             const prevY = child.actualValues.y;
-            const prevWidth = child.getMinWidth();
 
             if (child.isIncluded()) {
                 this.calculateTargets(child);
-            }
-            
-            if (prevWidth !== child.getMinWidth() && viewport.isOverflow()) {
-                child.markLayoutDirty('overflow');
-            }            
+            }       
 
             if (child.isIncluded()) {
                 if (child.targets['onVisibleChildrenChange'] && !this.visibleChildrenLengthMap[child.oid]) {
@@ -396,6 +392,7 @@ class LocationManager {
         if (viewport.isOverflow()) {
             viewport.overflow();
             viewport.setLocation();
+            child.markLayoutDirty('overflow');
         }
         
         if (child.isIncluded()) {
@@ -504,6 +501,8 @@ class LocationManager {
         }
         
         ScheduleUtil.pauseResumeSchedule(tmodel);
+        
+        tmodel.activateChangedPassiveTargets();
         
         getTargetManager().applyTargetValues(tmodel);
         if (tmodel.updatingTargetList.length > 0) {
