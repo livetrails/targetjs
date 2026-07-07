@@ -16,6 +16,8 @@ export * from "./build/Easing.js";
 export * from "./build/TargetExecutor.js";
 export * from "./build/AnimationManager.js";
 export * from "./build/AnimationUtil.js";
+export * from "./build/VisibilityUtil.js";
+export * from "./build/ScheduleUtil.js";
 
 import * as App from './build/App.js';
 import * as TModel from './build/TModel.js';
@@ -36,6 +38,7 @@ import * as TargetExecutor from './build/TargetExecutor.js';
 import * as AnimationManager from './build/AnimationManager.js';
 import * as AnimationUtil from './build/AnimationUtil.js';
 import * as VisibilityUtil from './build/VisibilityUtil.js';
+import * as ScheduleUtil from './build/ScheduleUtil.js';
 
 const TargetJS = {
   ...App,
@@ -55,7 +58,8 @@ const TargetJS = {
   ...TargetExecutor,
   ...AnimationManager,
   ...AnimationUtil,
-  ...VisibilityUtil
+  ...VisibilityUtil,
+  ...ScheduleUtil
 };
 
 if (typeof window !== 'undefined') {
