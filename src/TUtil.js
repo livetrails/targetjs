@@ -389,12 +389,7 @@ class TUtil {
         let cycle = tmodel.getTargetCycle(key);
         let valuePointer = tmodel.getValueListPointer(key);
         let step = tmodel.getTargetStep(key);
-        
-        if (tmodel.oid === 'heart$$') {
-            const total = cycle > 0 ? step + cycle * stepList[0] * (valuePointer - 1) : step + stepList[0] * (valuePointer - 1);
-            console.log("initially: " + tmodel.oid + ", " + key + ', ' + elapsedMs + ', ' + (elapsedMs / 8) + " => " + total + ", " + step + '/' + stepList + ', ' + cycle + '/' + cycles + ', ' + valuePointer + '/' + valueList.length);
-        }
-
+       
         let remainingMs = elapsedMs;
 
         while (remainingMs > 0 && cycle < cycles) {

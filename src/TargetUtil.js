@@ -418,12 +418,28 @@ class TargetUtil {
         tmodel.activateTarget(key);
     }
 
-    static isTModelComplete(tmodel) {
-        if (!tmodel) {
-            return false;
-        }
+    static isTModelComplete(tmodel, completionScope = "all") {
         const state = tmodel.state();
-        
+
+        if (completionScope === "visible") {
+            if (TargetUtil.shouldIgnoreChildForCompletion(tmodel, "visible")) {
+                return true;
+            }
+
+            return !(state.updatingTargetList?.length)
+                && !(state.activeTargetList?.length)
+                && !(state.activatedTargets?.length)
+                && !tmodel.hasAnimatingTargets()
+                && TargetUtil.isFetchingComplete(tmodel)
+                && TargetUtil.getUpdatingChildren(tmodel, undefined, "visible").size === 0
+                && TargetUtil.getActiveChildren(tmodel, "visible").size === 0
+                && !(state.lastChildrenUpdate?.deletions?.length)
+                && !(state.lastChildrenUpdate?.additions?.length)
+                && !tmodel.noDomUpdatingTargets
+                && !tmodel.pendingTargets
+                && !getManager().needsReattach(tmodel);
+        }
+
         return !(state.updatingTargetList?.length)
             && !(state.activeTargetList?.length)
             && !(state.activatedTargets?.length)
@@ -555,13 +571,15 @@ class TargetUtil {
                 continue;
             }
 
-            if (child.exists() && !TargetUtil.isTModelComplete(child)) {
+            if (child.exists() && !TargetUtil.isTModelComplete(child, completionScope)) {
                 return child.oid;
             }
-
+            
             if (child.hasChildren()) {
-                if (!TargetUtil.areTargetChildrenComplete(child.getChildren(), completionScope)) {
-                    return child.oid;
+                const result = TargetUtil.areTargetChildrenComplete(child.getChildren(), completionScope);
+
+                if (result !== true) {
+                    return result;
                 }
             }
         }
@@ -613,21 +631,46 @@ class TargetUtil {
         return childrenMap;
     } 
     
+    static hasVisibleActiveChild(tmodel) {
+        if (TargetUtil.shouldIgnoreChildForCompletion(tmodel, "visible")) {
+            return false;
+        }
+
+        if (tmodel.activeTargetList?.length > 0) {
+            return true;
+        }
+
+        for (const child of tmodel.getChildren?.() ?? []) {
+            if (TargetUtil.hasVisibleActiveChild(child)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+    
     static getActiveChildren(tmodel, completionScope = 'all') {
         const childrenMap = new Map(); 
-
         const children = [ ...(tmodel.activeChildrenMap?.values() ?? []) ];
-                
+
         children.forEach(child => {
+            if (completionScope === "visible") {
+                if (TargetUtil.hasVisibleActiveChild(child)) {
+                    childrenMap.set(child.oid, child);
+                }
+
+                return;
+            }
+
             if (TargetUtil.shouldIgnoreChildForCompletion(child, completionScope)) {
                 return;
             }    
-            
+
             if (child.activeTargetList.length) {
                 childrenMap.set(child.oid, child);
             }
         });
-        
+
         return childrenMap;
     }
     
@@ -641,7 +684,7 @@ class TargetUtil {
         }
 
         if (completionScope === "visible") {
-            return child.visibilityStatus && !child.isVisible();
+            return child.visibilityStatus?.isVisible !== true;
         }
 
         return false;

@@ -537,22 +537,61 @@ class AnimationManager {
         this.isShuttingDown = false;
     }
     
+     fillCutFrameFromRecords(tmodel, cutFrame) {
+        for (const [, record] of this.recordMap) {
+            if (record.tmodel !== tmodel) {
+                continue;
+            }
+
+            if (record.status === 'canceled' || record.status === 'detached') {
+                continue;
+            }
+
+            const result = AnimationUtil.getValueFromAnim(record);
+            if (!result) {
+                continue;
+            }
+
+            const { cleanKey, originalKey } = record;
+            const targetValue = tmodel.targetValues[originalKey];
+
+            this.setAt(cutFrame, cleanKey, result.value);
+
+            cutFrame.keyMeta.set(cleanKey, {
+                steps: result.remainingSteps ?? result.steps ?? targetValue?.steps ?? 0,
+                segmentSteps: result.steps ?? targetValue?.steps ?? 0,
+                interval: targetValue?.interval ?? 8,
+                stepOffset: result.step ?? 0,
+                valuePointer: result.valuePointer,
+                cycle: result.cycle,
+                done: result.status === 'finished'
+            });
+        }
+    }
+
     cutLastBatch(tmodel, batch, cutTime) {
         
         let i = 0;
         while (i < batch.frames.length && batch.frames[i].keyTime <= cutTime) {
             i++;
         }
-                
+
         const needsInsert = i < batch.frames.length && cutTime !== batch.frames[i].keyTime;
         if (needsInsert) {
-            batch.frames.splice(i, 0, {keyTime: cutTime, tfMap: {}, styleMap: {}, keyMeta: new Map()});
+            const cutFrame = { keyTime: cutTime, tfMap: {}, styleMap: {}, keyMeta: new Map() };
 
-            const originalKeys = [...new Set(Object.values(batch.keyMap).flatMap(set => [...set]))];
+            batch.frames.splice(i, 0, cutFrame);
+
+            this.fillCutFrameFromRecords(tmodel, cutFrame);
+
+            const originalKeys = [...new Set(
+                Object.values(batch.keyMap).flatMap(set => [...set])
+            )];
+
             for (const originalKey of originalKeys) {
-              this.backfillKeyAcrossFramesUsingMorph(tmodel, originalKey, batch.frames);
+                this.backfillKeyAcrossFramesUsingMorph(tmodel, originalKey, batch.frames);
             }
-            
+
             batch.frames = batch.frames.slice(i);
         }
 
@@ -560,8 +599,10 @@ class AnimationManager {
             frame.keyTime = Math.max(0, frame.keyTime - cutTime);
         });
 
-        batch.totalDuration = batch.frames.length ? batch.frames[batch.frames.length - 1].keyTime : 0;
-        
+        batch.totalDuration = batch.frames.length
+            ? batch.frames[batch.frames.length - 1].keyTime
+            : 0;
+
         return batch;
     }
     
@@ -596,32 +637,43 @@ class AnimationManager {
         }
     }
    
-    mergeBatches(lastBatch, newBatch) {   
-        const newCleanKeys = Object.keys(newBatch.keyMap);
+    mergeBatches(lastBatch, newBatch) {
+        const newCleanKeys = new Set(Object.keys(newBatch.keyMap));
 
         const oldFrames = [];
+
         for (const frame of lastBatch.frames) {
             for (const key of newCleanKeys) {
                 delete frame.styleMap[key];
                 delete frame.tfMap[key];
-                delete lastBatch.keyMap[key];
+                frame.keyMeta?.delete(key);
             }
-                
+
             if (Object.keys(frame.styleMap).length || Object.keys(frame.tfMap).length) {
                 oldFrames.push(frame);
             }
         }
-        
-        newBatch.frames = [ ...oldFrames, ...newBatch.frames ];
+
+        const oldKeyMap = {};
+
+        for (const [key, set] of Object.entries(lastBatch.keyMap)) {
+            if (!newCleanKeys.has(key)) {
+                oldKeyMap[key] = set;
+            }
+        }
+
+        newBatch.frames = [...oldFrames, ...newBatch.frames];
         newBatch.frames.sort((a, b) => a.keyTime - b.keyTime);
 
-        // Merge frames with identical keyTime
         const merged = [];
+
         for (const f of newBatch.frames) {
             const last = merged[merged.length - 1];
-            if (last && last.keyTime === f.keyTime) {
+
+            if (last && Math.abs(last.keyTime - f.keyTime) < 0.0001) {
                 Object.assign(last.styleMap, f.styleMap);
                 Object.assign(last.tfMap, f.tfMap);
+
                 if (f.keyMeta) {
                     for (const [k, v] of f.keyMeta) {
                         last.keyMeta.set(k, v);
@@ -632,11 +684,12 @@ class AnimationManager {
             }
         }
 
-        newBatch.keyMap = { ...newBatch.keyMap, ...lastBatch.keyMap };
+        newBatch.keyMap = { ...oldKeyMap, ...newBatch.keyMap };
+
         newBatch.frames = merged;
 
-        newBatch.totalDuration = newBatch.frames.length ? newBatch.frames[newBatch.frames.length - 1].keyTime : 0; 
-    }
+        newBatch.totalDuration = newBatch.frames.length ? newBatch.frames[newBatch.frames.length - 1].keyTime : 0;
+    } 
     
     areFramesEqual(a, b) {
         const keysA = Object.keys(a);

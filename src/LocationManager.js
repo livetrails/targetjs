@@ -230,13 +230,13 @@ class LocationManager {
                 viewport.setLocation();
                 child.markLayoutDirty('overflow');  
             }               
-                        
+
             const prevX = child.actualValues.x;
             const prevY = child.actualValues.y;
 
             if (child.isIncluded()) {
                 this.calculateTargets(child);
-            }       
+            }
 
             if (child.isIncluded()) {
                 if (child.targets['onVisibleChildrenChange'] && !this.visibleChildrenLengthMap[child.oid]) {

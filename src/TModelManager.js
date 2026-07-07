@@ -413,26 +413,47 @@ class TModelManager {
         }
     }
     
-    activatePendingTargetsAfterDom(tmodels) {
+    activatePendingTargetsAfterDom(tmodels, { restoredDoneTargets = false } = {}) {
         for (const tmodel of tmodels) {
-            
             if (!tmodel.hasDom()) {
                 continue;
             }
 
             if (tmodel.noDomUpdatingTargets) {
                 for (const target of [...tmodel.noDomUpdatingTargets]) {
-                   tmodel.addTargetToStatusList(target);
+                    tmodel.addTargetToStatusList(target);
                 }
-                
+
                 tmodel.noDomUpdatingTargets = undefined;
             }
-        
+
             const pending = tmodel.pendingTargets;
+
             if (pending) {
                 for (const key of [...pending]) {
-                   TargetUtil.cleanupTarget(tmodel, key);
-                   TargetUtil.shouldActivateNextTarget(tmodel, key);
+                    TargetUtil.cleanupTarget(tmodel, key);
+                    TargetUtil.shouldActivateNextTarget(tmodel, key);
+                }
+
+                tmodel.pendingTargets = undefined;
+            }
+            
+            
+            if (restoredDoneTargets) {
+                for (const key of Object.keys(tmodel.targetValues)) {
+                    const targetValue = tmodel.targetValues[key];
+
+                    if (targetValue.status !== 'done') {
+                        continue;
+                    }
+                    
+                   if (tmodel.isTargetInLoop(key) || tmodel.isTargetPassiveLoop(key)) {
+                        continue;
+                    }
+                    
+                    if (TargetUtil.cleanupTarget(tmodel, key)) {
+                        TargetUtil.shouldActivateNextTarget(tmodel, key);
+                    }
                 }
             }
         }

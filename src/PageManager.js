@@ -10,6 +10,7 @@ import { $Dom } from "./$Dom.js";
 class PageManager {
     constructor() {
         this.lastLink = TUtil.getFullLink(document.URL);
+        this.lastCachedLink = undefined;
         this.pageCache = {};
         this.initHistory();
     }
@@ -66,7 +67,7 @@ class PageManager {
                 tmodel.visibilityStatus = undefined;
             });
                         
-            tApp.manager.activatePendingTargetsAfterDom(visibles);
+            tApp.manager.activatePendingTargetsAfterDom(visibles, { restoredDoneTargets: true });
 
             tApp.manager.visibleOidMap = { ...this.pageCache[link].visibleOidMap };
             newVisibles.forEach(visible => {
@@ -130,6 +131,8 @@ class PageManager {
                 tRoot: tApp.tRoot,
                 runSnapshot
             };
+            
+            this.lastCachedLink = this.lastLink;
 
             await tApp.reset();
         }
@@ -170,6 +173,23 @@ class PageManager {
     back() {
         return history.back();
     }
+    
+    getCachedPage(link = this.lastCachedLink) {
+        if (!link) {
+            return undefined;
+        }
+
+        link = TUtil.getFullLink(link);
+
+        return this.pageCache[link];
+    }
+
+    getCachedTModel(id, link = this.lastCachedLink) {
+        const page = this.getCachedPage(link);
+
+        return page?.tmodelIdMap?.[id];
+    }
+
 }
 
 export { PageManager };

@@ -505,10 +505,11 @@ class AnimationUtil {
             return false;
         }
 
+        const previousDuration = batch.totalDuration || 0;
         let removed = false;
 
         for (const frame of batch.frames) {
-            if (frame.tfMap?.[cleanKey] !== undefined || frame.styleMap?.[cleanKey] !== undefined) {
+            if (frame.tfMap[cleanKey] !== undefined || frame.styleMap[cleanKey] !== undefined) {
                 removed = true;
             }
 
@@ -524,14 +525,17 @@ class AnimationUtil {
                    Object.keys(frame.styleMap).length;
         });
 
+        batch.frames.sort((a, b) => a.keyTime - b.keyTime);
+
         batch.totalDuration = batch.frames.length
-            ? batch.frames[batch.frames.length - 1].keyTime
+            ? Math.max(previousDuration, ...batch.frames.map(frame => frame.keyTime))
             : 0;
 
         return removed;
     }
     
-    static handleWebAnimationAPI(tmodel, cleanKey, key, targetValue, from, to, valuePointer, step, steps, interval, timeShift, skipStartFrame = false) {         
+    static handleWebAnimationAPI(tmodel, cleanKey, key, targetValue, from, to, valuePointer, step, steps, interval, timeShift, skipStartFrame = false, replaceExistingKey = true) {   
+ 
         const batch = (tmodel.waapiBatch ||= {
             frames: [],
             easing: undefined,            
@@ -539,12 +543,15 @@ class AnimationUtil {
             totalDuration: 0
         });
         
-        const replacedExistingKey = AnimationUtil.removeCleanKeyFromBatch(batch, cleanKey);
+        let replacedExistingKey = false;
+        
+        if (replaceExistingKey) {
+            replacedExistingKey = AnimationUtil.removeCleanKeyFromBatch(batch, cleanKey);
 
-        if (replacedExistingKey) {
-            timeShift = 0;
+            if (replacedExistingKey) {
+                timeShift = 0;
+            }
         }
-
         const isTransform = TargetData.isTransformKey(cleanKey);
 
         const getFrameAtTime = (t) => {
@@ -583,6 +590,15 @@ class AnimationUtil {
             if (!skipStartFrame) {
                 const frame0 = getFrameAtTime(0);
                 setFrameValue(frame0, from);
+
+                frame0.keyMeta.set(cleanKey, {
+                    steps: 0,
+                    segmentSteps: steps || targetValue.steps || 0,
+                    interval: interval || targetValue.interval || 8,
+                    stepOffset: step || 0,
+                    valuePointer: valuePointer ?? targetValue.valuePointer ?? 1,
+                    cycle: targetValue.cycle ?? 0
+                });
             }
 
             while (cycle < cycles) {

@@ -105,7 +105,7 @@ class TargetManager {
         return SearchUtil.findParentByTarget(tmodel, originalTargetName)
                 || getVisibles().find(tmodel => tmodel.targets[originalTargetName]);
     }
-
+    
     fireOnStep(tmodel, key, step) {
         const targetValue = tmodel.targetValues[key]; 
         const theValue = tmodel.getTargetValue(key);
@@ -255,7 +255,7 @@ class TargetManager {
         const theValue = tmodel.getTargetValue(key);
         const steps = tmodel.getTargetSteps(key);
         const cycles = tmodel.getTargetCycles(key);
-
+        
         if (progress.done) {          
             const finalValue = targetValue.valueList?.length ? targetValue.valueList[targetValue.valueList.length - 1] : theValue;
 
@@ -387,11 +387,11 @@ class TargetManager {
         const cycles = tmodel.isTargetImperative(key) ? tmodel.getTargetCycles(key) : 0;
 
         const cycleDuration = AnimationUtil.handleWebAnimationAPI(tmodel, state.cleanKey, key, targetValue, newValue, state.theValue, valuePointer, 
-                step, state.steps, state.interval, 0);
+                step, state.steps, state.interval, 0, false, true);
 
         for (let c = 1; c < cycles; c++) {
             AnimationUtil.handleWebAnimationAPI(tmodel, state.cleanKey, key, targetValue, newValue, state.theValue, valuePointer, 
-                step, state.steps, state.interval, c * cycleDuration, true);
+                step, state.steps, state.interval, c * cycleDuration, true, false);
         }
     }  
     

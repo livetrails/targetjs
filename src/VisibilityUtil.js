@@ -34,7 +34,7 @@ class VisibilityUtil {
             status.right = (x - visibilityMargin) <= clip.r;
             status.left = (x + width + visibilityMargin) >= clip.x;
             status.bottom = (y - child.getTopMargin() - visibilityMargin) <= clip.b;
-            status.top = (y + height + visibilityMargin) >= clip.y;
+            status.top = (y + height + child.getBottomMargin() + visibilityMargin) >= clip.y;
 
             status.clipX = clip.x;
             status.clipY = clip.y;
