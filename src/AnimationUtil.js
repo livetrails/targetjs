@@ -159,12 +159,17 @@ class AnimationUtil {
     
     static getAnimationHooks() {
         return {
-            morph: (tm, key, from, to, step, steps) => TModelUtil.morph(tm, key, from, to, step, steps),
-            fireOnStep: (tm, key, step) => getTargetManager().fireOnStep(tm, key, step),
-            fireOnEnd: (tm, key) => getTargetManager().fireOnEnd(tm, key)
+            morph: (tm, key, from, to, step, steps) =>
+                TModelUtil.easingMorph(tm, key, from, to, step, steps),
+
+            fireOnStep: (tm, key, step) =>
+                getTargetManager().fireOnStep(tm, key, step),
+
+            fireOnEnd: (tm, key) =>
+                getTargetManager().fireOnEnd(tm, key)
         };
     }
-    
+
     static addToUpdatingTargets(tmodel, originalKeys) {
         const recordMap = getAnimationManager().recordMap;
         const records = [];
@@ -387,7 +392,7 @@ class AnimationUtil {
         const segmentSteps = right.segmentSteps ?? (stepOffset + remainingSteps);
 
         const step = TUtil.limit(stepOffset + localStep, 0, segmentSteps);
-        
+                
         const status = right.done ? "finished" : "playing";
 
         return {

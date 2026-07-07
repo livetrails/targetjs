@@ -98,7 +98,7 @@ class AnimationManager {
             iterations: 1,
             easing: batch.easing || "linear"
         };
-                              
+        
         batch.startTime = TUtil.now();
         
         tmodel.lastBatch = batch;
@@ -319,14 +319,15 @@ class AnimationManager {
                 const from = this.getAt(leftFrame, cleanKey);
                 const to = this.getAt(rightFrame, cleanKey);
 
-                const rightMeta = rightFrame.keyMeta.get(cleanKey);
+                const rightMeta = rightFrame.keyMeta?.get(cleanKey);
+
                 if (!rightMeta) {
                     continue;
                 }
 
                 const spanSteps = rightMeta.steps;
                 const baseStepOffset = rightMeta.stepOffset || 0;
-                const segmentSteps = rightMeta.segmentSteps;
+                const segmentSteps = rightMeta.segmentSteps ?? spanSteps;
 
                 const t0 = leftFrame.keyTime;
                 const t1 = rightFrame.keyTime;
@@ -342,11 +343,12 @@ class AnimationManager {
                     const frame = frames[i];
                     const progress = TUtil.limit((frame.keyTime - t0) / spanTime, 0, 1);
 
-                    const logicalStep = TUtil.limit(baseStepOffset + Math.round(progress * spanSteps), 0, segmentSteps);
+                    const localStep = Math.round(progress * spanSteps);
+                    const logicalStep = TUtil.limit(baseStepOffset + localStep, 0, segmentSteps);
 
                     const stepsFromPreviousFrame = Math.max(logicalStep - previousLogicalStep, 0);
 
-                    const v = TModelUtil.easingMorph(tmodel, originalKey, from, to, logicalStep, segmentSteps);
+                    const v = TModelUtil.morph(originalKey, from, to, progress);
 
                     this.setAt(frame, cleanKey, v);
 
@@ -354,20 +356,12 @@ class AnimationManager {
                         ...rightMeta,
                         steps: stepsFromPreviousFrame,
                         stepOffset: previousLogicalStep,
-                        segmentSteps: segmentSteps,
+                        segmentSteps,
                         done: false
                     });
 
                     previousLogicalStep = logicalStep;
                 }
-
-                rightFrame.keyMeta.set(cleanKey, {
-                    ...rightMeta,
-                    steps: Math.max(segmentSteps - previousLogicalStep, 0),
-                    stepOffset: previousLogicalStep,
-                    segmentSteps: segmentSteps,
-                    done: false
-                });
             }
         }
 
@@ -375,9 +369,13 @@ class AnimationManager {
             const lastIndex = idxs[idxs.length - 1];
             const lastFrame = frames[lastIndex];
             const lastValue = this.getAt(lastFrame, cleanKey);
-            const lastMeta = lastFrame.keyMeta.get(cleanKey);
+            const lastMeta = lastFrame.keyMeta?.get(cleanKey);
 
-            const segmentSteps = lastMeta.segmentSteps;
+            if (!lastMeta) {
+                return;
+            }
+
+            const segmentSteps = lastMeta.segmentSteps ?? lastMeta.steps ?? 0;
 
             for (let i = lastIndex + 1; i < frames.length; i++) {
                 const frame = frames[i];
@@ -388,13 +386,13 @@ class AnimationManager {
                     ...lastMeta,
                     steps: 0,
                     stepOffset: segmentSteps,
-                    segmentSteps: segmentSteps,
+                    segmentSteps,
                     done: true
                 });
             }
         }
     }
-  
+
     fixTModelStyleFromFrame(tmodel, frame) {
         if (!tmodel.hasDom() || !frame) {
             return;
