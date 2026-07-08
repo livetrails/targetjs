@@ -257,7 +257,9 @@ const getDomTModelById = id => {
     return tmodel && tmodel.targets['sourceDom'] ? tmodel : undefined;
 };
 
-window.t = window.t || getTModelById;
+if (typeof window !== "undefined") {
+    window.t = window.t || getTModelById;
+}
 
 const runApp = () => {
     if (tApp) {
@@ -268,10 +270,12 @@ const runApp = () => {
     tApp.init().start();
 };
 
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", runApp);
-} else {
-    runApp();
+if (typeof document !== "undefined") {
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", runApp);
+    } else {
+        runApp();
+    }
 }
 
 export {

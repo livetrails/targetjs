@@ -1,4 +1,26 @@
-export * from "./build/App.js";
+export {
+    App,
+    tApp,
+    tRoot,
+    isRunning,
+    getEvents,
+    getPager,
+    getLoader,
+    fetch,
+    fetchImage,
+    getManager,
+    getTargetManager,
+    getAnimationManager,
+    getRunScheduler,
+    getLocationManager,
+    getScreenWidth,
+    getScreenHeight,
+    getVisibles,
+    getResizeLastUpdate,
+    getTModelById,
+    getDomTModelById
+} from "./build/App.js";
+
 export * from "./build/TModel.js";
 export * from "./build/Moves.js";
 export * from "./build/SearchUtil.js";
@@ -7,7 +29,7 @@ export * from "./build/TargetUtil.js";
 export * from "./build/TargetParser.js";
 export * from "./build/TModelUtil.js";
 export * from "./build/TUtil.js";
-export * from "./build/DomInit.js"
+export * from "./build/DomInit.js";
 export * from "./build/$Dom.js";
 export * from "./build/Bracket.js";
 export * from "./build/BracketGenerator.js";
@@ -19,7 +41,7 @@ export * from "./build/AnimationUtil.js";
 export * from "./build/VisibilityUtil.js";
 export * from "./build/ScheduleUtil.js";
 
-import * as App from './build/App.js';
+import * as AppModule from './build/App.js';
 import * as TModel from './build/TModel.js';
 import * as Moves from './build/Moves.js';
 import * as SearchUtil from './build/SearchUtil.js';
@@ -41,7 +63,7 @@ import * as VisibilityUtil from './build/VisibilityUtil.js';
 import * as ScheduleUtil from './build/ScheduleUtil.js';
 
 const TargetJS = {
-  ...App,
+  ...AppModule,
   ...TModel,
   ...Moves,
   ...SearchUtil,
