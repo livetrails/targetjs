@@ -1,7 +1,7 @@
 import { App, getRunScheduler, getLocationManager, getAnimationManager, getDomTModelById, getEvents } from "./App.js";
 import { TargetExecutor } from "./TargetExecutor.js";
 import { TUtil } from "./TUtil.js";
-import { TargetParser } from "./TargetParser" ;
+import { TargetParser } from "./TargetParser.js" ;
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
 import { $Dom } from "./$Dom.js";

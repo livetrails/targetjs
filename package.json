@@ -1,9 +1,15 @@
 {
   "name": "targetj",
-  "version": "1.0.239",
+  "version": "1.0.240",
   "description": "TargetJS: JavaScript UI framework where state is a destination and code order defines the UI sequence",
   "keywords": ["targetjs"],
-  "main": "Export.js",
+  "type": "module",
+  "main": "./Export.js",
+  "module": "./Export.js",
+  "exports": {
+    ".": "./Export.js",
+    "./Export.js": "./Export.js"
+  },
   "homepage": "https://targetjs.io",
   "license": "MIT",
   "repository": {
@@ -19,14 +25,14 @@
     }
   ],
   "scripts": {
-    "prod": "webpack --mode production && gzip -kf ./dist/targetjs.js",
-    "dev": "webpack --mode development",
+    "prod": "webpack --config webpack.config.cjs --mode production && gzip -kf ./dist/targetjs.js",
+    "dev": "webpack --config webpack.config.cjs --mode development",
     "build": "babel src --out-dir build"
   },
   "files": [
-    "Export.js",        
+    "Export.js",
     "build/",
-    "dist/",    
+    "dist/",
     "README.md",
     "LICENSE"
   ],

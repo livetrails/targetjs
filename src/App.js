@@ -8,7 +8,7 @@ import { TModelManager } from "./TModelManager.js";
 import { RunScheduler } from "./RunScheduler.js";
 import { TargetManager } from "./TargetManager.js";
 import { TargetExecutor } from "./TargetExecutor.js";
-import { AnimationManager } from "./AnimationManager";
+import { AnimationManager } from "./AnimationManager.js";
 import { TUtil } from "./TUtil.js";
 import { DomInit } from "./DomInit.js";
 import { SearchUtil } from "./SearchUtil.js";

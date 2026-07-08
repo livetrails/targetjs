@@ -47,6 +47,7 @@ const TargetJS = {
   ...SearchUtil,
   ...TargetData,
   ...TargetUtil,
+  ...TargetParser,
   ...TModelUtil,
   ...TUtil,
   ...DomInit,
