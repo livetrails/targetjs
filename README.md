@@ -80,11 +80,12 @@ Methods and properties both are internally transformed into targets that the fra
 A target can:
 - execute a method
 - hold a value
-- move toward that value over time
-- wait for previous targets
+- move toward a new value over time
+- pause while moving toward a value
+- wait for previous targets to complete
 - react when previous targets update
 - fetch data
-- react to an event
+- respond to events
 - create children
 - run callbacks
 - control its own lifecycle
@@ -101,9 +102,10 @@ A target can also be defined as an object with optional controls that manage its
 | `steps` | Turns a value change into an animation. |
 | `interval` | Delay (ms) between steps or executions. |
 | `cycles` | Number of times the target repeats. |
-| `loop` | Boolean form of repetition for continuous execution. |
+| `loop` | Controls repetition, either actively for continuous execution or passively when the value changes. |
 | `active` | Boolean property controlling when `value` is executed. |
 | `enabledOn` | Determines whether the target is enabled for execution. |
+| `pauseOn` | Pauses execution while the target is in progress. |
 | `easing` | Predefined easing function controlling how values update over steps. |
 | `onComplete` | Callback triggered when this target (and its children) finishes. |
 | `onValueChange` | Callback triggered when the target emits a new value. |
