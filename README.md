@@ -109,7 +109,6 @@ A target can also be defined as an object with optional controls that manage its
 | `easing` | Predefined easing function controlling how values update over steps. |
 | `onComplete` | Callback triggered when this target (and its children) finishes. |
 | `onValueChange` | Callback triggered when the target emits a new value. |
-| `onChange` | Callback triggered when the target emits a new value. |
 | `on<PropertyName>Step` | Callback triggered on every step of a specific property. |
 
 ### Compact Execution Syntax
