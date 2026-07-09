@@ -54,19 +54,31 @@ With its compact style, TargetJS makes the journey from A → B explicit and eff
 npm install targetj
 ```
 
-**2. The "Hello World" Sequence**
+**2. Example**
 
-This creates a blue box that grows, then turns red, and then logs "Hello World" in order.
+This creates the following sequence: appear → bounce → move → turn red → log
 
 ```javascript
 import { App } from "targetj";
 
 App({
-  backgroundColor: 'blue', // Starts immediately
-  width: { value: [100, 200], steps: 100, interval: 8 }, // Starts immediately: animate width from 100px to 200px in 100 steps with 8 ms interval per step.
-  height: { value: [100, 200], steps: 100, interval: 8 }, // Starts immediately: animate height.
-  backgroundColor$$: { value: 'red', steps: 100, interval: 8 }, // Wait ($$) for width/height to finish
-  done$$() { console.log("Hello World!"); } // 3. Waits ($$) for the background color, width/height to finish
+  width: 100,
+  height: 100,
+  backgroundColor: "blue",
+
+  // Starts immediately: bounce in.
+  scale: { value: [0.5, 1.2, 1], steps: 24, interval: 12 },
+
+  // Waits for scale to finish, then moves right.
+  x$$: { value: [0, 180], steps: 40, interval: 8 },
+
+  // Waits for x to finish, then turns red.
+  backgroundColor$$: { value: "crimson", steps: 30, interval: 8 },
+
+  // Waits for the color change to finish.
+  done$$() {
+    console.log("Sequence complete");
+  }
 }).mount("#app");
 ```
 
