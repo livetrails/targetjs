@@ -548,7 +548,7 @@ class TargetData {
     ]);
     
     static lifecycleCoreSet = new Set([
-        'value', 'steps', 'cycles', 'enabledOn', 'loop', 'interval'
+        'value', 'steps', 'cycles', 'enabledOn', 'pauseOn', 'loop', 'interval'
     ]);    
     
     static lifecycleMethodSet = new Set([
