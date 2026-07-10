@@ -7,7 +7,7 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a JavaScript UI framework that replaces the "State → Render" model with "State → Transition → Render". It also lets code order directly define the UI sequence. It unifies UI, animations, API calls, event handling, and state into self-contained "Targets" that stack together like intelligent Lego pieces using Code-Ordered Reactivity.
+TargetJS is a JavaScript UI framework that replaces the "State → Render" model with "State → Transition → Render". It also lets code order directly define the UI sequence. It unifies UI, animations, API calls, event handling, and state into self-contained "Targets" that stack together like Lego pieces using Code-Ordered Reactivity.
 
 It can be used as a full-featured framework or as a lightweight library alongside other frameworks. It is also a highly performant web framework, as shown in the [framework benchmark](https://krausest.github.io/js-framework-benchmark/current.html).
 
@@ -54,19 +54,31 @@ With its compact style, TargetJS makes the journey from A → B explicit and eff
 npm install targetj
 ```
 
-**2. The "Hello World" Sequence**
+**2. Example**
 
-This creates a blue box that grows, then turns red, and then logs "Hello World" in order.
+This creates the following sequence: appear → bounce → move → turn red → log
 
 ```javascript
 import { App } from "targetj";
 
 App({
-  backgroundColor: 'blue', // Starts immediately
-  width: { value: [100, 200], steps: 100, interval: 8 }, // Starts immediately: animate width from 100px to 200px in 100 steps with 8 ms interval per step.
-  height: { value: [100, 200], steps: 100, interval: 8 }, // Starts immediately: animate height.
-  backgroundColor$$: { value: 'red', steps: 100, interval: 8 }, // Wait ($$) for width/height to finish
-  done$$() { console.log("Hello World!"); } // 3. Waits ($$) for the background color, width/height to finish
+  width: 100,
+  height: 100,
+  backgroundColor: "blue",
+
+  // Starts immediately: bounce in.
+  scale: { value: [0.5, 1.2, 1], steps: 24, interval: 12 },
+
+  // Waits for scale to finish, then moves right.
+  x$$: { value: [0, 180], steps: 40, interval: 8 },
+
+  // Waits for x to finish, then turns red.
+  backgroundColor$$: { value: "crimson", steps: 30, interval: 8 },
+
+  // Waits for the color change to finish.
+  done$$() {
+    console.log("Sequence complete");
+  }
 }).mount("#app");
 ```
 
@@ -80,11 +92,12 @@ Methods and properties both are internally transformed into targets that the fra
 A target can:
 - execute a method
 - hold a value
-- move toward that value over time
-- wait for previous targets
+- move toward a new value over time
+- pause while moving toward a value
+- wait for previous targets to complete
 - react when previous targets update
 - fetch data
-- react to an event
+- respond to events
 - create children
 - run callbacks
 - control its own lifecycle
@@ -101,13 +114,13 @@ A target can also be defined as an object with optional controls that manage its
 | `steps` | Turns a value change into an animation. |
 | `interval` | Delay (ms) between steps or executions. |
 | `cycles` | Number of times the target repeats. |
-| `loop` | Boolean form of repetition for continuous execution. |
+| `loop` | Controls repetition, either actively for continuous execution or passively when the value changes. |
 | `active` | Boolean property controlling when `value` is executed. |
 | `enabledOn` | Determines whether the target is enabled for execution. |
+| `pauseOn` | Pauses execution while the target is in progress. |
 | `easing` | Predefined easing function controlling how values update over steps. |
 | `onComplete` | Callback triggered when this target (and its children) finishes. |
 | `onValueChange` | Callback triggered when the target emits a new value. |
-| `onChange` | Callback triggered when the target emits a new value. |
 | `on<PropertyName>Step` | Callback triggered on every step of a specific property. |
 
 ### Compact Execution Syntax
@@ -399,13 +412,13 @@ In this advanced example, we implement an infinite-scrolling application.
 
 * `photo` and `userName` each add a `div` element inside every item, serving as placeholders for the photo and user name.
 
-* `pause$$` delays the execution of all targets that follow it by 100 ms.
+* `pause$$` delays the execution of all targets that follow it by 300 ms. It also has `pauseOn: 'hidden'`, which means the delay is paused if the item becomes invisible, such as when the user scrolls down quickly. This also puts all following `$$` targets on hold, so `fetch$$` will not execute until the item becomes visible again.
 
 * `fetch$$` retrieves the user’s details.
 
 * `reveal$$` executes after `fetch$$`, revealing the user name and populating the photo with a random color.
 
-* `wave$$` executes only after all preceding children have completed their targets, giving each user item a coordinated animation.
+* `wave` executes when all visible children have completed their targets or when scrolling ends, giving each user item a coordinated animation.
 
 TargetJS employs a tree-like structure to track visible branches, optimizing scroller performance.
 
@@ -421,61 +434,88 @@ import { App, getEvents, getScreenWidth, getScreenHeight } from "targetj";
 
 App({
   preventDefault: true,
-  width: 250,
+  width: 300,
   height() { return getScreenHeight(); },
   x() { return (getScreenWidth() - this.getWidth()) / 2; },
   containerOverflowMode: "always",
+  canDeleteDom: false,
+  overflow: 'scroll',
+  onWindowScroll: true,
   addChildren: {
-    waitForChildren: 'visible',
-    value() {
-      return Array.from({ length: 10 }, (_, i) => ({
-        height: 56,
-        width() { return this.parent.getWidth(); },
-        bottomMargin: 8,
-        borderRadius: 12,
-        backgroundColor: "white",
-        boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
-        photo: {
-          x: 10, y: 10, width: 34, height: 34,
-          borderRadius: "50%",
-          backgroundColor: "#ddd"
-        },
-        userName: {
-          x: 60, y: 10, width: 180, height: 30,
-          overflow: "hidden",
-          borderRadius: 5,
-          backgroundColor: "#ddd"
-        },
-        pause$$: { interval: 100 },
-        fetch$$: "https://targetjs.io/api/randomUser",
-        reveal$$() {
-          const userName = this.getChild("userName");
-          userName.setTarget("html", this.val("fetch$$").name);
-          userName.setTarget("backgroundColor", { value: "white", steps: 20 });
-          this.getChild("photo").setTarget("backgroundColor", { value: "#" + Math.random().toString(16).slice(-6), steps: 20 });
-        },
-      }));
-    }
+      value() {
+          return Array.from({length: 10}, (_, i) => ({
+              height: 56,
+              width() { return this.parent.getWidth() - 30; },
+              bottomMargin: 8,
+              borderRadius: 12,
+              backgroundColor: 'white',
+              boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+              pause: { 
+                  interval() { return getEvents().isWindowScrolling() ? 600 : 0; },
+                  pauseOn: 'hidden'
+              },
+              photo$$: {
+                  x: 10,
+                  y: 10,
+                  width:34,
+                  height:34,
+                  borderRadius: '50%',
+                  backgroundColor: '#ddd'
+              },
+              userName$$: {
+                  x: 60,
+                  y: 10,
+                  width: 180,
+                  height: 30,
+                  overflow: 'hidden',
+                  borderRadius: 5,
+                  backgroundColor: '#ddd'
+              },
+              pause$$: { 
+                  interval: 300,
+                  pauseOn: 'hidden'
+              },
+              fetch$$: "https://targetjs.io/api/randomUser",
+              reveal$$() {
+                  const userName = this.getChild('userName$$');
+                  userName.setTarget('html', this.val('fetch$$').name);
+                  userName.setTarget('backgroundColor', { value: 'white', steps: 20 });
+                  this.getChild('photo$$').setTarget('backgroundColor', { value: '#' + Math.random().toString(16).slice(-6), steps: 20 });
+              }
+          }));
+      },
+      onVisibleComplete() {
+          if (!getEvents().isWindowScrolling()) {
+              this.activateTarget('wave');
+          }
+      }
   },
-  wave$$: {
-    interval: 30,
-    cycles() { return this.visibleChildren.length; },
-    value(i) {
-      const child = this.visibleChildren[i];
-      if (child) {
-        child.setTarget("scale", { value: [1, 1.06, 1], steps: 18 });
-        child.setTarget("opacity", { value: [1, 0.92, 1], steps: 18 });
-      }  
-    }
+  onWindowScrollTopEnd() {
+      if (this.isTargetVisibleTreeComplete('addChildren')) {
+          this.activateTarget('wave');
+      }
   },
-  onScroll() {
-    this.setTarget("scrollTop", Math.max(0, this.getScrollTop() + getEvents().deltaY()));
+  wave: {
+      active: false,
+      interval: 30,
+      cycles() { return this.visibleChildren.length; },
+      value(i) {
+          const child = this.visibleChildren[i];
+          if (child) {
+              child.setTarget("scale", { value: [1, 1.06, 1], steps: 18 });
+              child.setTarget("opacity", { value: [1, 0.7, 1], steps: 18 });
+          }
+      }
   },
   onVisibleChildrenChange() {
-    const visibleCount = this.visibleChildren.length;
-    if (getEvents().dir() !== "up" && visibleCount * 64 < this.getHeight()) {
-      this.activateTarget("addChildren");
-    }
+      if (!this.visibleChildren.length) {
+          return this.activateTarget("addChildren");
+      }
+      const scrollTop = this.$dom?.getScrollTop() ?? 0;
+      const lastY = this.getLastChild().getY() - scrollTop - 500;
+      if (lastY <= this.getHeight()) {
+          this.activateTarget("addChildren");
+      }
   }
 }).mount("#userList");
 ```
