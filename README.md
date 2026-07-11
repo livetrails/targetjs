@@ -56,7 +56,7 @@ npm install targetj
 
 **2. Example**
 
-This creates the following sequence: appear → bounce → move → turn red → log
+This creates the following sequence: appear → bounce → move → turn red → log. Notice how the code follows the UI sequence. There is only one state, and the animation transitions are part of that state.
 
 ```javascript
 import { App } from "targetj";
