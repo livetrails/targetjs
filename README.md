@@ -40,11 +40,11 @@ With its compact style, TargetJS makes the journey from A → B explicit and eff
 
 ## 🚀 Why TargetJS?
 
-1. Unified State: State isn't "elsewhere". It is built into every Target.
-2. Animation by Default: High-performance animations are baked into the logic.
-3. Ultra-Compact: Write 30% to 70% less code than standard frameworks.
-4. UI as Sequence: Code describes the UI story from top to bottom, exactly how the user experiences the interaction: "When this finishes, do that."
-5. Zero Boilerplate Async: Targets can handle waiting for asynchronous operations automatically.
+1. Unified State: One single state. Transitions are state too.
+1. UI as Sequence: Code describes the UI story from top to bottom, just like the user experiences the interaction: "When this finishes, do that."
+1. Ultra-Compact: Minimal code, with no coordination variables.
+1. Zero Boilerplate Async: Targets handle waiting for nested asynchronous operations automatically.
+1. Animation by Default: High-performance animations are baked into the logic.
 
 ## ⚡ Quick Start (30 Seconds)
 
@@ -56,7 +56,7 @@ npm install targetj
 
 **2. Example**
 
-This creates the following sequence: appear → bounce → move → turn red → log
+This creates the following sequential sequence: appear → bounce → move → turn red → log. Notice how the code follows the UI sequence. There is only one state, and the animation transitions are part of that state.
 
 ```javascript
 import { App } from "targetj";
@@ -235,7 +235,7 @@ App({
 
 ### Summary
 
-Each target has its own state and lifecycle. Targets execute automatically in the order they are written. `$$` defers execution until all prior sibling targets (including their children) are fully complete. Animations, API calls, event handling, and child creation are all treated uniformly as targets. Complex asynchronous flows can be structured by organizing work into parent and child targets. In addition, targets provide built-in capabilities such as `onComplete` callbacks, `enabledOn`, looping with delays, and more. This also makes the code more compact, as it avoids using extra variables to track progress and reduces the need for loops and conditional statements.
+Each target has its own state and lifecycle. Targets execute automatically in the order they are written. `$$` defers execution until all prior sibling targets (including their children) are fully complete. Animations, API calls, event handling, and child creation are all treated uniformly as targets. Complex asynchronous flows can be structured by organizing work into parent and child targets. In addition, targets provide built-in capabilities such as `onComplete` callbacks, `pauseOn`, `enabledOn`, looping with delays, and more. This also makes the code more compact, as it avoids using extra variables to track progress and reduces the need for loops and conditional statements.
 
 ---
 
