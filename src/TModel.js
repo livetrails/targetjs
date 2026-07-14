@@ -530,7 +530,7 @@ class TModel extends BaseModel {
         return domParent ? domParent.$dom : null;
     }
 
-    bug() {
+    debug() {
         return [
             { visible: this.isVisible() },
             { visibilityStatus: this.visibilityStatus },
@@ -539,6 +539,7 @@ class TModel extends BaseModel {
             { y: this.getY() },
             { width: this.getWidth() },
             { height: this.getHeight() },
+            { tmodelComplete: TargetUtil.isTModelComplete(this) },
             { targets: this.originalTargetNames },
             { activeTargetList: this.activeTargetList },
             { updatingTargetList: this.updatingTargetList },
@@ -547,6 +548,10 @@ class TModel extends BaseModel {
             { pendingTargets: [ ...(this.pendingTargets ? [ ...this.pendingTargets ] : []) ] },
             { styleTargetMap: [ ...(this.styleTargetMap ? [ ...this.styleTargetMap.keys() ] : []) ] },
             { passiveTargetList: this.passiveTargetList },
+            { incompleteTargets: Object.keys(this.targetValues)
+                    .filter(key => this.targetValues[key]?.status !== 'complete')
+                    .map(key => `${key}:${this.targetValues[key]?.status}`)
+            },
             { updatingChildren: this.updatingChildrenMap ? [ ...this.updatingChildrenMap.keys() ] : [] },
             { activeChildren: this.activeChildrenMap ? [ ...this.activeChildrenMap.keys() ] : [] },            
             { children: this.getChildren() },

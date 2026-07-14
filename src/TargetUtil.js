@@ -302,7 +302,9 @@ class TargetUtil {
 
         TargetUtil.cleanupVisibleComplete(tmodel, key);
         
-        if (tmodel.isTargetComplete(key) || !TargetUtil.isTargetFullyCompleted(tmodel, key)) {
+        const cannotBeCleaned = tmodel.isTargetComplete(key) || !TargetUtil.isTargetFullyCompleted(tmodel, key);
+        
+        if (cannotBeCleaned) {
             return false;
         }
                 
@@ -505,7 +507,7 @@ class TargetUtil {
             
             if (tmodel.isTargetTreeComplete(targetName) !== true) {
                //const activeChildrenList = [ ...TargetUtil.getActiveChildren(tmodel, tmodel.targets[targetName].completionScope).values() ];
-               //return  tmodel.oid + "." + targetName + " ==> " + tmodel.getTargetStatus(targetName) + ", " + tmodel.isTargetTreeComplete(targetName) + ":: " + activeChildrenList.map(t => t.oid + ':' + t.hasAnyUpdates()) + ", " + [ ...TargetUtil.getUpdatingChildren(tmodel, targetName, tmodel.targets[targetName].completionScope).keys() ]; 
+               //return  tmodel.oid + "." + targetName + " ==> " + tmodel.getTargetStatus(targetName) + ", " + TargetUtil.isTargetTreeComplete(tmodel, targetName) + ":: " + activeChildrenList.map(t => t.oid + ':' + t.hasAnyUpdates()) + ", " + [ ...TargetUtil.getUpdatingChildren(tmodel, targetName, tmodel.targets[targetName].completionScope).keys() ]; 
                return false;
             }         
         }

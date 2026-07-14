@@ -128,9 +128,9 @@ class AnimationManager {
                 hooks
             };    
                 
-            tmodel.addToAnimatingMap(originalKey);
             const targetValue = tmodel.targetValues[originalKey];
-            if (targetValue) {                
+            if (targetValue) {   
+                tmodel.addToAnimatingMap(originalKey);
                 targetValue.status = !targetValue.snapAnimation ? 'updating' : targetValue.status;
             }
             this.recordMap.set(recId, rec);
