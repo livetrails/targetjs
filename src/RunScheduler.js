@@ -96,6 +96,10 @@ class RunScheduler {
         this.runStartTime = TUtil.now();
 
         let handedOff = false;
+        
+        if (tApp.debugLevel === 1) {
+            TUtil.log(true)(`Request from: ${runId} delay: ${delay} runningStep:${this.runningStep} dom:${this.domProcessing} runs:${this.nextRuns.length} D:${this.delayProcess?.delay} events:${getEvents().eventQueue.length}`);
+        } 
 
         try {
             if (this.phase === 0) {

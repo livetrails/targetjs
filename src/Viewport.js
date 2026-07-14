@@ -30,16 +30,20 @@ class Viewport {
         this.time = 0;
     }
     
+    setContainer(container) {
+        this.container = container;
+    }
+    
     setCurrentChild(child) {
         this.currentChild = child;
     }
-
+    
     setLocation() {
         const child = this.currentChild;
 
         if (!child.targets['excludeXYCalc']) {
-            child.x = this.xNext + child.getLeftMargin();
-            child.y = this.yNext + child.getTopMargin();
+            child.x = this.xNext + child.getMarginLeft() + this.container.getPaddingLeft();
+            child.y = this.yNext + child.getMarginTop() + this.container.getPaddingTop();
         }
     }
     
@@ -59,10 +63,11 @@ class Viewport {
     }
 
     checkChildOverflow() {
-        const childWidth = this.currentChild.getMinWidth();
-        return this.currentChild.x + childWidth + this.currentChild.getLeftMargin() > this.xOverflowLimit;
+        const child = this.currentChild;
+        const childWidth = child.getMinWidth();
+        return this.xNext + child.getMarginLeft() + childWidth + child.getMarginRight()> this.xOverflowLimit;
     }
-
+    
     overflow() {
         this.xNext = this.scrollLeft - this.xOverflowReset;
         this.yNext = Math.max(this.currentChild.getRealParent().viewport.ySouth, this.ySouth);
@@ -72,7 +77,7 @@ class Viewport {
         const child = this.currentChild;
         const scale = child.getMeasuringScale();
         
-        let maxHeight = child.getHeight() * scale + this.currentChild.getTopMargin() + this.currentChild.getBottomMargin();
+        let maxHeight = child.getHeight() * scale + this.currentChild.getMarginTop() + this.currentChild.getMarginBottom();
 
         this.xNext = this.scrollLeft - this.xOverflowReset;
         const ySouth =  this.yNext + maxHeight + child.val('appendNewLine');
@@ -99,17 +104,17 @@ class Viewport {
         if (space === 'layout') {
             x = child.x;
             y = child.y;
-            left = x - child.getLeftMargin();
-            right = x + width + child.getRightMargin();
-            top = y - child.getTopMargin();
-            bottom = y + height + child.getBottomMargin();
+            left = x - child.getMarginLeft();
+            right = x + width + child.getMarginRight();
+            top = y - child.getMarginTop();
+            bottom = y + height + child.getMarginBottom();
         } else if (space === 'absolute') {
             x = child.absX - this.absX;
             y = child.absY - this.absY;
             left = x;
-            right = x + width + child.getRightMargin();
+            right = x + width + child.getMarginRight();
             top = y;
-            bottom = y + height + child.getBottomMargin();
+            bottom = y + height + child.getMarginBottom();
         } else {
             x = child.getX();
             y = child.getY();
@@ -120,15 +125,15 @@ class Viewport {
         }
 
         return { left, top, right, bottom };
-      }
+    }
 
     nextLocation() {
         const child = this.currentChild;
         const scale = child.getMeasuringScale();
         const topBaseHeight = child.getTopBaseHeight() * scale;
                
-        let maxHeight = child.getHeight() * scale + this.currentChild.getTopMargin() + this.currentChild.getBottomMargin();
-        let maxWidth = child.getItemOverflowMode() === 'always' && TModelUtil.isWidthDefined(this.container) ? this.container.getWidth() : child.getBaseWidth() * scale +  this.currentChild.getLeftMargin() + this.currentChild.getRightMargin();
+        let maxHeight = child.getLayoutHeight() * scale + this.currentChild.getMarginTop() + this.currentChild.getMarginBottom();
+        let maxWidth = child.getItemOverflowMode() === 'always' && TModelUtil.isWidthDefined(this.container) ? this.container.getWidth() : child.getBaseWidth() * scale +  this.currentChild.getMarginLeft() + this.currentChild.getMarginRight();
         
         if (child.type !== 'BI' && this.container.type === 'BI') {
             const layout = this.computeBoundary(child, 'layout');

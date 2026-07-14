@@ -557,7 +557,8 @@ class EventListener {
                     this.queueWindowScrollEndEvent('x', tmodel);
                     this.queueWindowScrollEndEvent('y', tmodel);
                     this.windowScrollEndTimer = 0;
-                }, 120);
+                }, 450);
+                
                 if (isWindowEvent) {
                     this.windowEpoch++;
                     this.windowScrollX = window.scrollX | 0;
@@ -568,20 +569,12 @@ class EventListener {
 
                 } else {
                     tmodel.markLayoutDirty('container-scroll-event');
-
-                    clearTimeout(tmodel.scrollEndTimer);
-
-                    tmodel.scrollEndTimer = setTimeout(() => {
-                        this.queueWindowScrollEndEvent('x', tmodel, 'container');
-                        this.queueWindowScrollEndEvent('y', tmodel, 'container');
-                        tmodel.scrollEndTimer = 0;
-                    }, 120);
                 }
 
                 break;
         }
                 
-        getRunScheduler().schedule(0, `${originalName}-${eventName}-${(event.target.tagName || '').toUpperCase()}`);        
+        getRunScheduler().schedule(0, `${tmodel?.oid}-${originalName}-${eventName}-${(event.target.tagName || '').toUpperCase()}`);        
     }
     
     queueScrollEndEvent(axis, handler) {

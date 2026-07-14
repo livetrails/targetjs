@@ -53,9 +53,11 @@ class TModel extends BaseModel {
 
     createViewport() {
         this.viewport = this.viewport || new Viewport();
-
         
-        const x = -this.getScrollLeft(), y = -this.getScrollTop();
+        const scrollTop = this.getScrollTop(); 
+        const scrollLeft = this.getScrollLeft(); 
+        
+        const x = -scrollLeft, y = -scrollTop;
         
         this.viewport.xNext = x;
         this.viewport.xNorth = x;
@@ -63,8 +65,8 @@ class TModel extends BaseModel {
         this.viewport.xSouth = x;
         this.viewport.xWest = x;
         
-        this.viewport.scrollLeft = -(this.getScrollLeft() + (this.getParent()?.$dom?.getScrollLeft() ?? 0));
-        this.viewport.scrollTop = -(this.getScrollTop() + (this.getParent()?.$dom?.getScrollTop() ?? 0));        
+        this.viewport.scrollLeft = x;
+        this.viewport.scrollTop = y;     
         
         this.viewport.absX = this.absX;
         this.viewport.absY = this.absY;
@@ -80,26 +82,16 @@ class TModel extends BaseModel {
                 
         this.calcContentWidthHeight();
         
-        this.viewport.container = this;
+        this.viewport.setContainer(this);
         
         return this.viewport;
     }
     
     calcContentWidthHeight() {
-        const contentHeight = this.viewport.ySouth - this.viewport.yNorth;
-        const contentWidth = this.viewport.xEast - this.viewport.xWest;
-        const topBaseHeight = this.viewport.yEast - this.viewport.yNorth;
-        const bottomBaseWidth = this.viewport.xSouth - this.viewport.xWest;
-        
-        if (contentHeight !== this.contentHeight
-                || this.contentWidth !== contentWidth
-                ||  this.topBaseHeight !== topBaseHeight
-                || this.bottomBaseWidth !== bottomBaseWidth) {
-            this.contentHeight = contentHeight;
-            this.topBaseHeight = topBaseHeight;
-            this.bottomBaseWidth = bottomBaseWidth;
-            this.contentWidth = contentWidth;
-       }
+        this.contentHeight = this.viewport.ySouth - this.viewport.yNorth;
+        this.contentWidth = this.viewport.xEast - this.viewport.xWest;
+        this.topBaseHeight = this.viewport.yEast - this.viewport.yNorth;
+        this.bottomBaseWidth = this.viewport.xSouth - this.viewport.xWest;
     }
     
     adjustViewport() {}    
@@ -587,7 +579,9 @@ class TModel extends BaseModel {
         }
 
         return !!this.allTargetMap['onScroll'] || !!this.allTargetMap['onScrollLeft'] || !!this.allTargetMap['onScrollTop'] 
-                || !!this.allTargetMap['onWindowScroll'];
+                || !!this.allTargetMap['onWindowScroll']
+                || (this.$dom?.getScrollTop() ?? 0) !== 0 
+                || (this.$dom?.getScrollLeft() ?? 0) !== 0;
     }
     
     calcVisibility() {
@@ -661,6 +655,39 @@ class TModel extends BaseModel {
    
     getTopBaseHeight() {
         return this.val('topBaseHeight') ?? 0;
+    }
+    
+    getLayoutHeight() {
+        let height = this.getHeight();
+
+        if (this.usesContentBoxSizing()) {
+            height += this.getPaddingTop() + this.getPaddingBottom();
+        }
+
+        return height;
+    }
+    
+    getLayoutWidth() {
+        let width = this.getWidth();
+
+        if (this.usesContentBoxSizing()) {
+            width += this.getPaddingLeft() + this.getPaddingRight();
+        }
+
+        return width;
+    }
+    
+    usesContentBoxSizing() {
+        return this.getBoxSizing() !== "border-box";
+    }
+    
+    getBoxSizing() {
+        return (
+            this.val("boxSizing") ??
+            this.val("box-sizing") ??
+            this.getParentValue("boxSizing") ??
+            "content-box"
+        );
     }
 
     getContainerOverflowMode() {
@@ -840,20 +867,40 @@ class TModel extends BaseModel {
         return this.val('zIndex');
     }    
 
-    getTopMargin() {
-        return this.val('topMargin');
+    getMarginTop() {
+        return this.val("marginTop") ?? this.val("topMargin") ?? TModelUtil.getMarginValue(this, "top");
     }
 
-    getLeftMargin() {
-        return this.val('leftMargin');
+    getMarginLeft() {
+        return this.val("marginLeft") ?? this.val("leftMargin") ?? TModelUtil.getMarginValue(this, "left");
     }
 
-    getRightMargin() {
-        return this.val('rightMargin') + (this.getParentValue('gap') ?? 0);
+    getMarginRight() {
+        const margin = this.val("marginRight") ?? this.val("rightMargin") ?? TModelUtil.getMarginValue(this, "right");
+
+        return margin + (this.getParentValue("gap") ?? 0);
     }
 
-    getBottomMargin() {
-        return this.val('bottomMargin') + (this.getParentValue('gap') ?? 0);
+    getMarginBottom() {
+        const margin = this.val("marginBottom") ?? this.val("bottomMargin") ?? TModelUtil.getMarginValue(this, "bottom");
+
+        return margin + (this.getParentValue("gap") ?? 0);
+    }
+
+    getPaddingTop() {
+        return this.val("paddingTop") ?? this.val("topPadding") ?? TModelUtil.getPaddingValue(this, "top");
+    }
+
+    getPaddingLeft() {
+        return this.val("paddingLeft") ?? this.val("leftPadding") ?? TModelUtil.getPaddingValue(this, "left");
+    }
+
+    getPaddingRight() {
+        return this.val("paddingRight") ?? this.val("rightPadding") ?? TModelUtil.getPaddingValue(this, "right");
+    }
+
+    getPaddingBottom() {
+        return this.val("paddingBottom") ?? this.val("bottomPadding") ?? TModelUtil.getPaddingValue(this, "bottom");
     }
 
     getWidth() {

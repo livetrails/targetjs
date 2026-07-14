@@ -11,6 +11,58 @@ import { Easing } from "./Easing.js";
  * It provides helper functions for TModel.
  */
 class TModelUtil {
+    
+    static getMarginValue(tmodel, side) {
+        const margin = tmodel.val("margin");
+
+        if (typeof margin === "number") {
+            return margin;
+        }
+
+        if (Array.isArray(margin)) {
+            if (margin.length === 2) {
+                const [vertical, horizontal] = margin;
+                return side === "top" || side === "bottom" ? vertical : horizontal;
+            }
+
+            if (margin.length === 4) {
+                const [top, right, bottom, left] = margin;
+
+                if (side === "top") { return top; }
+                if (side === "right") { return right; }
+                if (side === "bottom") { return bottom; }
+                if (side === "left") { return left; }
+            }
+        }
+
+        return 0;
+    }
+
+    static getPaddingValue(tmodel, side) {
+        const padding = tmodel.val("padding");
+
+        if (typeof padding === "number") {
+            return padding;
+        }
+
+        if (Array.isArray(padding)) {
+            if (padding.length === 2) {
+                const [vertical, horizontal] = padding;
+                return side === "top" || side === "bottom" ? vertical : horizontal;
+            }
+
+            if (padding.length === 4) {
+                const [top, right, bottom, left] = padding;
+
+                if (side === "top") { return top; }
+                if (side === "right") { return right; }
+                if (side === "bottom") { return bottom; }
+                if (side === "left") { return left; }
+            }
+        }
+
+        return 0;
+    }
 
     static shouldMeasureHeightFromDom(tmodel) {
         if (tmodel.val('heightFromDom') === false) {
