@@ -569,7 +569,7 @@ TargetJS.tApp.throttle = 0; // Slow down execution (milliseconds between cycles)
 TargetJS.tApp.debugLevel = 1; // Log cycle execution
 ```
 - Use `t(id)` in the browser console to find an object by its element id.
-- Use `t(id).bug()` to inspect all the vital properties.
+- Use `t(id).debug()` to inspect all the vital properties.
 - Use `t(id).logTree()` to inspect the UI structure.
 
 ## Documentation
