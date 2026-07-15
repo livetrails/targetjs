@@ -33,6 +33,7 @@ class TModelManager {
         this.preservedDomMap = {};
         this.targetMethodMap = {};
         this.noDomMap = {};
+        this.domPolicyMap = new Map();
     }
 
     clearFrameLists() {
@@ -55,7 +56,8 @@ class TModelManager {
         this.visibleOidMap = {};
         this.preservedDomMap = {};
         this.clearFrameLists();
-        this.deleteDoms();     
+        this.deleteDoms();   
+        this.domPolicyMap.clear();  
     }
 
     analyze() {
@@ -160,15 +162,13 @@ class TModelManager {
 
             }
 
-            if (visible || tmodel.requiresDom()) {
-                if (tmodel.canHaveDom() && !tmodel.hasDom() && tmodel.isIncluded() && !this.noDomMap[tmodel.oid]) {
-                    if (tmodel.getDomHolder()?.exists() || this.noDomMap[tmodel.getDomParent()?.oid]) {
-                        this.lists.noDom.push(tmodel);
-                        this.noDomMap[tmodel.oid] = true;
-                    } else {
-                        tmodel.markLayoutDirty('noDomHolder');
-                    }
-                } 
+            if (this.shouldCreateDom(tmodel, visible) && !this.noDomMap[tmodel.oid]) {
+                if (tmodel.getDomHolder()?.exists() || this.noDomMap[tmodel.getDomParent()?.oid]) {
+                    this.lists.noDom.push(tmodel);
+                    this.noDomMap[tmodel.oid] = true;
+                } else {
+                    tmodel.markLayoutDirty('noDomHolder');
+                }
             }
         }
         
@@ -197,6 +197,10 @@ class TModelManager {
             return false;
         }
         
+        if (this.getDomPolicy(tmodel) === "keep") {
+            return true;
+        }
+        
         if (!tmodel.isVisible() && TUtil.isDefined(tmodel.targets.isVisible)) {
             return false;
         }
@@ -219,6 +223,44 @@ class TModelManager {
         return false;
     }
     
+    shouldCreateDom(tmodel, visible) {
+        if (!tmodel.canHaveDom() || !tmodel.isIncluded() || tmodel.hasDom()) {
+            return false;
+        }
+
+        if (visible) {
+            return true;
+        }
+
+        if (tmodel.requiresDom()) {
+            return true;
+        }
+
+        return this.getDomPolicy(tmodel) === "keep";
+    }
+
+    getDomPolicy(tmodel) {
+        if (this.domPolicyMap.has(tmodel.oid)) {
+            return this.domPolicyMap.get(tmodel.oid);
+        }
+
+        let current = tmodel;
+
+        while (current && current !== tRoot()) {
+            const policy = current.val("domPolicy");
+
+            if (TUtil.isDefined(policy)) {
+                this.domPolicyMap.set(tmodel.oid, policy);
+                return policy;
+            }
+
+            current = current.parent;
+        }
+
+        this.domPolicyMap.set(tmodel.oid, "auto");
+        return "auto";
+    }
+
     isBracketVisible(tmodel) {
         tmodel = tmodel.bracket;
         

@@ -830,9 +830,7 @@ class BaseModel {
         
         for (const [key] of this.animatingMap) {
             if (this.targetValues[key]) {
-                this.targetValues[key].status = 'done';
-                this.removeFromUpdatingTargets(key);
-                this.removeFromActiveTargets(key);
+                this.addTargetToStatusList(key);
             }
         }
         

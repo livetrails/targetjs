@@ -228,13 +228,17 @@ class TargetManager {
         const valuePointer = tmodel.getValueListPointer(key);
         const cycle = tmodel.getTargetCycle(key);
         const cycles = tmodel.getTargetCycles(key);
+        const step = tmodel.getTargetStep(key);
+        const steps = tmodel.getTargetSteps(key);
         
         if (Array.isArray(targetValue.valueList) && valuePointer < targetValue.valueList.length) {
             return 'updating';
         } else if (tmodel.isTargetImperative(key) && cycle < cycles - 1) { 
             return 'updating';
+       } else if (step < steps) {
+            return 'updating';            
         } else if (tmodel.isTargetInLoop(key) || cycle < cycles - 1) {
-            return 'active';           
+            return 'active';  
         } else {
             return 'done';
         }
