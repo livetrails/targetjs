@@ -347,7 +347,6 @@ class BaseModel {
 
         if (this.hasDom()) {
             getEvents().attachEvents([this]);
-
         }
 
         getRunScheduler()?.schedule(1, 'addTargets-' + this.oid);

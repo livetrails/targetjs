@@ -204,7 +204,7 @@ class TargetExecutor {
     static assignListTarget(tmodel, key, targetValue, valueList, initialValue, steps, interval, easing, cycles) {
         targetValue.valueList = valueList;
         
-        targetValue.stepList = Array.isArray(steps) ? steps : (TUtil.isDefined(steps) && steps > 0 ? [steps] : [1]);
+        targetValue.stepList = Array.isArray(steps) ? steps : (TUtil.isDefined(steps) ? [steps] : [1]);
         targetValue.intervalList = Array.isArray(interval) ? interval : (TUtil.isDefined(interval) ? [interval || 8] : [8]);
         targetValue.easingList = Array.isArray(easing) ? easing : (TUtil.isDefined(easing) ? [easing] : [Easing.LINEAR]);
 
@@ -246,8 +246,17 @@ class TargetExecutor {
 
     static snapActualToTarget(tmodel, key) {
         const targetValue = tmodel.targetValues[key];
-        const value = targetValue.value;
-        const newValue = typeof value === 'function' ? value.call(tmodel) : value;
+
+        let newValue;
+
+        if (Array.isArray(targetValue.valueList)) {
+            targetValue.valuePointer = targetValue.valueList.length - 1;
+            newValue = targetValue.valueList[targetValue.valuePointer];
+            targetValue.value = newValue;
+        } else {
+            const value = targetValue.value;
+            newValue = typeof value === "function" ? value.call(tmodel) : value;
+        }
 
         if (tmodel.val(key) === newValue) {
             return;

@@ -543,7 +543,7 @@ class TargetData {
     ]);
 
     static lifecycleCallbackSet = new Set([
-        'onComplete', 'onValueChange', 'onImperativeEnd', 'onImperativeStep', 'onStepsEnd',
+        'onComplete', 'onVisibleComplete', 'onValueChange', 'onImperativeEnd', 'onImperativeStep', 'onStepsEnd',
         'onSuccess', 'onError'
     ]);
     

@@ -179,10 +179,10 @@ class TargetUtil {
         if (nextTarget) {
 
             if (isEndTrigger) {
-                const triggeredByCompleteCount = tmodel.targetValues[nextTarget]?.triggeredByCompleteCount ?? 0;
-                if (targetValue.completeCount > triggeredByCompleteCount) {
+                const lastTriggeredCount = TargetUtil.getTriggeredByCompleteCount(tmodel, nextTarget, key);
+                if (targetValue.completeCount > lastTriggeredCount) {
                     canActivate = true;
-                }
+                }    
             } else {
                 const nextTargetUpdateCount = targetValue.nextTargetUpdateCount ?? 0;
                 canActivate = targetValue.updateCount > nextTargetUpdateCount;
@@ -196,10 +196,11 @@ class TargetUtil {
                 if (fetchAction) {
                     if (isEndTrigger) {
                         if (prevOk === true) {  
-                            TargetUtil.activateTargetOnce(tmodel, nextTarget);
-                            nextTargetActivated = true;
-                            TargetUtil.clearPendingTargetsForNextTarget(tmodel, nextTarget);
-                            tmodel.targetValues[nextTarget].triggeredByCompleteCount = targetValue.completeCount;
+                            const activated = TargetUtil.activateTargetOnce(tmodel, nextTarget);
+                            if (activated) {
+                                nextTargetActivated = true;
+                                TargetUtil.clearPendingTargetsForNextTarget(tmodel, nextTarget);
+                            }
                         } else {
                             TargetUtil.markPendingTargets(tmodel, key);
                         }
@@ -220,7 +221,6 @@ class TargetUtil {
                         TargetUtil.activateTarget(tmodel, nextTarget);
                         nextTargetActivated = true;
                         TargetUtil.clearPendingTargetsForNextTarget(tmodel, nextTarget);
-                        tmodel.targetValues[nextTarget].triggeredByCompleteCount = targetValue.completeCount;
                     } else {
                         TargetUtil.markPendingTargets(tmodel, key);
                     }
@@ -240,11 +240,17 @@ class TargetUtil {
         if (nextTargetActivated) {
             if (!isEndTrigger) {
                 targetValue.nextTargetUpdateCount = targetValue.updateCount;
+            } else {
+                TargetUtil.setTriggeredByCompleteCount(tmodel, nextTarget, key, targetValue.completeCount);
             }
         }
         
-        const nextTargetCompleteCount = nextTarget ? (tmodel.targetValues[nextTarget]?.completeCount ?? 0) : 0;
-        const caughtUp = isEndTrigger ? (targetValue.completeCount <= nextTargetCompleteCount) : false;
+        let caughtUp = false;
+
+        if (isEndTrigger && nextTarget) {
+            const lastTriggeredCount = TargetUtil.getTriggeredByCompleteCount(tmodel, nextTarget, key);
+            caughtUp = targetValue.completeCount <= lastTriggeredCount;
+        }
 
         if (!nextTargetActivated && isCompleteMode) {
             if (nextTarget && caughtUp && !fetchAction) {
@@ -263,7 +269,9 @@ class TargetUtil {
     }
 
     static markPendingTargets(tmodel, key) {
-        (tmodel.pendingTargets ||= new Set()).add(key);
+        if (!tmodel.isTargetComplete(key)) {
+            (tmodel.pendingTargets ||= new Set()).add(key);
+        }
     }
 
     static clearPendingTarget(tmodel, key) {
@@ -305,10 +313,12 @@ class TargetUtil {
         const cannotBeCleaned = tmodel.isTargetComplete(key) || !TargetUtil.isTargetFullyCompleted(tmodel, key);
         
         if (cannotBeCleaned) {
+            TargetUtil.markPendingTargets(tmodel, key);
             return false;
         }
                 
         tmodel.setTargetComplete(key);
+        TargetUtil.clearPendingTarget(tmodel, key);
         const target = tmodel.targets[key];
        
         if (typeof target?.onComplete === "function") {
@@ -405,6 +415,18 @@ class TargetUtil {
         }
     }
     
+    static getTriggeredByCompleteCount(tmodel, nextTarget, key) {
+        return tmodel.targetValues[nextTarget]?.triggeredByCompleteCountMap?.get(key) ?? 0;
+    }
+
+    static setTriggeredByCompleteCount(tmodel, nextTarget, key, count) {
+        const nextTargetValue = tmodel.targetValues[nextTarget] ||= TargetUtil.emptyValue();
+
+        const triggeredByMap = nextTargetValue.triggeredByCompleteCountMap ||= new Map();
+
+        triggeredByMap.set(key, count);
+    }
+    
     static activateTargetOnce(tmodel, nextTarget) {        
         const nextTargetValue = (tmodel.targetValues[nextTarget] ||= TargetUtil.emptyValue());
         const last = nextTargetValue.activationTime ?? 0;
@@ -414,6 +436,8 @@ class TargetUtil {
 
         nextTargetValue.activationTime = tmodel.getLastUpdate(nextTarget) + 0.001;
         tmodel.activateTarget(nextTarget);
+        
+        return true;
     }
 
     static activateTarget(tmodel, key) {
@@ -899,12 +923,32 @@ class TargetUtil {
         }
     }
     
+    static clearTriggeredByCompleteCount(tmodel, nextTarget, key) {
+        const nextTargetValue = tmodel.targetValues[nextTarget];
+        const map = nextTargetValue?.triggeredByCompleteCountMap;
+
+        if (!map) {
+            return;
+        }
+
+        map.delete(key);
+
+        if (map.size === 0) {
+            nextTargetValue.triggeredByCompleteCountMap = undefined;
+        }
+    }
+
     static resetSingleTargetState(tmodel, key) {
         const targetValue = tmodel.targetValues[key];
+        const nextTarget = tmodel.targets[key]?.activateNextTarget;
 
+        if (nextTarget?.endsWith("$$")) {
+            TargetUtil.clearTriggeredByCompleteCount(tmodel, nextTarget, key);
+        }
+        
         if (targetValue) {
             targetValue.completeCount = 0;
-            targetValue.triggeredByCompleteCount = 0;
+            targetValue.triggeredByCompleteCountMap = undefined;
             targetValue.resetFlag = true;
             targetValue.nextTargetUpdateCount = 0;
             targetValue.visibleCompleteSignature = undefined;
