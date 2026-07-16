@@ -486,15 +486,22 @@ class TargetData {
         onVisible: tmodel => tmodel.isNowVisible,
         onInVisible: tmodel => tmodel.isNowInvisible,
         onResize: tmodel => {
-            const lastUpdate = tmodel.getDimLastUpdate();
-            if (!lastUpdate) {
-                return false;
-            }
             const parent = tmodel.getParent();
             const resizeLast = getResizeLastUpdate();
             const parentLast = parent ? parent.getDimLastUpdate() : 0;
-            const resizeLastUpdate = parentLast > resizeLast ? parentLast : resizeLast;       
-            return resizeLastUpdate > lastUpdate;            
+            const resizeLastUpdate = Math.max(resizeLast, parentLast);
+
+            if (!resizeLastUpdate) {
+                return false;
+            }
+
+            if ((tmodel.lastResizeHandledTime ?? 0) >= resizeLastUpdate) {
+                return false;
+            }
+
+            tmodel.lastResizeHandledTime = resizeLastUpdate;
+
+            return true;
         }
     };
 

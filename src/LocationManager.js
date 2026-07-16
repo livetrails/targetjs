@@ -563,10 +563,8 @@ class LocationManager {
 
     runEventTargets(tmodel, eventTargets) {
         
-        eventTargets.forEach(targetName => {
-            const target = tmodel.targets[targetName];
-                        
-            if (tmodel.isTargetEnabled(targetName) && !tmodel.isTargetUpdating(target)) {
+        eventTargets.forEach(targetName => {                        
+            if (tmodel.isTargetEnabled(targetName) && !tmodel.isTargetUpdating(targetName)) {
                 if (tmodel.targetValues[targetName]) {
                     tmodel.targetValues[targetName].status = '';
                 }              
