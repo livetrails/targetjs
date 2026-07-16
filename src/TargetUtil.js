@@ -269,9 +269,7 @@ class TargetUtil {
     }
 
     static markPendingTargets(tmodel, key) {
-        if (!tmodel.isTargetComplete(key)) {
-            (tmodel.pendingTargets ||= new Set()).add(key);
-        }
+        (tmodel.pendingTargets ||= new Set()).add(key);
     }
 
     static clearPendingTarget(tmodel, key) {
@@ -307,41 +305,39 @@ class TargetUtil {
     }   
 
     static cleanupTarget(tmodel, key) {
-
         TargetUtil.cleanupVisibleComplete(tmodel, key);
-        
+
         const cannotBeCleaned = tmodel.isTargetComplete(key) || !TargetUtil.isTargetFullyCompleted(tmodel, key);
-        
+
         if (cannotBeCleaned) {
-            TargetUtil.markPendingTargets(tmodel, key);
             return false;
         }
-                
+
         tmodel.setTargetComplete(key);
-        TargetUtil.clearPendingTarget(tmodel, key);
+
         const target = tmodel.targets[key];
-       
+
         if (typeof target?.onComplete === "function") {
             target.onComplete.call(tmodel);
             tmodel.setTargetMethodName(key, "onComplete");
         }
-        
+
         const fetchAction = target?.fetchAction;
-        
+
         if (fetchAction && getLoader().isLoadingSuccessful(tmodel, key)) {
             const index = tmodel.fetchActionTargetList.indexOf(key);
             if (index >= 0) {
                 tmodel.fetchActionTargetList.splice(index, 1);
-            }           
-                
+            }
+
             target.fetchAction = false;
-        } 
-        
+        }
+
         TargetUtil.bubbleInvokerCompletion(tmodel, key);
-        
+
         return true;
     }
-    
+
     static cleanupVisibleComplete(tmodel, key, target = tmodel.targets[key]) {
         if (!target || typeof target.onVisibleComplete !== "function") {
             return false;
@@ -481,6 +477,153 @@ class TargetUtil {
             && !getManager().needsReattach(tmodel);
     }
     
+    static getCompletionBlockers(tmodel, completionScope = "all") {
+        const state = tmodel.state();
+        const blockers = [];
+
+        const add = (name, value) => {
+            if (!value) {
+                return;
+            }
+
+            blockers.push({ name, value });
+        };
+
+        const list = value => {
+            if (!value) {
+                return [];
+            }
+
+            if (value instanceof Set) {
+                return [...value];
+            }
+
+            if (value instanceof Map) {
+                return [...value.keys()];
+            }
+
+            if (Array.isArray(value)) {
+                return value;
+            }
+
+            return [value];
+        };
+
+        if (completionScope === "visible") {
+            if (TargetUtil.shouldIgnoreChildForCompletion(tmodel, "visible")) {
+                return [];
+            }
+
+            const updatingChildren =
+                TargetUtil.getUpdatingChildren(tmodel, undefined, "visible");
+
+            const activeChildren =
+                TargetUtil.getActiveChildren(tmodel, "visible");
+
+            add("updatingTargetList", list(state.updatingTargetList));
+            add("activeTargetList", list(state.activeTargetList));
+            add("activatedTargets", list(state.activatedTargets));
+
+            add(
+                "animatingTargets",
+                tmodel.hasAnimatingTargets()
+                    ? list(tmodel.animatingMap)
+                    : []
+            );
+
+            add(
+                "fetching",
+                !TargetUtil.isFetchingComplete(tmodel)
+                    ? true
+                    : false
+            );
+
+            add("updatingChildren", [...updatingChildren.keys()]);
+            add("activeChildren", [...activeChildren.keys()]);
+
+            add("deletedChildren", list(state.lastChildrenUpdate?.deletions));
+            add("addedChildren", list(state.lastChildrenUpdate?.additions));
+
+            add("noDomUpdatingTargets", list(tmodel.noDomUpdatingTargets));
+            add("pendingTargets", list(tmodel.pendingTargets));
+
+            add(
+                "needsReattach",
+                getManager().needsReattach(tmodel)
+                    ? true
+                    : false
+            );
+
+            return blockers.filter(blocker => {
+                if (Array.isArray(blocker.value)) {
+                    return blocker.value.length > 0;
+                }
+
+                return !!blocker.value;
+            });
+        }
+
+        add("updatingTargetList", list(state.updatingTargetList));
+        add("activeTargetList", list(state.activeTargetList));
+        add("activatedTargets", list(state.activatedTargets));
+
+        add(
+            "animatingTargets",
+            tmodel.hasAnimatingTargets()
+                ? list(tmodel.animatingMap)
+                : []
+        );
+
+        add(
+            "fetching",
+            !TargetUtil.isFetchingComplete(tmodel)
+                ? true
+                : false
+        );
+
+        add(
+            "animatingChildren",
+            tmodel.hasAnimatingChildren()
+                ? true
+                : false
+        );
+
+        add(
+            "updatingChildren",
+            tmodel.hasUpdatingChildren()
+                ? list(tmodel.updatingChildrenMap)
+                : []
+        );
+
+        add(
+            "activeChildren",
+            tmodel.hasActiveChildren()
+                ? list(tmodel.activeChildrenMap)
+                : []
+        );
+
+        add("deletedChildren", list(state.lastChildrenUpdate?.deletions));
+        add("addedChildren", list(state.lastChildrenUpdate?.additions));
+
+        add("noDomUpdatingTargets", list(tmodel.noDomUpdatingTargets));
+        add("pendingTargets", list(tmodel.pendingTargets));
+
+        add(
+            "needsReattach",
+            getManager().needsReattach(tmodel)
+                ? true
+                : false
+        );
+
+        return blockers.filter(blocker => {
+            if (Array.isArray(blocker.value)) {
+                return blocker.value.length > 0;
+            }
+
+            return !!blocker.value;
+        });
+    }
+
     static isFetchingComplete(tmodel) {
         const state = tmodel.state();
 
