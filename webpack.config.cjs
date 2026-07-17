@@ -13,7 +13,7 @@ module.exports = {
           arrowFunction: false
         },
         path: path.resolve(__dirname, 'dist'),
-n        filename: 'targetjs.js'
+        filename: 'targetjs.js'
     },
     module: {
         rules: [

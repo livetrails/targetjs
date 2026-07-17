@@ -535,6 +535,8 @@ class TModel extends BaseModel {
             { visible: this.isVisible() },
             { visibilityStatus: this.visibilityStatus },
             { hasDom: this.hasDom() },
+            { shouldCalculateChildren: this.shouldCalculateChildren() },
+            { dirtyLayout: this.getDirtyLayout() },
             { x: this.getX() },
             { y: this.getY() },
             { width: this.getWidth() },
