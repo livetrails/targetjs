@@ -322,19 +322,25 @@ class AnimationUtil {
     }
     
     static getValueFromAnim(record) {
-        const { originalKey, anim, frames } = record;
-
-        if (!frames) {
-            return;
-        }
-
-        const ct = anim.effect?.getComputedTiming?.();
+        const ct = record.anim.effect?.getComputedTiming?.();
 
         if (!ct) {
             return;
         }
 
-        const p = TUtil.isDefined(ct.progress) ? TUtil.limit(ct.progress, 0, 1) : 1;
+        const progress = TUtil.isDefined(ct.progress) ? TUtil.limit(ct.progress, 0, 1) : 1;
+
+        return AnimationUtil.getValueFromFrames(record, progress);
+    }
+
+    static getValueFromFrames(record, progress) {
+        const { originalKey, frames } = record;
+
+        if (!frames || frames.length < 2) {
+            return;
+        }
+
+        const p = TUtil.limit(progress, 0, 1);
 
         const last = frames.length - 1;
         let framePointer = 0;
@@ -392,8 +398,6 @@ class AnimationUtil {
         const segmentSteps = right.segmentSteps ?? (stepOffset + remainingSteps);
 
         const step = TUtil.limit(stepOffset + localStep, 0, segmentSteps);
-                
-        const status = right.done ? "finished" : "playing";
 
         return {
             value,
@@ -403,7 +407,7 @@ class AnimationUtil {
             cycle: right.cycle ?? left.cycle ?? 0,
             from,
             to,
-            status
+            status: right.done ? "finished" : "playing"
         };
     }
 

@@ -60,8 +60,6 @@ class AnimationManager {
          
         const el = tmodel.$dom.getElement();
        
-        this.cancelElementAnimationsForKeys(el, Object.keys(batch.keyMap));
-
         const totalDuration = Math.max(batch.totalDuration, 1);
        
         const originalKeys = [...new Set(Object.values(batch.keyMap).flatMap(set => [...set]))];
@@ -131,7 +129,7 @@ class AnimationManager {
             const targetValue = tmodel.targetValues[originalKey];
             if (targetValue) {   
                 tmodel.addToAnimatingMap(originalKey);
-                targetValue.status = !targetValue.snapAnimation ? 'updating' : targetValue.status;
+                targetValue.status = !targetValue.snapAnimation ? 'updating' : 'done';
             }
             this.recordMap.set(recId, rec);
         }
@@ -535,7 +533,9 @@ class AnimationManager {
         this.isShuttingDown = false;
     }
     
-     fillCutFrameFromRecords(tmodel, cutFrame) {
+    fillCutFrameFromRecords(tmodel, cutFrame, cutTime, totalDuration) {
+        const progress = totalDuration > 0 ? TUtil.limit(cutTime / totalDuration, 0, 1) : 1;
+
         for (const [, record] of this.recordMap) {
             if (record.tmodel !== tmodel) {
                 continue;
@@ -545,7 +545,8 @@ class AnimationManager {
                 continue;
             }
 
-            const result = AnimationUtil.getValueFromAnim(record);
+            const result = AnimationUtil.getValueFromFrames(record, progress);
+
             if (!result) {
                 continue;
             }
@@ -564,6 +565,17 @@ class AnimationManager {
                 cycle: result.cycle,
                 done: result.status === 'finished'
             });
+
+            this.setAt(tmodel, cleanKey, result.value);
+            tmodel.val(originalKey, result.value);
+
+            if (targetValue) {
+                targetValue.value = result.value;
+                targetValue.step = result.step;
+                targetValue.valuePointer = result.valuePointer;
+                targetValue.cycle = result.cycle;
+                tmodel.setActual(originalKey, result.value);
+            }
         }
     }
 
@@ -573,14 +585,18 @@ class AnimationManager {
         while (i < batch.frames.length && batch.frames[i].keyTime <= cutTime) {
             i++;
         }
+        
+        const originalDuration = batch.totalDuration;
 
         const needsInsert = i < batch.frames.length && cutTime !== batch.frames[i].keyTime;
         if (needsInsert) {
             const cutFrame = { keyTime: cutTime, tfMap: {}, styleMap: {}, keyMeta: new Map() };
 
             batch.frames.splice(i, 0, cutFrame);
+            
+            
 
-            this.fillCutFrameFromRecords(tmodel, cutFrame);
+            this.fillCutFrameFromRecords(tmodel, cutFrame, cutTime, originalDuration);
 
             const originalKeys = [...new Set(
                 Object.values(batch.keyMap).flatMap(set => [...set])
@@ -729,43 +745,39 @@ class AnimationManager {
 
         return filtered;
     }
-    
-    cancelElementAnimationsForKeys(el, cleanKeys) {
-        if (!el.getAnimations) {
-            return;
+        
+    rebaseAutoLayoutTransform(tmodel, tfUpdates) {
+        if (!tmodel.lastBatch) {
+            return false;
         }
 
-        const keySet = new Set(cleanKeys);
+        const cutTime = Math.min(
+            TUtil.now() - tmodel.lastBatch.startTime,
+            tmodel.lastBatch.totalDuration
+        );
 
-        for (const anim of el.getAnimations()) {
-            const effect = anim.effect;
-            if (!effect?.getKeyframes) {
-                continue;
-            }
+        const batch = this.cutLastBatch(tmodel, tmodel.lastBatch, cutTime);
 
-            const kfs = effect.getKeyframes();
-            let touches = false;
+        AnimationUtil.rebaseCutBatchMeta(tmodel, batch);
 
-            for (const kf of kfs) {
-                for (const k of Object.keys(kf)) {
-                    if (keySet.has(k)) {
-                        touches = true;
-                        break;
-                    }
-                }
-                if (touches) {
-                    break;
-                }
-            }
-
-            if (touches) {
-                try { 
-                    anim.cancel(); 
-                } catch {}
+        for (const frame of batch.frames) {
+            for (const [key, value] of Object.entries(tfUpdates)) {
+                frame.tfMap[key] = value;
             }
         }
-    }
 
+        for (const [key, value] of Object.entries(tfUpdates)) {
+            tmodel.tfMap[key] = value;
+            tmodel.val(key, value);
+            tmodel.actualValues[key] = value;
+        }
+
+        this.deleteAnimation(tmodel);
+
+        this.animate(tmodel, batch, AnimationUtil.getAnimationHooks());
+
+        return true;
+    }    
 }
 
 export { AnimationManager };

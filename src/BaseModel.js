@@ -938,6 +938,10 @@ class BaseModel {
         this.getParent()?.addToAnimatingChildren(this);
     }
     
+    getAnimatingTargets() {
+        return this.animatingMap ? [...this.animatingMap.keys()] : [];
+    }
+    
     isKeyAnimating(key) {
         if (!this.animatingMap) {
             return false;

@@ -532,6 +532,7 @@ class TModel extends BaseModel {
 
     debug() {
         return [
+            { oid: this.oid },
             { visible: this.isVisible() },
             { visibilityStatus: this.visibilityStatus },
             { hasDom: this.hasDom() },

@@ -4,9 +4,8 @@ import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { ScheduleUtil } from "./ScheduleUtil.js";
-import { AnimationUtil } from "./AnimationUtil.js";
 import { TargetExecutor } from "./TargetExecutor.js";
-import { getTargetManager, tRoot, getEvents } from "./App.js";
+import { getTargetManager, tRoot, getEvents, getAnimationManager } from "./App.js";
 
 /*
  * It calculates the locations and dimensions of all objects and triggers the calculation of all targets. 
@@ -231,8 +230,8 @@ class LocationManager {
                 child.markLayoutDirty('overflow');  
             }               
 
-            const prevX = child.actualValues.x;
-            const prevY = child.actualValues.y;
+            const prevX = Math.floor(child.actualValues.x);
+            const prevY = Math.floor(child.actualValues.y);
 
             if (child.isIncluded()) {
                 this.calculateTargets(child);
@@ -602,24 +601,21 @@ class LocationManager {
     fixLocation(tmodel, prevX, prevY) {
 
         if (tmodel.hasValidAnimation()) {
-            const keysToSnap = [];
-            const valuesToSnap = []; 
+            const xChanged = Math.floor(tmodel.actualValues.x) !== prevX;
+            const yChanged = Math.floor(tmodel.actualValues.y) !== prevY;
 
-            const xChanged = tmodel.actualValues.x !== prevX;
-            const yChanged = tmodel.actualValues.y !== prevY;
+            const autoTfUpdates = {};
 
             if (xChanged && tmodel.getTargetStatus(tmodel.allTargetMap['x']) !== 'updating') {
-                keysToSnap.push('x');
-                valuesToSnap.push(tmodel.val('x'));
+                autoTfUpdates.x = tmodel.actualValues.x;
             }
             
             if (yChanged && tmodel.getTargetStatus(tmodel.allTargetMap['y']) !== 'updating') {
-                keysToSnap.push('y');
-                valuesToSnap.push(tmodel.val('y'));
-            }                  
-
-            if (keysToSnap.length > 0) {
-                AnimationUtil.overrideAnimatedKeyWithSnap(tmodel, keysToSnap, valuesToSnap);
+                autoTfUpdates.y = tmodel.actualValues.y;
+            }   
+            
+            if (Object.keys(autoTfUpdates).length) {
+                getAnimationManager().rebaseAutoLayoutTransform(tmodel, autoTfUpdates);
                 return;
             }
         }
