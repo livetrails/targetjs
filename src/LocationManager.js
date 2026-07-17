@@ -210,7 +210,7 @@ class LocationManager {
             }
             
             viewport.setCurrentChild(child);
-
+            
             if (!child.getDirtyLayout() && !child.currentStatus && child.activeTargetList.length === 0) {
 
                 this.calcNextLocation(child, container, viewport);

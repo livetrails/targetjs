@@ -455,7 +455,7 @@ class TModelManager {
         }
     }
     
-    activatePendingTargetsAfterDom(tmodels, { restoredDoneTargets = false } = {}) {
+    activatePendingTargetsAfterDom(tmodels, { restoredDoneTargets = true } = {}) {
         for (const tmodel of tmodels) {
             if (!tmodel.hasDom()) {
                 continue;
@@ -470,14 +470,15 @@ class TModelManager {
             }
 
             const pending = tmodel.pendingTargets;
+            const visited = new Set();
 
             if (pending) {
                 for (const key of [...pending]) {
+                    visited.add(key);
                     TargetUtil.cleanupTarget(tmodel, key);
                     TargetUtil.shouldActivateNextTarget(tmodel, key);
                 }
 
-                tmodel.pendingTargets = undefined;
             }
             
             
@@ -485,7 +486,7 @@ class TModelManager {
                 for (const key of Object.keys(tmodel.targetValues)) {
                     const targetValue = tmodel.targetValues[key];
 
-                    if (targetValue.status !== 'done') {
+                    if (targetValue.status !== 'done' || visited.has(key)) {
                         continue;
                     }
                     

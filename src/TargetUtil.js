@@ -217,7 +217,6 @@ class TargetUtil {
                     }
                 } else if (isEndTrigger) {                     
                     if (prevOk === true)  {
-                        tmodel.removeFromActiveTargets(nextTarget);
                         TargetUtil.activateTarget(tmodel, nextTarget);
                         nextTargetActivated = true;
                         TargetUtil.clearPendingTargetsForNextTarget(tmodel, nextTarget);

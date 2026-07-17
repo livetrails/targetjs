@@ -51,6 +51,7 @@ class EventListener {
         
         this.currentHandlers = { 
             touch: null, 
+            click: null,
             scrollLeft: null, 
             scrollTop: null,
             swipe: null,
@@ -290,25 +291,61 @@ class EventListener {
         }
                 
         const lastEvent = this.eventQueue.shift();
-                          
+              
         if (this.canFindHandlers && !lastEvent.synthetic) {
             this.findEventHandlers(lastEvent);
         }
         
-        if (lastEvent.eventType === 'end' || lastEvent.eventType === 'click') {
-            if (lastEvent.eventType === 'end') {
-                this.currentHandlers.end =  this.currentHandlers.start;
-                this.currentHandlers.end?.markLayoutDirty('end-event');
-                this.currentHandlers.start = undefined;
+        if (lastEvent.eventType === 'end') {
+           this.currentHandlers.end = this.currentHandlers.start;
+           this.currentHandlers.start = undefined;
+       }
+
+       this.currentEventName = lastEvent.eventName;
+       this.currentEventType = lastEvent.eventType;
+       this.currentEventTModel = lastEvent.tmodel;
+       this.currentOriginalEvent = lastEvent.originalEvent;
+       this.currentTouch.key = '';
+
+       this.markCapturedEventDirty(lastEvent);
+
+       if (lastEvent.eventType === 'end' || lastEvent.eventType === 'click') {
+           this.canFindHandlers = true;
+       }
+   }
+    
+    markCapturedEventDirty(lastEvent) {
+        const mark = (tmodel, reason) => {
+            if (!tmodel) {
+                return;
             }
-            this.canFindHandlers = true;
+
+            tmodel.markEventDirty();
+            tmodel.markLayoutDirty(reason);
+        };
+
+        mark(lastEvent.tmodel, `${lastEvent.eventType}-event`);
+
+        switch (lastEvent.eventType) {
+            case "click":
+                mark(this.currentHandlers.click, "click-event");
+                break;
+
+            case "start":
+                mark(this.currentHandlers.start, "start-event");
+                break;
+
+            case "end":
+                mark(this.currentHandlers.end, "end-event");
+                break;
+
+            case "move":
+                mark(this.currentHandlers.swipe, "swipe-event");
+                mark(this.currentHandlers.scrollLeft, "scrollleft-event");
+                mark(this.currentHandlers.scrollTop, "scrolltop-event");
+                mark(this.currentHandlers.pinch, "pinch-event");
+                break;
         }
-        
-        this.currentEventName = lastEvent.eventName;
-        this.currentEventType = lastEvent.eventType;
-        this.currentEventTModel = lastEvent.tmodel;
-        this.currentOriginalEvent = lastEvent.originalEvent;
-        this.currentTouch.key = '';      
     }
     
     handleDocEvent(event) {
@@ -341,7 +378,7 @@ class EventListener {
         } else {
             tmodel = this.getTModelFromEvent(event);
         } 
-                              
+                
         const newEvent = { eventName, eventItem, eventType, originalName, tmodel, originalEvent: event, timeStamp: now };
 
         if (this.lastEvent?.eventItem) {
@@ -475,11 +512,8 @@ class EventListener {
                 const canAcceptClick = !this.start0 || (clickHandler === this.currentHandlers.click && (clickHandler !== this.currentHandlers.swipe || this.getSwipeDistance() < 5));
                 
                 if (clickHandler && canAcceptClick) {
-                    clickHandler.markEventDirty();
-                    clickHandler.markLayoutDirty('event');
-                 
                     this.eventQueue.length = 0;
-                    this.eventQueue.push({eventName, eventItem, eventType, originalName, tmodel, originalEvent: event, timeStamp: now});
+                    this.eventQueue.push({eventName, eventItem, eventType, originalName, tmodel, originalEvent: event, timeStamp: now });
                 }
 
                 this.clearEnd();
@@ -711,6 +745,23 @@ class EventListener {
         this.windowScrollEndTimer = 0;
         this.scrollEndTimeStamp.x = 0;
         this.scrollEndTimeStamp.y = 0;
+        
+        this.currentHandlers = {
+            touch: null,
+            click: null,
+            scrollLeft: null,
+            scrollTop: null,
+            swipe: null,
+            pinch: null,
+            focus: null,
+            justFocused: null,
+            blur: null,
+            leave: null,
+            enter: null,
+            start: null,
+            end: null,
+            hover: null
+        };        
     }
 
     deltaX() {

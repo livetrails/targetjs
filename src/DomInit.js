@@ -29,13 +29,13 @@ class DomInit {
                 
                 if (tmodel) {
                     newVisibles.push(tmodel);
-                    tmodel.$dom = new $Dom(`#${id}`);              
+                    tmodel.$dom = new $Dom(`#${id}`);
                 } else {
                     $Dom.detach(element);
                 }
             }
         }
-        
+           
         return newVisibles;
     }
     

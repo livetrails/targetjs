@@ -13,22 +13,49 @@ class LoadingManager {
         this.tmodelKeyMap = {};
         this.fetchingAPIMap = {};
         this.fetchingImageMap = {};
+        
+        this.targetPageKeyMap = new WeakMap();
             
         this.fetchSeq = 0;
 
     }
 
     clear() {
+        this.fetchingAPIMap = {};
+        this.fetchingImageMap = {};
+    }
+    
+    clearAll() {
+        this.cacheMap = {};
         this.tmodelKeyMap = {};
         this.fetchingAPIMap = {};
         this.fetchingImageMap = {};
-        
+        this.targetPageKeyMap = new WeakMap();
         this.fetchSeq = 0;
     }
+    
+    setTargetPageKey(tmodel, targetName, pageKey) {
+        let map = this.targetPageKeyMap.get(tmodel);
 
+        if (!map) {
+            map = new Map();
+            this.targetPageKeyMap.set(tmodel, map);
+        }
+
+        map.set(targetName, pageKey);
+    }
+
+    getTargetPageKey(tmodel, targetName) {
+        return this.targetPageKeyMap.get(tmodel)?.get(targetName) ?? document.URL;
+    }
+    
     fetchCommon(fetchId, cacheId, tmodel, fetchMap, fetchFn) {
         TargetUtil.markFetchAction(tmodel);
         
+        const pageKey = document.URL;
+        const targetName = tmodel.key;        
+        this.setTargetPageKey(tmodel, targetName, pageKey);
+
         if (!this.isFetched(cacheId)) {
             if (!fetchMap[fetchId]) {
                 fetchMap[fetchId] = {
@@ -50,7 +77,7 @@ class LoadingManager {
             };
         }
 
-        this.addToTModelKeyMap(tmodel, tmodel.key, fetchId, cacheId);
+        this.addToTModelKeyMap(tmodel, tmodel.key, fetchId, cacheId, fetchMap);
 
         return fetchId;
     }
@@ -95,10 +122,11 @@ class LoadingManager {
     }
     
     getTModelKey(tmodel, targetName) {
-        return `${document.URL}_${tmodel.oid}_${targetName}`;
+        const pageKey = this.getTargetPageKey(tmodel, targetName);
+        return `${pageKey}_${tmodel.oid}_${targetName}`;
     }
-
-    addToTModelKeyMap(tmodel, targetName, fetchId, cacheId) {
+    
+    addToTModelKeyMap(tmodel, targetName, fetchId, cacheId, fetchMap) {
         const key = this.getTModelKey(tmodel, targetName);
         const loadTargetName = TUtil.getLoadTargetName(targetName);
 
@@ -114,16 +142,16 @@ class LoadingManager {
                 fetchId
             };
         }
-        
+
         this.tmodelKeyMap[key].fetchMap[fetchId].order = this.tmodelKeyMap[key].entryCount;
         this.tmodelKeyMap[key].entryCount++;
         tmodel.val(loadTargetName).push(undefined);
-        
+
         if (cacheId && this.isFetched(cacheId)) {
-            this.fetchingAPIMap[fetchId].startTime = TUtil.now();
-            this.handleSuccess(this.fetchingAPIMap[fetchId], this.cacheMap[cacheId].result);
+            fetchMap[fetchId].startTime = TUtil.now();
+            this.handleSuccess(fetchMap[fetchId], this.cacheMap[cacheId].result);
         }
-    }
+    }    
 
     removeFromTModelKeyMap(tmodel, targetName) {
         const key = this.getTModelKey(tmodel, targetName);

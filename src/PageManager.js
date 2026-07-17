@@ -68,6 +68,7 @@ class PageManager {
             });
                         
             tApp.manager.activatePendingTargetsAfterDom(visibles, { restoredDoneTargets: true });
+            tApp.manager.activatePendingTargetsAfterDom(newVisibles, { restoredDoneTargets: true });
 
             tApp.manager.visibleOidMap = { ...this.pageCache[link].visibleOidMap };
             newVisibles.forEach(visible => {

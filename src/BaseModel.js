@@ -849,7 +849,7 @@ class BaseModel {
         }
     }
 
-    removeFromActiveTargets(key) {      
+    removeFromActiveTargets(key) { 
         if (this.activeTargetMap[key]) {
             delete this.activeTargetMap[key];
             const index = this.activeTargetList.indexOf(key);

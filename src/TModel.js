@@ -542,6 +542,7 @@ class TModel extends BaseModel {
             { tmodelComplete: TargetUtil.isTModelComplete(this) },
             { targets: this.originalTargetNames },
             { activeTargetList: this.activeTargetList },
+            { activatedTargets: this.activatedTargets },
             { updatingTargetList: this.updatingTargetList },
             { animatingMap: [ ...(this.animatingMap ? [ ...this.animatingMap.keys() ] : []) ] },
             { noDomUpdatingTargets: [ ...(this.noDomUpdatingTargets ? [ ...this.noDomUpdatingTargets ] : []) ] },

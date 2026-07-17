@@ -128,8 +128,6 @@ const AppFn = () => {
 
     my.reset = async function() {
         my.manager.getVisibles().forEach(tmodel => { 
-            tmodel.tfMap = {};
-            tmodel.styleMap = {};
             if (tmodel.allStyleTargetMap?.size) {
                 for (const [key] of tmodel.allStyleTargetMap) {
                     if (TUtil.isDefined(tmodel.val(key))) {
@@ -216,6 +214,7 @@ App.unmount = async () => {
     root.clearAnimatingChildren();
     
     await tApp.reset();
+    tApp.loader.clearAll();
 
     App.oids = {};
     App.tmodelIdMap = {};
