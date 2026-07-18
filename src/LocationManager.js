@@ -522,7 +522,18 @@ class LocationManager {
             } else {    
                 tmodel.markLayoutDirty('height'); 
             }
-        } 
+        }
+        
+        if (tmodel.isNowVisible || tmodel.hasDomNow) {
+            const pending = tmodel.pendingTargets;
+            if (pending) {
+                for (const key of [...pending]) {
+                    TargetUtil.cleanupTarget(tmodel, key);
+                    TargetUtil.shouldActivateNextTarget(tmodel, key);
+                }
+
+            }
+        }
         
         tmodel.isNowVisible = false;
         tmodel.hasDomNow = false;

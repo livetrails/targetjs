@@ -247,7 +247,7 @@ class TModelManager {
         let current = tmodel;
 
         while (current && current !== tRoot()) {
-            const policy = current.val("domPolicy");
+            const policy = current.val("dom");
 
             if (TUtil.isDefined(policy)) {
                 this.domPolicyMap.set(tmodel.oid, policy);
@@ -458,6 +458,7 @@ class TModelManager {
     activatePendingTargetsAfterDom(tmodels, { restoredDoneTargets = true } = {}) {
         for (const tmodel of tmodels) {
             if (!tmodel.hasDom()) {
+                tmodel.markLayoutDirty('noDom');
                 continue;
             }
 
