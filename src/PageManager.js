@@ -16,12 +16,16 @@ class PageManager {
     }
     
     initHistory() {
+        if ("scrollRestoration" in history) {
+            history.scrollRestoration = "manual";
+        }
+
         const link = TUtil.getFullLink(document.URL);
 
         const st = history.state;
 
         if (!st || (!st.link && !st.browserUrl)) {
-          history.replaceState({ link }, "", link);
+            history.replaceState({ link }, "", link);
         }
 
         this.lastLink = link;
@@ -63,24 +67,41 @@ class PageManager {
 
             const visibles = Object.values(this.pageCache[link].visibleOidMap);
             const newVisibles = DomInit.initCacheDoms(visibles);
-            visibles.forEach(tmodel => {
+            const restored = [...visibles, ...newVisibles];
+
+            for (const tmodel of restored) {
                 tmodel.visibilityStatus = undefined;
-            });
-                        
-            tApp.manager.activatePendingTargetsAfterDom(visibles, { restoredDoneTargets: true });
-            tApp.manager.activatePendingTargetsAfterDom(newVisibles, { restoredDoneTargets: true });
 
-            tApp.manager.visibleOidMap = { ...this.pageCache[link].visibleOidMap };
-            newVisibles.forEach(visible => {
-                tApp.manager.visibleOidMap[visible.oid] = visible;
-            });
+                if (!tmodel.hasDom()) {
+                    tmodel.markLayoutDirty('pageRestoreNoDom');
+                }
+                
+                if (tmodel.hasAnimatingTargets()) {
+                    tmodel.getAnimatingTargets().forEach(key => {
+                        tmodel.setTargetStatus(key, 'updating');
+                        tmodel.removeFromAnimatingMap(key);
+                    });
+                }
+            }
 
-            window.scrollTo(this.pageCache[link].scrollLeft, this.pageCache[link].scrollTop);
+            tApp.manager.visibleOidMap = {};
+
+            for (const tmodel of restored) {
+                if (tmodel.isIncluded()) {
+                    tApp.manager.visibleOidMap[tmodel.oid] = tmodel;
+                }
+            }  
+            
+            tApp.manager.activatePendingTargetsAfterDom(restored, { restoredDoneTargets: true });
 
             this.lastLink = link;
+            
+            await this.restoreScroll(this.pageCache[link]);
+
             await tApp.start();
 
             getRunScheduler().restoreSnapshot(this.pageCache[link].runSnapshot);
+
         }
     }
 
@@ -169,6 +190,19 @@ class PageManager {
         }
         
         getRunScheduler().schedule(0, "pagemanager-processUpdateBrowserUrl");
+    }
+    
+    async restoreScroll(page) {
+        const left = page.scrollLeft || 0;
+        const top = page.scrollTop || 0;
+
+        window.scrollTo(left, top);
+
+        await new Promise(requestAnimationFrame);
+        window.scrollTo(left, top);
+
+        await new Promise(requestAnimationFrame);
+        window.scrollTo(left, top);
     }
 
     back() {

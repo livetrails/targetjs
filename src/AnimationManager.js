@@ -566,16 +566,6 @@ class AnimationManager {
                 done: result.status === 'finished'
             });
 
-            this.setAt(tmodel, cleanKey, result.value);
-            tmodel.val(originalKey, result.value);
-
-            if (targetValue) {
-                targetValue.value = result.value;
-                targetValue.step = result.step;
-                targetValue.valuePointer = result.valuePointer;
-                targetValue.cycle = result.cycle;
-                tmodel.setActual(originalKey, result.value);
-            }
         }
     }
 

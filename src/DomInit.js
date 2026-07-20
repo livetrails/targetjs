@@ -11,31 +11,34 @@ class DomInit {
     static initCacheDoms(visibleList) {
         const elements = tRoot().$dom.queryAll('[tgjs]');
 
+        const visibleByOid = new Map();
+
         visibleList.forEach(tmodel => {
             tmodel.$dom = null;
+
+            if (tmodel.type !== 'BI') {
+                visibleByOid.set(tmodel.oid, tmodel);
+            }
         });
-        
-        const visibleMap = TUtil.list2map(visibleList.filter(item => item.type !== 'BI'));
+
         const newVisibles = [];
 
-        for (let element of elements) {
+        for (const element of elements) {
             const id = element.getAttribute("id");
 
-            let tmodel = visibleMap[id];
+            let tmodel = getTModelById(id);
+
             if (tmodel) {
-                tmodel.$dom = new $Dom(`#${id}`);
-            } else {
-                tmodel = getTModelById(id);
-                
-                if (tmodel) {
+                tmodel.$dom = new $Dom(element);
+
+                if (!visibleByOid.has(tmodel.oid)) {
                     newVisibles.push(tmodel);
-                    tmodel.$dom = new $Dom(`#${id}`);
-                } else {
-                    $Dom.detach(element);
                 }
+            } else {
+                $Dom.detach(element);
             }
         }
-           
+
         return newVisibles;
     }
     

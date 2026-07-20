@@ -269,7 +269,6 @@ class TargetManager {
 
             targetValue.step = steps;
             targetValue.valuePointer = targetValue.valueList?.length ?? valuePointer;
-            targetValue.value = finalValue;
             targetValue.cycle = cycles;
 
             delete targetValue.catchupAt;
