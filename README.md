@@ -342,66 +342,79 @@ Lastly, `pause$$` adds a short pause before highlighting the first user with an 
 import { App } from "targetj";
 
 App({
-    searchButton: {
+      containerOverflowMode: 'always',
+      searchButton: {
         element: 'button',
         type: 'button',
-        y: 20, x: 20,
-        width: 220, height: 60, lineHeight: 60,
-        borderRadius: 10, border: 0, backgroundColor: '#f5f5f5',
-        cursor: 'pointer', textAlign: 'center',
+        width: 220,
+        height: 60,
+        lineHeight: 60,
+        border: 0,
+        borderRadius: 10,
+        cursor: 'pointer',
+        textAlign: 'center',
+        backgroundColor: '#f5f5f5',
         html: 'Search',
         onClick() {
-            this.setTarget('scale', {value: [1, 1.15, 1], steps: 8, interval: 12 });
-            this.setTarget('backgroundColor', {value: [ '#ffe8ec', '#f5f5f5' ], steps: 12, interval: 12});
-            this.parent.getChild('users').activateTarget('fetch', { reset: true });
-        }
-    },
-    users: {
-        y: 90,
-        x: 20,
+          this.setTarget('html', 'Searching...');
+          const users = this.parent.getChild('users');
+          this.setTarget('scale', { value: [1, 1.15, 1], steps: 12 });
+          this.setTarget('backgroundColor', { value: ['#ffe8ec', '#f5f5f5'], steps: 12 });
+          users.activateTarget('search', { reset: true });
+        },
+      },
+      users: {
         gap: 10,
+        marginTop: 20,
         containerOverflowMode: 'always',
-        fetch: {
-            active: false,
-            value: 'https://targetjs.io/api/randomUsers'
-        },
-        removeChildren$$() {
+        search: {
+          active: false,
+          value() {
             this.removeChildren();
+          },
         },
+        fetch$$: 'https://targetjs.io/api/randomUsers',
         addChildren$$: {
-            cycles() { return this.val('fetch').length; },
-            value(i) {
-                const user = this.val('fetch')[i];
-                return {
-                    width: 360,
-                    backgroundColor: "#fafafa",
-                    scale: {value: {list: [0.8, 1]}, steps: 14},
-                    boxShadow: "0 6px 16px rgba(0,0,0,.08)",
-                    containerOverflowMode: 'always',
-                     userName: {
-                        padding: 10,
-                        height: 30,
-                        fontWeight: 600,
-                        opacity: { value: [0, 1], steps: 50 },
-                        html() { return user.name; }
-                    },
-                    userEmail: {
-                        padding: 10,
-                        opacity: { value: [0, 0.7], steps: 50 },
-                        html() { return user.email; }
-                    }
-                };
-            }
+          cycles() {
+            return this.val('fetch').length;
+          },
+          value(i) {
+            const user = this.val('fetch')[i];
+            return {
+              width: 340,
+              borderRadius: 10,
+              backgroundColor: '#fafafa',
+              boxShadow: '0 6px 16px rgba(0, 0, 0, 0.08)',
+              padding: 14,
+              containerOverflowMode: 'always',
+              scale: { value: [0.96, 1], steps: 10 },
+              userName: {
+                marginTop: 5,
+                html: user.name,
+                fontWeight: 700,
+              },
+              userEmail: {
+                marginTop: 5,
+                html: user.email,
+                opacity: 0.7,
+              },
+            };
+          },
+        },
+        relabelButton$$() {
+          const button = this.parent.getChild('searchButton');
+          button.setTarget('html', 'Search');
         },
         pause$$: { interval: 150 },
-        highlightOne$$() {
-            const user = this.getChild(0);
-            user.setTarget('backgroundColor', { value: ['#fff7cc', '#fff1a8'], steps: 14 });
-            user.setTarget('scale', { value: [1, 1.04, 1], steps: 14 });
-            user.setTarget('boxShadow', '0 10px 24px rgba(0,0,0,.14)');
-        }
-    }
-}).mount('#app');
+        highlightFirst$$() {
+          const firstUser = this.getChild(0);
+          if (firstUser) {
+            firstUser.setTarget('scale', { value: [1, 1.04, 1], steps: 10 });
+            firstUser.setTarget('backgroundColor', { value: '#fff1a8', steps: 10 });
+          }
+        },
+      },
+    }).mount('#app');
 ```
 
 ### Infinite Loading and Scrolling Example
