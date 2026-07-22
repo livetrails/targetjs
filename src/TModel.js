@@ -1,5 +1,5 @@
 import { BaseModel } from "./BaseModel.js";
-import { App, getLocationManager, getRunScheduler, getEvents } from "./App.js";
+import { App, getLocationManager, getRunScheduler, getEvents, getManager } from "./App.js";
 import { Viewport } from "./Viewport.js";
 import { TUtil } from "./TUtil.js";
 import { VisibilityUtil } from "./VisibilityUtil.js";
@@ -111,6 +111,9 @@ class TModel extends BaseModel {
         }
             
         TargetUtil.resetBeforeDeletion(child);
+        
+        getManager().markTModelDeleted(child);
+
         this.deletedChildren.push(child);   
         this.removeFromUpdatingChildren(child);
         this.removeFromActiveChildren(child);
@@ -276,30 +279,45 @@ class TModel extends BaseModel {
         return this.allChildrenList;
     }
 
-    removeChildren() {  
-        if (!this.hasChildren()) {
+    removeChildren() {
+        const children = [...this.getChildren()];
+
+        if (children.length === 0) {
             return this;
         }
-        
-        this.markLayoutDirty('removeChildren');
-        
-        this.allChildrenList.forEach(t => {
-            TargetUtil.resetBeforeDeletion(t);
-            t.$dom = undefined;
-        }); 
-        this.allChildrenList = [];
-        this.allChildrenMap = {};
-       
-        this.clearUpdatingChildren();
-        this.clearActiveChildren();
-        this.clearAnimatingChildren();
-       
+
+        this.markLayoutDirty("removeChildren");
+
+        const manager = getManager();
+
+        for (const child of children) {
+            TargetUtil.resetBeforeDeletion(child);
+            child.cancelAnimation();
+
+            delete manager.visibleOidMap[child.oid];
+            delete manager.preservedDomMap[child.oid];
+
+            manager.domPolicyMap.delete(child.oid);
+            manager.deletedTModelRoots.delete(child);
+        }
+
         if (this.hasDom()) {
             this.$dom.deleteAll();
         }
-        
-        return this;        
-    }  
+
+        for (const child of children) {
+            manager.resetTModelDom(child);
+        }
+
+        this.allChildrenList = [];
+        this.allChildrenMap = {};
+
+        this.clearUpdatingChildren();
+        this.clearActiveChildren();
+        this.clearAnimatingChildren();
+
+        return this;
+    } 
     
     exists() {
         const parent = this.getParent();

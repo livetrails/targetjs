@@ -34,6 +34,7 @@ class TModelManager {
         this.targetMethodMap = {};
         this.noDomMap = {};
         this.domPolicyMap = new Map();
+        this.deletedTModelRoots = new Set();
     }
 
     clearFrameLists() {
@@ -65,6 +66,8 @@ class TModelManager {
         const lastPreservedMap = { ...this.preservedDomMap };
         
         this.clearFrameLists();
+        this.collectDeletedTModels();
+
         const activated = [];
 
         for (const tmodel of getLocationManager().hasLocationList) {
@@ -303,7 +306,39 @@ class TModelManager {
             this.lists.deletedDom.push(tmodel);
         }
     }
-        
+    
+    markTModelDeleted(tmodel) {
+        if (tmodel) {
+            this.deletedTModelRoots.add(tmodel);
+        }
+    }
+    
+    collectDeletedTModels() {
+        for (const root of this.deletedTModelRoots) {
+            if (root.exists()) {
+                continue;
+            }
+
+            this.addDeletedTree(root);
+        }
+
+        this.deletedTModelRoots.clear();
+    }
+    
+    addDeletedTree(tmodel) {
+        delete this.visibleOidMap[tmodel.oid];
+        delete this.preservedDomMap[tmodel.oid];
+        this.domPolicyMap.delete(tmodel.oid);
+
+        if (tmodel.hasDom() && !this.lists.deletedDom.includes(tmodel)) {
+            this.lists.deletedDom.push(tmodel);
+        }
+
+        for (const child of tmodel.getChildren()) {
+            this.addDeletedTree(child);
+        }
+    }
+
     getVisibles() {
         return Object.values(this.visibleOidMap);
     }
@@ -479,9 +514,7 @@ class TModelManager {
                     TargetUtil.cleanupTarget(tmodel, key);
                     TargetUtil.shouldActivateNextTarget(tmodel, key);
                 }
-
             }
-            
             
             if (restoredDoneTargets) {
                 for (const key of Object.keys(tmodel.targetValues)) {
