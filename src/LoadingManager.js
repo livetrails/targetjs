@@ -372,7 +372,7 @@ class LoadingManager {
         const onError = tmodel.targets[targetName]?.onError;
         if (onError) {
             if (typeof onError === 'function') {
-                tmodel.setTargetMethodName(targetName, 'onSuccess');
+                tmodel.setTargetMethodName(targetName, 'onError');
                 onError.call(tmodel, tmodel.val(targetName));
             } else if (Array.isArray(onError)) {
                 onError.forEach(t => TargetUtil.activateSingleTarget(tmodel, t));
