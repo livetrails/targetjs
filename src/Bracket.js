@@ -9,7 +9,7 @@ class Bracket extends TModel {
     constructor(parent) {
         super("BI");
         this.parent = parent;
-        this.currentBrakcetStatus = 2;
+        this.currentBracketStatus = 2;
     }
     
     canHaveDom() {
@@ -117,13 +117,13 @@ class Bracket extends TModel {
             return true;
         }
 
-        if (this.currentBrakcetStatus >= 1 || this.isNowVisible || this.isNowInvisible) {
-            this.currentBrakcetStatus = Math.max(0, this.currentBrakcetStatus - 1);
+        if (this.currentBracketStatus >= 1 || this.isNowVisible || this.isNowInvisible) {
+            this.currentBracketStatus = Math.max(0, this.currentBracketStatus - 1);
             return true;
         }
 
         if (nowVisible) {
-            this.currentBrakcetStatus = Math.min(2, this.currentBrakcetStatus + 1);
+            this.currentBracketStatus = Math.min(2, this.currentBracketStatus + 1);
         }
 
         if (this.getDirtyLayout() === false) {
