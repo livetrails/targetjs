@@ -1,8 +1,10 @@
 {
   "name": "targetj",
-  "version": "1.0.251",
+  "version": "1.0.252",
   "description": "TargetJS: JavaScript UI framework where state is a destination and code order defines the UI sequence",
-  "keywords": ["targetjs"],
+  "keywords": [
+    "targetjs"
+  ],
   "type": "module",
   "main": "./Export.js",
   "module": "./Export.js",
