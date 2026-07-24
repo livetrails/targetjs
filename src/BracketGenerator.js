@@ -115,14 +115,14 @@ class BracketGenerator {
             let bracket = targetBracket;            
             bracket.startIndex = Math.min(bracket.startIndex, index);
             bracket.endIndex = bracket.startIndex + bracket.allChildrenList.length;  
-            bracket.currentBrakcetStatus = 2;
+            bracket.currentBracketStatus = 2;
             bracket.markLayoutDirty('update');
 
             bracket = targetBracket.getParent();
             while (bracket instanceof Bracket) {
                 bracket.startIndex = Math.min(bracket.startIndex, index);
                 bracket.endIndex = Math.max(bracket.endIndex, index + 1);
-                bracket.currentBrakcetStatus = 2;
+                bracket.currentBracketStatus = 2;
                 bracket.markLayoutDirty('update');
 
                 bracket = bracket.getParent();
@@ -271,7 +271,7 @@ class BracketGenerator {
     static markBracketDirty(bracket) {
         let current = bracket;
         while (current && current.type === 'BI') {
-            current.currentBrakcetStatus = 2;
+            current.currentBracketStatus = 2;
             current.markLayoutDirty('update');
             current = current.parent;
         }
