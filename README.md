@@ -56,7 +56,7 @@ npm install targetj
 
 **2. Example**
 
-This creates the following sequence: appear → bounce → move → turn red → log. Notice how the code read like the UI sequence. `$$` suffix to make each step wait for the preceding ones. There is only one state. The transitions are part of that state.
+This creates the following sequence: appear → bounce → move → turn red → log. Notice how the code read like the UI sequence. The `$$` suffix makes each step wait for the preceding ones. There is only one state. The transitions are part of that state.
 
 ```javascript
 import { App } from "targetj";
