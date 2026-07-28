@@ -240,7 +240,7 @@ class TargetUtil {
             if (!isEndTrigger) {
                 targetValue.nextTargetUpdateCount = targetValue.updateCount;
             } else {
-                TargetUtil.setTriggeredByCompleteCount(tmodel, nextTarget, key, targetValue.completeCount);
+                TargetUtil.snapshotTriggeredByCompleteCounts(tmodel, nextTarget);
             }
         }
         
@@ -414,12 +414,29 @@ class TargetUtil {
         return tmodel.targetValues[nextTarget]?.triggeredByCompleteCountMap?.get(key) ?? 0;
     }
 
-    static setTriggeredByCompleteCount(tmodel, nextTarget, key, count) {
+    static snapshotTriggeredByCompleteCounts(tmodel, nextTarget) {
         const nextTargetValue = tmodel.targetValues[nextTarget] ||= TargetUtil.emptyValue();
 
-        const triggeredByMap = nextTargetValue.triggeredByCompleteCountMap ||= new Map();
+        const map = nextTargetValue.triggeredByCompleteCountMap ||= new Map();
 
-        triggeredByMap.set(key, count);
+        const nextIndex = tmodel.functionTargetNames.indexOf(nextTarget);
+
+        if (nextIndex < 0) {
+            return;
+        }
+
+        for (let i = 0; i < nextIndex; i++) {
+            const previousKey = tmodel.functionTargetNames[i];
+            const previousTarget = tmodel.targets[previousKey];
+
+            if (previousTarget?.activateNextTarget !== nextTarget) {
+                continue;
+            }
+
+            const completeCount = tmodel.targetValues[previousKey]?.completeCount ?? 0;
+
+            map.set(previousKey, completeCount);
+        }
     }
     
     static activateTargetOnce(tmodel, nextTarget) {        
