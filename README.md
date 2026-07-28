@@ -56,7 +56,7 @@ npm install targetj
 
 **2. Example**
 
-This creates the following sequence: appear → bounce → move → turn red → log. Notice how the code follows the UI sequence. There is only one state, and the animation transitions are part of that state.
+This creates the following sequence: bounce → move → turn red → log. Notice how the code read like the UI sequence. The `$$` suffix makes each step wait for the preceding ones. There is only one state. The transitions are part of that state.
 
 ```javascript
 import { App } from "targetj";
@@ -66,7 +66,7 @@ App({
   height: 100,
   backgroundColor: "blue",
 
-  // Starts immediately: bounce in.
+  // Starts immediately: bounce.
   scale: { value: [0.5, 1.2, 1], steps: 24, interval: 12 },
 
   // Waits for scale to finish, then moves right.
