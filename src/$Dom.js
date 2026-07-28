@@ -25,6 +25,7 @@ class $Dom {
 
         this.transformProp = null;
         this.initTransformProp();
+        this.restoreSlotState();
     }
 
     create(tagName) {
@@ -64,15 +65,35 @@ class $Dom {
     }
 
     exists() {
-        return this.selector ? !!$Dom.query(this.selector) : false;
+        return !!this.element?.isConnected;
     }
 
     getElement() {
         return this.element;
     }
-
+    
     supportsWAAPI() {
         return !!(this.element && typeof this.element.animate === 'function');
+    }
+    
+    restoreSlotState() {
+        if (this.element?.nodeType !== 1 || this.isNoSlotHost()) {
+            return;
+        }
+
+        const slot = this.element.querySelector(':scope > [data-tj-slot="content"]');
+
+        if (!slot) {
+            return;
+        }
+
+        this.contentSlot = slot;
+        this.slotModeEnabled = true;
+
+        this.hasRealChildren = Array.from(this.element.childNodes).some(child =>
+            child !== slot &&
+            child.getAttribute("tgjs") === "true"
+        );
     }
 
     findContentSlot() {
@@ -93,9 +114,11 @@ class $Dom {
     }
     
     isNoSlotHost() {
-        return this.getTagName() === 'body' || this.element?.getAttribute('data-tj-no-slot') === 'true';
+        return this.element?.nodeType !== 1 ||
+            this.getTagName() === "body" ||
+            this.element.getAttribute("data-tj-no-slot") === "true";
     }
-
+    
     ensureContentSlotFirst() {
         let slot = this.findContentSlot();
 
@@ -115,28 +138,51 @@ class $Dom {
         if (this.slotModeEnabled) {
             return;
         }
-        
+
         if (this.isNoSlotHost()) {
             this.slotModeEnabled = true;
             return;
-        }        
-        
+        }
+
+        const existingSlot = this.findContentSlot();
+
+        if (existingSlot) {
+            if (this.element.firstChild !== existingSlot) {
+                this.element.insertBefore(
+                    existingSlot,
+                    this.element.firstChild
+                );
+            }
+
+            this.contentSlot = existingSlot;
+            this.slotModeEnabled = true;
+
+            this.hasRealChildren = Array.from(
+                this.element.childNodes
+            ).some(node => node !== existingSlot);
+
+            return;
+        }
+
         if (!this.element?.firstChild) {
             this.slotModeEnabled = true;
             return;
         }
 
-        const slot = this.ensureContentSlotFirst();
+        const existingNodes = Array.from(this.element.childNodes);
 
-        let n = slot.nextSibling;
-        while (n) {
-            const next = n.nextSibling;
-            slot.appendChild(n);
-            n = next;
+        const slot = document.createElement("div");
+        slot.setAttribute("data-tj-slot", "content");
+
+        this.element.insertBefore(slot, this.element.firstChild);
+
+        for (const node of existingNodes) {
+            slot.appendChild(node);
         }
 
+        this.contentSlot = slot;
         this.slotModeEnabled = true;
-    }    
+    }  
 
     ensureSlotMode() {
         if (this.isNoSlotHost()) {

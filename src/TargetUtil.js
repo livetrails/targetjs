@@ -701,7 +701,7 @@ class TargetUtil {
                 return "needs Reattach";
             }
             
-            if (tmodel.canHaveDom() && !tmodel.hasDom()) {
+            if (getManager().shouldHaveDom(tmodel) && !tmodel.hasDom()) {
                 return "no dom";
             }
             
