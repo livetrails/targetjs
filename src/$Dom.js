@@ -134,6 +134,11 @@ class $Dom {
         return slot;
     }
     
+    isManagedChildNode(node) {
+        return node?.nodeType === 1 &&
+            node.getAttribute("tgjs") === "true";
+    }
+
     enableSlotMode() {
         if (this.slotModeEnabled) {
             return;
@@ -144,46 +149,31 @@ class $Dom {
             return;
         }
 
-        const existingSlot = this.findContentSlot();
+        let slot = this.findContentSlot();
 
-        if (existingSlot) {
-            if (this.element.firstChild !== existingSlot) {
-                this.element.insertBefore(
-                    existingSlot,
-                    this.element.firstChild
-                );
+        if (!slot) {
+            const existingNodes = Array.from(this.element.childNodes);
+
+            slot = document.createElement("div");
+            slot.setAttribute("data-tj-slot", "content");
+
+            this.element.insertBefore(slot, this.element.firstChild);
+
+            for (const node of existingNodes) {
+                if (!this.isManagedChildNode(node)) {
+                    slot.appendChild(node);
+                }
             }
-
-            this.contentSlot = existingSlot;
-            this.slotModeEnabled = true;
-
-            this.hasRealChildren = Array.from(
-                this.element.childNodes
-            ).some(node => node !== existingSlot);
-
-            return;
-        }
-
-        if (!this.element?.firstChild) {
-            this.slotModeEnabled = true;
-            return;
-        }
-
-        const existingNodes = Array.from(this.element.childNodes);
-
-        const slot = document.createElement("div");
-        slot.setAttribute("data-tj-slot", "content");
-
-        this.element.insertBefore(slot, this.element.firstChild);
-
-        for (const node of existingNodes) {
-            slot.appendChild(node);
         }
 
         this.contentSlot = slot;
         this.slotModeEnabled = true;
-    }  
 
+        this.hasRealChildren = Array.from(this.element.children).some(child =>
+            child !== slot &&
+            this.isManagedChildNode(child)
+        );
+    }
     ensureSlotMode() {
         if (this.isNoSlotHost()) {
             this.slotModeEnabled = true;
