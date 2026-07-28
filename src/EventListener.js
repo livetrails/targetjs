@@ -11,6 +11,7 @@ import { tApp, getRunScheduler, getManager, tRoot, getLocationManager } from "./
 class EventListener {
     static MAX_EVENT_QUEUE_SIZE = 10;
     static MAX_EVENT_TYPE_CAPACITY = 2;
+    static CLICK_MOVE_THRESHOLD = 10;
 
     constructor() {
          this.$document = new $Dom(document);
@@ -95,6 +96,8 @@ class EventListener {
         this.bindedHandleWindowEvent = this.handleWindowEvent.bind(this);
         this.bindedHandleEvent = this.handleEvent.bind(this);
         this.bindedParentHandleEvent = this.handleDocEvent.bind(this);
+        
+        this.maxPointerMoveDistance = 0;
     }
 
     detachWindowEvents() {
@@ -195,44 +198,55 @@ class EventListener {
     }
     
     resetEventsOnTimeout() {
-        if (this.scrollEndTimeStamp.x > 0 || this.scrollEndTimeStamp.y > 0 || this.currentTouch.pinchDelta) {
-            const now = TUtil.now();
-            const diff = Math.max(this.scrollEndTimeStamp.x - now, this.scrollEndTimeStamp.y - now);
+        const hasPendingScroll = this.scrollEndTimeStamp.x > 0 || this.scrollEndTimeStamp.y > 0 ||
+                this.currentTouch.pinchDelta !== 0;
 
-            if (diff > 100) {
-                this.currentTouch.deltaY *= 0.95;
-                this.currentTouch.deltaX *= 0.95;
-                this.currentTouch.pinchDelta *= 0.95;
+        if (!hasPendingScroll) {
+            return;
+        }
 
-                if (Math.abs(this.currentTouch.deltaY) < 0.1) {
-                    this.currentTouch.deltaY = 0;
-                }
-                if (Math.abs(this.currentTouch.deltaX) < 0.1) {
-                    this.currentTouch.deltaX = 0;
-                }
-                if (Math.abs(this.currentTouch.pinchDelta) < 0.1) {
-                    this.currentTouch.pinchDelta = 0;
-                }
-            }
+        if (this.touchCount > 0) {
+            return;
+        }
+        
+        const now = TUtil.now();
 
-            if (diff <= 0) {
+        const diff = Math.max(this.scrollEndTimeStamp.x - now, this.scrollEndTimeStamp.y - now);
+
+        if (diff > 100) {
+            this.currentTouch.deltaY *= 0.95;
+            this.currentTouch.deltaX *= 0.95;
+            this.currentTouch.pinchDelta *= 0.95;
+
+            if (Math.abs(this.currentTouch.deltaY) < 0.1) {
                 this.currentTouch.deltaY = 0;
+            }
+            if (Math.abs(this.currentTouch.deltaX) < 0.1) {
                 this.currentTouch.deltaX = 0;
+            }
+            if (Math.abs(this.currentTouch.pinchDelta) < 0.1) {
                 this.currentTouch.pinchDelta = 0;
             }
-        
-            if (!this.currentTouch.deltaX && this.scrollEndTimeStamp.x && now >= this.scrollEndTimeStamp.x && this.touchCount === 0) {
-                this.scrollEndTimeStamp.x = 0;
-                this.queueScrollEndEvent('x', this.currentHandlers.scrollLeft);
-            }
-
-            if (!this.currentTouch.deltaY && this.scrollEndTimeStamp.y && now >= this.scrollEndTimeStamp.y && this.touchCount === 0) {
-                this.queueScrollEndEvent('y', this.currentHandlers.scrollTop);
-                this.scrollEndTimeStamp.y = 0;
-            }
- 
-            getRunScheduler().schedule(10, 'scroll decay');
         }
+
+        if (diff <= 0) {
+            this.currentTouch.deltaY = 0;
+            this.currentTouch.deltaX = 0;
+            this.currentTouch.pinchDelta = 0;
+        }
+
+        if (!this.currentTouch.deltaX && this.scrollEndTimeStamp.x && now >= this.scrollEndTimeStamp.x) {
+            this.scrollEndTimeStamp.x = 0;
+            this.queueScrollEndEvent('x', this.currentHandlers.scrollLeft);
+        }
+
+        if (!this.currentTouch.deltaY && this.scrollEndTimeStamp.y && now >= this.scrollEndTimeStamp.y) {
+            this.queueScrollEndEvent('y', this.currentHandlers.scrollTop);
+            this.scrollEndTimeStamp.y = 0;
+        }
+ 
+        getRunScheduler().schedule(10, 'scroll decay');
+        
     }
     
     findEventHandlers({ tmodel, eventType }) {
@@ -428,6 +442,8 @@ class EventListener {
         switch (eventName) {
             case 'mousedown':
             case 'touchstart':
+                this.maxPointerMoveDistance = 0;
+                
                 this.clearStart();
                 this.clearEnd();
                 this.clearTouch();
@@ -509,7 +525,7 @@ class EventListener {
 
                 const clickHandler = SearchUtil.findFirstClickHandler(tmodel);
 
-                const canAcceptClick = !this.start0 || (clickHandler === this.currentHandlers.click && (clickHandler !== this.currentHandlers.swipe || this.getSwipeDistance() < 5));
+                const canAcceptClick = !this.start0 || (clickHandler === this.currentHandlers.click && this.maxPointerMoveDistance < EventListener.CLICK_MOVE_THRESHOLD);
                 
                 if (clickHandler && canAcceptClick) {
                     this.eventQueue.length = 0;
@@ -518,6 +534,7 @@ class EventListener {
 
                 this.clearEnd();
                 this.clearStart();
+                this.maxPointerMoveDistance = 0;
                 this.touchCount = 0;
                 event.stopPropagation();
                 break;
@@ -557,6 +574,7 @@ class EventListener {
                 this.clearStart();
                 this.clearEnd();
                 this.clearTouch();
+                this.maxPointerMoveDistance = 0;
                 this.touchCount = 0;
                 event.stopPropagation(); 
                 
@@ -745,6 +763,7 @@ class EventListener {
         this.windowScrollEndTimer = 0;
         this.scrollEndTimeStamp.x = 0;
         this.scrollEndTimeStamp.y = 0;
+        this.maxPointerMoveDistance = 0;
         
         this.currentHandlers = {
             touch: null,
@@ -786,14 +805,6 @@ class EventListener {
 
     swipeY() {
         return this.cursor.y - this.swipeStartY;
-    }
-    
-    getSwipeDistance() {
-        if (this.start0 && this.end0) {
-            return TUtil.distance(this.start0.originalX, this.start0.originalY, this.end0.x, this.end0.y);
-        }
-        
-        return 0;
     }
     
     pinchDelta() {
@@ -1007,6 +1018,18 @@ class EventListener {
             this.end0 = this.getTouch(event);
 
             if (TUtil.isDefined(this.end0)) {
+                const distance = TUtil.distance(
+                    this.start0.originalX,
+                    this.start0.originalY,
+                    this.end0.x,
+                    this.end0.y
+                );
+
+                this.maxPointerMoveDistance = Math.max(
+                    this.maxPointerMoveDistance,
+                    distance
+                );
+                
                 const deltaX = this.start0.x - this.end0.x;
                 const deltaY = this.start0.y - this.end0.y;
                 this.setDeltaXDeltaY(deltaX, deltaY, 'touch');
