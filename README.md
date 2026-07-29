@@ -47,6 +47,7 @@ With its compact style, TargetJS makes the journey from A → B explicit and eff
 ## 🚀 Why TargetJS?
 
 1. Unified State: One single state. Transitions are state too.
+1. Adaptive Transitions: Transitions can pause, resume, change speed, and respond to input. They can also be serialized and continue, for instance, after a page flip.
 1. UI as Sequence: Code describes the UI story from top to bottom, just like the user experiences the interaction: "When this finishes, do that."
 1. Ultra-Compact: Minimal code, with no coordination variables.
 1. Zero Boilerplate Async: Targets handle waiting for nested asynchronous operations automatically.
@@ -62,7 +63,15 @@ npm install targetj
 
 **2. Example**
 
-This creates the following sequence: bounce → move → turn red → log. Notice how the code read like the UI sequence. The `$$` suffix makes each step wait for the preceding ones. There is only one state. The transitions are part of that state.
+This creates the following sequence:
+
+```text
+bounce → move → turn red → log
+```
+
+Notice how the code reads in the same order as the UI sequence. The `$$` suffix makes each target wait for all preceding targets to complete.
+
+There is only one state, and transitions are part of that state. Although not shown here, the state can also be serialized mid-transition, for example, during a page flip and restored when the UI remounts.
 
 ```javascript
 import { App } from "targetj";
