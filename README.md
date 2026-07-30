@@ -7,7 +7,7 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a JavaScript UI framework that replaces the "State → Render" model with "State → Transition → Render". Transitions are part of state which allow them to adapt dynamically, be serialized mid-transition, and resume when the UI is restored. 
+TargetJS is a JavaScript UI framework that replaces the "State → Render" model with "State → Transition → Render". Transitions are part of state, which means they can adapt dynamically, be serialized mid-transition, and resume when the UI is restored.
 
 TargetJS also lets code order directly define the UI sequence. UI, transitions, API calls, event handling, and state are unified into self-contained Targets that chain together through Code-Ordered Reactivity.
 
