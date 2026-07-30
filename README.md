@@ -22,11 +22,9 @@ Traditional frameworks model the UI as a function of state: change state, re-ren
 
 TargetJS treats state as a destination. Values are not only assigned. They can be approached over time through configurable steps. This makes transitions a native part of state change. TargetJS also delivers CSS-level transition efficiency.
 
-More importantly, it gives transitions greater flexibility and control. As transition state is part of target which has its own lifecycle, it can adapt to changes. It can for example pause when the object becomes invisible or changes its speed when scrolling. Given that the transition is part of the one state, the state can be stored and can survive a page flip survive a when its UI is restored. It opens a new level of control that was not possible before.
-
 More importantly, it unlocks a new level of flexibility. Because a target has its own lifecycle, its transitions can adapt dynamically. For example, pausing when an element leaves the screen or changing speed on scroll.
 
-And since the transition is part of the state, it can be serialized. This means a transition can survive a page flip and perfectly resume when the UI is restored.
+And since the transition is part of the state, it can be serialized. This means a transition can survive a page flip and resume when the UI is restored.
 
 **Fragmentation across multiple mental models**
 
