@@ -1,6 +1,8 @@
-# TargetJS: State as Destination, Code Order as UI Sequence
+# TargetJS: State Includes the Journey
 
-### Most frameworks are great at rendering state. TargetJS is designed for the journey between states.
+**Code order defines the UI sequence.**
+
+Most frameworks are great at rendering state. TargetJS is designed for the journey between states.
 
 **[targetjs.io](https://targetjs.io)** 
 [![MIT LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/livetrails/targetjs/blob/main/LICENSE) 
@@ -18,15 +20,15 @@ It can be used as a full-featured framework or as a lightweight library alongsid
 
 ## What problems TargetJS solves
 
-**UI frameworks model the final result, not transition**
+**UI frameworks model the final result, not the transition**
 
 Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A → B, the UI immediately jumps to B. The framework doesn’t naturally represent the journey from A → B. But modern, rich user experiences are more like: A → transition → B.
 
-TargetJS treats state as a destination. Values are not only assigned. They can be approached over time through configurable steps. This makes transitions a native part of state change. TargetJS also delivers CSS-level transition efficiency.
+TargetJS makes that transition part of the state change itself. Values are not limited to being assigned immediately. They can move toward their destination over configurable steps, intervals, and easing. Transitions therefore become a native part of the UI model rather than effects added after rendering. TargetJS also delivers CSS-level transition efficiency.
 
-More importantly, it unlocks a new level of flexibility. Because a target has its own lifecycle, its transitions can adapt dynamically. For example, pausing when an element leaves the screen or changing speed on scroll.
+Because each Target has its own lifecycle, transitions can also adapt dynamically. For example, pausing when an element leaves the screen or changing speed on scroll.
 
-And since the transition is part of the state, it can be serialized. This means a transition can survive a page flip and resume when the UI is restored.
+Since the transition belongs to the runtime state, the UI can be captured while a transition is in progress. That state can later be restored, allowing the transition to resume from the point at which it was saved.
 
 **Fragmentation across multiple mental models**
 
@@ -49,11 +51,12 @@ With its compact style, TargetJS makes the journey from A → B explicit and eff
 ## 🚀 Why TargetJS?
 
 1. Unified State: One single state. Transitions are state too.
-1. Adaptive Transitions: Transitions can pause, resume, change speed, and respond to input. They can also be serialized and continue, for instance, after a page flip.
+1. Adaptive Transitions: Transitions can pause, resume, change speed, and respond to input.
+1. Restorable UI: Capture the UI during a transition and later resume the complete state including the transition from the saved point.
 1. UI as Sequence: Code describes the UI story from top to bottom, just like the user experiences the interaction: "When this finishes, do that."
 1. Ultra-Compact: Minimal code, with no coordination variables.
 1. Zero Boilerplate Async: Targets handle waiting for nested asynchronous operations automatically.
-1. Animation by Default: High-performance animations are baked into the logic.
+1. Animation by Default: Turn value into high-performance animations simply by adding `steps`.
 
 ## ⚡ Quick Start (30 Seconds)
 
