@@ -153,15 +153,15 @@ A target can also be defined as an object with optional controls that manage its
 
 ### Compact Execution Syntax
 
-Target names can include special symbols that define when they execute. This provides a compact alternative to implementing the same behavior with callbacks.
+Target names can include special suffixes that determine when they execute. This provides a compact alternative to coordinating the same behavior with callbacks.
 
-| Symbol | Name | Behavior |
-|------|------|------|
-| `name` | Standard | Runs immediately in the order it appears. |
-| `name$` | Reactive | Runs every time the previous sibling target updates. Equivalent to using `on<PropertyName>Step()` or `onValueChange()` to activate the next target . |
-| `name$$` | Deferred | Runs only after the entire preceding target chain, including children, animations, and API calls, completes. Equivalent to using `onComplete()` to activate the next target. |
-| `_name` | Inactive | Does not run automatically. Trigger it manually with `.activateTarget()`. Equivalent to `{ active: false }`. |
+| Syntax   | Name     | Behavior                                                                                                                                                             |
+| -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`   | Standard | Runs immediately in code order unless `active` is `false`.                                                                                                           |
+| `name$`  | Reactive | Runs whenever the preceding sibling Target updates. Similar to activating the next Target from `onValueChange()` or `on<PropertyName>Step()`.                        |
+| `name$$` | Deferred | Runs after the entire preceding Target chain—including children, animations, and API calls—has completed. Similar to activating the next Target from `onComplete()`. |
 
+To prevent a Target from running automatically, set `active: false` and activate it later with `.activateTarget()`.
 
 ## Examples: Like Button → Animated Like (in 3 Steps)
 
@@ -579,6 +579,8 @@ These targets update CSS properties and transforms:
 - `backgroundColor`, `color`
 
 These can be animated simply by adding `steps`.
+
+For custom CSS, use the `css` Target.
 
 **Structure**
 
