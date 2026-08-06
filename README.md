@@ -102,7 +102,8 @@ App({
     console.log("Sequence complete");
   },
 
-  // Click to save or restore the state including UI and animation progress.
+  // Click once to save the state.
+  // Click again to restore it including animation progress.
   onClick() {
     state().toggle();
   }
