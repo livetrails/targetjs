@@ -71,28 +71,35 @@ bounce → move → turn red → log
 
 Notice how the code reads in the same order as the UI sequence. The `$$` suffix makes each target wait for all preceding targets to complete.
 
-There is only one state, and transitions are part of that state. Although not shown here, the state can also be serialized mid-transition, for example, during a page flip and restored when the UI remounts.
+There is only one state, and the transitions are part of that state. Click the square while it is animating to save its current state. Click it again to restore the state and resume the animation from the exact point at which it was saved.
 
 ```javascript
-import { App } from "targetj";
+import { App, state } from "targetj";
 
 App({
   width: 100,
   height: 100,
   backgroundColor: "blue",
+  cursor: "pointer",
 
-  // Starts immediately: bounce.
-  scale: { value: [0.5, 1.2, 1], steps: 24, interval: 12 },
+  // Starts immediately.
+  scale: { value: [0.5, 1.2, 1], steps: 100 },
 
-  // Waits for scale to finish, then moves right.
-  x$$: { value: [0, 180], steps: 40, interval: 8 },
+  // $$ waits for the previous target to finish.
+  x$$: { value: [0, 180], steps: 100 },
 
-  // Waits for x to finish, then turns red.
-  backgroundColor$$: { value: "crimson", steps: 30, interval: 8 },
+  backgroundColor$$: {
+    value: "crimson",
+    steps: 100
+  },
 
-  // Waits for the color change to finish.
   done$$() {
     console.log("Sequence complete");
+  },
+
+  // Click to save or restore the state including UI and animation progress.
+  onClick() {
+    state().toggle();
   }
 }).mount("#app");
 ```
