@@ -50,10 +50,11 @@ class EventListener {
         this.currentOriginalEvent = undefined;
         this.currentKey = '';
         
-        this.currentHandlers = { 
-            touch: null, 
+        this.currentHandlers = {
+            gestureTarget: null,
+            touch: null,
             click: null,
-            scrollLeft: null, 
+            scrollLeft: null,
             scrollTop: null,
             swipe: null,
             pinch: null,
@@ -63,6 +64,7 @@ class EventListener {
             leave: null,
             enter: null,
             start: null,
+            endCandidate: null,
             end: null,
             hover: null
         };
@@ -250,19 +252,35 @@ class EventListener {
     }
     
     findEventHandlers({ tmodel, eventType }) {
-        let clickHandler, swipeHandler, scrollLeftHandler, scrollTopHandler, pinchHandler, focusHandler, enterHandler, leaveHandler;
-        
+        let clickHandler;
+        let swipeHandler;
+        let scrollLeftHandler;
+        let scrollTopHandler;
+        let pinchHandler;
+        let focusHandler;
+        let enterHandler;
+        let leaveHandler;
+        let startHandler;
+        let endHandler;
+
         if (tmodel) {
             clickHandler = SearchUtil.findFirstClickHandler(tmodel);
             swipeHandler = SearchUtil.findFirstSwipeHandler(tmodel);
+            startHandler = SearchUtil.findFirstStartHandler(tmodel);
+            endHandler = SearchUtil.findFirstEndHandler(tmodel);
+
             enterHandler = SearchUtil.findFirstEnterHandler(tmodel);
             leaveHandler = SearchUtil.findFirstLeaveHandler(tmodel);
+
             scrollLeftHandler = SearchUtil.findFirstScrollLeftHandler(tmodel, eventType);
+
             scrollTopHandler = SearchUtil.findFirstScrollTopHandler(tmodel, eventType);
+
             pinchHandler = SearchUtil.findFirstPinchHandler(tmodel);
+
             focusHandler = $Dom.hasFocus(tmodel) ? tmodel : this.currentHandlers.focus;
         }
-                       
+
         if (this.currentHandlers.scrollLeft !== scrollLeftHandler || this.currentHandlers.scrollTop !== scrollTopHandler) {
             this.clearTouch();
         }
@@ -271,12 +289,14 @@ class EventListener {
             this.currentHandlers.justFocused = focusHandler;
             this.currentHandlers.blur = this.currentHandlers.focus;
         }
-       
+
         this.currentHandlers.hover = tmodel?.canHandleEvent('onHover') ? tmodel : undefined;
-        
+
         this.currentHandlers.click = clickHandler;
-        this.currentHandlers.swipe = swipeHandler;        
-        this.currentHandlers.scrollLeft = scrollLeftHandler;        
+        this.currentHandlers.swipe = swipeHandler;
+        this.currentHandlers.start = startHandler;
+        this.currentHandlers.endCandidate = endHandler;
+        this.currentHandlers.scrollLeft = scrollLeftHandler;
         this.currentHandlers.scrollTop = scrollTopHandler;
         this.currentHandlers.pinch = pinchHandler;
         this.currentHandlers.focus = focusHandler;
@@ -311,9 +331,12 @@ class EventListener {
         }
         
         if (lastEvent.eventType === 'end') {
-           this.currentHandlers.end = this.currentHandlers.start;
-           this.currentHandlers.start = undefined;
-       }
+            this.currentHandlers.end = this.currentHandlers.endCandidate;
+
+            this.currentHandlers.start = undefined;
+            this.currentHandlers.endCandidate = undefined;
+            this.currentHandlers.gestureTarget = undefined;
+        }
 
        this.currentEventName = lastEvent.eventName;
        this.currentEventType = lastEvent.eventType;
@@ -326,6 +349,8 @@ class EventListener {
        if (lastEvent.eventType === 'end' || lastEvent.eventType === 'click') {
            this.canFindHandlers = true;
        }
+       
+       return lastEvent;
    }
     
     markCapturedEventDirty(lastEvent) {
@@ -387,8 +412,8 @@ class EventListener {
         const now = TUtil.now();
                 
         let tmodel;
-        if (eventType === 'move' && this.touchCount > 0 && this.currentHandlers.start) {
-            tmodel = this.currentHandlers.start;
+        if (eventType === 'move' && this.touchCount > 0 && this.currentHandlers.gestureTarget) {
+            tmodel = this.currentHandlers.gestureTarget;
         } else {
             tmodel = this.getTModelFromEvent(event);
         } 
@@ -462,8 +487,8 @@ class EventListener {
                 this.cursor.x = this.start0.x;
                 this.cursor.y = this.start0.y;
                 
-                this.currentHandlers.start = tmodel;
-                this.findEventHandlers(newEvent); 
+                this.currentHandlers.gestureTarget = tmodel;
+                this.findEventHandlers(newEvent);
                 this.canFindHandlers = false;
                
                 this.swipeStartX = this.start0.x - (this.currentHandlers.swipe?.getX() ?? 0);
@@ -852,7 +877,7 @@ class EventListener {
     }
     
     isSwipeEvent() {
-        return this.hasDelta() && this.touchCount === 1;
+        return this.isMoveEvent() && this.hasDelta() && this.touchCount === 1;
     }
     
     isScrollEvent() {

@@ -2,6 +2,7 @@ import { $Dom } from "./$Dom.js";
 import { TUtil } from "./TUtil.js";
 import { getRunScheduler } from "./App.js";
 import { TargetUtil } from "./TargetUtil.js";
+import { StateUtil } from "./StateUtil.js";
 
 /**
  * It provides a central place for managing fetching of external APIs and images. 
@@ -9,23 +10,22 @@ import { TargetUtil } from "./TargetUtil.js";
 class LoadingManager {
     constructor() {
         this.cacheMap = {};
-
         this.tmodelKeyMap = {};
         this.fetchingAPIMap = {};
         this.fetchingImageMap = {};
-        
         this.targetPageKeyMap = new WeakMap();
-            
         this.fetchSeq = 0;
-
+        this.runtimeEpoch = 0;
     }
 
     clear() {
+        this.runtimeEpoch++;
         this.fetchingAPIMap = {};
         this.fetchingImageMap = {};
     }
     
     clearAll() {
+        this.runtimeEpoch++;
         this.cacheMap = {};
         this.tmodelKeyMap = {};
         this.fetchingAPIMap = {};
@@ -49,11 +49,12 @@ class LoadingManager {
         return this.targetPageKeyMap.get(tmodel)?.get(targetName) ?? document.URL;
     }
     
-    fetchCommon(fetchId, cacheId, tmodel, fetchMap, fetchFn) {
+    fetchCommon(fetchId, cacheId, tmodel, fetchMap, request, fetchFn) {
         TargetUtil.markFetchAction(tmodel);
-        
+
         const pageKey = document.URL;
-        const targetName = tmodel.key;        
+        const targetName = tmodel.key;
+
         this.setTargetPageKey(tmodel, targetName, pageKey);
 
         if (!this.isFetched(cacheId)) {
@@ -61,23 +62,28 @@ class LoadingManager {
                 fetchMap[fetchId] = {
                     fetchId,
                     cacheId,
+                    request,
                     startTime: TUtil.now(),
-                    targets: [{ tmodel, targetName: tmodel.key }],
+                    epoch: this.runtimeEpoch,
+                    targets: [{ tmodel, targetName }],
                     fetchMap
                 };
-                fetchFn();
+
+                fetchFn(fetchMap[fetchId]);
             }
         } else if (!fetchMap[fetchId]) {
             fetchMap[fetchId] = {
                 fetchId,
                 cacheId,
+                request,
                 startTime: TUtil.now(),
-                targets: [{tmodel, targetName: tmodel.key}],
+                epoch: this.runtimeEpoch,
+                targets: [{ tmodel, targetName }],
                 fetchMap
             };
         }
 
-        this.addToTModelKeyMap(tmodel, tmodel.key, fetchId, cacheId, fetchMap);
+        this.addToTModelKeyMap(tmodel, targetName, fetchId, cacheId, fetchMap);
 
         return fetchId;
     }
@@ -97,22 +103,45 @@ class LoadingManager {
 
     fetchOne(tmodel, url, query, cacheId) {
         const fetchId = this.getFetchKey(tmodel, url, query);
-        this.fetchCommon(fetchId, cacheId, tmodel, this.fetchingAPIMap, () => {
-            this.ajaxAPI(url, query, this.fetchingAPIMap[fetchId]);
-        });
-    }
 
+        const request = {
+            type: "api",
+            url,
+            query: StateUtil.encodeValue(query)
+        };
+
+        this.fetchCommon(
+            fetchId,
+            cacheId,
+            tmodel,
+            this.fetchingAPIMap,
+            request,
+            fetchStatus => this.ajaxAPI(url, query, fetchStatus)
+        );
+    }
+    
     fetchImage(tmodel, url, cacheId) {
         const urls = Array.isArray(url) ? url : [url];
 
-        urls.forEach(singleUrl => {
-            const fetchId = this.getFetchKey(tmodel, singleUrl);
-            this.fetchCommon(fetchId, cacheId, tmodel, this.fetchingImageMap, () => {
-                this.loadImage(singleUrl, this.fetchingImageMap[fetchId]);
-            });
+        urls.forEach(src => {
+            const fetchId = this.getFetchKey(tmodel, src);
+
+            const request = {
+                type: "image",
+                src
+            };
+
+            this.fetchCommon(
+                fetchId,
+                cacheId,
+                tmodel,
+                this.fetchingImageMap,
+                request,
+                fetchStatus => this.loadImage(src, fetchStatus)
+            );
         });
     }
-
+    
     getFetchKey(tmodel, url, query) {
         const base = query
             ? `${tmodel.oid}_${url}_${tmodel.getTargetCycle(tmodel.key)}_${JSON.stringify(query)}`
@@ -126,32 +155,65 @@ class LoadingManager {
         return `${pageKey}_${tmodel.oid}_${targetName}`;
     }
     
+    createTModelEntry(tmodel, targetName) {
+        return {
+            pageKey: this.getTargetPageKey(tmodel, targetName),
+            oid: tmodel.oid,
+            targetName,
+            fetchMap: {},
+            entryCount: 0,
+            resultCount: 0,
+            errorCount: 0,
+            activeIndex: 0,
+            accessIndex: 0
+        };
+    }
+
     addToTModelKeyMap(tmodel, targetName, fetchId, cacheId, fetchMap) {
         const key = this.getTModelKey(tmodel, targetName);
         const loadTargetName = TUtil.getLoadTargetName(targetName);
-
         const loadingComplete = this.isLoadingComplete(tmodel, targetName);
 
-        if (loadingComplete || !this.tmodelKeyMap[key] || !tmodel.val(loadTargetName)) {
-            this.tmodelKeyMap[key] ??= { fetchMap: {}, entryCount: 0, resultCount: 0, errorCount: 0, activeIndex: 0, accessIndex: 0 };     
+        let modelEntry = this.tmodelKeyMap[key];
+
+        if (loadingComplete || !modelEntry || !Array.isArray(tmodel.val(loadTargetName))) {
+            modelEntry = this.createTModelEntry(tmodel, targetName);
+            this.tmodelKeyMap[key] = modelEntry;
             tmodel.val(loadTargetName, []);
         }
 
-        if (!this.tmodelKeyMap[key].fetchMap[fetchId]) {
-            this.tmodelKeyMap[key].fetchMap[fetchId] = {
-                fetchId
-            };
-        }
+        modelEntry.fetchMap[fetchId] = {
+            fetchId,
+            order: modelEntry.entryCount
+        };
 
-        this.tmodelKeyMap[key].fetchMap[fetchId].order = this.tmodelKeyMap[key].entryCount;
-        this.tmodelKeyMap[key].entryCount++;
+        modelEntry.entryCount++;
         tmodel.val(loadTargetName).push(undefined);
 
         if (cacheId && this.isFetched(cacheId)) {
             fetchMap[fetchId].startTime = TUtil.now();
             this.handleSuccess(fetchMap[fetchId], this.cacheMap[cacheId].result);
         }
-    }    
+    }  
+    
+    getPendingRequestSnapshots(fetchMap) {
+        return Object.values(fetchMap).map(fetchStatus => ({
+            cacheId: fetchStatus.cacheId,
+            request: StateUtil.encodeValue(fetchStatus.request),
+
+            targets: fetchStatus.targets.map(({ tmodel, targetName }) => {
+                const key = this.getTModelKey(tmodel, targetName);
+                const entry = this.tmodelKeyMap[key];
+                const fetchEntry = entry?.fetchMap?.[fetchStatus.fetchId];
+
+                return {
+                    oid: tmodel.oid,
+                    targetName,
+                    order: fetchEntry?.order
+                };
+            }).filter(target => Number.isFinite(target.order))
+        }));
+    }
 
     removeFromTModelKeyMap(tmodel, targetName) {
         const key = this.getTModelKey(tmodel, targetName);
@@ -256,6 +318,10 @@ class LoadingManager {
     }    
 
     handleSuccess(fetchStatus, result) {
+        if (fetchStatus.epoch !== this.runtimeEpoch) {
+            return;
+        }
+        
         const fetchTime = TUtil.now();
         const { fetchId, cacheId, startTime, targets, fetchMap } = fetchStatus;
         const res = {
@@ -303,6 +369,10 @@ class LoadingManager {
     }
 
     handleError(fetchStatus, error) {
+        if (fetchStatus.epoch !== this.runtimeEpoch) {
+            return;
+        }
+        
         const fetchTime = TUtil.now();
         const { fetchId, cacheId, startTime, targets, fetchMap } = fetchStatus;
 
@@ -446,6 +516,133 @@ class LoadingManager {
         image.onerror = () => {
             this.handleError(fetchStatus, "not found");
         };
+    }
+    
+    createRuntimeSnapshot() {
+        return {
+            cacheMap: StateUtil.encodeValue(this.cacheMap),
+
+            entries: Object.values(this.tmodelKeyMap).map(entry => ({
+                pageKey: entry.pageKey,
+                oid: entry.oid,
+                targetName: entry.targetName,
+                entryCount: entry.entryCount,
+                resultCount: entry.resultCount,
+                errorCount: entry.errorCount,
+                activeIndex: entry.activeIndex,
+                accessIndex: entry.accessIndex
+            })),
+
+            pendingRequests: [
+                ...this.getPendingRequestSnapshots(this.fetchingAPIMap),
+                ...this.getPendingRequestSnapshots(this.fetchingImageMap)
+            ]
+        };
+    }
+    
+    restorePendingRequest(savedRequest, tmodelIdMap) {
+        const request = StateUtil.decodeValue(savedRequest.request, tmodelIdMap);
+        const targets = [];
+
+        for (const savedTarget of savedRequest.targets || []) {
+            const tmodel = tmodelIdMap[savedTarget.oid];
+
+            if (!tmodel) {
+                continue;
+            }
+
+            const key = this.getTModelKey(tmodel, savedTarget.targetName);
+            const modelEntry = this.tmodelKeyMap[key];
+
+            if (!modelEntry) {
+                continue;
+            }
+
+            targets.push({
+                tmodel,
+                targetName: savedTarget.targetName,
+                order: savedTarget.order
+            });
+        }
+
+        if (!targets.length) {
+            return;
+        }
+
+        const fetchId = `restored_${++this.fetchSeq}`;
+        const fetchMap = request.type === "image" ? this.fetchingImageMap : this.fetchingAPIMap;
+
+        const fetchStatus = {
+            fetchId,
+            cacheId: savedRequest.cacheId,
+            request,
+            startTime: TUtil.now(),
+            epoch: this.runtimeEpoch,
+            targets: targets.map(({ tmodel, targetName }) => ({
+                tmodel,
+                targetName
+            })),
+            fetchMap
+        };
+
+        fetchMap[fetchId] = fetchStatus;
+
+        for (const { tmodel, targetName, order } of targets) {
+            const key = this.getTModelKey(tmodel, targetName);
+            const modelEntry = this.tmodelKeyMap[key];
+
+            modelEntry.fetchMap[fetchId] = {
+                fetchId,
+                order
+            };
+        }
+
+        if (savedRequest.cacheId && this.isFetched(savedRequest.cacheId)) {
+            this.handleSuccess(fetchStatus, this.cacheMap[savedRequest.cacheId].result);
+            return;
+        }
+
+        if (request.type === "image") {
+            this.loadImage(request.src, fetchStatus);
+        } else {
+            this.ajaxAPI(request.url, request.query, fetchStatus);
+        }
+    }
+
+    restoreRuntimeSnapshot(snapshot, tmodelIdMap) {
+        this.clear();
+
+        this.cacheMap = StateUtil.decodeValue(snapshot?.cacheMap || {}, tmodelIdMap);
+        this.tmodelKeyMap = {};
+        this.targetPageKeyMap = new WeakMap();
+
+        for (const savedEntry of snapshot?.entries || []) {
+            const tmodel = tmodelIdMap[savedEntry.oid];
+
+            if (!tmodel) {
+                continue;
+            }
+
+            this.setTargetPageKey(tmodel, savedEntry.targetName, savedEntry.pageKey);
+
+            const key = this.getTModelKey(tmodel, savedEntry.targetName);
+
+            this.tmodelKeyMap[key] = {
+                pageKey: savedEntry.pageKey,
+                oid: savedEntry.oid,
+                targetName: savedEntry.targetName,
+                fetchMap: {},
+                entryCount: savedEntry.entryCount,
+                resultCount: savedEntry.resultCount,
+                errorCount: savedEntry.errorCount,
+                activeIndex: savedEntry.activeIndex,
+                accessIndex: savedEntry.accessIndex
+            };
+        }
+
+        for (const pendingRequest of snapshot?.pendingRequests || []) {
+            this.restorePendingRequest(pendingRequest, tmodelIdMap);
+        }
     }
 }
 

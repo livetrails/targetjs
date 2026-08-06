@@ -84,6 +84,14 @@ class SearchUtil {
         return this.findFirstHandler(tmodel, 'onLeave');
     }
     
+    static findFirstStartHandler(tmodel) {
+        return this.findFirstHandler(tmodel, 'onStart');
+    }
+
+    static findFirstEndHandler(tmodel) {
+        return this.findFirstHandler(tmodel, 'onEnd');
+    }
+    
     static findFirstClickHandler(tmodel) {
         return this.findFirstHandler(tmodel, 'onClick') || this.findFirstHandler(tmodel, 'onAnyClick');
     }

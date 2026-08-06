@@ -8,14 +8,15 @@ import { SearchUtil } from "./SearchUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { DomInit } from "./DomInit.js";
+import { StateUtil } from "./StateUtil.js";
 
 /**
  * It provides the base class for all objects in an app where targets are defined. 
  * These objects typically have a DOM but can also operate without one.
  */
 class TModel extends BaseModel {
-    constructor(type, targets, oid) {
-        super(type, targets, oid);
+    constructor(type, targets, oid, options = {}) {
+        super(type, targets, oid, options);
         
         this.allChildrenList = [];
         this.allChildrenMap = {};
@@ -48,7 +49,8 @@ class TModel extends BaseModel {
         this.dirtyLayout = false;
         this.originWindowEpoch = -1;
         
-        this.initTargets();        
+        this.initTargets();  
+        this.restoringRuntime = false;
     }
 
     createViewport() {
@@ -119,8 +121,8 @@ class TModel extends BaseModel {
         this.removeFromActiveChildren(child);
         this.removeFromAnimatingChildren(child);
         this.childrenUpdateFlag = true;
+        this.markLayoutDirty('removeChild');        
         getLocationManager().calcChildren(this);
-        this.markLayoutDirty('removeChild');
                    
         getRunScheduler().schedule(1, 'removeChild-' + child.oid);
 
@@ -997,7 +999,11 @@ class TModel extends BaseModel {
     
     reuseDomDefinition() {
         return this.val('reuseDomDefinition');
-    } 
+    }
+
+    createRuntimeSnapshot() {
+        return StateUtil.createRuntimeSnapshot(this);
+    }
 }
 
 export { TModel };

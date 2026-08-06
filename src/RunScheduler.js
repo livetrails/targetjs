@@ -32,6 +32,7 @@ class RunScheduler {
         this.phase = 0;
         this.runningStep = -1;
         this.sliceQueued = false;
+        this.eventSettlePending = false;
     }
 
     async resetRuns() {
@@ -53,7 +54,8 @@ class RunScheduler {
         this.activeStartTime = undefined;
         this.phase = 0;
         this.runningStep = -1;
-        this.sliceQueued = false;     
+        this.sliceQueued = false;
+        this.eventSettlePending = false;
     }
 
     scheduleOnlyIfEarlier(delay, runId) {
@@ -103,7 +105,14 @@ class RunScheduler {
 
         try {
             if (this.phase === 0) {
-                getEvents().captureEvents();
+                const capturedEvent = getEvents().captureEvents();
+
+                if (capturedEvent) {
+                    const type = capturedEvent.eventType;
+
+                    this.eventSettlePending = type === 'start' || type === 'end' || type === 'click';
+                }
+
                 tApp.targetManager.applyTargetValues(tRoot());
                 await getLocationManager().calculateAll();
                 this.phase = 1;
@@ -129,6 +138,13 @@ class RunScheduler {
             if (this.phase === 2) {
                 getLocationManager().calculateActivated();
                 tApp.events.resetEventsOnTimeout();
+
+                const activatedStep = tApp.manager.analyze();
+
+                if (activatedStep >= 0) {
+                    this.runningStep = this.runningStep < 0 ? activatedStep : Math.min(this.runningStep, activatedStep);
+                }
+
                 this.phase = 3;
             }
 
@@ -183,26 +199,31 @@ class RunScheduler {
         this.phase = 0;
         this.runningFlag = false;
         
+        const eventSettlePending = this.eventSettlePending;
+        this.eventSettlePending = false;
+        
         if (this.rerunId) {
             const id = this.rerunId;
             this.rerunId = '';
             this.schedule(0, `rerun-${id}`);
-        } else if (getEvents().eventQueue.length > 0) {
+        } else if (getEvents().eventQueue.length > 0 || eventSettlePending) {
             this.schedule(0, `events-${getEvents().eventQueue.length}`);
         } else {
             const newDelay = this.nextRuns.length > 0 ? this.nextRuns[0].delay - (TUtil.now() - this.nextRuns[0].insertTime) : undefined;
-
+            const manager = getManager();
+            const hasImmediateWork = manager.lists.restyle.length > 0 
+                    || manager.lists.reasyncStyle.length > 0 
+                    || getLocationManager().activatedList.length > 0;
+            
             if (newDelay === undefined 
-                    || getManager().lists.activeTModels.length > 0 
-                    || getManager().lists.updatingTModels.length > 0
-                    || getManager().lists.restyle.length > 0
-                    || getManager().lists.reasyncStyle.length > 0
-                    || getEvents().eventQueue.length > 0
-                    || getLocationManager().activatedList.length > 0) {
-                if (getManager().lists.updatingTModels.length > 0) {
+                    || manager.lists.activeTModels.length > 0 
+                    || manager.lists.updatingTModels.length > 0 
+                    || hasImmediateWork) {
+
+                if (manager.lists.updatingTModels.length > 0) {
                     this.schedule(1, `getManager-needsRerun-updatingTModels`);
-                } else if (getManager().lists.activeTModels.length > 0) {
-                    const activeTModel = getManager().lists.activeTModels.find(tmodel => {
+                } else if (manager.lists.activeTModels.length > 0) {
+                    const activeTModel = manager.lists.activeTModels.find(tmodel => {
                         return (
                                 tmodel.targetExecutionCount === 0 ||
                                 tmodel.activeTargetList
@@ -216,6 +237,8 @@ class RunScheduler {
 
                         this.schedule(delay, `getManager-needsRerun-${activeTModel.oid}-${activeTModel.activeTargetList}`);
                     }
+                } else if (hasImmediateWork) {
+                    this.schedule(1, 'needsRerun-dom-work');
                 }
             } 
         }

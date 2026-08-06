@@ -69,17 +69,19 @@ class AnimationManager {
         }
         
         let transformAnimation = false;
-        
+        const baseTfMap = {};
+
+        for (const key of Object.keys(tmodel.tfMap)) {
+            baseTfMap[key] = tmodel.val(key);
+        }
+
         const keyframes = batch.frames.map(frame => {
-            const out = {...frame.styleMap};
+            const out = { ...frame.styleMap };
             out.offset = frame.keyTime / totalDuration;
-            if (Object.keys(frame.tfMap).length) { 
-                Object.keys(tmodel.tfMap).forEach(key => {
-                    tmodel.tfMap[key] = tmodel.val(key);
-                });
-                const tfMap = { ...tmodel.tfMap, ...frame.tfMap };                             
+
+            if (Object.keys(frame.tfMap).length) {
+                const tfMap = { ...baseTfMap, ...frame.tfMap };
                 out.transform = TModelUtil.getTransformString(tmodel, tfMap);
-                frame.tfMap = tfMap;
                 transformAnimation = true;
             }
 
@@ -155,9 +157,10 @@ class AnimationManager {
         this.animate(tmodel, AnimationUtil.emptyBatch(), AnimationUtil.getAnimationHooks(), keySet);
     }
 
-    finalizeAnimation(anim) {  
+    finalizeAnimation(anim) {
+        let finalized = false;
+
         for (const [recId, rec] of this.recordMap) {
-            
             if (rec.anim !== anim) {
                 continue;
             }
@@ -166,20 +169,20 @@ class AnimationManager {
                 continue;
             }
 
+            finalized = true;
+
             const { tmodel, originalKey, cleanKey } = rec;
-            
+
             tmodel.removeFromAnimatingMap(originalKey);
             this.recordMap.delete(recId);
-               
+
             this.completeRecord(tmodel, rec, cleanKey, originalKey);
 
             if (!tmodel.hasAnimatingTargets()) {
-
-                if (tmodel.finalKeyframe) {
-                    if (tmodel.hasDom()) {   
-                        AnimationUtil.fixStyleByAnimation(tmodel, tmodel.finalKeyframe);
-                    }
+                if (tmodel.finalKeyframe && tmodel.hasDom()) {
+                    AnimationUtil.fixStyleByAnimation(tmodel, tmodel.finalKeyframe);
                 }
+
                 tmodel.lastBatch = undefined;
             }
 
@@ -188,10 +191,16 @@ class AnimationManager {
 
             getRunScheduler().scheduleOnlyIfEarlier(1, `animate-${tmodel.oid}---${originalKey}`);
         }
-        
-        getRunScheduler().schedule(35, `finalizeAnimation`);
+
+        if (finalized) {
+            try {
+                anim.cancel();
+            } catch {}
+        }
+
+        getRunScheduler().schedule(35, 'finalizeAnimation');
     }
-    
+
     startProgressPoller() {
         if (this.waapiPoller.rafId) { 
             return;
@@ -286,8 +295,7 @@ class AnimationManager {
             const targetValue = tmodel.targetValues[originalKey];
             if (targetValue) {
                 targetValue.step = tmodel.getTargetSteps(originalKey);
-                targetValue.valuePointer = targetValue.valueList?.length ?? 0;
-                targetValue.value = value;
+                targetValue.valuePointer = targetValue.valueList?.length ? targetValue.valueList.length - 1 : 0;
                 tmodel.setActual(originalKey, value);
                 if (tmodel.isTargetImperative(originalKey)) {
                     targetValue.cycle = targetValue.cycles;
@@ -414,36 +422,20 @@ class AnimationManager {
         AnimationUtil.addUnitsToFrame(out);
         AnimationUtil.fixStyleByAnimation(tmodel, out);
     }
-    
-    freezeTModelAtCurrentTime(tmodel) {        
-        if (!tmodel.lastBatch) {
-            return;
-        }
-
-        const cutTime = Math.min(
-            TUtil.now() - tmodel.lastBatch.startTime,
-            tmodel.lastBatch.totalDuration
-        );
-
-        tmodel.lastBatch = this.cutLastBatch(tmodel, tmodel.lastBatch, cutTime);
-
-        this.fixTModelStyleFromFrame(tmodel, tmodel.lastBatch.frames[0]);
-    }
-
+   
     collectFramesForKey(batch, cleanKey) {
-        
         const out = [];
         const total = batch.totalDuration;
-        
+
         for (const frame of batch.frames) {
-            
             const value = this.getAt(frame, cleanKey);
+
             if (value === undefined) {
                 continue;
             }
 
             const meta = frame.keyMeta.get(cleanKey);
-                        
+
             out.push({
                 value,
                 time: frame.keyTime,
@@ -451,6 +443,7 @@ class AnimationManager {
                 steps: meta?.steps,
                 segmentSteps: meta?.segmentSteps,
                 interval: meta?.interval,
+                easing: meta?.easing,
                 stepOffset: meta?.stepOffset || 0,
                 valuePointer: meta?.valuePointer,
                 cycle: meta?.cycle,
@@ -459,7 +452,7 @@ class AnimationManager {
         }
 
         out.sort((a, b) => a.time - b.time);
-                        
+
         return out.length >= 2 ? out : undefined;
     }
     
@@ -478,17 +471,42 @@ class AnimationManager {
     }
     
     deleteAnimation(tmodel) {
-        for (const [recId, record] of this.recordMap) {
-            if (recId.startsWith(`${tmodel.oid}-`)) {;
-                this.delete(record);
+        const records = [];
+
+        for (const record of this.recordMap.values()) {
+            if (record.tmodel === tmodel) {
+                records.push(record);
             }
         }
-        
-        tmodel.lastBatch = undefined;
-        tmodel.finalKeyframe = undefined;
-        tmodel.finalRawFrame = undefined; 
-        
+
+        if (!records.length) {
+            return false;
+        }
+
+        const keys = new Set();
+        const animations = new Set();
+
+        for (const record of records) {
+            keys.add(record.originalKey);
+            animations.add(record.anim);
+        }
+
+        TModelUtil.commitAnimatedStyles(tmodel, keys);
+
+        for (const animation of animations) {
+            try {
+                animation.cancel();
+            } catch {}
+        }
+
         tmodel.clearAnimatingMap();
+
+        tmodel.lastBatch = undefined;
+        tmodel.waapiBatch = undefined;
+        tmodel.finalKeyframe = undefined;
+        tmodel.finalRawFrame = undefined;
+
+        return true;
     }
     
     cancelKey(tmodel, originalKey) {
@@ -502,37 +520,149 @@ class AnimationManager {
     
     async deleteAll() {
         this.isShuttingDown = true;
-        
+
         if (this.waapiPoller.rafId) {
             cancelAnimationFrame(this.waapiPoller.rafId);
             this.waapiPoller.rafId = 0;
             this.waapiPoller.alive = false;
         }
-        
-        const tmodels = new Set();
 
-        for (const [, record] of this.recordMap) {
-            tmodels.add(record.tmodel);
-        }
-        
-        for (const tmodel of tmodels) {
-            this.freezeTModelAtCurrentTime(tmodel);
+        const animations = new Set();
+        const keysByTModel = new Map();
 
-            AnimationUtil.detachAnimationsOnDeleteDom(tmodel);
+        for (const record of this.recordMap.values()) {
+            if (record.status === "canceled" || record.status === "detached") {
+                continue;
+            }
             
-            tmodel.lastBatch = undefined;
-            tmodel.finalKeyframe = undefined;
-            tmodel.finalRawFrame = undefined;             
+            AnimationUtil.updateTModelFromRecord(record);
+
+            animations.add(record.anim);
+
+            let keys = keysByTModel.get(record.tmodel);
+
+            if (!keys) {
+                keys = new Set();
+                keysByTModel.set(record.tmodel, keys);
+            }
+
+            keys.add(record.originalKey);
         }
-        
+
+        for (const [tmodel, keys] of keysByTModel) {
+
+            TModelUtil.commitAnimatedStyles(tmodel, keys);
+
+            AnimationUtil.addToUpdatingTargets(tmodel, keys);
+
+            tmodel.lastBatch = undefined;
+            tmodel.waapiBatch = undefined;
+            tmodel.finalKeyframe = undefined;
+            tmodel.finalRawFrame = undefined;
+        }
+
+        for (const record of this.recordMap.values()) {
+            record.status = "detached";
+        }
+
+        for (const animation of animations) {
+            try {
+                animation.cancel();
+            } catch {}
+        }
+
         this.recordMap.clear();
     }
-    
     async flushOneFrame() {
         await new Promise(requestAnimationFrame);
         this.isShuttingDown = false;
     }
     
+    cancelTModelAnimation(tmodel, { mode = "resume", commitStyle = true } = {}) {
+        const records = [];
+
+        for (const record of this.recordMap.values()) {
+            if (record.tmodel === tmodel) {
+                records.push(record);
+            }
+        }
+
+        if (!records.length) {
+            return false;
+        }
+
+        const keys = new Set();
+        const animations = new Set();
+
+        for (const record of records) {
+            if (record.status !== "canceled" && record.status !== "detached") {
+                AnimationUtil.updateTModelFromRecord(record);
+            }
+
+            keys.add(record.originalKey);
+            animations.add(record.anim);
+        }
+
+        if (commitStyle) {
+            TModelUtil.commitAnimatedStyles(tmodel, keys);
+        }
+
+        for (const record of records) {
+            record.status = "detached";
+            this.recordMap.delete(record.recId);
+        }
+
+        for (const animation of animations) {
+            try {
+                animation.cancel();
+            } catch {}
+        }
+
+        tmodel.clearAnimatingMap();
+
+        this.applyCanceledTargetMode(tmodel, keys, mode);
+
+        tmodel.lastBatch = undefined;
+        tmodel.waapiBatch = undefined;
+        tmodel.finalKeyframe = undefined;
+        tmodel.finalRawFrame = undefined;
+
+        return true;
+    }
+    
+    applyCanceledTargetMode(tmodel, keys, mode) {
+        for (const key of keys) {
+            const targetValue = tmodel.targetValues[key];
+
+            if (!targetValue) {
+                continue;
+            }
+
+            if (mode === "resume") {
+                tmodel.setTargetStatus(key, "updating");
+                continue;
+            }
+
+            if (mode === "finish") {
+                this.finishCanceledTarget(tmodel, key);
+                continue;
+            }
+        }
+    }
+    
+    finishCanceledTarget(tmodel, key) {
+        const record = this.recordMap.get(this.getRecordId(tmodel, key));
+
+        if (!record) {
+            return;
+        }
+
+        this.completeRecord(tmodel, record, record.cleanKey, key);
+
+        tmodel.removeFromAnimatingMap(key);
+        record.hooks.fireOnEnd(tmodel, key);
+    }
+
     fillCutFrameFromRecords(tmodel, cutFrame, cutTime, totalDuration) {
         const progress = totalDuration > 0 ? TUtil.limit(cutTime / totalDuration, 0, 1) : 1;
 
@@ -643,58 +773,69 @@ class AnimationManager {
    
     mergeBatches(lastBatch, newBatch) {
         const newCleanKeys = new Set(Object.keys(newBatch.keyMap));
-
-        const oldFrames = [];
-
-        for (const frame of lastBatch.frames) {
-            for (const key of newCleanKeys) {
-                delete frame.styleMap[key];
-                delete frame.tfMap[key];
-                frame.keyMeta?.delete(key);
-            }
-
-            if (Object.keys(frame.styleMap).length || Object.keys(frame.tfMap).length) {
-                oldFrames.push(frame);
-            }
-        }
-
         const oldKeyMap = {};
 
-        for (const [key, set] of Object.entries(lastBatch.keyMap)) {
+        for (const [key, originalKeys] of Object.entries(lastBatch.keyMap)) {
             if (!newCleanKeys.has(key)) {
-                oldKeyMap[key] = set;
+                oldKeyMap[key] = originalKeys;
             }
         }
 
-        newBatch.frames = [...oldFrames, ...newBatch.frames];
-        newBatch.frames.sort((a, b) => a.keyTime - b.keyTime);
+        const oldCleanKeys = Object.keys(oldKeyMap);
+        const oldFrames = [];
+
+        if (oldCleanKeys.length) {
+            for (const frame of lastBatch.frames) {
+                const oldFrame = { keyTime: frame.keyTime, tfMap: {}, styleMap: {}, keyMeta: new Map() };
+
+                for (const key of oldCleanKeys) {
+                    if (TUtil.isDefined(frame.tfMap[key])) {
+                        oldFrame.tfMap[key] = frame.tfMap[key];
+                    }
+
+                    if (TUtil.isDefined(frame.styleMap[key])) {
+                        oldFrame.styleMap[key] = frame.styleMap[key];
+                    }
+
+                    const meta = frame.keyMeta?.get(key);
+
+                    if (meta) {
+                        oldFrame.keyMeta.set(key, meta);
+                    }
+                }
+
+                if (Object.keys(oldFrame.tfMap).length || Object.keys(oldFrame.styleMap).length) {
+                    oldFrames.push(oldFrame);
+                }
+            }
+        }
+
+        const frames = [...oldFrames, ...newBatch.frames];
+
+        frames.sort((a, b) => a.keyTime - b.keyTime);
 
         const merged = [];
 
-        for (const f of newBatch.frames) {
+        for (const frame of frames) {
             const last = merged[merged.length - 1];
 
-            if (last && Math.abs(last.keyTime - f.keyTime) < 0.0001) {
-                Object.assign(last.styleMap, f.styleMap);
-                Object.assign(last.tfMap, f.tfMap);
+            if (last && Math.abs(last.keyTime - frame.keyTime) < 0.0001) {
+                Object.assign(last.styleMap, frame.styleMap);
+                Object.assign(last.tfMap, frame.tfMap);
 
-                if (f.keyMeta) {
-                    for (const [k, v] of f.keyMeta) {
-                        last.keyMeta.set(k, v);
-                    }
+                for (const [key, meta] of frame.keyMeta) {
+                    last.keyMeta.set(key, meta);
                 }
             } else {
-                merged.push(f);
+                merged.push(frame);
             }
         }
 
-        newBatch.keyMap = { ...oldKeyMap, ...newBatch.keyMap };
-
         newBatch.frames = merged;
+        newBatch.keyMap = { ...oldKeyMap, ...newBatch.keyMap };
+        newBatch.totalDuration = merged.reduce((duration, frame) => Math.max(duration, frame.keyTime), 0);
+    }
 
-        newBatch.totalDuration = newBatch.frames.length ? newBatch.frames[newBatch.frames.length - 1].keyTime : 0;
-    } 
-    
     areFramesEqual(a, b) {
         const keysA = Object.keys(a);
         const keysB = Object.keys(b);

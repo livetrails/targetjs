@@ -105,34 +105,33 @@ class TargetUtil {
         
         Object.keys(target).forEach(method => {
             const originalMethod = target[method];
-            const shouldWrap = method === 'value' || (typeof originalMethod === 'function' && TargetData.isLifeCycleMethod(method));
+            const sourceMethod = originalMethod?.__targetjsSource ?? originalMethod;
+            const shouldWrap = method === 'value' || (typeof sourceMethod === 'function' && TargetData.isLifeCycleMethod(method));
 
-            if (shouldWrap) {
-                if (originalMethod.__isBoundTargetMethod) {
-                    return;
-                }
-                
-                const wrappedMethod = function() {
-                    if (!TargetData.lifecycleCoreSet.has(method)) {
-                        TargetUtil.currentTargetName = key;
-                        TargetUtil.currentTModel = tmodel;
-                    }                 
-
-                    this.key = cleanKey;
-                    this.value = this.val(cleanKey);
-                    this.prevTargetValue = getPrevValue(); 
-                    this.isPrevTargetUpdated = isPrevTargetUpdated;
-                    const result = typeof originalMethod === 'function'
-                        ? originalMethod.apply(this, arguments)
-                        : originalMethod;
-                    lastPrevUpdateTime = getPrevUpdateTime() ?? lastPrevUpdateTime;
-                    return result;
-                };
-
-                wrappedMethod.__isBoundTargetMethod = true;
-
-                target[method] = wrappedMethod;
+            if (!shouldWrap) {
+                return;
             }
+                                
+            const wrappedMethod = function() {
+                if (!TargetData.lifecycleCoreSet.has(method)) {
+                    TargetUtil.currentTargetName = key;
+                    TargetUtil.currentTModel = tmodel;
+                }                 
+
+                this.key = cleanKey;
+                this.value = this.val(cleanKey);
+                this.prevTargetValue = getPrevValue(); 
+                this.isPrevTargetUpdated = isPrevTargetUpdated;
+                const result = typeof sourceMethod === 'function'
+                    ? sourceMethod.apply(this, arguments)
+                    : sourceMethod;
+                lastPrevUpdateTime = getPrevUpdateTime() ?? lastPrevUpdateTime;
+                return result;
+            };
+
+            wrappedMethod.__targetjsSource = sourceMethod;
+            target[method] = wrappedMethod;
+            
         });
     }
     
@@ -860,7 +859,7 @@ class TargetUtil {
     }
     
     static shouldIgnoreChildForCompletion(child, completionScope) {
-        if (!child.exists()) {
+        if (!child || !child.exists()) {
             return true;
         }
         
@@ -1120,6 +1119,22 @@ class TargetUtil {
         tmodel.removeFromAnimatingMap(key);
         tmodel.removeFromUpdatingTargets(key);
         TargetUtil.clearPendingTarget(tmodel, key);
+    }
+    
+    static convertAnimatingTargetsToUpdating(tmodels) {
+        for (const tmodel of tmodels) {
+            if (!tmodel?.hasAnimatingTargets()) {
+                continue;
+            }
+
+            const animatingTargets = [ ...tmodel.getAnimatingTargets() ];
+
+            for (const targetName of animatingTargets) {
+                tmodel.setTargetStatus(targetName, "updating");
+
+                tmodel.removeFromAnimatingMap(targetName);
+            }
+        }
     }
     
     static getResetOptions(options) {

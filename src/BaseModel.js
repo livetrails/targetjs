@@ -10,11 +10,15 @@ import { $Dom } from "./$Dom.js";
  * It provides the target state and associated logic to the TModel.
  */
 class BaseModel {
-    constructor(type, targets, oid) {
+    constructor(type, targets, oid, options = {}) {
         if (typeof type === 'object' && typeof targets === 'undefined') {
             targets = type;
             type = "";
         }
+
+        this.restoringRuntime = options.restoringRuntime === true;
+        this.restoredUsesExistingDom = options.usesExistingDom === true;
+        this.targetDefinitions = TUtil.cloneTargetDefinition(targets);
         this.targets = Object.assign({}, targets);
         oid = oid || this.targets.id;
         
@@ -75,19 +79,19 @@ class BaseModel {
         return this.parent;
     }
 
-    initTargets() {   
+    initTargets() {
         this.targetsVersion = 1;
         this.originalTargetNames = Object.keys(this.targets).filter(key => !TargetData.excludedTargetKeys.has(key));
 
         this.functionTargetNames = [];
         this.allTargetMap = {};
-        
-        if (TUtil.isDefined(this.originalId) && getDomTModelById(this.originalId)) {
+
+        if (!this.restoringRuntime && TUtil.isDefined(this.originalId) && getDomTModelById(this.originalId)) {
             TUtil.mergeTargets(getDomTModelById(this.originalId), this);
             this.toDiscard = true;
             return;
         }
-        
+
         this.actualValues = TargetData.defaultActualValues();
         this.targetValues = {};
         this.activeTargetMap = {};
@@ -95,33 +99,40 @@ class BaseModel {
 
         this.originalTargetNames = Object.keys(this.targets).filter(key => !TargetData.excludedTargetKeys.has(key)).map(key => key.startsWith('_') ? key.slice(1) : key);
 
-        const domExists = $Dom.query(`#${this.oid}`) || this.originalTargetNames.indexOf('$dom') >= 0;
-        
+        const hasDomTarget = this.originalTargetNames.includes('$dom');
+        const domExists = this.restoringRuntime ? this.restoredUsesExistingDom || hasDomTarget : Boolean($Dom.query(`#${this.oid}`) || hasDomTarget);
+
         if (!domExists && !this.excludeDefaultStyling()) {
             Object.entries(TargetData.defaultTargetStyles).forEach(([key, value]) => {
                 if (!(key in this.targets)) {
                     this.targets[key] = value;
                 }
             });
-            if (this.targets['canHaveDom'] !== false && !TUtil.isDefined(this.targets['domHolder'])) {
-                this.targets['domHolder'] = true;
+
+            if (this.targets.canHaveDom !== false && !TUtil.isDefined(this.targets.domHolder)) {
+                this.targets.domHolder = true;
             }
         } else if (domExists) {
-            this.targets['domIsland'] = true;
-            if (!TUtil.isDefined(this.targets['reuseDomDefinition'])) {
-                this.targets['reuseDomDefinition'] = true;
-                this.targets['domHolder'] = true;
-                if (!TUtil.isDefined(this.targets['excludeXYCalc'])) {
-                    this.targets['excludeXYCalc'] = true;                
-                } 
-                if (!TUtil.isDefined(this.targets['x'])) {
-                    this.targets['excludeX'] = true;
+            this.targets.domIsland = true;
+
+            if (!TUtil.isDefined(this.targets.reuseDomDefinition)) {
+                this.targets.reuseDomDefinition = true;
+                this.targets.domHolder = true;
+
+                if (!TUtil.isDefined(this.targets.excludeXYCalc)) {
+                    this.targets.excludeXYCalc = true;
                 }
-                if (!TUtil.isDefined(this.targets['y'])) {
-                    this.targets['excludeY'] = true;                
+
+                if (!TUtil.isDefined(this.targets.x)) {
+                    this.targets.excludeX = true;
                 }
-                if (!TUtil.isDefined(this.targets['position'])) {
-                    this.targets['position'] = 'relative';
+
+                if (!TUtil.isDefined(this.targets.y)) {
+                    this.targets.excludeY = true;
+                }
+
+                if (!TUtil.isDefined(this.targets.position)) {
+                    this.targets.position = 'relative';
                 }
             }
         }
@@ -130,7 +141,7 @@ class BaseModel {
             this.processNewTarget(key, keyIndex);
         });
     }
-    
+
     processNewTarget(key, keyIndex) {
         this.targetsVersion++;
 
@@ -323,7 +334,9 @@ class BaseModel {
     }
     
     removeTarget(key) {
+        delete this.targetDefinitions[key];
         delete this.targets[key];
+
         this.removeFromActiveTargets(key);
         this.removeFromUpdatingTargets(key);
         delete this.targetValues[key];
@@ -334,14 +347,21 @@ class BaseModel {
     }
 
     addTargets(targets) {
+        const definitions = TUtil.cloneTargetDefinition(targets);
+
+        for (const key of Object.keys(definitions)) {
+            this.targetDefinitions[key] = definitions[key];
+        }
+
         Object.keys(targets).forEach(key => {
             this.targets[key] = targets[key];
             this.removeFromUpdatingTargets(key);
+
             if (!this.originalTargetNames.includes(key)) {
                 this.originalTargetNames.push(key);
             }
+
             const keyIndex = this.originalTargetNames.indexOf(key);
-            
             this.processNewTarget(key, keyIndex);
         });
 
@@ -349,7 +369,7 @@ class BaseModel {
             getEvents().attachEvents([this]);
         }
 
-        getRunScheduler()?.schedule(1, 'addTargets-' + this.oid);
+        getRunScheduler()?.schedule(1, `addTargets-${this.oid}`);
     }
         
     getTargetStepPercent(key, step, steps) {
@@ -822,20 +842,11 @@ class BaseModel {
         return this;
     }
     
-    cancelAnimation() {
-        if (!this.hasAnimatingTargets()) {
-            return;
-        }
-        
-        for (const [key] of this.animatingMap) {
-            if (this.targetValues[key]) {
-                this.addTargetToStatusList(key);
-            }
-        }
-        
-        getAnimationManager().deleteAnimation(this);
+    cancelAnimation(options = {}) {
+        const { mode = "hold", commitStyle = true } = options;
+
+        return getAnimationManager().cancelTModelAnimation(this, { mode, commitStyle });
     }
-    
     hasTargetUpdates(key) {
         return key ? this.updatingTargetMap[key] === true || this.animatingMap?.has(key) : this.updatingTargetList.length > 0;
     }
@@ -887,27 +898,41 @@ class BaseModel {
     
     hasUpdatingImperativeTargets(originalTargetName) {
         const updatingList = [
-          ...(this.updatingTargetList ?? []),
-          ...(this.hasAnimatingTargets() ? [...this.animatingMap.keys()] : [])
-        ];  
-        
+            ...(this.updatingTargetList ?? []),
+            ...(this.hasAnimatingTargets() ? [...this.animatingMap.keys()] : [])
+        ];
+
         for (const target of updatingList) {
-            if (this.isTargetImperative(target) && (this.targetValues[target].originalTargetName === originalTargetName || TargetUtil.getTargetName(target) === originalTargetName)) {
+            if (!this.isTargetImperative(target)) {
+                continue;
+            }
+
+            if (this.targetValues[target]?.originalTargetName === originalTargetName) {
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     getUpdatingImperativeTargets(originalTargetName) {
+        const updatingList = [
+            ...(this.updatingTargetList ?? []),
+            ...(this.hasAnimatingTargets() ? [...this.animatingMap.keys()] : [])
+        ];
+
         const targets = [];
-        for (const target of this.updatingTargetList) {
-            if (this.isTargetImperative(target) && this.targetValues[target].originalTargetName === originalTargetName) {
+
+        for (const target of updatingList) {
+            if (!this.isTargetImperative(target)) {
+                continue;
+            }
+
+            if (this.targetValues[target]?.originalTargetName === originalTargetName) {
                 targets.push(target);
             }
         }
-        
+
         return targets;
     }
     

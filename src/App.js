@@ -4,6 +4,7 @@ import { EventListener } from "./EventListener.js";
 import { LoadingManager } from "./LoadingManager.js";
 import { LocationManager } from "./LocationManager.js";
 import { PageManager } from "./PageManager.js";
+import { StateManager } from "./StateManager.js";
 import { TModelManager } from "./TModelManager.js";
 import { RunScheduler } from "./RunScheduler.js";
 import { TargetManager } from "./TargetManager.js";
@@ -12,6 +13,7 @@ import { AnimationManager } from "./AnimationManager.js";
 import { TUtil } from "./TUtil.js";
 import { DomInit } from "./DomInit.js";
 import { SearchUtil } from "./SearchUtil.js";
+import { TModelUtil } from "./TModelUtil.js";
 
 let tApp;
 let queuedAppCalls = [];
@@ -29,6 +31,7 @@ const AppFn = () => {
 
         my.loader = new LoadingManager();
         my.pager = new PageManager();
+        my.stateManager = new StateManager();
         my.events = new EventListener();
         my.locationManager = new LocationManager();
         my.targetManager = new TargetManager();
@@ -65,10 +68,10 @@ const AppFn = () => {
                 }
             });
     
-            tmodel.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
+            tmodel.$dom = TModelUtil.getRootDom();
                    
             if (tmodel.$dom.getTagName() !== 'body') {
-                tmodel.$dom.attr('data-tjno-slot', 'true');
+                tmodel.$dom.attr('data-tj-no-slot', 'true');
             }
             
             tmodel.val('screenWidth', $Dom.getScreenWidth());                
@@ -238,6 +241,7 @@ const isRunning = () => tApp ? tApp.runningFlag : false;
 const tRoot = () => tApp?.tRoot;
 const getEvents = () => tApp?.events;
 const getPager = () => tApp?.pager;
+const state = () => tApp?.stateManager;
 const getLoader = () => tApp?.loader;
 const fetch = (tmodel, url, query, cacheId) => tApp?.loader?.fetch(tmodel, url, query, cacheId);
 const fetchImage = (tmodel, src, cacheId) => tApp?.loader?.fetchImage(tmodel, src, cacheId);
@@ -284,6 +288,7 @@ export {
     isRunning,
     getEvents,
     getPager,
+    state,
     getLoader,
     fetch,
     fetchImage,

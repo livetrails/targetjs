@@ -12,6 +12,170 @@ import { Easing } from "./Easing.js";
  */
 class TModelUtil {
     
+    static async restoreScroll(page) {
+        const left = page.scrollLeft || 0;
+        const top = page.scrollTop || 0;
+
+        window.scrollTo(left, top);
+
+        await new Promise(requestAnimationFrame);
+        window.scrollTo(left, top);
+
+        await new Promise(requestAnimationFrame);
+        window.scrollTo(left, top);
+    }
+         
+    static getRootDom() {
+        return $Dom.query("#tgjs-root") ? new $Dom("#tgjs-root") : new $Dom("body");
+    }
+    
+    static getPageDom() {
+        return new $Dom("body");
+    }
+    
+    static captureDomState($root) {
+        if (!$root?.getElement()) {
+            return undefined;
+        }
+
+        const elements = [$root.getElement(), ...$root.queryAll("*")];
+        const controls = [];
+        const scrollPositions = [];
+
+        elements.forEach((element, index) => {
+            const tagName = element.tagName?.toLowerCase();
+
+            if (tagName === "input") {
+                const type = (element.type || "text").toLowerCase();
+
+                if (type !== "file") {
+                    controls.push({
+                        index,
+                        kind: "input",
+                        value: element.value,
+                        checked: element.checked,
+                        indeterminate: element.indeterminate
+                    });
+                }
+            } else if (tagName === "textarea") {
+                controls.push({
+                    index,
+                    kind: "textarea",
+                    value: element.value
+                });
+            } else if (tagName === "select") {
+                controls.push({
+                    index,
+                    kind: "select",
+                    selected: [...element.options].map(option => option.selected)
+                });
+            } else if (tagName === "details") {
+                controls.push({
+                    index,
+                    kind: "details",
+                    open: element.open
+                });
+            }
+
+            if (element.scrollLeft || element.scrollTop) {
+                scrollPositions.push({
+                    index,
+                    scrollLeft: element.scrollLeft,
+                    scrollTop: element.scrollTop
+                });
+            }
+        });
+
+        const activeElement = document.activeElement;
+        const activeIndex = activeElement && $root.contains(activeElement) ? elements.indexOf(activeElement) : -1;
+
+        let selection;
+
+        if (activeIndex >= 0 && typeof activeElement.selectionStart === "number") {
+            selection = {
+                start: activeElement.selectionStart,
+                end: activeElement.selectionEnd,
+                direction: activeElement.selectionDirection
+            };
+        }
+
+        return {
+            controls,
+            scrollPositions,
+            activeIndex,
+            selection
+        };
+    }
+    
+    static restoreDomState($root, domState) {
+        if (!$root?.getElement() || !domState) {
+            return;
+        }
+
+        const elements = [$root.getElement(), ...$root.queryAll("*")];
+
+        for (const state of domState.controls || []) {
+            const element = elements[state.index];
+
+            if (!element) {
+                continue;
+            }
+
+            if (state.kind === "input") {
+                element.value = state.value;
+                element.checked = state.checked;
+                element.indeterminate = state.indeterminate;
+            } else if (state.kind === "textarea") {
+                element.value = state.value;
+            } else if (state.kind === "select") {
+                [...element.options].forEach((option, index) => {
+                    option.selected = state.selected[index] === true;
+                });
+            } else if (state.kind === "details") {
+                element.open = state.open;
+            }
+        }
+    }
+    
+    static async restoreDomInteractionState($root, domState) {
+        if (!$root?.getElement() || !domState) {
+            return;
+        }
+
+        await new Promise(requestAnimationFrame);
+
+        const elements = [$root.getElement(), ...$root.queryAll("*")];
+
+        for (const state of domState.scrollPositions || []) {
+            const element = elements[state.index];
+
+            if (!element) {
+                continue;
+            }
+
+            element.scrollLeft = state.scrollLeft;
+            element.scrollTop = state.scrollTop;
+        }
+
+        const activeElement = elements[domState.activeIndex];
+
+        if (!activeElement) {
+            return;
+        }
+
+        try {
+            activeElement.focus({ preventScroll: true });
+        } catch {
+            activeElement.focus?.();
+        }
+
+        if (domState.selection && typeof activeElement.setSelectionRange === "function") {
+            try {
+                activeElement.setSelectionRange(domState.selection.start, domState.selection.end, domState.selection.direction);
+            } catch {}
+        }
+    }
+
     static getMarginValue(tmodel, side) {
         const margin = tmodel.val("margin");
 
@@ -164,13 +328,13 @@ class TModelUtil {
     }
 
     static fixStyle(tmodel) {
-        if (!tmodel.styleTargetMap) {
+        if (!tmodel.styleTargetMap || !tmodel.hasDom()) {
             return;
         }
         
         let transformUpdate = false;
            
-        for (const [key] of tmodel.styleTargetMap) {
+        for (const [key] of [...tmodel.styleTargetMap]) {
             if (tmodel.isKeyAnimating(key)) {
                 continue;
             }
@@ -216,11 +380,85 @@ class TModelUtil {
             }
         }
         
-        if (transformUpdate) {        
+        if (transformUpdate) { 
             tmodel.$dom.transform(TModelUtil.getTransformString(tmodel, tmodel.tfMap));
         }
         
         tmodel.styleTargetMap.clear();
+    }
+    
+    static commitAnimatedStyles(tmodel, originalKeys) {
+        if (!tmodel.hasDom() || !originalKeys?.size) {
+            return;
+        }
+
+        let transformChanged = false;
+
+        for (const originalKey of originalKeys) {
+            const key = TargetUtil.getTargetName(originalKey);
+            const value = tmodel.val(key);
+
+            if (!TUtil.isDefined(value)) {
+                continue;
+            }
+
+            if (TargetData.transformMap[key]) {
+                const transformValue = TModelUtil.getTransformValue(tmodel, key);
+
+                if (TUtil.isDefined(transformValue)) {
+                    tmodel.tfMap[key] = transformValue;
+                    transformChanged = true;
+                }
+
+                continue;
+            }
+
+            if (key === "dim") {
+                const dim = Math.floor(value);
+
+                tmodel.styleMap.width = dim;
+                tmodel.styleMap.height = dim;
+
+                tmodel.$dom.width(dim);
+                tmodel.$dom.height(dim);
+
+                continue;
+            }
+
+            if (key === "width") {
+                const width = Math.floor(value);
+
+                tmodel.styleMap.width = width;
+                tmodel.$dom.width(width);
+
+                continue;
+            }
+
+            if (key === "height") {
+                const height = Math.floor(value);
+
+                tmodel.styleMap.height = height;
+                tmodel.$dom.height(height);
+
+                continue;
+            }
+
+            const styleValue = typeof value === "number" && TargetData.styleWithUnitMap[key] ? `${value}px` : `${value}`;
+
+            tmodel.styleMap[key] = value;
+            tmodel.$dom.style(key, styleValue);
+        }
+
+        if (transformChanged) {
+            const transformValues = {
+                ...TModelUtil.getTransformBaseFromActualValues(tmodel),
+                ...tmodel.tfMap
+            };
+
+            const transform = TModelUtil.getTransformString(tmodel, transformValues);
+
+            tmodel.$dom.transform(transform, tmodel.val("transformOrder"));
+        }
     }
 
     static setWidthFromDom(child) {

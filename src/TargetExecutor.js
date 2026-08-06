@@ -62,44 +62,52 @@ class TargetExecutor {
             targetValue.valuePointer = 0;
         }
     }
-
-    static executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel, cycles = 1, options = {}) {
-        let targetValue;
+    
         
+    static executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel, cycles = 1, options = {}) {
+        const snapUpdates = new Map();
+
+        TargetExecutor._executeImperativeTarget(
+            tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel, cycles, options, snapUpdates
+        );
+
+        if (snapUpdates.size) {
+            AnimationUtil.overrideAnimatedKeyWithSnap(tmodel, [...snapUpdates.keys()], [...snapUpdates.values()]);
+        }
+    }
+
+    static _executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel, cycles = 1, options = {}, snapUpdates) {
+        let targetValue;
+
         if (typeof key === 'string') {
             const cleanKey = TargetUtil.getTargetName(key);
-            key = !key.endsWith('+') ? key + "+" : key;
+            key = !key.endsWith('+') ? key + '+' : key;
             tmodel.allTargetMap[cleanKey] = key;
         }
-                
+
         if (TargetParser.isListTarget(value)) {
             const vSteps = TUtil.isDefined(value.steps) ? value.steps : steps;
             const vInterval = TUtil.isDefined(value.interval) ? value.interval : interval;
-            const vEasing = TUtil.isDefined(value.easing) ? value.easing : easing;            
-            const vCycles = TUtil.isDefined(value.cycles) ? value.cycles : cycles;            
+            const vEasing = TUtil.isDefined(value.easing) ? value.easing : easing;
+            const vCycles = TUtil.isDefined(value.cycles) ? value.cycles : cycles;
 
             targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel);
             TargetExecutor.assignListTarget(tmodel, key, targetValue, value.list, value.list[0], vSteps, vInterval, vEasing, vCycles);
         } else if (TargetParser.isTargetSpecObject(value)) {
-            const options = TargetExecutor.getTargetOptions(value);
-            
+            const targetOptions = TargetExecutor.getTargetOptions(value);
             const valueArray = TargetParser.getValueStepsCycles(tmodel, key, value);
-            let newValue    = valueArray[0];
-            let newSteps    = valueArray[1];
-            let newInterval = valueArray[2];
-            let newEasing   = valueArray[3];
-            let newCycles   = valueArray[4];
-            
-            steps    = TUtil.isDefined(newSteps) ? newSteps : steps;
-            interval = TUtil.isDefined(newInterval) ? newInterval : interval;
-            easing   = TUtil.isDefined(newEasing) ? newEasing : easing;
-            cycles = TUtil.isDefined(newCycles) ? newCycles : cycles;
+            const newValue = valueArray[0];
+            const newSteps = TUtil.isDefined(valueArray[1]) ? valueArray[1] : steps;
+            const newInterval = TUtil.isDefined(valueArray[2]) ? valueArray[2] : interval;
+            const newEasing = TUtil.isDefined(valueArray[3]) ? valueArray[3] : easing;
+            const newCycles = TUtil.isDefined(valueArray[4]) ? valueArray[4] : cycles;
 
-            TargetExecutor.executeImperativeTarget(tmodel, key, newValue, steps, interval, easing, originalTargetName, originalTModel, cycles, options);
-            return;            
-            
+            TargetExecutor._executeImperativeTarget(tmodel, key, newValue, newSteps, newInterval, newEasing, originalTargetName, originalTModel, newCycles, targetOptions, snapUpdates);
+
+            return;
         } else if (TargetParser.isObjectTarget(key, value)) {
-            const completeValue = TargetData.cssFunctionMap[key] ? { ...TargetData.cssFunctionMap[key], ...value } : value; 
+            const completeValue = TargetData.cssFunctionMap[key] ? { ...TargetData.cssFunctionMap[key], ...value } : value;
+
             Object.keys(completeValue).forEach(objectKey => {
                 let newValue = completeValue[objectKey];
                 let newSteps = steps;
@@ -107,74 +115,77 @@ class TargetExecutor {
                 let newEasing = easing;
                 let newCycles = cycles;
                 let newOptions = options;
-                
+
                 if (typeof newValue === 'object' && !TargetParser.isListTarget(newValue)) {
                     newOptions = TargetExecutor.getTargetOptions(newValue);
-                    const valueArray = TargetParser.getValueStepsCycles(tmodel, objectKey, completeValue[objectKey]);
+
+                    const valueArray = TargetParser.getValueStepsCycles(tmodel, objectKey, newValue);
+
                     newValue = valueArray[0];
                     newSteps = TUtil.isDefined(valueArray[1]) ? valueArray[1] : steps;
                     newInterval = TUtil.isDefined(valueArray[2]) ? valueArray[2] : interval;
-                    newEasing   = TUtil.isDefined(valueArray[3]) ? valueArray[3] : easing;
+                    newEasing = TUtil.isDefined(valueArray[3]) ? valueArray[3] : easing;
                     newCycles = TUtil.isDefined(valueArray[4]) ? valueArray[4] : cycles;
                 }
 
-                TargetExecutor.executeImperativeTarget(tmodel, objectKey, newValue, newSteps, newInterval, newEasing, originalTargetName, originalTModel, newCycles, newOptions);
+                TargetExecutor._executeImperativeTarget(tmodel, objectKey, newValue, newSteps, newInterval, newEasing, originalTargetName, originalTModel, newCycles, newOptions, snapUpdates);
             });
         } else {
             if (typeof value === 'object' && !TargetParser.isListTarget(value)) {
                 const valueArray = TargetParser.getValueStepsCycles(tmodel, key, value);
+
                 if (value !== valueArray[0]) {
-                    value    = valueArray[0];
-                    steps    = TUtil.isDefined(valueArray[1]) ? valueArray[1] : steps;
+                    value = valueArray[0];
+                    steps = TUtil.isDefined(valueArray[1]) ? valueArray[1] : steps;
                     interval = TUtil.isDefined(valueArray[2]) ? valueArray[2] : interval;
-                    easing   = TUtil.isDefined(valueArray[3]) ? valueArray[3] : easing;
-                    cycles   = TUtil.isDefined(valueArray[4]) ? valueArray[4] : cycles;
-                    
-                    TargetExecutor.executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel, cycles, options);
-                } else {
-                    targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel, cycles);
-                    TargetExecutor.assignSingleTarget(targetValue, value, undefined, steps, cycles, interval, easing);
+                    easing = TUtil.isDefined(valueArray[3]) ? valueArray[3] : easing;
+                    cycles = TUtil.isDefined(valueArray[4]) ? valueArray[4] : cycles;
+
+                    TargetExecutor._executeImperativeTarget(tmodel, key, value, steps, interval, easing, originalTargetName, originalTModel, cycles, options, snapUpdates);
+
+                    return;
                 }
-            } else {
-                targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel, cycles);
-                TargetExecutor.assignSingleTarget(targetValue, value, undefined, steps, cycles, interval, easing);
             }
+
+            targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel);
+            TargetExecutor.assignSingleTarget(targetValue, value, undefined, steps, cycles, interval, easing);
         }
 
         if (targetValue) {
             TargetExecutor.resetImperativeProgress(targetValue);
             TargetExecutor.assignTargetOptions(targetValue, options);
-            
-            TargetExecutor.updateTarget(tmodel, targetValue, key, true);
+            TargetExecutor.updateTarget(tmodel, targetValue, key, true, snapUpdates);
+
             if (tmodel.isTargetDone(key)) {
-                TargetUtil.shouldActivateNextTarget(tmodel, key); 
+                TargetUtil.shouldActivateNextTarget(tmodel, key);
             }
         }
     }
-
-    static updateTarget(tmodel, targetValue, key, enforce) {
-         
-         tmodel.setLastUpdate(key);
+    
+    static updateTarget(tmodel, targetValue, key, enforce, snapUpdates) {
+        tmodel.setLastUpdate(key);
 
         if (tmodel.getTargetSteps(key) === 0) {
-            TargetExecutor.snapActualToTarget(tmodel, key);
+            TargetExecutor.snapActualToTarget(tmodel, key, snapUpdates);
         }
-        
+
         targetValue.executionFlag = true;
         targetValue.executionCount++;
 
         if (!targetValue.snapAnimation) {
-            tmodel.addToStyleTargetList(key, enforce); 
+            tmodel.addToStyleTargetList(key, enforce);
         }
-        
-        tmodel.setTargetMethodName(key, 'value'); 
+
+        tmodel.setTargetMethodName(key, 'value');
 
         const newStatus = TargetExecutor.calculateTargetStatus(tmodel, targetValue, key);
-        
+
         tmodel.setTargetStatus(key, newStatus);
 
-        if (!TargetData.ignoreRerun[key] && tmodel.shouldScheduleRun(key)) {
-            getRunScheduler().schedule(1, 'updateTarget2-' + tmodel.oid + "-" + key);
+        const shouldSchedule = tmodel.isTargetImperative(key) || tmodel.shouldScheduleRun(key);
+
+        if (!TargetData.ignoreRerun[key] && shouldSchedule) {
+            getRunScheduler().schedule(1, `updateTarget-${tmodel.oid}-${key}`);
         }
     }
     
@@ -244,9 +255,8 @@ class TargetExecutor {
         targetValue.snapAnimation = false;        
     }
 
-    static snapActualToTarget(tmodel, key) {
+    static snapActualToTarget(tmodel, key, snapUpdates) {
         const targetValue = tmodel.targetValues[key];
-
         let newValue;
 
         if (Array.isArray(targetValue.valueList)) {
@@ -255,23 +265,37 @@ class TargetExecutor {
             targetValue.value = newValue;
         } else {
             const value = targetValue.value;
-            newValue = typeof value === "function" ? value.call(tmodel) : value;
+            newValue = typeof value === 'function' ? value.call(tmodel) : value;
         }
 
-        if (tmodel.val(key) === newValue) {
+        const valueChanged = tmodel.val(key) !== newValue;
+        const isAnimating = tmodel.animatingMap?.has(key);
+
+        if (!valueChanged && !isAnimating) {
             return;
         }
 
-        if (!tmodel.hasValidAnimation() || !tmodel.canBeAnimated(key)) {
+        if (valueChanged) {
             tmodel.val(key, newValue);
             tmodel.setActual(key, newValue);
             TUtil.handleValueChange(tmodel, key);
+        }
+
+        if (!tmodel.hasValidAnimation() || !tmodel.canBeAnimated(key)) {
+            targetValue.snapAnimation = false;
+            return;
+        }
+
+        targetValue.snapAnimation = true;
+
+        if (snapUpdates) {
+            snapUpdates.set(key, newValue);
             return;
         }
 
         AnimationUtil.overrideAnimatedKeyWithSnap(tmodel, key, newValue);
     }
-    
+
     static getTargetOptions(value) {
         const options = {};
 

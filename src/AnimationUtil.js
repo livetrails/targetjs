@@ -86,6 +86,7 @@ class AnimationUtil {
         const batch = {
             frames,
             keyMap,
+            snap: true,
             totalDuration: 1
         };
                 
@@ -270,7 +271,7 @@ class AnimationUtil {
         
     static updateTModelFromRecord(record) {
         const { tmodel, originalKey, cleanKey } = record;
-        
+
         if (!tmodel.hasDom()) {
             return;
         }
@@ -280,47 +281,81 @@ class AnimationUtil {
         if (!result) {
             return;
         }
-        
-        const { value, step, steps, cycle, valuePointer } = result;
-        
-        getAnimationManager().setAt(tmodel, cleanKey, value);
-        
-        tmodel.val(originalKey, value);
-        const targetValue = tmodel.targetValues[originalKey];
-        
-        if (targetValue) {
 
-            if (TUtil.isDefined(step) && TUtil.isDefined(steps) && steps > 0) {
+        const {
+            value,
+            step,
+            steps,
+            cycle,
+            valuePointer,
+            from,
+            to,
+            interval,
+            easing
+        } = result;
+
+        getAnimationManager().setAt(tmodel, cleanKey, value);
+
+        tmodel.val(originalKey, value);
+
+        const targetValue = tmodel.targetValues[originalKey];
+
+        if (targetValue) {
+            if (targetValue.valueList?.length) {
+                AnimationUtil.syncListTargetSegment(targetValue, result);
+            } else {
+                if (TUtil.isDefined(from)) {
+                    targetValue.initialValue = from;
+                }
+
+                if (TUtil.isDefined(to)) {
+                    targetValue.value = to;
+                }
+
+                if (TUtil.isDefined(steps)) {
+                    targetValue.steps = steps;
+                }
+
+                if (TUtil.isDefined(interval)) {
+                    targetValue.interval = interval;
+                }
+
+                if (TUtil.isDefined(easing)) {
+                    targetValue.easing = easing;
+                }
+            }
+
+            if (TUtil.isDefined(step)) {
                 targetValue.step = step;
             }
 
             if (TUtil.isDefined(valuePointer)) {
                 targetValue.valuePointer = valuePointer;
             }
-            
+
             if (TUtil.isDefined(cycle)) {
                 targetValue.cycle = cycle;
             }
-      
-            tmodel.setActual(originalKey, value);
-                
-            const fireKey = `${cycle}:${valuePointer}:${step}`;
 
+            targetValue.lastUpdate = TUtil.now();
+
+            tmodel.setActual(originalKey, value);
+
+            const fireKey = `${cycle}:${valuePointer}:${step}`;
 
             if (record.needsFireOnStep && step > 0 && steps > 0 && record.lastFireOnStepKey !== fireKey) {
                 record.lastFireOnStepKey = fireKey;
-                
                 const needsRefire = record.hooks.fireOnStep(tmodel, originalKey, step);
-                
-                if (!needsRefire) { 
+
+                if (!needsRefire) {
                     record.needsFireOnStep = false;
                 }
             }
         }
-        
+
         return result;
     }
-    
+
     static getValueFromAnim(record) {
         const ct = record.anim.effect?.getComputedTiming?.();
 
@@ -385,6 +420,8 @@ class AnimationUtil {
                 steps: right.segmentSteps,
                 from,
                 to,
+                interval: right.interval,
+                easing: right.easing,
                 valuePointer: right.valuePointer ?? left.valuePointer ?? 0,
                 cycle: right.cycle ?? left.cycle ?? 0,
                 status: right.done ? "finished" : "playing"
@@ -403,10 +440,12 @@ class AnimationUtil {
             value,
             step,
             steps: segmentSteps,
-            valuePointer: right.valuePointer ?? left.valuePointer ?? 0,
-            cycle: right.cycle ?? left.cycle ?? 0,
             from,
             to,
+            interval: right.interval,
+            easing: right.easing,
+            valuePointer: right.valuePointer ?? left.valuePointer ?? 0,
+            cycle: right.cycle ?? left.cycle ?? 0,
             status: right.done ? "finished" : "playing"
         };
     }
@@ -543,6 +582,32 @@ class AnimationUtil {
         return removed;
     }
     
+    static syncListTargetSegment(targetValue, result) {
+        if (!targetValue?.valueList?.length) {
+            return;
+        }
+
+        const maxPointer = targetValue.valueList.length - 1;
+        const pointer = TUtil.limit(result.valuePointer ?? targetValue.valuePointer ?? 1, 1, maxPointer);
+        const segmentIndex = pointer - 1;
+
+        targetValue.valuePointer = pointer;
+        targetValue.initialValue = targetValue.valueList[segmentIndex];
+        targetValue.value = targetValue.valueList[pointer];
+
+        if (targetValue.stepList?.length) {
+            targetValue.steps = targetValue.stepList[segmentIndex % targetValue.stepList.length];
+        }
+
+        if (targetValue.intervalList?.length) {
+            targetValue.interval = targetValue.intervalList[segmentIndex % targetValue.intervalList.length];
+        }
+
+        if (targetValue.easingList?.length) {
+            targetValue.easing = targetValue.easingList[segmentIndex % targetValue.easingList.length];
+        }
+    }
+
     static handleWebAnimationAPI(tmodel, cleanKey, key, targetValue, from, to, valuePointer, step, steps, interval, timeShift, skipStartFrame = false, replaceExistingKey = true) {   
  
         const batch = (tmodel.waapiBatch ||= {

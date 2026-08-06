@@ -21,6 +21,10 @@ class TUtil {
 
         return false;
     }
+    
+    static uniqueTModels(tmodels) {
+        return [ ...new Map(tmodels.filter(Boolean).map(tmodel => [ tmodel.oid, tmodel ])).values() ];
+    }
 
     static list2map(list, defaultValue) {
         return list.reduce((map, item) => {

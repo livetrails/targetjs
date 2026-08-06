@@ -2,14 +2,16 @@ import { TUtil } from "./TUtil.js";
 import { tApp, App, getRunScheduler, getLocationManager, getEvents } from "./App.js";
 import { DomInit } from "./DomInit.js";
 import { $Dom } from "./$Dom.js";
+import { TargetUtil } from "./TargetUtil.js";
+import { TModelUtil } from "./TModelUtil.js";
 
 /**
- * It enables opening new pages and managing history. It alo provide page caching.
+ * It enables opening new pages and managing history. It also provide page caching.
  * It is used to provide a single page app experience.
  */
 class PageManager {
     constructor() {
-        this.lastLink = TUtil.getFullLink(document.URL);
+        this.currentLink = TUtil.getFullLink(document.URL);
         this.lastCachedLink = undefined;
         this.pageCache = {};
         this.initHistory();
@@ -20,89 +22,21 @@ class PageManager {
             history.scrollRestoration = "manual";
         }
 
-        const link = TUtil.getFullLink(document.URL);
-
         const st = history.state;
 
         if (!st || (!st.link && !st.browserUrl)) {
-            history.replaceState({ link }, "", link);
+            history.replaceState({ link: this.currentLink }, "", this.currentLink);
         }
-
-        this.lastLink = link;
     }
     
     initPage(html) {
         tApp.tRoot.$dom.outerHTML(html);
-        tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
+        tApp.tRoot.$dom = TModelUtil.getRootDom();
         if (tApp.tRoot.$dom.getTagName() !== 'body') {
             tApp.tRoot.$dom.attr('data-tj-no-slot', 'true');
         }
 
         DomInit.initPageDoms(tApp.tRoot.$dom);
-    }
-
-    async openPage(link, shouldReset = true) {
-        if (shouldReset) {
-            await tApp.stop();
-            getLocationManager().cancelCurrentCalculation();
-            await tApp.reset();
-        }
-
-        link = TUtil.getFullLink(link);
-
-        if (!this.pageCache[link]) {
-            tApp.tRoot.$dom.innerHTML("");
-            App.oids = {};
-            App.tmodelIdMap = {};
-            tApp.tRoot = tApp.tRootFactory();
-            this.lastLink = link;
-            await tApp.start();
-        } else {
-            tApp.tRoot = this.pageCache[link].tRoot;
-            App.oids = this.pageCache[link].oids;
-            App.tmodelIdMap = this.pageCache[link].tmodelIdMap;
-
-            tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
-            tApp.tRoot.$dom.innerHTML(this.pageCache[link].html);
-
-            const visibles = Object.values(this.pageCache[link].visibleOidMap);
-            const newVisibles = DomInit.initCacheDoms(visibles);
-            const restored = [...visibles, ...newVisibles];
-
-            for (const tmodel of restored) {
-                tmodel.visibilityStatus = undefined;
-
-                if (!tmodel.hasDom()) {
-                    tmodel.markLayoutDirty('pageRestoreNoDom');
-                }
-                
-                if (tmodel.hasAnimatingTargets()) {
-                    tmodel.getAnimatingTargets().forEach(key => {
-                        tmodel.setTargetStatus(key, 'updating');
-                        tmodel.removeFromAnimatingMap(key);
-                    });
-                }
-            }
-
-            tApp.manager.visibleOidMap = {};
-
-            for (const tmodel of restored) {
-                if (tmodel.isIncluded()) {
-                    tApp.manager.visibleOidMap[tmodel.oid] = tmodel;
-                }
-            }  
-            
-            tApp.manager.activatePendingTargetsAfterDom(restored, { restoredDoneTargets: true });
-
-            this.lastLink = link;
-            
-            await this.restoreScroll(this.pageCache[link]);
-
-            await tApp.start();
-
-            getRunScheduler().restoreSnapshot(this.pageCache[link].runSnapshot);
-
-        }
     }
 
     async openLinkFromHistory(state) {
@@ -129,84 +63,123 @@ class PageManager {
 
     async openLink(link, updateHistory = true) {
         link = TUtil.getFullLink(link);
+
+        await this.storePage(this.currentLink);
+
+        this.lastCachedLink = this.currentLink;
+
+        await tApp.reset();
         
-        if (this.lastLink) {
-            const runSnapshot = getRunScheduler().getSnapshot();
-            
-            await tApp.stop();
-
-            getLocationManager().cancelCurrentCalculation();
-
-            this.onPageClose();
-
-            tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
-            const html = tApp.tRoot.$dom.innerHTML();
-
-            this.pageCache[this.lastLink] = {
-                link: this.lastLink,
-                html,
-                oids: { ...App.oids },
-                tmodelIdMap: { ...App.tmodelIdMap },
-                visibleOidMap: { ...tApp.manager.visibleOidMap },
-                scrollLeft: $Dom.getWindowScrollLeft() || 0,
-                scrollTop: $Dom.getWindowScrollTop() || 0,
-                tRoot: tApp.tRoot,
-                runSnapshot
-            };
-            
-            this.lastCachedLink = this.lastLink;
-
-            await tApp.reset();
-        }
-
         if (updateHistory) {
             history.pushState({ link }, "", link);
         }
+        
+        this.currentLink = link;
 
-        await this.openPage(link, false);
+        if (!this.pageCache[link]) {
+            tApp.tRoot.$dom.innerHTML("");
+            App.oids = {};
+            App.tmodelIdMap = {};
+            tApp.tRoot = tApp.tRootFactory();
+            await tApp.start();
+            return;
+        }
+
+        await this.restorePage(link, { shouldReset: false });
 
         getRunScheduler().schedule(0, "pagemanager-processOpenLink");
     }
 
-    updateBrowserUrl(link, updateHistory) {
-        
-        tApp.tRoot.$dom = $Dom.query('#tgjs-root') ? new $Dom('#tgjs-root') : new $Dom('body');
-        this.pageCache[document.URL] = {
-            link: document.URL,
-            html: tApp.tRoot.$dom.innerHTML(),
+    back() {
+        return history.back();
+    }
+    
+    async storePage(link) {
+        const runSnapshot = getRunScheduler().getSnapshot();
+
+        link = TUtil.getFullLink(link);
+
+        await tApp.stop();
+        getLocationManager().cancelCurrentCalculation();
+ 
+        this.onPageClose();
+
+        const $pageDom = TModelUtil.getPageDom();
+        const html = $pageDom.innerHTML();
+
+        this.pageCache[link] = {
+            link,
+            html,
+            domState: TModelUtil.captureDomState($pageDom),
             oids: { ...App.oids },
-            tmodelIdMap:  { ...App.tmodelIdMap },
+            tmodelIdMap: { ...App.tmodelIdMap },
             visibleOidMap: { ...tApp.manager.visibleOidMap },
             scrollLeft: $Dom.getWindowScrollLeft() || 0,
             scrollTop: $Dom.getWindowScrollTop() || 0,
             tRoot: tApp.tRoot,
-            runSnapshot: getRunScheduler().getSnapshot()
+            runSnapshot
         };
         
-        if (updateHistory) {  
-            history.pushState({ browserUrl: link }, "", link);
-        } else {
-            history.replaceState({ browserUrl: link }, "", link);
+        return this.pageCache[link];
+    } 
+    
+    async restorePage(link) {   
+        const cache = this.pageCache[link];
+
+        if (!cache) {
+            return false;
+        }
+
+        tApp.tRoot = cache.tRoot;
+
+        App.oids = { ...cache.oids };
+        App.tmodelIdMap = { ...cache.tmodelIdMap };
+
+        const $pageDom = TModelUtil.getPageDom();
+
+        $pageDom.innerHTML(cache.html);
+        TModelUtil.restoreDomState($pageDom, cache.domState);
+
+        tApp.tRoot.$dom = TModelUtil.getRootDom();
+
+        const visibles = Object.values(cache.visibleOidMap);
+        const newVisibles = DomInit.initCacheDoms(visibles);
+        const restored = TUtil.uniqueTModels([...visibles, ...newVisibles]);
+
+        for (const tmodel of restored) {
+            tmodel.visibilityStatus = undefined;
+
+            if (!tmodel.hasDom()) {
+                tmodel.markLayoutDirty('pageRestoreNoDom');
+            }
         }
         
-        getRunScheduler().schedule(0, "pagemanager-processUpdateBrowserUrl");
-    }
-    
-    async restoreScroll(page) {
-        const left = page.scrollLeft || 0;
-        const top = page.scrollTop || 0;
+        TargetUtil.convertAnimatingTargetsToUpdating(restored);
 
-        window.scrollTo(left, top);
+        tApp.manager.visibleOidMap = {};
 
-        await new Promise(requestAnimationFrame);
-        window.scrollTo(left, top);
+        for (const tmodel of restored) {
+            if (tmodel.isIncluded()) {
+                tApp.manager.visibleOidMap[tmodel.oid] = tmodel;
+            }
+        }  
+            
+        tApp.manager.activatePendingTargetsAfterDom(restored, { restoredDoneTargets: true });
+            
+        tApp.tRoot.markLayoutDirty("pageRestore");
 
-        await new Promise(requestAnimationFrame);
-        window.scrollTo(left, top);
-    }
+        await TModelUtil.restoreScroll(cache);
+        await tApp.start();
 
-    back() {
-        return history.back();
+        getRunScheduler().restoreSnapshot(cache.runSnapshot);
+
+        const $restoredPageDom = TModelUtil.getPageDom();
+
+        TModelUtil.restoreDomState($restoredPageDom, cache.domState);
+        await TModelUtil.restoreScroll(cache);
+        await TModelUtil.restoreDomInteractionState($restoredPageDom, cache.domState);
+
+        return true;      
     }
     
     getCachedPage(link = this.lastCachedLink) {
