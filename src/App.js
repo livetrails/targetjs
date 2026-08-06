@@ -241,7 +241,6 @@ const isRunning = () => tApp ? tApp.runningFlag : false;
 const tRoot = () => tApp?.tRoot;
 const getEvents = () => tApp?.events;
 const getPager = () => tApp?.pager;
-const state = () => tApp?.stateManager;
 const getLoader = () => tApp?.loader;
 const fetch = (tmodel, url, query, cacheId) => tApp?.loader?.fetch(tmodel, url, query, cacheId);
 const fetchImage = (tmodel, src, cacheId) => tApp?.loader?.fetchImage(tmodel, src, cacheId);
@@ -254,6 +253,15 @@ const getScreenWidth = () => tApp?.tRoot?.val('screenWidth') ?? 0;
 const getScreenHeight = () => tApp?.tRoot?.val('screenHeight') ?? 0;
 const getVisibles = () => tApp?.manager?.getVisibles();
 const getResizeLastUpdate = () => tApp?.resizeLastUpdate;
+const state = () => {
+    const manager = tApp?.stateManager;
+
+    if (!manager) {
+        throw new Error("TargetJS state manager is not initialized.");
+    }
+
+    return manager;
+};
 const getTModelById = id => App.tmodelIdMap[id];
 const getDomTModelById = id => {
     const tmodel = App.tmodelIdMap[id];
