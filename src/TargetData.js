@@ -206,7 +206,7 @@ class TargetData {
         minLength: true,
         max: true,
         min: true,
-        readonly: true,
+        readOnly: true,
         required: true,
         alt: true,
         disabled: true,
@@ -383,7 +383,7 @@ class TargetData {
         oninput: 'onInput',
         onsubmit: 'onSubmit',
         onvisible: 'onVisible',
-        oninvisible: 'oInVisible',
+        oninvisible: 'oInvisible',
         onresize: 'onResize',
         textalign: 'textAlign',
         preventdefault: 'preventDefault',
@@ -484,7 +484,7 @@ class TargetData {
     static internalEventMap = {
         onDomEvent: tmodel => tmodel.hasDomNow,
         onVisible: tmodel => tmodel.isNowVisible,
-        onInVisible: tmodel => tmodel.isNowInvisible,
+        onInvisible: tmodel => tmodel.isNowInvisible,
         onResize: tmodel => {
             const parent = tmodel.getParent();
             const resizeLast = getResizeLastUpdate();
