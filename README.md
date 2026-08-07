@@ -76,9 +76,9 @@ bounce → move → turn red → log
 
 Notice how the code reads in the same order as the UI sequence. The `$$` suffix makes each target wait for all preceding targets to complete.
 
-Click the square while it is animating to save its current state. Click it again to restore the state and resume the animation from the exact point at which it was saved.
+Click the square while it is animating to capture its current state. Click it again to restore that state and resume the animation from the exact point at which it was saved.
 
-The checkpoint captures more than the square's visual state. It captures the runtime behind it including transition progress and pending targets. Restoring it resumes the whole sequence from that exact point, not just what was on screen.
+The checkpoint captures more than the square's visual state. It captures the runtime behind it including transition progress and pending targets. Restoring it resumes the whole sequence from that exact point, not just what was on screen. You can try the example at https://targetjs.io/examples/firstExample.html
 
 ```javascript
 import { App, state } from "targetj";
@@ -93,11 +93,11 @@ App({
   scale: { value: [0.5, 1.2, 1], steps: 100 },
 
   // $$ waits for the previous target to finish.
-  x$$: { value: [0, 180], steps: 100 },
+  x$$: { value: [0, 180], steps: 200 },
 
   backgroundColor$$: {
     value: "crimson",
-    steps: 100
+    steps: 200
   },
 
   done$$() {
