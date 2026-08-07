@@ -11,7 +11,7 @@ Most frameworks are great at rendering state. TargetJS is designed for the journ
 
 TargetJS is a JavaScript UI framework that replaces the "State → Render" model with "State → Transition → Render".
 
-Transitions are part of the state itself. This allows the entire UI, including an animation in progress, to be captured and later restored from the exact point at which it was saved.
+Transitions and runtime execution are part of the state itself. This allows both the execution flow and the entire UI including an animation in progress to be captured and later restored from the exact point at which they were saved.
 
 TargetJS also lets code order directly define the UI sequence. UI, transitions, API calls, event handling, and state are unified into self-contained Targets that chain together through Code-Ordered Reactivity.
 
@@ -50,10 +50,10 @@ With its compact style, TargetJS makes the journey from A → B explicit and eff
 
 ## 🚀 Why TargetJS?
 
-1. Unified State: One single state. Transitions are state too.
-1. Adaptive Transitions: Transitions can pause, resume, change speed, and respond to input.
-1. Restorable UI: Capture the UI during a transition and later resume the complete state including the transition from the saved point.
+1. Unified State: UI values, transitions, and runtime execution are part of the same state.
+1. Restorable UI and Runtime: A checkpoint captures both the rendered UI and the runtime state and later resume the complete state including the transition and execution flow from the saved point.
 1. UI as Sequence: Code describes the UI story from top to bottom, just like the user experiences the interaction: "When this finishes, do that."
+1. Adaptive Transitions: Transitions can pause, resume, change speed, and respond to input.
 1. Ultra-Compact: Minimal code, with no coordination variables.
 1. Zero Boilerplate Async: Targets handle waiting for nested asynchronous operations automatically.
 1. Animation by Default: Turn value into high-performance animations simply by adding `steps`.
