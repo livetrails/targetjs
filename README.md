@@ -51,7 +51,7 @@ With its compact style, TargetJS makes the journey from A → B explicit and eff
 ## 🚀 Why TargetJS?
 
 1. Unified State: UI values, transitions, and runtime execution are part of the same state.
-1. Restorable UI and Runtime: A checkpoint captures both the rendered UI and the runtime state and later resume the complete state including the transition and execution flow from the saved point.
+1. Restorable UI and Runtime: UI and runtime state can be captured and later the complete state can be restored including transitions and execution flow from the saved point.
 1. UI as Sequence: Code describes the UI story from top to bottom, just like the user experiences the interaction: "When this finishes, do that."
 1. Adaptive Transitions: Transitions can pause, resume, change speed, and respond to input.
 1. Ultra-Compact: Minimal code, with no coordination variables.
@@ -76,7 +76,9 @@ bounce → move → turn red → log
 
 Notice how the code reads in the same order as the UI sequence. The `$$` suffix makes each target wait for all preceding targets to complete.
 
-There is only one state, and the transitions are part of that state. Click the square while it is animating to save its current state. Click it again to restore the state and resume the animation from the exact point at which it was saved.
+Click the square while it is animating to save its current state. Click it again to restore the state and resume the animation from the exact point at which it was saved.
+
+The checkpoint captures more than the square's visual state. It captures the runtime behind it including transition progress and pending targets. Restoring it resumes the whole sequence from that exact point, not just what was on screen.
 
 ```javascript
 import { App, state } from "targetj";
@@ -102,8 +104,7 @@ App({
     console.log("Sequence complete");
   },
 
-  // Click once to save the state.
-  // Click again to restore it including animation progress.
+  // 1st click: save a checkpoint. 2nd click: restore it and resume.
   onClick() {
     state().toggle();
   }
