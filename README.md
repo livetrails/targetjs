@@ -18,13 +18,9 @@ It can be used as a full-featured framework or as a lightweight library alongsid
 
 **UI frameworks model the final result, not the transition**
 
-Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A → B, the UI immediately jumps to B. The framework doesn’t naturally represent the journey from A → B. But modern, rich user experiences are more like: A → transition → B.
+Traditional frameworks model the UI as a function of data: change data, re-render the UI. When data changes from A → B, the UI immediately jumps to render B. The framework doesn’t naturally represent the journey from A → B. But modern, rich user experiences are more like: A → transition → B.
 
-TargetJS makes that transition part of the state change itself. Values are not limited to being assigned immediately. They can move toward their destination over configurable steps, intervals, and easing. Transitions therefore become a native part of the UI model rather than effects added after rendering. TargetJS also delivers CSS-level transition efficiency.
-
-Because each Target has its own lifecycle, transitions can also adapt dynamically. For example, pausing when an element leaves the screen or changing speed on scroll.
-
-Since the transition belongs to the runtime state, the UI can be captured while a transition is in progress. That state can later be restored, allowing the transition to resume from the point at which it was saved.
+TargetJS redefines state to include both the transition and the active UI runtime. This allows transitions to adapt dynamically on the fly, for example, pausing when an element leaves the screen or changing speed on scroll. It also allows the entire UI to be captured mid-animation and restored later, resuming exactly where it left off.
 
 **Fragmentation across multiple mental models**
 
@@ -41,8 +37,6 @@ Click → animate button → fetch data → render results → animate items →
 In traditional code, that sequence is often scattered across different places such as event handlers, effects, promises, and callbacks.
 
 TargetJS code order and target reactivity allow the implementation to more closely mirror the actual UI sequence.
-
-With its compact style, TargetJS makes the journey from A → B explicit and efficient, with significantly less code than traditional frameworks.
 
 ## 🚀 Why TargetJS?
 
