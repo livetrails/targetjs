@@ -1,17 +1,13 @@
-# TargetJS: State Includes the Journey
+# TargetJS: The "State → Transition → Render" Framework
 
 **Code order defines the UI sequence.**
-
-Most frameworks are great at rendering state. TargetJS is designed for the journey between states.
 
 **[targetjs.io](https://targetjs.io)** 
 [![MIT LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/livetrails/targetjs/blob/main/LICENSE) 
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a JavaScript UI framework that replaces the "State → Render" model with "State → Transition → Render".
-
-Transitions and runtime execution are part of the state itself. This allows both the execution flow and the entire UI including an animation in progress to be captured and later restored from the exact point at which they were saved.
+TargetJS is a JavaScript UI framework that transforms how applications handle state and execution flow. Instead of treating state merely as data for rendering, TargetJS integrates the active UI runtime including execution flow and in-progress animations directly into the state itself. This unified state approach allows developers to capture and restore the exact state of an interface at any millisecond.
 
 TargetJS also lets code order directly define the UI sequence. UI, transitions, API calls, event handling, and state are unified into self-contained Targets that chain together through Code-Ordered Reactivity.
 
