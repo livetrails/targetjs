@@ -150,7 +150,7 @@ Target names can include special suffixes that determine when they execute. This
 | -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `name`   | Standard | Runs immediately in code order unless `active` is `false`.                                                                                                           |
 | `name$`  | Reactive | Runs whenever the preceding sibling Target updates. Similar to activating the next Target from `onValueChange()` or `on<PropertyName>Step()`.                        |
-| `name$$` | Deferred | Runs after the entire preceding Target chain—including children, animations, and API calls—has completed. Similar to activating the next Target from `onComplete()`. |
+| `name$$` | Deferred | Runs after the entire preceding Target chain including children, animations, and API calls has completed. Similar to activating the next Target from `onComplete()`. |
 
 To prevent a Target from running automatically, set `active: false` and activate it later with `.activateTarget()`.
 
