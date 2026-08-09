@@ -246,8 +246,10 @@ App({
       this.setTarget('y', { value: [0, -120], steps: 400 });
     }
   },
-  fetch$$: { method: "POST", id: 123, url: "/api/like" }, // Wait for the heart to finish, THEN fetch
-  removeHearts$$() { this.removeChildren(); }, // Wait for fetch to finish, THEN cleanup
+  // Wait for the nested animation in heart$$ to finish , then fetch
+  fetch$$: { method: "POST", id: 123, url: "/api/like" },
+  // Wait for fetch to finish, then cleanup
+  removeHearts$$() { this.removeChildren(); },
   onKey(e) { if (e.key === "Enter") this.activateTarget("onClick"); } 
 }).mount("#likeButton");
 ```
