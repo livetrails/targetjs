@@ -7,7 +7,7 @@
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a JavaScript UI framework that transforms how applications handle state and execution flow. Instead of treating state merely as data for rendering, TargetJS integrates the active UI runtime including execution flow and in-progress animations directly into the state itself. This unified state approach allows developers to capture and restore the exact state of an interface at any millisecond.
+TargetJS is a JavaScript UI framework that transforms how applications handle state and execution flow. Instead of treating state merely as data for rendering, TargetJS integrates the active UI runtime including in-progress animation and execution flow directly into the state itself. This unified state approach allows developers to capture and restore the exact state of an interface at any millisecond.
 
 TargetJS also lets code order directly define the UI sequence. UI, transitions, API calls, event handling, and state are unified into self-contained Targets that chain together through Code-Ordered Reactivity.
 
