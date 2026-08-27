@@ -1,4 +1,5 @@
 import { TUtil } from "./TUtil.js";
+import { TModelFactory } from "./TModelFactory.js";
 
 const TMODEL_REF_KEY = "__targetjsTModelRef";
 
@@ -383,25 +384,28 @@ class StateUtil {
         state.lastChildrenUpdate.additions = [];
         state.lastChildrenUpdate.deletions = [];
     }
-
+    
     static exportRuntimeState(tmodel) {
         const fields = {};
 
         for (const key of Object.keys(tmodel)) {
-            if (EXCLUDED_RUNTIME_FIELDS.has(key)) {
+            if (EXCLUDED_RUNTIME_FIELDS.has(key) || tmodel.excludeRuntimeSnapshotField?.(key)) {
                 continue;
             }
 
             fields[key] = tmodel[key];
         }
 
-        const runtime = StateUtil.encodeValue({ state: tmodel.state(), fields });
+        const runtime = StateUtil.encodeValue({
+            state: tmodel.state(),
+            fields
+        });
 
         StateUtil.clearMaterializedChildOperations(runtime.state);
 
         return runtime;
     }
-
+    
     static importRuntimeState(tmodel, runtime, tmodelIdMap, { timeOffset = 0 } = {}) {
         const restored = StateUtil.decodeValue(
             runtime,
@@ -412,9 +416,7 @@ class StateUtil {
 
         tmodel._state = restored.state || {};
 
-        for (const [key, value] of Object.entries(
-            restored.fields || {}
-        )) {
+        for (const [key, value] of Object.entries(restored.fields || {})) {
             if (EXCLUDED_RUNTIME_FIELDS.has(key)) {
                 continue;
             }
@@ -424,14 +426,8 @@ class StateUtil {
 
         StateUtil.clearMaterializedChildOperations(tmodel._state);
 
-        /*
-         * The child tree has already been reconstructed directly.
-         */
         tmodel.childrenUpdateFlag = false;
 
-        /*
-         * DOM and Web Animation objects belong to the old runtime.
-         */
         tmodel.$dom = null;
         tmodel.viewport = undefined;
         tmodel.hasDomNow = false;
@@ -441,11 +437,13 @@ class StateUtil {
         tmodel.finalKeyframe = undefined;
         tmodel.finalRawFrame = undefined;
 
+        tmodel.restoreRuntimeDerivedState?.();
+
         return tmodel;
     }
 
     static createRuntimeSnapshot(tmodel) {
-        const children = [...tmodel.getChildren()];
+        const children = [...(tmodel.allChildrenList ?? [])];
         const targetDefinitions = TUtil.cloneTargetDefinition(tmodel.targetDefinitions);
 
         return {
@@ -453,14 +451,16 @@ class StateUtil {
             oidNum: tmodel.oidNum ?? 0,
             originalId: tmodel.originalId,
             type: tmodel.type,
-            usesExistingDom: tmodel.targets?.domIsland === true || tmodel.targets?.reuseDomDefinition === true || tmodel.originalTargetNames?.includes('$dom'),
+            usesExistingDom: tmodel.targets?.domIsland === true ||
+                tmodel.targets?.reuseDomDefinition === true ||
+                tmodel.originalTargetNames?.includes("$dom"),
             targets: StateUtil.encodeValue(targetDefinitions),
             targetRuntime: StateUtil.exportTargetRuntime(tmodel),
             runtime: StateUtil.exportRuntimeState(tmodel),
             children: children.map(child => StateUtil.createRuntimeSnapshot(child))
         };
     }
-
+    
     static createWithIdentity(snapshot, TModelClass) {
         if (typeof TModelClass !== "function") {
             throw new TypeError("A TModel constructor is required.");
@@ -468,11 +468,18 @@ class StateUtil {
 
         const targets = StateUtil.encodeValue(snapshot.targets);
 
-        const tmodel = new TModelClass(snapshot.type, targets, snapshot.oid, {
+        const options = {
             restoringRuntime: true,
             usesExistingDom: snapshot.usesExistingDom === true
-        });
-        
+        };
+
+        const tmodel = TModelFactory.create(
+            snapshot.type,
+            targets,
+            (type, targets, oid, options) => new TModelClass(type, targets, oid, options),
+            snapshot.oid,
+            options
+        );
         tmodel.type = snapshot.type;
         tmodel.oid = snapshot.oid;
         tmodel.oidNum = snapshot.oidNum ?? 0;
@@ -582,7 +589,7 @@ class StateUtil {
 
         return result;
     }
-    
+
     static applyTargetRuntime(tmodel, encodedTargetRuntime, tmodelIdMap) {
         for (const [targetName, encodedRuntime] of Object.entries(encodedTargetRuntime || {})) {
             const target = tmodel.targets[targetName];

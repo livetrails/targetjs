@@ -9,6 +9,7 @@ import { TargetUtil } from "./TargetUtil.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { DomInit } from "./DomInit.js";
 import { StateUtil } from "./StateUtil.js";
+import { TModelFactory } from "./TModelFactory.js";
 
 /**
  * It provides the base class for all objects in an app where targets are defined. 
@@ -145,41 +146,41 @@ class TModel extends BaseModel {
         return this;
     }
     
-    addChild(child, index = this.addedChildren.length + this.allChildrenList.length) {  
-        if (typeof child === 'object') {
-            this.childrenUpdateFlag = true;
-            
-            if (!(child instanceof TModel)) {
-                const foundKey = Object.keys(this.actualValues).find(key => this.actualValues[key] === child);
-                const childDefinition = TUtil.cloneTargetDefinition(child);
-
-                if (foundKey) {
-                    child = new TModel(childDefinition.id || foundKey, childDefinition);
-                } else {
-                    child = new TModel(`${this.oid}_`, childDefinition);                    
-                }
-            }
-            
-            if (!child.toDiscard) { 
-                
-                App.tmodelIdMap[child.oid] = child;
-                this.addedChildren.push({ index, child });
-                child.parent = this;
-                child.markLayoutDirty('addChild');
-                
-                if (child.updatingTargetList.length > 0) {
-                    this.addToUpdatingChildren(child);
-                }
-                if (child.activeTargetList.length > 0) {
-                    this.addToActiveChildren(child);
-                }         
-                      
-                TargetUtil.markChildAction(this, TargetUtil.currentTargetName, child);      
-            }
+    addChild(child, index = this.addedChildren.length + this.allChildrenList.length) {
+        if (!child || typeof child !== 'object') {
+            return this;
         }
+
+        if (!(child instanceof TModel)) {
+            const childDefinition = TUtil.cloneTargetDefinition(child);
+            const foundKey = Object.keys(this.actualValues).find(key => this.actualValues[key] === child);
+            const type = foundKey ? childDefinition.id || foundKey : `${this.oid}_`;
+
+            child = TModelFactory.create(type, childDefinition, (type, targets) => new TModel(type, targets));
+        }
+
+        this.childrenUpdateFlag = true;
+
+        if (!child.toDiscard) {
+            App.tmodelIdMap[child.oid] = child;
+            this.addedChildren.push({ index, child });
+            child.parent = this;
+            child.markLayoutDirty('addChild');
+
+            if (child.updatingTargetList.length > 0) {
+                this.addToUpdatingChildren(child);
+            }
+
+            if (child.activeTargetList.length > 0) {
+                this.addToActiveChildren(child);
+            }
+
+            TargetUtil.markChildAction(this, TargetUtil.currentTargetName, child);
+        }
+
         return this;
-    }    
-    
+    }
+
     addSibling(sibling) {
         this.getParent().addChild(sibling);
     }
@@ -931,6 +932,14 @@ class TModel extends BaseModel {
     getPaddingBottom() {
         return this.val("paddingBottom") ?? this.val("bottomPadding") ?? TModelUtil.getPaddingValue(this, "bottom");
     }
+    
+    setLayoutX(value) {
+        this.x = value;
+    }
+
+    setLayoutY(value) {
+        this.y = value;
+    }
 
     getWidth() {
         if (TUtil.isDefined(this.targets.width) || TUtil.isDefined(this.targetValues.width)) {
@@ -1004,6 +1013,24 @@ class TModel extends BaseModel {
     createRuntimeSnapshot() {
         return StateUtil.createRuntimeSnapshot(this);
     }
+    
+    handleSpecialTarget() {
+        return false;
+    }
+    
+    handleSpecialTargetStep() {
+        return false;
+    }
+
+    handleSpecialTargetEnd() {
+        return false;
+    }
+    
+    finalizeChildrenTarget() {
+        return false;
+    }
+
+    onDomReady() {}
 }
 
 export { TModel };

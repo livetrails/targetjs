@@ -3,9 +3,9 @@ import { tApp, App, getRunScheduler, getLocationManager, getAnimationManager, ge
 import { AnimationUtil } from "./AnimationUtil.js";
 import { DomInit } from "./DomInit.js";
 import { $Dom } from "./$Dom.js";
-import { TModel } from "./TModel.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TModelUtil } from "./TModelUtil.js";
+import { TModel } from "./TModel.js";
 import { StateUtil } from "./StateUtil.js";
 /**
  * It enables storing and restoring state.
@@ -33,7 +33,8 @@ class StateManager {
             visibleOids: Object.keys(tApp.manager.visibleOidMap),
             scrollLeft: $Dom.getWindowScrollLeft() || 0,
             scrollTop: $Dom.getWindowScrollTop() || 0,
-            runSnapshot
+            runSnapshot,
+            gpuVisuals: await this.captureGpuVisuals()
         };
 
         this.stateCheckpoints[key] = checkpoint;
@@ -52,7 +53,7 @@ class StateManager {
         }
 
         getLoader().clear();
-        
+
         await tApp.stop();
         getLocationManager().cancelCurrentCalculation();
         await tApp.reset();
@@ -75,17 +76,20 @@ class StateManager {
         $pageDom.innerHTML(checkpoint.html);
         TModelUtil.restoreDomState($pageDom, checkpoint.domState);
 
+        this.showGpuRestoreVisuals(checkpoint.gpuVisuals);
+
+
         tApp.tRoot.$dom = TModelUtil.getRootDom();
 
         const visibleModels = checkpoint.visibleOids.map(oid => tmodelIdMap[oid]).filter(Boolean);
 
-        this.connectRestoredDoms(visibleModels, models);
+        const restoredWithDom = this.connectRestoredDoms(visibleModels, models);
+
+        tApp.manager.activatePendingTargetsAfterDom(restoredWithDom, { restoredDoneTargets: true });
 
         tApp.tRoot.markLayoutDirty("checkpointRestore");
-
+        
         await tApp.start();
-
-        getRunScheduler().restoreSnapshot(checkpoint.runSnapshot);
 
         const $restoredPageDom = TModelUtil.getPageDom();
 
@@ -93,6 +97,14 @@ class StateManager {
 
         await TModelUtil.restoreScroll(checkpoint);
         await TModelUtil.restoreDomInteractionState($restoredPageDom, checkpoint.domState);
+
+        await Promise.all(
+            models.map(tmodel => tmodel.restoreRuntimeDomDerivedState?.())
+        );
+
+        this.hideGpuRestoreVisuals();
+
+        getRunScheduler().restoreSnapshot(checkpoint.runSnapshot);
 
         return true;
     }
@@ -163,11 +175,103 @@ class StateManager {
             }
         }
 
-        tApp.manager.activatePendingTargetsAfterDom(restoredWithDom, { restoredDoneTargets: true });
-
         return restoredWithDom;
     }
     
+    async captureGpuVisuals() {
+        const visuals = {};
+
+        for (const tmodel of Object.values(App.tmodelIdMap)) {
+            const renderer = tmodel.particleRenderer;
+            const canvas = renderer?.canvas;
+
+            if (!canvas || !tmodel.gpuChildrenEnabled) {
+                continue;
+            }
+
+            const rect = canvas.getBoundingClientRect();
+            const bitmap = await renderer.captureBitmap();
+
+            if (!bitmap) {
+                continue;
+            }
+
+            visuals[tmodel.oid] = {
+                bitmap,
+                left: rect.left,
+                top: rect.top,
+                width: rect.width,
+                height: rect.height
+            };
+        }
+
+        return visuals;
+    }
+    
+    showGpuRestoreVisuals(visuals) {
+        this.hideGpuRestoreVisuals();
+
+        if (!Object.keys(visuals || {}).length) {
+            return;
+        }
+
+        const overlay = document.createElement("div");
+
+        overlay.setAttribute("data-targetjs-gpu-restore-overlay", "true");
+
+        Object.assign(overlay.style, {
+            position: "fixed",
+            left: "0px",
+            top: "0px",
+            width: "100vw",
+            height: "100vh",
+            pointerEvents: "none",
+            zIndex: "2147483647"
+        });
+
+        for (const visual of Object.values(visuals)) {
+            if (!visual?.bitmap) {
+                continue;
+            }
+
+            const preview = document.createElement("canvas");
+
+            preview.width = visual.bitmap.width;
+            preview.height = visual.bitmap.height;
+
+            Object.assign(preview.style, {
+                position: "absolute",
+                left: `${visual.left}px`,
+                top: `${visual.top}px`,
+                width: `${visual.width}px`,
+                height: `${visual.height}px`,
+                display: "block"
+            });
+
+            const context = preview.getContext("2d");
+
+            context.drawImage(visual.bitmap, 0, 0);
+            
+            overlay.appendChild(preview);
+        }
+
+        document.body.appendChild(overlay);
+
+        return overlay;
+    } 
+    
+    hideGpuRestoreVisuals() {
+        document.querySelector('[data-targetjs-gpu-restore-overlay="true"]')?.remove();
+    }
+    
+    async waitForPaint() {
+        await new Promise(resolve => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(resolve);
+            });
+        });
+    }
+
     has(key = "default") {
         return Boolean(this.stateCheckpoints[key]);
     }

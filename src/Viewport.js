@@ -42,8 +42,8 @@ class Viewport {
         const child = this.currentChild;
 
         if (!child.targets['excludeXYCalc']) {
-            child.x = this.xNext + child.getMarginLeft() + this.container.getPaddingLeft();
-            child.y = this.yNext + child.getMarginTop() + this.container.getPaddingTop();
+            child.setLayoutX(this.xNext + child.getMarginLeft() + this.container.getPaddingLeft());
+            child.setLayoutY(this.yNext + child.getMarginTop() + this.container.getPaddingTop());
         }
     }
     

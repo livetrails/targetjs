@@ -64,14 +64,24 @@ class TModelManager {
     analyze() {
         const lastVisibleMap = { ...this.visibleOidMap };
         const lastPreservedMap = { ...this.preservedDomMap };
-        
+
         this.clearFrameLists();
         this.collectDeletedTModels();
 
         const activated = [];
 
         for (const tmodel of getLocationManager().hasLocationList) {
-            lastVisibleMap[tmodel.oid] = undefined; 
+            if (tmodel.isLightweightChild) {
+                delete lastVisibleMap[tmodel.oid];
+                delete lastPreservedMap[tmodel.oid];
+                delete this.visibleOidMap[tmodel.oid];
+                delete this.preservedDomMap[tmodel.oid];
+                this.domPolicyMap.delete(tmodel.oid);
+
+                continue;
+            }
+
+            lastVisibleMap[tmodel.oid] = undefined;
             lastPreservedMap[tmodel.oid] = undefined;
             
             if (!tmodel.exists()) {
@@ -102,14 +112,19 @@ class TModelManager {
                 delete this.preservedDomMap[tmodel.oid];
             }
             
-            if (tmodel.hasDom()) { 
+            if (tmodel.hasDom()) {
                 if (!tmodel.canHaveDom() || !tmodel.isIncluded() || (tmodel.canDeleteDom() && !visible && !preserveDom)) {
                     this.addToDeletedDom(tmodel);
-                    tmodel.getChildren().forEach(tmodel => {
-                        if (!tmodel.managesOwnScroll()) {
-                            this.addToRecursiveDeletedDom(tmodel);
+
+                    tmodel.getChildren().forEach(child => {
+                        if (child.isLightweightChild) {
+                            return;
                         }
-                    });                        
+
+                        if (!child.managesOwnScroll()) {
+                            this.addToRecursiveDeletedDom(child);
+                        }
+                    });
                 }
             }
             
@@ -294,17 +309,21 @@ class TModelManager {
     }
     
     addToRecursiveDeletedDom(tmodel) {
+        if (tmodel.isLightweightChild) {
+            return;
+        }
+
         delete this.visibleOidMap[tmodel.oid];
         delete this.preservedDomMap[tmodel.oid];
-        
+
         if (!this.lists.deletedDom.includes(tmodel)) {
             if (tmodel.hasDom()) {
                 this.lists.deletedDom.push(tmodel);
             }
 
-            tmodel.getChildren().forEach(tmodel => {
-                if (!tmodel.managesOwnScroll()) {
-                    this.addToRecursiveDeletedDom(tmodel);
+            tmodel.getChildren().forEach(child => {
+                if (!child.isLightweightChild && !child.managesOwnScroll()) {
+                    this.addToRecursiveDeletedDom(child);
                 }
             });
         }
@@ -338,6 +357,10 @@ class TModelManager {
     }
     
     addDeletedTree(tmodel) {
+        if (tmodel.isLightweightChild) {
+            return;
+        }
+
         delete this.visibleOidMap[tmodel.oid];
         delete this.preservedDomMap[tmodel.oid];
         this.domPolicyMap.delete(tmodel.oid);
@@ -347,7 +370,9 @@ class TModelManager {
         }
 
         for (const child of tmodel.getChildren()) {
-            this.addDeletedTree(child);
+            if (!child.isLightweightChild) {
+                this.addDeletedTree(child);
+            }
         }
     }
 
@@ -554,6 +579,18 @@ class TModelManager {
         }
 
         for (const key of [...tmodel.noDomUpdatingTargets]) {
+            const targetValue = tmodel.targetValues[key];
+
+            if (!targetValue) {
+                continue;
+            }
+
+            getTargetManager().catchupTargetByElapsed(tmodel, key, {
+                fireEnd: false
+            });
+
+            delete targetValue.catchupAt;
+            
             const newStatus = getTargetManager().calculateTargetStatus(tmodel, key);
             tmodel.setTargetStatus(key, newStatus);
         }
@@ -639,16 +676,23 @@ class TModelManager {
         for (const tmodel of attached) {
             this.catchupNoDomTargetsBeforeStyle(tmodel);
         }
+        
+        const domReady = [];
 
         for (const tmodel of styleBatch) {
             if (tmodel.hasDom()) {
                 tmodel.hasDomNow = true;
                 tmodel.markLayoutDirty('hasDomNow');
+                domReady.push(tmodel);
             }
 
             TModelUtil.initStyleMaps(tmodel);
             TModelUtil.fixStyle(tmodel);
             TModelUtil.fixAsyncStyle(tmodel);
+        }
+        
+        for (const tmodel of domReady) {
+            tmodel.onDomReady();
         }
 
         this.activatePendingTargetsAfterDom(attached);

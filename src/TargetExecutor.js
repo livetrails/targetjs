@@ -6,6 +6,7 @@ import { TUtil } from "./TUtil.js";
 import { AnimationUtil } from "./AnimationUtil.js"; 
 import { Easing } from "./Easing.js";
 import { getLoader, getRunScheduler, getAnimationManager } from "./App.js";
+import { TModelFactory } from "./TModelFactory.js";
 
 /**
  * It is responsible for executing both declarative and imperative targets.
@@ -332,8 +333,28 @@ class TargetExecutor {
             ? tmodel.targets[key].initialValue
             : undefined;
 
-        const valueArray = TargetParser.getValueStepsCycles(tmodel, key, tmodel.targets[key], cycle);
+        const target = tmodel.targets[key];
+        const hasInstances = target && typeof target === 'object' && TUtil.isDefined(target.instances);
+        const instances = hasInstances ? TargetParser.getTargetInstances(tmodel, key, target, cycle) : 1;
 
+        let valueArray;
+
+        if (hasInstances) {
+            const values = new Array(instances);
+
+            valueArray = TargetParser.getValueStepsCycles(tmodel, key, target, cycle, 0);
+            values[0] = valueArray[0];
+            valueArray[0] = values;
+            const lastValues = tmodel.val(key);
+
+            for (let instance = 1; instance < instances; instance++) {
+                const lastValue = Array.isArray(lastValues) ? lastValues[instance] : lastValues;
+                values[instance] = TargetParser.getInstanceTargetValue(tmodel, key, target, cycle, lastValue, instance);
+            }
+        } else {
+            valueArray = TargetParser.getValueStepsCycles(tmodel, key, target, cycle);
+        }
+        
         const newValue    = valueArray[0];
         const newSteps    = valueArray[1] || 0;
         const newInterval = valueArray[2] || 0;     
@@ -344,7 +365,8 @@ class TargetExecutor {
 
         tmodel.targetValues[key] = targetValue;
         const easing = TUtil.isDefined(newEasing) ? newEasing : (TUtil.isDefined(tmodel.targets[key].easing) ? tmodel.targets[key].easing : undefined);
-
+        let specialTarget;
+        
         if (TargetParser.isIntervalTarget(newValue)) {
             TargetExecutor.assignSingleTarget(
                 targetValue, 
@@ -355,6 +377,18 @@ class TargetExecutor {
                 newValue.interval,
                 easing
             );
+        } else if ((specialTarget = tmodel.handleSpecialTarget(key, newValue, { steps: newSteps, cycles: newCycles, interval: newInterval, easing }))) {
+            const options = specialTarget === true ? {} : specialTarget;
+
+            TargetExecutor.assignSingleTarget(
+                targetValue,
+                newValue,
+                undefined,
+                options.steps ?? newSteps,
+                options.cycles ?? newCycles,
+                options.interval ?? newInterval,
+                options.easing ?? easing
+            );    
         } else if (TargetParser.isChildTarget(key, newValue)) {
                         
             tmodel.addChild(newValue);
@@ -373,23 +407,39 @@ class TargetExecutor {
             const values = Array.isArray(newValue) ? newValue : newValue ? [newValue] : [];
 
             values.forEach(child => {
+                const addedChildrenCount = tmodel.addedChildren.length;
+
                 tmodel.addChild(child);
-                
-                TargetUtil.markAddChild(tmodel, TargetUtil.currentTargetName, tmodel.addedChildren[tmodel.addedChildren.length - 1].child);
+
+                if (tmodel.addedChildren.length > addedChildrenCount) {
+                    const addedChild = tmodel.addedChildren[tmodel.addedChildren.length - 1].child;
+
+                    TargetUtil.markAddChild(tmodel, TargetUtil.currentTargetName, addedChild);
+                }
+            });
+            
+            const result = tmodel.finalizeChildrenTarget(key, {
+                steps: newSteps,
+                cycles: newCycles,
+                interval: newInterval,
+                easing
             });
 
+            const options = result && typeof result === "object" ? result : {};
+
             TargetExecutor.assignSingleTarget(
-                targetValue, 
-                newValue, 
-                undefined, 
-                0, 
-                newCycles, 
-                newInterval,
-                easing
+                targetValue,
+                newValue,
+                undefined,
+                options.steps ?? 0,
+                options.cycles ?? newCycles,
+                options.interval ?? newInterval,
+                options.easing ?? easing
             );
+    
         } else if (TargetParser.isChildObjectTarget(key, tmodel.targets[key])) {
 
-            const child = new TModel(key, tmodel.targets[key]);
+            const child = TargetExecutor.createTModel(key, tmodel.targets[key]);
             tmodel.addChild(child);
             
             const filteredValue = Object.fromEntries(
@@ -453,6 +503,10 @@ class TargetExecutor {
             }         
             TargetExecutor.assignSingleTarget(targetValue, newValue, targetInitial, newSteps, newCycles, newInterval, easing);            
         }
+    }
+
+    static createTModel(key, targets) {
+        return TModelFactory.create(key, targets, (type, targets) => new TModel(type, targets));
     }
 }
 

@@ -97,7 +97,7 @@ class ScheduleUtil {
 
                 tmodel.addTargetToStatusList(key);
 
-                getRunScheduler().scheduleOnlyIfEarlier(remaining, `resume-${tmodel.oid}-${key}`);
+                getRunScheduler().scheduleOnlyIfEarlier(remaining, `resume1-${tmodel.oid}-${key}`);
 
                 continue;
             }
@@ -107,10 +107,7 @@ class ScheduleUtil {
 
                 tmodel.addTargetToStatusList(key);
 
-                getRunScheduler().scheduleOnlyIfEarlier(
-                    delay,
-                    `resume-${tmodel.oid}-${key}`
-                );
+                getRunScheduler().scheduleOnlyIfEarlier(delay, `resume2-${tmodel.oid}-${key}`);
             }
         }
 

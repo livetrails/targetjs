@@ -14,6 +14,7 @@ import { TUtil } from "./TUtil.js";
 import { DomInit } from "./DomInit.js";
 import { SearchUtil } from "./SearchUtil.js";
 import { TModelUtil } from "./TModelUtil.js";
+import "./ParticleTModel.js";
 
 let tApp;
 let queuedAppCalls = [];
@@ -82,7 +83,8 @@ const AppFn = () => {
                     if (t.val('sourceDom')) {
                         return;
                     }
-                    const child = new TModel(t.type, t.targets);
+                    const child = TargetExecutor.createTModel(t.type, t.targets);
+
                     tmodel.addChild(child);
                 });
             }
@@ -171,8 +173,8 @@ const App = firstChild => {
         return;
     }
 
-    const tmodel = firstChild instanceof TModel ? firstChild : new TModel("App", firstChild);
-
+    const tmodel = firstChild instanceof TModel ? firstChild : TargetExecutor.createTModel("App", firstChild);
+    
     if (!tApp?.tRoot) {
         if (document.readyState === "loading") {
             queuedAppCalls.push(tmodel);

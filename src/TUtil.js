@@ -201,17 +201,21 @@ class TUtil {
         return false;
     }
     
-    static runTargetValue(tmodel, target, key, cycle, lastValue) {
-        
-        const cleanKey = TargetUtil.getTargetName(key);  
+    static runTargetValue(tmodel, target, key, cycle, lastValue, instance = undefined) {
+        const cleanKey = TargetUtil.getTargetName(key);
         const isExternalEvent = TargetData.allEventMap[cleanKey];
-        
+        const instanceArgs = TUtil.isDefined(instance) ? [instance] : [];
+
         if (isExternalEvent) {
-            return typeof target.value === 'function' ? target.value.call(tmodel, getEvents().getCurrentOriginalEvent(), cycle, lastValue) : TUtil.isDefined(target.value) ? target.value : target;        
+            return typeof target.value === 'function'
+                ? target.value.call(tmodel, ...instanceArgs, getEvents().getCurrentOriginalEvent(), cycle, lastValue)
+                : TUtil.isDefined(target.value) ? target.value : target;
         } else if (tmodel.val(`___${key}`)) {
-            return typeof target.value === 'function' ? target.value.call(tmodel, tmodel.val(`___${key}`), cycle, lastValue) : TUtil.isDefined(target.value) ? target.value : target;            
+            return typeof target.value === 'function'
+                ? target.value.call(tmodel, ...instanceArgs, tmodel.val(`___${key}`), cycle, lastValue)
+                : TUtil.isDefined(target.value) ? target.value : target;
         } else {
-            return typeof target.value === 'function' ? target.value.call(tmodel, cycle, lastValue) : TUtil.isDefined(target.value) ? target.value : target;
+            return typeof target.value === 'function' ? target.value.call(tmodel, ...instanceArgs, cycle, lastValue) : TUtil.isDefined(target.value) ? target.value : target;
         }
     }
     

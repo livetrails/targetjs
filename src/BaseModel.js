@@ -882,6 +882,33 @@ class BaseModel {
             this.getParent()?.addToUpdatingChildren(this);
         }
     }
+    
+    addToNoDomUpdatingTargets(key) {
+        const targetValue = this.targetValues[key];
+
+        if (!targetValue) {
+            return false;
+        }
+
+        const noDomTargets = this.noDomUpdatingTargets ||= new Set();
+
+        if (noDomTargets.has(key)) {
+            return false;
+        }
+
+        targetValue.catchupAt = TUtil.now();
+
+        noDomTargets.add(key);
+
+        this.removeFromAnimatingMap(key);
+        this.removeFromUpdatingTargets(key);
+        this.resetScheduleTimeStamp(key);
+        this.resetScheduleRemainingTime(key);
+        
+        this.getParent()?.addToUpdatingChildren(this);
+
+        return true;
+    }
 
     removeFromUpdatingTargets(key) {       
         if (this.updatingTargetMap[key]) {
@@ -935,11 +962,14 @@ class BaseModel {
 
         return targets;
     }
-    
+
     hasAnyUpdates() {
-        return this.updatingTargetList.length !== 0 || this.activeTargetList.length !== 0 || (this.animatingMap?.size ?? 0) !== 0;  
+        return this.updatingTargetList.length !== 0 ||
+            this.activeTargetList.length !== 0 ||
+            (this.animatingMap?.size ?? 0) !== 0 ||
+            (this.noDomUpdatingTargets?.size ?? 0) !== 0;
     }
-    
+
     removeFromAnimatingMap(key) {
         if (this.animatingMap?.has(key)) {
             this.animatingMap.delete(key);

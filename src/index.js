@@ -19,3 +19,5 @@ export * from "./AnimationUtil.js";
 export * from "./VisibilityUtil.js";
 export * from "./ScheduleUtil.js";
 export * from "./StateUtil.js";
+export * from "./ParticleTModel.js";
+export * from "./ParticleRenderer.js";

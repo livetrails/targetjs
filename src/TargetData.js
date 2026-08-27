@@ -585,6 +585,7 @@ class TargetData {
         ...Object.keys(TargetData.allEventMap),
         ...Object.keys(TargetData.internalEventMap),
         ...Object.keys(TargetData.mustExecuteTargets),
+        'children', 'addChildren', 'addParticles',
         'html', 'isInFlow', 'domHolder', 'domParent', 'gap', 'widthFromDom', 'heightFromDom',
         'requiresDom', 'preventDefault', 'canDeleteDom', 'textOnly', 'styling', '$dom',
         'defaultStyling', 'reuseDomDefinition', 'canHaveDom', 'excludeXYCalc', 'excludeX', 'excludeY',

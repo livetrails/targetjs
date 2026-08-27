@@ -82,7 +82,7 @@ class TargetManager {
             schedulePeriod = ScheduleUtil.scheduleExecution(tmodel, key);
             
             if (schedulePeriod > 0) {  
-                getRunScheduler().schedule(schedulePeriod, `setActualValues-${tmodel.oid}`);
+                getRunScheduler().schedule(schedulePeriod, `setActualValues-${tmodel.oid}-${key}`);
             } else {
                 tmodel.resetScheduleTimeStamp(key);
                 this.setActualValue(tmodel, key);
@@ -149,11 +149,12 @@ class TargetManager {
             }
             
         } else {
-            needsRefire = TUtil.handleValueChange(tmodel, key); 
+            needsRefire = tmodel.handleSpecialTargetStep(key, step, steps) || needsRefire;
+            needsRefire = TUtil.handleValueChange(tmodel, key) || needsRefire;
 
             if (target?.activateNextTarget && !target.activateNextTarget.endsWith('$$') && target.activateNextTarget.endsWith('$')) {
-                needsRefire = true;   
-                TargetUtil.shouldActivateNextTarget(tmodel, key); 
+                needsRefire = true;
+                TargetUtil.shouldActivateNextTarget(tmodel, key);
             }
         }
         
@@ -181,6 +182,7 @@ class TargetManager {
 
         const newStatus = this.calculateTargetStatus(tmodel, key);
         tmodel.setTargetStatus(key, newStatus); 
+        tmodel.handleSpecialTargetEnd(key);
         
         if (tmodel.isTargetImperative(key)) { 
             const capKey = TargetUtil.getTargetName(TUtil.capitalizeFirstLetter(key));
@@ -382,6 +384,7 @@ class TargetManager {
 
     animateActualValue(tmodel, key, targetValue, state, step, valuePointer) {
         if (!tmodel.hasDom()) {
+            tmodel.addToNoDomUpdatingTargets(key);
             return;
         }
 

@@ -782,10 +782,12 @@ class TargetUtil {
         children.forEach(child => {
             if (TargetUtil.shouldIgnoreChildForCompletion(child, completionScope)) {
                 return;
-            }            
+            } 
+            
             const updatingList = [
-              ...(child.updatingTargetList ?? []),
-              ...(child.animatingMap ? [...child.animatingMap.keys()] : [])
+                ...(child.updatingTargetList ?? []),
+                ...(child.animatingMap ? [...child.animatingMap.keys()] : []),
+                ...(child.noDomUpdatingTargets ?? [])
             ];
 
             for (const target of updatingList) {

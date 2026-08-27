@@ -222,20 +222,9 @@ class AnimationUtil {
             records.push(record);
         }
 
-        const now = TUtil.now();
-
         for (const record of records) {
             const { originalKey } = record;
-            const targetValue = tmodel.targetValues[originalKey];
-
-            if (!targetValue) {
-                continue;
-            }
-
-            targetValue.catchupAt = now;
-
-            tmodel.removeFromAnimatingMap(originalKey);
-            (tmodel.noDomUpdatingTargets ||= new Set()).add(originalKey);
+            tmodel.addToNoDomUpdatingTargets(originalKey);
         }
     }
     

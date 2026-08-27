@@ -91,14 +91,27 @@ class TargetParser {
             return false;
         }
 
-        return (
-            Object.prototype.hasOwnProperty.call(value, 'value') ||
-            Object.prototype.hasOwnProperty.call(value, 'steps') ||
-            Object.prototype.hasOwnProperty.call(value, 'interval') ||
-            Object.prototype.hasOwnProperty.call(value, 'easing') ||
-            Object.prototype.hasOwnProperty.call(value, 'cycles')
-        );
-    }    
+        return Object.prototype.hasOwnProperty.call(value, 'value')
+            || Object.prototype.hasOwnProperty.call(value, 'steps')
+            || Object.prototype.hasOwnProperty.call(value, 'interval')
+            || Object.prototype.hasOwnProperty.call(value, 'easing')
+            || Object.prototype.hasOwnProperty.call(value, 'cycles')
+            || Object.prototype.hasOwnProperty.call(value, 'instances');
+    } 
+    
+    static getTargetInstances(tmodel, key, target = tmodel.targets[key], cycle = tmodel.getTargetCycle(key)) {
+        if (!target || typeof target !== 'object' || !TUtil.isDefined(target.instances)) {
+            return 1;
+        }
+
+        const instances = typeof target.instances === 'function' ? target.instances.call(tmodel, cycle) : target.instances;
+
+        return Math.max(1, Math.floor(Number(instances) || 1));
+    }
+
+    static getInstanceTargetValue(tmodel, key, target, cycle, lastValue, instance) {
+        return TUtil.runTargetValue(tmodel, target, key, cycle, lastValue, instance);
+    }
 
     static isChildrenTarget(key, value) {
         return (TargetUtil.getTargetName(key) === 'children' || TargetUtil.getTargetName(key) === 'addChildren') && typeof value === 'object';
@@ -222,8 +235,7 @@ static isObjectTarget(key, value) {
         return TargetParser.isListTarget(arr[0]) || arr.length >= 2;
     }
 
-    
-    static getValueStepsCycles(tmodel, key, _target = tmodel.targets[key], cycle = tmodel.getTargetCycle(key)) {
+    static getValueStepsCycles(tmodel, key, _target = tmodel.targets[key], cycle = tmodel.getTargetCycle(key), instance = undefined) {
         const valueOnly = _target && _target.valueOnly;
         const lastValue = tmodel.val(key);
 
@@ -263,7 +275,7 @@ static isObjectTarget(key, value) {
 
             // Plain objects: compute value + params (steps/interval/easing/cycles)
             if (typeof target === "object" && target !== null && Object.getPrototypeOf(target) === Object.prototype) {
-                const valueResult = TUtil.runTargetValue(tmodel, target, key, cycle, lastValue);
+                const valueResult = TUtil.runTargetValue(tmodel, target, key, cycle, lastValue, instance);
               
                 if (TargetParser.isPrimitiveArray(valueResult) && (TUtil.isDefined(target.steps) || TUtil.isDefined(target.interval) || TUtil.isDefined(target.easing) || TUtil.isDefined(target.cycles))) {
                     value = { list: valueResult };

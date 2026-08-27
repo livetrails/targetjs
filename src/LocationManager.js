@@ -110,7 +110,9 @@ class LocationManager {
         if (this.calcQueued) {
             this.calcQueued = false;
             return this.calculateAll(budgetMs);
-        }     
+        }    
+        
+        //console.log(this.locationListStats.length);
     }
     
     cancelCurrentCalculation() {
@@ -121,13 +123,14 @@ class LocationManager {
 
     async processStack(stack, ctx) {
         
-        const processAfterAllChildren = job => {
-            const {container} = job;
-            
-            container.adjustViewport();
-            
-            container.calcContentWidthHeight();
-        };
+    const processAfterAllChildren = job => {
+        const {container} = job;
+
+        container.adjustViewport();
+        container.calcContentWidthHeight();
+        container.markLayoutComplete?.(job.layoutEpoch);
+        container.requestParticleRender?.();
+    };
         
         const resetDirtyLayout = job => {
             const {children, index} = job;
@@ -307,7 +310,9 @@ class LocationManager {
                                     
             if (job.stage === 'init') {          
                 const container = job.container;
-
+                
+                job.layoutEpoch = container.layoutEpoch;
+                
                 const allChildrenList = this.calcChildren(container);
                                 
                 if (container.childrenUpdateFlag) {
@@ -386,6 +391,11 @@ class LocationManager {
     
     calcNextLocation(child, container, viewport) {
         
+        if (child.isLightweightChild) {
+            this.calcNextLightweightLocation(child, container, viewport);
+            return;
+        }
+        
         viewport.setLocation();
         
         if (viewport.isOverflow()) {
@@ -435,6 +445,33 @@ class LocationManager {
             container.calcContentWidthHeight();
         } 
     }
+    
+    calcNextLightweightLocation(child, container, viewport) {
+        viewport.setLocation();
+
+        if (viewport.isOverflow()) {
+            viewport.overflow();
+            viewport.setLocation();
+        }
+
+        child.calcAbsolutePosition(child.getX(), child.getY());
+
+        const visible = child.calcVisibility();
+
+        child.actualValues.isVisible = visible;
+
+        if (visible && child.isInFlow()) {
+            container.visibleChildren.push(child);
+        }
+
+        if (child.isInFlow()) {
+            if (TUtil.isNumber(child.val('appendNewLine'))) {
+                viewport.appendNewLine();
+            } else {
+                viewport.nextLocation();
+            }
+        }
+    }    
 
     calculateVisibility(tmodel) {
         
