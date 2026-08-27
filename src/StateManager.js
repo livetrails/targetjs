@@ -37,8 +37,9 @@ class StateManager {
             gpuVisuals: await this.captureGpuVisuals()
         };
 
+        this.releaseGpuVisuals(this.stateCheckpoints[key]);
         this.stateCheckpoints[key] = checkpoint;
-
+        
         return checkpoint;
     }
 
@@ -264,12 +265,10 @@ class StateManager {
         document.querySelector('[data-targetjs-gpu-restore-overlay="true"]')?.remove();
     }
     
-    async waitForPaint() {
-        await new Promise(resolve => {
-            requestAnimationFrame(() => {
-                requestAnimationFrame(resolve);
-            });
-        });
+    releaseGpuVisuals(checkpoint) {
+        for (const visual of Object.values(checkpoint?.gpuVisuals || {})) {
+            visual?.bitmap?.close?.();
+        }
     }
 
     has(key = "default") {
@@ -285,16 +284,24 @@ class StateManager {
     }
 
     clear(key = "default") {
-        if (!this.stateCheckpoints[key]) {
+        const checkpoint = this.stateCheckpoints[key];
+
+        if (!checkpoint) {
             return false;
         }
+
+        this.releaseGpuVisuals(checkpoint);
 
         delete this.stateCheckpoints[key];
 
         return true;
     }
-    
+
     clearAll() {
+        for (const checkpoint of Object.values(this.stateCheckpoints)) {
+            this.releaseGpuVisuals(checkpoint);
+        }
+
         this.stateCheckpoints = {};
     }
 }

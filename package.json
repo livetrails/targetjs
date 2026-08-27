@@ -1,6 +1,6 @@
 {
   "name": "targetj",
-  "version": "1.0.259",
+  "version": "1.0.260",
   "description": "TargetJS: JavaScript UI framework where state includes the journey and code order defines the UI sequence",
   "keywords": [
     "targetjs",

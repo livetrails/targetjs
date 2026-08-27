@@ -19,6 +19,10 @@ export * from "./build/AnimationUtil.js";
 export * from "./build/VisibilityUtil.js";
 export * from "./build/ScheduleUtil.js";
 export * from "./build/StateUtil.js";
+export * from "./build/ParticleTModel.js";
+export * from "./build/ParticleRenderer.js";
+export * from "./build/ParticleRuntime.js";
+export * from "./build/ParticleUtil.js";
 
 import * as AppModule from "./build/App.js";
 import * as TModelModule from "./build/TModel.js";
@@ -41,6 +45,10 @@ import * as AnimationUtilModule from "./build/AnimationUtil.js";
 import * as VisibilityUtilModule from "./build/VisibilityUtil.js";
 import * as ScheduleUtilModule from "./build/ScheduleUtil.js";
 import * as StateUtilModule from "./build/StateUtil.js";
+import * as ParticleTModelModule from "./build/ParticleTModel.js";
+import * as ParticleRendererModule from "./build/ParticleRenderer.js";
+import * as ParticleRuntimeModule from "./build/ParticleRuntime.js";
+import * as ParticleUtilModule from "./build/ParticleUtil.js";
 
 const TargetJS = {
     ...AppModule,
@@ -63,7 +71,11 @@ const TargetJS = {
     ...AnimationUtilModule,
     ...VisibilityUtilModule,
     ...ScheduleUtilModule,
-    ...StateUtilModule
+    ...StateUtilModule,
+    ...ParticleTModelModule,
+    ...ParticleRendererModule,
+    ...ParticleRuntimeModule,
+    ...ParticleUtilModule
 };
 
 if (typeof window !== "undefined") {

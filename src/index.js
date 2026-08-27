@@ -21,3 +21,5 @@ export * from "./ScheduleUtil.js";
 export * from "./StateUtil.js";
 export * from "./ParticleTModel.js";
 export * from "./ParticleRenderer.js";
+export * from "./ParticleRuntime.js";
+export * from "./ParticleUtil.js";

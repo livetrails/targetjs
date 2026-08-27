@@ -346,22 +346,22 @@ class Child {
 
     setLayoutX(value) {
         this.x = value;
-        this.actualValues.x = value;
 
         if (!this.explicitX) {
+            this.actualValues.x = value;
             this.parent.setChildLayoutValue(this.index, "x", value);
         }
     }
 
     setLayoutY(value) {
         this.y = value;
-        this.actualValues.y = value;
 
         if (!this.explicitY) {
+            this.actualValues.y = value;
             this.parent.setChildLayoutValue(this.index, "y", value);
         }
     }
-    
+        
     setTarget(key, value) {
         this.allTargetMap[key] = true;
 
@@ -372,6 +372,12 @@ class Child {
         }
 
         this.parent.setChildTarget(this.index, key, value);
+
+        return this;
+    }
+    
+    activateTarget(key) {
+        this.parent.activateGpuChildTarget(this.index, key);
 
         return this;
     }

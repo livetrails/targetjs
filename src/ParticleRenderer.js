@@ -24,7 +24,6 @@ class ParticleRenderer {
         this.particleCount = 0;
         
         this.canvasLayer = undefined;
-        this.canvas = undefined;
 
         this.initializationPromise = undefined;
     }
@@ -433,7 +432,6 @@ class ParticleRenderer {
     }
 
     async setParticles(values) {
-        console.log('set particles: ' + values.length);
         values = Array.isArray(values) ? values : [values];
 
         const initialized = await this.init();
@@ -612,14 +610,6 @@ class ParticleRenderer {
         ]);
     }
     
-    removeRestorePreview() {
-        const layer = this.tmodel.$dom?.element?.querySelector('[data-targetjs-gpu-preview-layer="true"]');
-
-        if (layer) {
-            layer.remove();
-        }
-    }
-
     completeTransition() {
         if (!this.targetParticleBuffer || !this.transitionActive) {
             return;
