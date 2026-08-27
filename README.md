@@ -1,17 +1,13 @@
-# TargetJS: State Includes the Journey
+# TargetJS: The "State → Transition → Render" Framework
 
 **Code order defines the UI sequence.**
-
-Most frameworks are great at rendering state. TargetJS is designed for the journey between states.
 
 **[targetjs.io](https://targetjs.io)** 
 [![MIT LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/livetrails/targetjs/blob/main/LICENSE) 
 [![Stars](https://img.shields.io/github/stars/livetrails/targetjs.svg)](https://github.com/livetrails/targetjs/stargazers)
 [![npm version](https://img.shields.io/npm/v/targetj.svg)](https://www.npmjs.com/package/targetj)
 
-TargetJS is a JavaScript UI framework that replaces the "State → Render" model with "State → Transition → Render".
-
-Transitions are part of the state itself. This allows the entire UI, including an animation in progress, to be captured and later restored from the exact point at which it was saved.
+TargetJS is a JavaScript UI framework that transforms how applications handle state and execution flow. Instead of treating state merely as data for rendering, TargetJS integrates the active UI runtime including in-progress animation and execution flow directly into the state itself. This unified state approach allows developers to capture and restore the exact state of an interface at any millisecond.
 
 TargetJS also lets code order directly define the UI sequence. UI, transitions, API calls, event handling, and state are unified into self-contained Targets that chain together through Code-Ordered Reactivity.
 
@@ -22,13 +18,9 @@ It can be used as a full-featured framework or as a lightweight library alongsid
 
 **UI frameworks model the final result, not the transition**
 
-Traditional frameworks model the UI as a function of state: change state, re-render the UI. When state changes from A → B, the UI immediately jumps to B. The framework doesn’t naturally represent the journey from A → B. But modern, rich user experiences are more like: A → transition → B.
+Traditional frameworks model the UI as a function of data: change data, re-render the UI. When data changes from A → B, the UI immediately jumps to render B. The framework doesn’t naturally represent the journey from A → B. But modern, rich user experiences are more like: A → transition → B.
 
-TargetJS makes that transition part of the state change itself. Values are not limited to being assigned immediately. They can move toward their destination over configurable steps, intervals, and easing. Transitions therefore become a native part of the UI model rather than effects added after rendering. TargetJS also delivers CSS-level transition efficiency.
-
-Because each Target has its own lifecycle, transitions can also adapt dynamically. For example, pausing when an element leaves the screen or changing speed on scroll.
-
-Since the transition belongs to the runtime state, the UI can be captured while a transition is in progress. That state can later be restored, allowing the transition to resume from the point at which it was saved.
+TargetJS redefines state to include both the transition and the active UI runtime. This allows transitions to adapt dynamically on the fly, for example, pausing when an element leaves the screen or changing speed on scroll. It also allows the entire UI to be captured mid-animation and restored later, resuming exactly where it left off.
 
 **Fragmentation across multiple mental models**
 
@@ -46,14 +38,12 @@ In traditional code, that sequence is often scattered across different places su
 
 TargetJS code order and target reactivity allow the implementation to more closely mirror the actual UI sequence.
 
-With its compact style, TargetJS makes the journey from A → B explicit and efficient, with significantly less code than traditional frameworks.
-
 ## 🚀 Why TargetJS?
 
-1. Unified State: One single state. Transitions are state too.
-1. Adaptive Transitions: Transitions can pause, resume, change speed, and respond to input.
-1. Restorable UI: Capture the UI during a transition and later resume the complete state including the transition from the saved point.
+1. Unified State: UI values, transitions, and runtime execution are part of the same state.
+1. Restorable UI and Runtime: UI and runtime state can be captured and later the complete state can be restored including transitions and execution flow from the saved point.
 1. UI as Sequence: Code describes the UI story from top to bottom, just like the user experiences the interaction: "When this finishes, do that."
+1. Adaptive Transitions: Transitions can pause, resume, change speed, and respond to input.
 1. Ultra-Compact: Minimal code, with no coordination variables.
 1. Zero Boilerplate Async: Targets handle waiting for nested asynchronous operations automatically.
 1. Animation by Default: Turn value into high-performance animations simply by adding `steps`.
@@ -76,7 +66,9 @@ bounce → move → turn red → log
 
 Notice how the code reads in the same order as the UI sequence. The `$$` suffix makes each target wait for all preceding targets to complete.
 
-There is only one state, and the transitions are part of that state. Click the square while it is animating to save its current state. Click it again to restore the state and resume the animation from the exact point at which it was saved.
+Click the square while it is animating to capture its current state. Click it again to restore that state and resume the animation from the exact point at which it was saved.
+
+The checkpoint captures more than the square's visual state. It captures the runtime behind it including transition progress and pending targets. Restoring it resumes the whole sequence from that exact point, not just what was on screen. You can try the example at https://targetjs.io/examples/firstExample.html
 
 ```javascript
 import { App, state } from "targetj";
@@ -91,19 +83,18 @@ App({
   scale: { value: [0.5, 1.2, 1], steps: 100 },
 
   // $$ waits for the previous target to finish.
-  x$$: { value: [0, 180], steps: 100 },
+  x$$: { value: [0, 180], steps: 200 },
 
   backgroundColor$$: {
     value: "crimson",
-    steps: 100
+    steps: 200
   },
 
   done$$() {
     console.log("Sequence complete");
   },
 
-  // Click once to save the state.
-  // Click again to restore it including animation progress.
+  // 1st click: save a checkpoint. 2nd click: restore it and resume.
   onClick() {
     state().toggle();
   }
@@ -159,7 +150,7 @@ Target names can include special suffixes that determine when they execute. This
 | -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `name`   | Standard | Runs immediately in code order unless `active` is `false`.                                                                                                           |
 | `name$`  | Reactive | Runs whenever the preceding sibling Target updates. Similar to activating the next Target from `onValueChange()` or `on<PropertyName>Step()`.                        |
-| `name$$` | Deferred | Runs after the entire preceding Target chain—including children, animations, and API calls—has completed. Similar to activating the next Target from `onComplete()`. |
+| `name$$` | Deferred | Runs after the entire preceding Target chain including children, animations, and API calls has completed. Similar to activating the next Target from `onComplete()`. |
 
 To prevent a Target from running automatically, set `active: false` and activate it later with `.activateTarget()`.
 
@@ -255,8 +246,10 @@ App({
       this.setTarget('y', { value: [0, -120], steps: 400 });
     }
   },
-  fetch$$: { method: "POST", id: 123, url: "/api/like" }, // Wait for the heart to finish, THEN fetch
-  removeHearts$$() { this.removeChildren(); }, // Wait for fetch to finish, THEN cleanup
+  // Wait for the nested animation in heart$$ to finish , then fetch
+  fetch$$: { method: "POST", id: 123, url: "/api/like" },
+  // Wait for fetch to finish, then cleanup
+  removeHearts$$() { this.removeChildren(); },
   onKey(e) { if (e.key === "Enter") this.activateTarget("onClick"); } 
 }).mount("#likeButton");
 ```
