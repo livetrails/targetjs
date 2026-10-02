@@ -550,13 +550,22 @@ class BaseModel {
     }
 
     getTargetValue(key) {
-        const target = this.targetValues[key] || this.targets[key];
-        if (!target) {
+        const targetValue = this.targetValues[key];
+
+        if (targetValue !== undefined) {
+            const value = targetValue.value;
+            return typeof value === 'function' ? value.call(this) : value;
+        }
+
+        const target = this.targets[key];
+
+        if (target === undefined) {
             return undefined;
         }
 
-        const value = target.value ?? target;
-        return (typeof value === 'function') ? value.call(this) : value;
+        const value = target && typeof target === 'object' && Object.prototype.hasOwnProperty.call(target, 'value') ? target.value : target;
+
+        return typeof value === 'function' ? value.call(this) : value;
     }
 
     getTargetStep(key) {

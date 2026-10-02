@@ -65,7 +65,7 @@ class Bracket extends TModel {
     }
     
     isVisible() {
-        return this.visibilityStatus ? this.visibilityStatus.top && this.visibilityStatus.bottom : false;
+        return this.visibilityStatus ? this.visibilityStatus.isVisible : false;
     }
     
     getBracketThreshold() {
@@ -116,9 +116,17 @@ class Bracket extends TModel {
         if (hasEventDirty) {
             return true;
         }
+        
+        if (this.visibilityDirty) {
+            return true;
+        }
 
         if (this.currentBracketStatus >= 1 || this.isNowVisible || this.isNowInvisible) {
             this.currentBracketStatus = Math.max(0, this.currentBracketStatus - 1);
+            return true;
+        }
+
+        if (this.dirtyLayout !== false) {
             return true;
         }
 

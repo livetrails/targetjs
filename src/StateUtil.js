@@ -14,6 +14,13 @@ const EXCLUDED_RUNTIME_FIELDS = new Set([
     "restoringRuntime",
     "restoredUsesExistingDom",
     
+        
+    "particleRenderer",
+    "particleRuntime",
+    "particleSyncPromise",
+    "layoutCompleteWaiters",
+    "isPrevTargetUpdated",
+    
     "type",
     "oid",
     "oidNum",

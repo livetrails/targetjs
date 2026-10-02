@@ -421,7 +421,8 @@ class TModel extends BaseModel {
         const hasDom = this.hasDom();
         const visible = this.isVisible();
 
-        const result = this.currentStatus === 'active' || hasDirtyLayout || (visible && hasDirtyEvent) || this.isNowVisible || (hasDom && hasDirtyEvent);
+        const result = this.currentStatus === 'active' || this.visibilityDirty || hasDirtyLayout || (visible && hasDirtyEvent) 
+                || this.isNowVisible || (hasDom && hasDirtyEvent);
 
         this.currentStatus = undefined;
 

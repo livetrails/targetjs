@@ -75,7 +75,7 @@ class StateManager {
         const $pageDom = TModelUtil.getPageDom();
 
         $pageDom.innerHTML(checkpoint.html);
-        TModelUtil.restoreDomState($pageDom, checkpoint.domState);
+        TModelUtil.restoreMountedDom($pageDom, checkpoint.domState);
 
         this.showGpuRestoreVisuals(checkpoint.gpuVisuals);
 
@@ -94,7 +94,7 @@ class StateManager {
 
         const $restoredPageDom = TModelUtil.getPageDom();
 
-        TModelUtil.restoreDomState($restoredPageDom, checkpoint.domState);
+        TModelUtil.restoreMountedDom($restoredPageDom, checkpoint.domState);
 
         await TModelUtil.restoreScroll(checkpoint);
         await TModelUtil.restoreDomInteractionState($restoredPageDom, checkpoint.domState);
@@ -163,21 +163,66 @@ class StateManager {
     }
 
     connectRestoredDoms(visibleModels, allModels) {
-        const newVisibles = DomInit.initCacheDoms(visibleModels);
-        const restoredWithDom = TUtil.uniqueTModels([...visibleModels, ...newVisibles]);
+        const restoredDoms = DomInit.initCacheDoms(visibleModels);
+        const restoredWithDom = TUtil.uniqueTModels([...visibleModels, ...restoredDoms]);
 
         this.normalizeRestoredModels(allModels);
 
         tApp.manager.visibleOidMap = {};
 
         for (const tmodel of restoredWithDom) {
-            if (tmodel.isIncluded()) {
+            if (tmodel.isIncluded() && tmodel.isVisible()) {
                 tApp.manager.visibleOidMap[tmodel.oid] = tmodel;
             }
         }
 
         return restoredWithDom;
     }
+
+    getGpuVisualClipRect(element) {
+        const rect = element.getBoundingClientRect();
+
+        let left = Math.max(0, rect.left);
+        let top = Math.max(0, rect.top);
+        let right = Math.min(window.innerWidth, rect.right);
+        let bottom = Math.min(window.innerHeight, rect.bottom);
+
+        for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+            const style = getComputedStyle(parent);
+            const parentRect = parent.getBoundingClientRect();
+
+            const clipsX = ["hidden", "clip", "auto", "scroll"].includes(style.overflowX);
+            const clipsY = ["hidden", "clip", "auto", "scroll"].includes(style.overflowY);
+
+            if (clipsX) {
+                left = Math.max(left, parentRect.left);
+                right = Math.min(right, parentRect.right);
+            }
+
+            if (clipsY) {
+                top = Math.max(top, parentRect.top);
+                bottom = Math.min(bottom, parentRect.bottom);
+            }
+
+            if (right <= left || bottom <= top) {
+                return {
+                    left,
+                    top,
+                    width: 0,
+                    height: 0
+                };
+            }
+        }
+
+        return {
+            left,
+            top,
+            width: right - left,
+            height: bottom - top
+        };
+    }
+    
+    
     
     async captureGpuVisuals() {
         const visuals = {};
@@ -191,6 +236,12 @@ class StateManager {
             }
 
             const rect = canvas.getBoundingClientRect();
+            const clipRect = this.getGpuVisualClipRect(canvas);
+
+            if (clipRect.width <= 0 || clipRect.height <= 0) {
+                continue;
+            }
+
             const bitmap = await renderer.captureBitmap();
 
             if (!bitmap) {
@@ -202,7 +253,11 @@ class StateManager {
                 left: rect.left,
                 top: rect.top,
                 width: rect.width,
-                height: rect.height
+                height: rect.height,
+                clipLeft: clipRect.left,
+                clipTop: clipRect.top,
+                clipWidth: clipRect.width,
+                clipHeight: clipRect.height
             };
         }
 
@@ -231,9 +286,20 @@ class StateManager {
         });
 
         for (const visual of Object.values(visuals)) {
-            if (!visual?.bitmap) {
+            if (!visual?.bitmap || visual.clipWidth <= 0 || visual.clipHeight <= 0) {
                 continue;
             }
+
+            const clip = document.createElement("div");
+
+            Object.assign(clip.style, {
+                position: "absolute",
+                left: `${visual.clipLeft}px`,
+                top: `${visual.clipTop}px`,
+                width: `${visual.clipWidth}px`,
+                height: `${visual.clipHeight}px`,
+                overflow: "hidden"
+            });
 
             const preview = document.createElement("canvas");
 
@@ -242,25 +308,24 @@ class StateManager {
 
             Object.assign(preview.style, {
                 position: "absolute",
-                left: `${visual.left}px`,
-                top: `${visual.top}px`,
+                left: `${visual.left - visual.clipLeft}px`,
+                top: `${visual.top - visual.clipTop}px`,
                 width: `${visual.width}px`,
                 height: `${visual.height}px`,
                 display: "block"
             });
 
-            const context = preview.getContext("2d");
+            preview.getContext("2d").drawImage(visual.bitmap, 0, 0);
 
-            context.drawImage(visual.bitmap, 0, 0);
-            
-            overlay.appendChild(preview);
+            clip.appendChild(preview);
+            overlay.appendChild(clip);
         }
 
         document.body.appendChild(overlay);
 
         return overlay;
-    } 
-    
+    }
+
     hideGpuRestoreVisuals() {
         document.querySelector('[data-targetjs-gpu-restore-overlay="true"]')?.remove();
     }

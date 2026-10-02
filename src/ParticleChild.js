@@ -1,12 +1,11 @@
 import { TModelUtil } from "./TModelUtil.js";
+import { TargetUtil } from "./TargetUtil.js";
+import { VisibilityUtil } from "./VisibilityUtil.js";
 
 /**
- * It provides a lightweight logical child that can be rendered by different backends.
- *
- * A Child participates in layout, visibility and the public child API, but does not
- * have its own TargetJS runtime, scheduler, DOM, animations or child hierarchy.
+ * It provides a lightweight logical child for the GPU implemenation.
  */
-class Child {
+class ParticleChild {
     constructor(parent, index) {
         this.parent = parent;
         this.index = index;
@@ -21,29 +20,21 @@ class Child {
         this.absX = 0;
         this.absY = 0;
 
-        const values = parent.particleValues[index] ?? {};
-
-        this.explicitX = Object.prototype.hasOwnProperty.call(values, "x");
-        this.explicitY = Object.prototype.hasOwnProperty.call(values, "y");
-
         this.targets = {};
         this.targetValues = {};
         this.allTargetMap = {};
 
-        for (const key of Object.keys(values)) {
-            this.allTargetMap[key] = true;
-        }
-
         this.actualValues = {
-            ...values,
             isVisible: true
         };
 
         this.visibilityStatus = undefined;
+        this.noDomUpdatingTargets = undefined;
 
         this.updatingTargetList = [];
         this.activeTargetList = [];
         this.activatedTargets = [];
+        this.updatingTargetMap = {};
 
         this.runtimeState = {
             updatingTargetList: this.updatingTargetList,
@@ -56,7 +47,6 @@ class Child {
             }
         };
 
-        this.noDomUpdatingTargets = false;
         this.pendingTargets = false;
 
         this.currentStatus = undefined;
@@ -67,27 +57,24 @@ class Child {
         return this.runtimeState;
     }
 
-    isTargetImperative() {
-        return false;
+    isTargetImperative(key) {
+        return this.targetValues[key]?.isImperative === true;
+    }
+
+    isComplete() {
+        return TargetUtil.isTModelComplete(this);
     }
 
     val(key, value) {
+        const cleanKey = TargetUtil.getTargetName(key);
+
         if (arguments.length === 2) {
-            this.allTargetMap[key] = true;
-            this.actualValues[key] = value;
-
-            if (key === "x") {
-                this.explicitX = true;
-            } else if (key === "y") {
-                this.explicitY = true;
-            }
-
-            this.parent.setChildValue(this.index, key, value);
+            this.parent.setChildValue(this.index, cleanKey, value);
 
             return this;
         }
 
-        return this.parent.getChildValue(this.index, key);
+        return this.actualValues[cleanKey];
     }
 
     getParent() {
@@ -107,11 +94,7 @@ class Child {
     }
 
     exists() {
-        return this.parent?.getChild(this.index) === this;
-    }
-
-    isComplete() {
-        return true;
+        return this.index >= 0 && this.parent?.childHandles[this.index] === this;
     }
 
     hasAnimatingTargets() {
@@ -132,6 +115,10 @@ class Child {
 
     getChildren() {
         return [];
+    }
+    
+    getChild() {
+        return undefined;
     }
 
     hasChildren() {
@@ -167,11 +154,11 @@ class Child {
     }
 
     getX() {
-        return this.explicitX ? this.val("x") : this.x;
+        return this.actualValues.x ?? this.x;
     }
 
     getY() {
-        return this.explicitY ? this.val("y") : this.y;
+        return this.actualValues.y ?? this.y;
     }
 
     getWidth() {
@@ -243,7 +230,7 @@ class Child {
     }
 
     isInFlow() {
-        return this.val("isInFlow") ?? true;
+        return true;
     }
 
     isIncluded() {
@@ -295,7 +282,7 @@ class Child {
     }
 
     getHtml() {
-        return undefined;
+        return this.val("html");
     }
 
     excludeDefaultStyling() {
@@ -324,54 +311,112 @@ class Child {
             return false;
         }
 
-        const x = this.getX() ?? 0;
-        const y = this.getY() ?? 0;
-        const width = this.getWidth();
-        const height = this.getHeight();
-        const parentWidth = parent.getWidth();
-        const parentHeight = parent.getHeight();
+        const scale = (parent.getMeasuringScale() || 1) * this.getMeasuringScale();
+        const x = this.absX;
+        const y = this.absY;
+        const width = scale * this.getWidth();
+        const height = scale * this.getHeight();
+        const margin = 20;
 
-        return x + width >= 0 && y + height >= 0 && x <= parentWidth && y <= parentHeight;
+        const status = VisibilityUtil.checkVisibility(this, {
+            x: x - margin,
+            y: y - margin,
+            r: x + width + margin,
+            b: y + height + margin
+        });
+
+
+        this.actualValues.isVisible = status.isVisible;
+
+        return status.isVisible;
+    }
+    
+    addToNoDomUpdatingTargets(key) {
+        const cleanKey = TargetUtil.getTargetName(key);
+        const noDomTargets = this.noDomUpdatingTargets ||= new Set();
+
+        if (noDomTargets.has(cleanKey)) {
+            return false;
+        }
+
+        noDomTargets.add(cleanKey);
+
+        this.parent?.addToUpdatingChildren(this);
+
+        return true;
+    }
+    
+    removeFromNoDomUpdatingTargets(key) {
+        if (!this.noDomUpdatingTargets) {
+            return false;
+        }
+
+        const removed = this.noDomUpdatingTargets.delete(
+            TargetUtil.getTargetName(key)
+        );
+
+        if (!this.noDomUpdatingTargets.size) {
+            this.noDomUpdatingTargets = undefined;
+            this.parent?.removeFromUpdatingChildren(this);
+        }
+
+        return removed;
+    }
+
+    catchupNoDomLayoutTargets() {
+        return this.parent?.catchupChildLayoutTargets(this);
     }
 
     validateVisibilityInParent() {
         return true;
     }
 
-    addToParentVisibleChildren() {
-        if (this.isVisible() && this.isInFlow() && this.parent) {
-            this.parent.visibleChildren.push(this);
-        }
-    }
-
     setLayoutX(value) {
-        this.x = value;
-
-        if (!this.explicitX) {
-            this.actualValues.x = value;
-            this.parent.setChildLayoutValue(this.index, "x", value);
+        if (this.x === value) {
+            return;
         }
+
+        this.x = value;
+        this.parent.particleValuesDirty = true;
     }
 
     setLayoutY(value) {
+        if (this.y === value) {
+            return;
+        }
+
         this.y = value;
-
-        if (!this.explicitY) {
-            this.actualValues.y = value;
-            this.parent.setChildLayoutValue(this.index, "y", value);
-        }
+        this.parent.particleValuesDirty = true;
     }
-        
-    setTarget(key, value) {
-        this.allTargetMap[key] = true;
 
-        if (key === "x") {
-            this.explicitX = true;
-        } else if (key === "y") {
-            this.explicitY = true;
+    setTarget(key, value, steps, interval, easing) {
+        const originalTargetName = TargetUtil.currentTargetName;
+        const originalTModel = TargetUtil.currentTModel;
+
+        if (this.parent === originalTModel && originalTargetName) {
+            TargetUtil.markChildAction(originalTModel, originalTargetName, this);
         }
 
-        this.parent.setChildTarget(this.index, key, value);
+        if (key && typeof key === "object" && !Array.isArray(key)) {
+            const targets = key;
+            const targetSteps = value;
+            const targetInterval = steps;
+            const targetEasing = interval;
+
+            for (const [targetKey, targetValue] of Object.entries(targets)) {
+                const cleanKey = TargetUtil.getTargetName(targetKey);
+
+                this.allTargetMap[cleanKey] = targetKey;
+                this.parent.setChildTarget(this.index, targetKey, targetValue, targetSteps, targetInterval, targetEasing);
+            }
+
+            return this;
+        }
+
+        const cleanKey = TargetUtil.getTargetName(key);
+
+        this.allTargetMap[cleanKey] = key;
+        this.parent.setChildTarget(this.index, key, value, steps, interval, easing);
 
         return this;
     }
@@ -381,7 +426,7 @@ class Child {
 
         return this;
     }
-    
+
     getLayoutHeight() {
         let height = this.getHeight();
 
@@ -401,6 +446,34 @@ class Child {
 
         return width;
     }
+    
+    addToUpdatingTargets(key) {
+        if (this.updatingTargetMap[key]) {
+            return;
+        }
+
+        this.updatingTargetMap[key] = true;
+        this.updatingTargetList.push(key);
+        this.parent?.addToUpdatingChildren(this);
+    }
+
+    removeFromUpdatingTargets(key) {
+        if (!this.updatingTargetMap[key]) {
+            return;
+        }
+
+        delete this.updatingTargetMap[key];
+
+        const index = this.updatingTargetList.indexOf(key);
+
+        if (index >= 0) {
+            this.updatingTargetList.splice(index, 1);
+        }
+
+        if (!this.updatingTargetList.length) {
+            this.parent?.removeFromUpdatingChildren(this);
+        }
+    }    
 
     usesContentBoxSizing() {
         return this.getBoxSizing() !== "border-box";
@@ -424,7 +497,7 @@ class Child {
 
     getPaddingBottom() {
         return this.val("paddingBottom") ?? this.val("bottomPadding") ?? TModelUtil.getPaddingValue(this, "bottom");
-    }    
+    }
 }
 
-export { Child };
+export { ParticleChild };

@@ -215,13 +215,17 @@ class RunScheduler {
                     || manager.lists.reasyncStyle.length > 0 
                     || getLocationManager().activatedList.length > 0;
             
-            if (newDelay === undefined 
-                    || manager.lists.activeTModels.length > 0 
-                    || manager.lists.updatingTModels.length > 0 
-                    || hasImmediateWork) {
+            const hasNoDomVisibilityWork = manager.lists.noDomVisibilityTModels.length > 0;
+
+            if (newDelay === undefined ||
+                    manager.lists.activeTModels.length > 0 ||
+                    manager.lists.updatingTModels.length > 0 ||
+                    hasImmediateWork ||
+                    hasNoDomVisibilityWork) {
 
                 if (manager.lists.updatingTModels.length > 0) {
                     this.schedule(1, `getManager-needsRerun-updatingTModels`);
+                    return;
                 } else if (manager.lists.activeTModels.length > 0) {
                     const activeTModel = manager.lists.activeTModels.find(tmodel => {
                         return (
@@ -236,9 +240,14 @@ class RunScheduler {
                         this.activeStartTime = TUtil.now();
 
                         this.schedule(delay, `getManager-needsRerun-${activeTModel.oid}-${activeTModel.activeTargetList}`);
+                        return;
                     }
-                } else if (hasImmediateWork) {
+                }
+                
+                if (hasImmediateWork) {
                     this.schedule(1, 'needsRerun-dom-work');
+                }if (hasNoDomVisibilityWork) {
+                    this.schedule(15, "needsRerun-noDomVisibility");
                 }
             } 
         }
@@ -363,7 +372,7 @@ class RunScheduler {
         if (runToExecute) {
             this.setDelayProcess(runToExecute.runId, runToExecute.insertTime, runToExecute.delay, TUtil.now(), 0);
         } else if (this.nextRuns.length > 0) {
-            const nextValidRun = this.nextRuns[0];
+            const nextValidRun = this.nextRuns.shift();
             const now = TUtil.now();
             const newDelay = Math.max(0, nextValidRun.delay - (now - nextValidRun.insertTime));              
 

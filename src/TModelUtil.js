@@ -107,7 +107,7 @@ class TModelUtil {
         };
     }
     
-    static restoreDomState($root, domState) {
+    static restoreMountedDom($root, domState) {
         if (!$root?.getElement() || !domState) {
             return;
         }
@@ -121,17 +121,19 @@ class TModelUtil {
                 continue;
             }
 
-            if (state.kind === "input") {
+            const tagName = element.tagName?.toLowerCase();
+
+            if (state.kind === "input" && tagName === "input") {
                 element.value = state.value;
                 element.checked = state.checked;
                 element.indeterminate = state.indeterminate;
-            } else if (state.kind === "textarea") {
+            } else if (state.kind === "textarea" && tagName === "textarea") {
                 element.value = state.value;
-            } else if (state.kind === "select") {
-                [...element.options].forEach((option, index) => {
-                    option.selected = state.selected[index] === true;
+            } else if (state.kind === "select" && tagName === "select") {
+                Array.from(element.options).forEach((option, index) => {
+                    option.selected = state.selected?.[index] === true;
                 });
-            } else if (state.kind === "details") {
+            } else if (state.kind === "details" && tagName === "details") {
                 element.open = state.open;
             }
         }

@@ -384,6 +384,14 @@ class EventListener {
                 mark(this.currentHandlers.scrollTop, "scrolltop-event");
                 mark(this.currentHandlers.pinch, "pinch-event");
                 break;
+            case "popstate":
+                for (const tmodel of Object.values(getManager().visibleOidMap)) {
+                    if (tmodel.externalEventMap?.has("onPopState")) {
+                        mark(tmodel, "popstate-event");
+                    }
+                }
+            break;   
+                
         }
     }
     
@@ -399,8 +407,8 @@ class EventListener {
         if (!event) {
             return;
         }
-
-        const { type: originalName } = event;        
+        
+        const { type: originalName } = event;             
         const eventItem = this.allEvents[originalName];
                         
         if (!eventItem) {
@@ -417,6 +425,8 @@ class EventListener {
         } else {
             tmodel = this.getTModelFromEvent(event);
         } 
+        
+        
                 
         const newEvent = { eventName, eventItem, eventType, originalName, tmodel, originalEvent: event, timeStamp: now };
 
@@ -451,7 +461,7 @@ class EventListener {
                 }
             }
         }
-        
+                
         this.eventEpoch++;
         tmodel?.markEventDirty();
         tmodel?.markLayoutDirty('event');
@@ -736,7 +746,7 @@ class EventListener {
             oid = el.getAttribute('tgjs-oid') || el.id;
         }
         
-        if (!oid || !tApp.manager.visibleOidMap[oid]) {
+        if (!oid || !getManager().visibleOidMap[oid]) {
             oid = el?.id;
             if (!oid || !getManager().visibleOidMap[oid]) {
                 oid = $Dom.findNearestParentWithId(event.target);

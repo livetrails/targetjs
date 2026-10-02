@@ -69,8 +69,9 @@ class VisibilityUtil {
      
        const clip = VisibilityUtil.getScreenViewportRect();
 
-       const isVisible = VisibilityUtil.rectsOverlap(rect, clip);
-       
+       const verticalOnly = tmodel.type === "BI";
+       const isVisible = VisibilityUtil.rectsOverlap(rect, clip, verticalOnly); 
+        
        if (!isVisible) {
            return { clip, isVisible: false };
        }
@@ -116,10 +117,10 @@ class VisibilityUtil {
         };
     }
     
-    static rectsOverlap(a, b) {
+    
+    static rectsOverlap(a, b, verticalOnly = false) {
         return (
-            a.x <= b.r &&
-            a.r >= b.x &&
+            (verticalOnly || (a.x <= b.r && a.r >= b.x)) &&
             a.y <= b.b &&
             a.b >= b.y
         );

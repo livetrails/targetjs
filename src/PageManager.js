@@ -1,8 +1,6 @@
 import { TUtil } from "./TUtil.js";
-import { tApp, App, getRunScheduler, getLocationManager, getEvents } from "./App.js";
+import { tApp, App, getLocationManager, getEvents } from "./App.js";
 import { DomInit } from "./DomInit.js";
-import { $Dom } from "./$Dom.js";
-import { TargetUtil } from "./TargetUtil.js";
 import { TModelUtil } from "./TModelUtil.js";
 
 /**
@@ -13,7 +11,6 @@ class PageManager {
     constructor() {
         this.currentLink = TUtil.getFullLink(document.URL);
         this.lastCachedLink = undefined;
-        this.pageCache = {};
         this.initHistory();
     }
     
@@ -41,7 +38,7 @@ class PageManager {
 
     async openLinkFromHistory(state) {
         const link = state.link || state.browserUrl;
-
+        
         if (!link) {
             return;
         }
@@ -63,139 +60,62 @@ class PageManager {
 
     async openLink(link, updateHistory = true) {
         link = TUtil.getFullLink(link);
-
+        
         await this.storePage(this.currentLink);
 
         this.lastCachedLink = this.currentLink;
 
-        await tApp.reset();
-        
         if (updateHistory) {
             history.pushState({ link }, "", link);
         }
-        
+
         this.currentLink = link;
 
-        if (!this.pageCache[link]) {
-            tApp.tRoot.$dom.innerHTML("");
-            App.oids = {};
-            App.tmodelIdMap = {};
-            tApp.tRoot = tApp.tRootFactory();
-            await tApp.start();
+        if (tApp.stateManager.has(this.getStateKey(link))) {
+            await this.restorePage(link);
             return;
         }
 
-        await this.restorePage(link, { shouldReset: false });
+        await tApp.stop();
+        await tApp.reset();
 
-        getRunScheduler().schedule(0, "pagemanager-processOpenLink");
+        tApp.tRoot.$dom.innerHTML("");
+
+        App.oids = {};
+        App.tmodelIdMap = {};
+        tApp.tRoot = tApp.tRootFactory();
+
+        await tApp.start();
     }
 
     back() {
         return history.back();
     }
     
-    async storePage(link) {
-        const runSnapshot = getRunScheduler().getSnapshot();
+    getStateKey(link) {
+        return `page:${TUtil.getFullLink(link)}`;
+    }
 
+    async storePage(link) {
         link = TUtil.getFullLink(link);
 
-        await tApp.stop();
-        getLocationManager().cancelCurrentCalculation();
- 
         this.onPageClose();
 
-        const $pageDom = TModelUtil.getPageDom();
-        const html = $pageDom.innerHTML();
+        const key = this.getStateKey(link);
+        const checkpoint = await tApp.stateManager.store(key);
 
-        this.pageCache[link] = {
-            link,
-            html,
-            domState: TModelUtil.captureDomState($pageDom),
-            oids: { ...App.oids },
-            tmodelIdMap: { ...App.tmodelIdMap },
-            visibleOidMap: { ...tApp.manager.visibleOidMap },
-            scrollLeft: $Dom.getWindowScrollLeft() || 0,
-            scrollTop: $Dom.getWindowScrollTop() || 0,
-            tRoot: tApp.tRoot,
-            runSnapshot
-        };
-        
-        return this.pageCache[link];
-    } 
-    
-    async restorePage(link) {   
-        const cache = this.pageCache[link];
-
-        if (!cache) {
-            return false;
-        }
-
-        tApp.tRoot = cache.tRoot;
-
-        App.oids = { ...cache.oids };
-        App.tmodelIdMap = { ...cache.tmodelIdMap };
-
-        const $pageDom = TModelUtil.getPageDom();
-
-        $pageDom.innerHTML(cache.html);
-        TModelUtil.restoreDomState($pageDom, cache.domState);
-
-        tApp.tRoot.$dom = TModelUtil.getRootDom();
-
-        const visibles = Object.values(cache.visibleOidMap);
-        const newVisibles = DomInit.initCacheDoms(visibles);
-        const restored = TUtil.uniqueTModels([...visibles, ...newVisibles]);
-
-        for (const tmodel of restored) {
-            tmodel.visibilityStatus = undefined;
-
-            if (!tmodel.hasDom()) {
-                tmodel.markLayoutDirty('pageRestoreNoDom');
-            }
-        }
-        
-        TargetUtil.convertAnimatingTargetsToUpdating(restored);
-
-        tApp.manager.visibleOidMap = {};
-
-        for (const tmodel of restored) {
-            if (tmodel.isIncluded()) {
-                tApp.manager.visibleOidMap[tmodel.oid] = tmodel;
-            }
-        }  
-            
-        tApp.manager.activatePendingTargetsAfterDom(restored, { restoredDoneTargets: true });
-            
-        tApp.tRoot.markLayoutDirty("pageRestore");
-
-        await TModelUtil.restoreScroll(cache);
-        await tApp.start();
-
-        getRunScheduler().restoreSnapshot(cache.runSnapshot);
-
-        const $restoredPageDom = TModelUtil.getPageDom();
-
-        TModelUtil.restoreDomState($restoredPageDom, cache.domState);
-        await TModelUtil.restoreScroll(cache);
-        await TModelUtil.restoreDomInteractionState($restoredPageDom, cache.domState);
-
-        return true;      
-    }
-    
-    getCachedPage(link = this.lastCachedLink) {
-        if (!link) {
-            return undefined;
-        }
-
-        link = TUtil.getFullLink(link);
-
-        return this.pageCache[link];
+        return checkpoint;
     }
 
-    getCachedTModel(id, link = this.lastCachedLink) {
-        const page = this.getCachedPage(link);
-
-        return page?.tmodelIdMap?.[id];
+    async restorePage(link) {
+        
+        const key = this.getStateKey(link);
+                
+        if (tApp.stateManager.has(key)) {
+            return tApp.stateManager.restore(key);
+        }
+        
+        return false;
     }
 
 }

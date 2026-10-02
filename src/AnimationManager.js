@@ -295,7 +295,7 @@ class AnimationManager {
             const targetValue = tmodel.targetValues[originalKey];
             if (targetValue) {
                 targetValue.step = tmodel.getTargetSteps(originalKey);
-                targetValue.valuePointer = targetValue.valueList?.length ? targetValue.valueList.length - 1 : 0;
+                targetValue.valuePointer = targetValue.valueList?.length ? targetValue.valueList.length : 0;
                 tmodel.setActual(originalKey, value);
                 if (tmodel.isTargetImperative(originalKey)) {
                     targetValue.cycle = targetValue.cycles;

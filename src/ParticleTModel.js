@@ -3,10 +3,11 @@ import { TModelFactory } from "./TModelFactory.js";
 import { ParticleRenderer } from "./ParticleRenderer.js";
 import { ParticleRuntime } from "./ParticleRuntime.js";
 import { ParticleUtil } from "./ParticleUtil.js";
+import { ParticleChild } from "./ParticleChild.js";
 import { TargetParser } from "./TargetParser.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TUtil } from "./TUtil.js";
-import { Child } from "./Child.js";
+import { getRunScheduler } from "./App.js";
 
 /**
  * It provides a TModel that can render instanced addChildren values on the GPU.
@@ -14,8 +15,10 @@ import { Child } from "./Child.js";
 class ParticleTModel extends TModel {
     constructor(type, targets, oid, options = {}) {
         super(type, targets, oid, options);
+        
+        this.childActualValues = [];
+        this.childTargetMaps = [];
 
-        this.particleValues = [];
         this.particleValuesDirty = false;
         this.particleRenderRequested = false;
 
@@ -24,16 +27,13 @@ class ParticleTModel extends TModel {
         this.childTransitions = {};
         this.pendingGpuChildren = {};
 
-        /*
-         * Logical lightweight-child runtime state remains directly on the TModel
-         * so it can participate in runtime checkpointing.
-         */
         this.childRuntimePrograms = [];
         this.childRuntimeStates = [];
         this.pendingGpuChildRuntimeCounts = {};
 
         this.activeChildTransitionKey = undefined;
         this.gpuChildrenEnabled = false;
+        this.childGeneration = 0;
 
         this.layoutEpoch = 0;
         this.completeLayoutEpoch = -1;
@@ -101,8 +101,8 @@ class ParticleTModel extends TModel {
             return false;
         }
 
-        if (this.particleValues.length) {
-            await this.particleRenderer.setParticles(this.particleValues);
+        if (this.childHandles.length) {
+            await this.particleRenderer.setParticles(this.childHandles);
         } else {
             await this.particleRenderer.init();
         }
@@ -120,15 +120,18 @@ class ParticleTModel extends TModel {
             return true;
         }
 
-        await this.particleRenderer.setTargetParticles(transition.values, transition.steps);
+        const applied = await this.particleRenderer.setTargetParticles(transition.values, transition.steps, transition.generation);
 
-        this.handleSpecialTargetStep(key);
+        if (applied && this.childTransitions[targetName] === transition) {
+            this.handleSpecialTargetStep(key);
+        }
 
         return true;
     }
 
     requestParticleRender() {
-        if (this.restoringParticleRuntime || !this.gpuChildrenEnabled || !this.hasDom() || this.particleRenderRequested) {
+        if (this.restoringParticleRuntime || !this.gpuChildrenEnabled ||
+                !this.hasDom() || this.particleRenderRequested) {
             return;
         }
 
@@ -137,9 +140,14 @@ class ParticleTModel extends TModel {
         requestAnimationFrame(() => {
             this.particleRenderRequested = false;
 
+            if (this.activeChildTransitionKey) {
+                this.particleRenderer.render();
+                return;
+            }
+
             if (this.particleValuesDirty) {
                 this.particleValuesDirty = false;
-                this.particleRenderer.updateParticles(this.particleValues);
+                this.particleRenderer.updateParticles(this.childHandles);
             } else {
                 this.particleRenderer.render();
             }
@@ -163,7 +171,7 @@ class ParticleTModel extends TModel {
             return Object.entries(value).every(([key, propertyValue]) => {
                 const cleanKey = TargetUtil.getTargetName(key);
 
-                return key === cleanKey && this.supportsChildTarget(cleanKey) && this.canRenderChildValue(propertyValue);
+                return key === cleanKey && ParticleUtil.isGpuTarget(cleanKey) && this.canRenderChildValue(propertyValue);
             });
         });
     }
@@ -188,10 +196,6 @@ class ParticleTModel extends TModel {
         return true;
     }
 
-    supportsChildTarget(key) {
-        return ParticleUtil.isGpuRenderTarget(key);
-    }
-
     affectsChildLayout(key) {
         return ParticleUtil.affectsChildLayout(key);
     }
@@ -203,79 +207,78 @@ class ParticleTModel extends TModel {
 
         return this.childHandles[index];
     }
-
+    
     getChildren() {
-        if (!this.gpuChildrenEnabled) {
-            return super.getChildren();
-        }
+        const children = super.getChildren();
 
-        return this.childHandles;
+        return this.gpuChildrenEnabled ? [...children, ...this.childHandles] : children;
     }
 
     getChildValue(index, key) {
-        return this.particleValues[index]?.[TargetUtil.getTargetName(key)];
-    }
-
-    setChildTarget(index, key, target) {
-        const targetName = TargetUtil.getTargetName(TargetUtil.currentTargetName);
-        const cleanKey = TargetUtil.getTargetName(key);
-
-        if (!targetName) {
-            return;
-        }
-
-        if (key !== cleanKey || !this.supportsChildTarget(cleanKey)) {
-            throw new Error(`GPU child target "${key}" is not supported yet.`);
-        }
-
-        const targetValues = this.childTargetValues[targetName] ??= [];
-        const childValues = targetValues[index] ??= {};
-
-        childValues[cleanKey] = TargetParser.isTargetSpecObject(target) ? { ...target } : { value: target };
-    }
-
-    setChildValue(index, key, value) {
-        const cleanKey = TargetUtil.getTargetName(key);
-        const childValues = this.particleValues[index];
-
-        if (!childValues || childValues[cleanKey] === value) {
-            return;
-        }
-
-        childValues[cleanKey] = value;
-        this.particleValuesDirty = true;
-
-        if (this.affectsChildLayout(cleanKey)) {
-            this.invalidateChildrenLayout();
-        }
-
         const child = this.childHandles[index];
 
-        if (child) {
-            child.actualValues[cleanKey] = value;
+        if (!child) {
+            return;
         }
+
+        const cleanKey = ParticleUtil.getTargetName(key);
+
+        if ((cleanKey === "x" || cleanKey === "y") && !child.allTargetMap[cleanKey]) {
+            return child[cleanKey];
+        }
+
+        return child.actualValues[cleanKey];
     }
 
-    setChildLayoutValue(index, key, value) {
-        const childValues = this.particleValues[index];
+    setChildTarget(index, key, target, steps, interval, easing) {
+        const originalTargetName = TargetUtil.currentTargetName;
+        const originalTModel = TargetUtil.currentTModel;
+        const cleanKey = ParticleUtil.getTargetName(key);
+        const child = this.childHandles[index];
 
-        if (!childValues) {
+        if (!child) {
             return;
         }
 
-        if (this.particleRuntime.isControlled(index, key)) {
-            return;
+        child.allTargetMap[cleanKey] = key;
+        this.childTargetMaps[index] = child.allTargetMap;
+
+        this.particleRuntime.setImperativeTarget(
+            index,
+            cleanKey,
+            target,
+            steps,
+            interval,
+            easing,
+            originalTargetName,
+            originalTModel
+        );
+    }
+
+    setChildValue(index, key, value, invalidateLayout = true) {
+        const child = this.childHandles[index];
+
+        if (!child) {
+            return false;
         }
 
-        const scrollOffset = key === "x" ? this.getScrollLeft() ?? 0 : key === "y" ? this.getScrollTop() ?? 0 : 0;
-        const layoutValue = value + scrollOffset;
+        const cleanKey = ParticleUtil.getTargetName(key);
 
-        if (childValues[key] === layoutValue) {
-            return;
+        if (child.actualValues[cleanKey] === value) {
+            return false;
         }
 
-        childValues[key] = layoutValue;
-        this.particleValuesDirty = true;
+        child.actualValues[cleanKey] = value;
+
+        if (ParticleUtil.isGpuTarget(cleanKey)) {
+            this.particleValuesDirty = true;
+        }
+
+        if (invalidateLayout && this.affectsChildLayout(cleanKey)) {
+            this.invalidateLayout();
+        }
+
+        return true;
     }
 
     getChildTargetValues(key) {
@@ -284,54 +287,158 @@ class ParticleTModel extends TModel {
 
     handleChildTargets(key, targetValues, options = {}) {
         const targetName = TargetUtil.getTargetName(key);
-        const values = new Array(this.particleValues.length);
-        const steps = new Array(this.particleValues.length);
         const defaultSteps = Math.max(0, Number(options.steps) || 0);
+        const children = [];
+        let handledNonGpu = false;
 
-        let maxSteps = defaultSteps;
-
-        for (let index = 0; index < this.particleValues.length; index++) {
-            const particle = this.particleValues[index];
+        for (let index = 0; index < targetValues.length; index++) {
             const targets = targetValues[index];
-            const nextParticle = { ...particle };
-            const childSteps = {};
+            const child = this.childHandles[index];
 
-            if (targets) {
-                for (const [property, rawTarget] of Object.entries(targets)) {
-                    const target = TargetParser.isTargetSpecObject(rawTarget) ? rawTarget : { value: rawTarget };
-
-                    nextParticle[property] = target.value;
-
-                    const propertySteps = target.steps !== undefined ? Math.max(0, Number(target.steps) || 0) : defaultSteps;
-
-                    childSteps[property] = propertySteps;
-                    maxSteps = Math.max(maxSteps, propertySteps);
-                }
+            if (!targets || !child) {
+                continue;
             }
 
-            values[index] = nextParticle;
-            steps[index] = childSteps;
+            const transitionChild = {
+                index,
+                target: {},
+                steps: {},
+                loops: {},
+                valueLists: {}
+            };
+
+            for (const [property, rawTarget] of Object.entries(targets)) {
+                const targetProperty = ParticleUtil.getTargetName(property);
+
+                if (!ParticleUtil.isGpuTarget(targetProperty)) {
+                    const [value, steps] = TargetParser.getValueStepsCycles(child,targetProperty, rawTarget, 0);
+
+                    if (!steps) {
+                        this.setChildValue(index, targetProperty, value);
+                        handledNonGpu = true;
+                    }
+
+                    continue;
+                }
+
+                const [value, parsedSteps] = TargetParser.getValueStepsCycles(child, targetProperty, rawTarget, 0);
+
+                const hasOwnSteps =
+                    TUtil.isDefined(rawTarget?.steps) ||
+                    TargetParser.isValueStepsCycleArray(rawTarget?.value);
+
+                const propertySteps = hasOwnSteps ? parsedSteps : defaultSteps;
+
+                if (TargetParser.isListTarget(value)) {
+                    transitionChild.valueLists[targetProperty] = value.list;
+                    transitionChild.target[targetProperty] = value.list[1];
+                } else {
+                    transitionChild.target[targetProperty] = value;
+                }
+
+                transitionChild.steps[targetProperty] = propertySteps;
+                transitionChild.loops[targetProperty] = rawTarget?.loop === true;
+            }
+
+            if (Object.keys(transitionChild.target).length) {
+                children.push(transitionChild);
+            }
         }
 
-        this.childTransitions[targetName] = {
-            values,
-            steps
+        if (!children.length) {
+            if (!handledNonGpu) {
+                return false;
+            }
+
+            delete this.childTargetValues[targetName];
+
+            return {
+                handled: true,
+                steps: 0
+            };
+        }
+
+        const segmentCount = this.getChildrenSegmentCount(children);
+        const segment = this.buildChildTransitionSegment(children, 0, defaultSteps);
+
+        this.commitImmediateChildTransitionValues(children, segment.values, segment.steps);
+
+        if (!segment.hasSegment || segment.maxSteps === 0) {
+            this.commitChildTransitionSegment(children, segment.values, segment.steps);
+            delete this.childTargetValues[targetName];
+
+            this.particleValuesDirty = true;
+            this.requestParticleRender();
+
+            return {
+                handled: true,
+                steps: 0
+            };
+        }
+
+        const transition = {
+            children,
+            segmentIndex: 0,
+            segmentCount,
+            defaultSteps,
+            initialValues: segment.initialValues,
+            values: segment.values,
+            steps: segment.steps,
+            loops: segment.loops,
+            hasLoop: segment.hasLoop,
+            generation: this.childGeneration
         };
 
+        this.childTransitions[targetName] = transition;
         this.activeChildTransitionKey = key;
+        
+        this.addChildTransitionLayoutTargets(transition);
 
         if (this.hasDom()) {
-            this.particleRenderer.setTargetParticles(values, steps).then(() => {
-                if (this.childTransitions[targetName]?.values === values) {
-                    this.handleSpecialTargetStep(key);
-                }
-            });
+            this.particleRenderer.setTargetParticles(segment.values, segment.steps, transition.generation).then(applied => {
+                    if (applied && this.childTransitions[targetName] === transition) {
+                        this.handleSpecialTargetStep(key);
+                    }
+                });
         }
 
         return {
             handled: true,
-            steps: maxSteps
+            steps: segment.maxSteps
         };
+    }
+
+    commitChildTransitionSegment(children, values, steps) {
+        for (const transitionChild of children) {
+            const index = transitionChild.index;
+            const child = this.childHandles[index];
+            const childSteps = steps?.[index];
+
+            if (!child || !childSteps) {
+                continue;
+            }
+
+            const wasVisible = child.isVisible();
+            const layoutProperties = [];
+
+            for (const property of Object.keys(childSteps)) {
+                child.actualValues[property] = values[index]?.[property];
+
+                if (ParticleUtil.affectsChildLayout(property)) {
+                    layoutProperties.push(property);
+                }
+            }
+
+            if (layoutProperties.length) {
+                child.actualValues.isVisible = child.calcVisibility();
+
+                if (wasVisible || child.isVisible()) {
+                    for (const property of layoutProperties) {
+                        child.removeFromNoDomUpdatingTargets(property);
+                    }
+                }
+            }
+        }
     }
 
     handleSpecialTarget(key, value, options = {}) {
@@ -349,15 +456,15 @@ class ParticleTModel extends TModel {
     }
 
     getRenderScrollLeft() {
-        return this.getScrollLeft() || this.getParent().$dom?.getScrollLeft() || 0;
+        return  this.$dom?.getScrollLeft() || this.getScrollLeft() || 0;
     }
 
     getRenderScrollTop() {
-        return this.getScrollTop() || this.getParent().$dom?.getScrollTop() || 0;
-    }
+        return this.$dom?.getScrollTop() || this.getScrollTop() || 0;
+    }    
 
     addChild(child, index = this.addedChildren.length + this.allChildrenList.length) {
-        if (child && typeof child === "object" && !(child instanceof TModel) && ParticleUtil.isGpuChildrenTarget(TargetUtil.currentTargetName)) {
+        if (child && typeof child === "object" && !(child instanceof TModel) && ParticleUtil.isChildrenTarget(TargetUtil.currentTargetName)) {
             const renderer = this.getChildrenRenderer();
 
             if (renderer !== "dom") {
@@ -377,34 +484,32 @@ class ParticleTModel extends TModel {
     addGpuChild(definition) {
         const key = TargetUtil.currentTargetName;
         const targetName = TargetUtil.getTargetName(key);
-        const index = this.particleValues.length;
+        const index = this.childHandles.length;
 
         this.gpuChildrenEnabled = true;
 
-        /*
-         * A placeholder and Child must exist before function-valued properties
-         * are resolved because functions can call Child getters.
-         */
-        this.particleValues[index] = {};
-
-        const handle = new Child(this, index);
+        const handle = new ParticleChild(this, index);
 
         this.childHandles[index] = handle;
+        this.childActualValues[index] = handle.actualValues;
+        this.childTargetMaps[index] = handle.allTargetMap;
 
         try {
-            const compiled = ParticleUtil.compileGpuChildDefinition(handle, definition);
+            const compiled = ParticleUtil.compileChildDefinition(handle, definition);
             const child = this.createGpuChild(compiled.renderDefinition);
 
             if (!child) {
-                this.particleValues.pop();
                 this.childHandles.pop();
+                this.childActualValues.pop();
+                this.childTargetMaps.pop();
 
                 return false;
             }
 
-            this.particleValues[index] = child.initial;
-
             Object.assign(handle.actualValues, child.initial);
+
+            this.childActualValues[index] = handle.actualValues;
+            this.childTargetMaps[index] = handle.allTargetMap;
 
             this.particleRuntime.registerChild(index, targetName, compiled);
 
@@ -418,13 +523,15 @@ class ParticleTModel extends TModel {
                 ...child
             });
 
+            this.childGeneration++;
             this.childrenUpdateFlag = true;
             this.markLayoutDirty("addGpuChild");
 
             return true;
         } catch (error) {
-            this.particleValues.pop();
             this.childHandles.pop();
+            this.childActualValues.pop();
+            this.childTargetMaps.pop();
             this.childRuntimePrograms.pop();
             this.childRuntimeStates.pop();
 
@@ -432,14 +539,88 @@ class ParticleTModel extends TModel {
         }
     }
 
+    removeChild(child) {
+        if (!this.gpuChildrenEnabled || !(child instanceof ParticleChild)) {
+            return super.removeChild(child);
+        }
+
+        const index = this.childHandles.indexOf(child);
+
+        if (index < 0) {
+            return;
+        }
+
+        this.particleRuntime.removeChild(index);
+
+        this.childHandles.splice(index, 1);
+        this.childActualValues.splice(index, 1);
+        this.childTargetMaps.splice(index, 1);
+
+        this.removeChildFromTransitions(index);
+
+        for (const targetValues of Object.values(this.childTargetValues)) {
+            targetValues?.splice(index, 1);
+        }
+
+        child.index = -1;
+
+        for (let i = index; i < this.childHandles.length; i++) {
+            this.childHandles[i].index = i;
+        }
+
+        this.childGeneration++;
+        this.particleValuesDirty = true;
+        this.invalidateLayout();
+        this.markLayoutDirty("removeGpuChild");
+        this.requestParticleRender();
+
+        return this;
+    }
+
+    removeChildFromTransitions(index) {
+        for (const transition of Object.values(this.childTransitions)) {
+            transition.initialValues?.splice(index, 1);
+            transition.values?.splice(index, 1);
+            transition.steps?.splice(index, 1);
+            transition.loops?.splice(index, 1);
+
+            if (transition.children) {
+                transition.children = transition.children.filter(child => child.index !== index);
+
+                for (const child of transition.children) {
+                    if (child.index > index) {
+                        child.index--;
+                    }
+                }
+            }
+        }
+
+        for (const pending of Object.values(this.pendingGpuChildren)) {
+            if (!pending?.children) {
+                continue;
+            }
+
+            pending.children = pending.children.filter(child => child.index !== index);
+
+            for (const child of pending.children) {
+                if (child.index > index) {
+                    child.index--;
+                }
+            }
+        }
+    }
+
     isTargetEnabled(key) {
-        if (ParticleUtil.isGpuChildrenTarget(key) && this.isExecuted(key) && this.particleRuntime.hasPending(key)) {
+        const target = this.targets[key];
+
+        if (ParticleUtil.isChildrenTarget(key) && target?.waitForChildren === true &&
+                this.isExecuted(key) && this.particleRuntime.hasPending(key)) {
             return false;
         }
 
         return super.isTargetEnabled(key);
     }
-
+    
     activateGpuChildTarget(index, key) {
         return this.particleRuntime.activateTarget(index, key);
     }
@@ -491,7 +672,7 @@ class ParticleTModel extends TModel {
     }
 
     finalizeChildrenTarget(key, options = {}) {
-        if (!ParticleUtil.isGpuChildrenTarget(key)) {
+        if (!ParticleUtil.isChildrenTarget(key)) {
             return false;
         }
 
@@ -502,26 +683,30 @@ class ParticleTModel extends TModel {
             return false;
         }
 
-        this.invalidateChildrenLayout();
+        this.invalidateLayout();
 
         const defaultSteps = Math.max(0, Number(options.steps) || 0);
-        const currentValues = this.particleValues;
         const segmentCount = this.getChildrenSegmentCount(pending.children);
-        const segment = this.buildChildTransitionSegment(pending.children, 0, currentValues, defaultSteps);
+        const segment = this.buildChildTransitionSegment(pending.children, 0, defaultSteps);
+
+        this.commitImmediateChildTransitionValues(pending.children, segment.values, segment.steps);
 
         delete this.pendingGpuChildren[targetName];
 
         if (!segment.hasSegment || segment.maxSteps === 0) {
-            this.particleValues = segment.values;
+            this.commitChildTransitionSegment(pending.children, segment.values, segment.steps);
 
-            const runtimeIndexes = pending.children.map(child => child.index).filter(index => this.childRuntimePrograms[index]?.length);
-
+            const runtimeIndexes = pending.children.map(child => child.index).filter(index => {
+                const state = this.childRuntimeStates[index];
+                return state && !state.done;
+            });
+            
             for (const index of runtimeIndexes) {
                 this.particleRuntime.queueStart(index);
             }
 
             if (this.hasDom()) {
-                this.particleRenderer.setParticles(segment.values).then(() => {
+                this.particleRenderer.setParticles(this.childHandles).then(() => {
                     this.particleRuntime.markRenderReady(runtimeIndexes);
                 });
             }
@@ -532,23 +717,107 @@ class ParticleTModel extends TModel {
             };
         }
 
-        this.childTransitions[targetName] = {
+        const transition = {
             children: pending.children,
             segmentIndex: 0,
             segmentCount,
             defaultSteps,
+            initialValues: segment.initialValues,
             values: segment.values,
             steps: segment.steps,
             loops: segment.loops,
-            hasLoop: segment.hasLoop
+            hasLoop: segment.hasLoop,
+            generation: this.childGeneration
         };
 
+        this.childTransitions[targetName] = transition;
         this.activeChildTransitionKey = key;
+
+        this.addChildTransitionLayoutTargets(transition);
 
         return {
             handled: true,
             steps: segment.maxSteps
         };
+    }
+    
+    addChildTransitionLayoutTargets(transition) {
+        for (const transitionChild of transition.children) {
+            const index = transitionChild.index;
+            const child = this.childHandles[index];
+            const childSteps = transition.steps?.[index];
+
+            if (!child || !childSteps) {
+                continue;
+            }
+
+            for (const [property, steps] of Object.entries(childSteps)) {
+                if (steps > 0 && ParticleUtil.affectsChildLayout(property)) {
+                    child.addToNoDomUpdatingTargets(property);
+                }
+            }
+        }
+    }
+    
+    catchupChildLayoutTargets(child) {
+        if (!child?.noDomUpdatingTargets?.size || child.index < 0) {
+            return false;
+        }
+
+        const key = this.activeChildTransitionKey;
+
+        if (!key) {
+            return false;
+        }
+
+        const targetName = TargetUtil.getTargetName(key);
+        const transition = this.childTransitions[targetName];
+
+        if (!transition || transition.generation !== this.childGeneration) {
+            return false;
+        }
+
+        const index = child.index;
+        const initialValues = transition.initialValues?.[index];
+        const targetValues = transition.values?.[index];
+        const childSteps = transition.steps?.[index];
+
+        if (!initialValues || !targetValues || !childSteps) {
+            return false;
+        }
+
+        const currentStep = Math.max(0, Number(this.getTargetStep(key)) || 0);
+        let changed = false;
+
+        for (const property of [...child.noDomUpdatingTargets]) {
+            if (!ParticleUtil.affectsChildLayout(property)) {
+                child.removeFromNoDomUpdatingTargets(property);
+                continue;
+            }
+
+            const initialValue = initialValues[property];
+            const targetValue = targetValues[property];
+            const steps = Math.max(0, Number(childSteps[property]) || 0);
+
+            if (!TUtil.isDefined(initialValue) || !TUtil.isDefined(targetValue)) {
+                child.removeFromNoDomUpdatingTargets(property);
+                continue;
+            }
+
+            const progress = steps === 0 ? 1 : Math.min(1, currentStep / steps);
+            const value = initialValue + (targetValue - initialValue) * progress;
+
+            if (child.actualValues[property] !== value) {
+                child.actualValues[property] = value;
+                changed = true;
+            }
+
+            if (progress === 1) {
+                child.removeFromNoDomUpdatingTargets(property);
+            }
+        }
+
+        return changed;
     }
 
     advanceChildTransitionSegment(key, transition) {
@@ -562,20 +831,19 @@ class ParticleTModel extends TModel {
             return false;
         }
 
-        this.particleValues = transition.values;
+        this.commitChildTransitionSegment(transition.children, transition.values, transition.steps);
         this.particleRenderer.completeTransition();
 
-        const segment = this.buildChildTransitionSegment(
-            transition.children,
-            nextSegmentIndex,
-            this.particleValues,
-            transition.defaultSteps
-        );
+        const segment = this.buildChildTransitionSegment(transition.children, nextSegmentIndex, transition.defaultSteps);
 
         transition.segmentIndex = nextSegmentIndex;
+        transition.initialValues = segment.initialValues;
         transition.values = segment.values;
         transition.steps = segment.steps;
         transition.loops = segment.loops;
+
+        this.commitImmediateChildTransitionValues(transition.children, segment.values, segment.steps);
+        this.addChildTransitionLayoutTargets(transition);
 
         const targetValue = this.targetValues[key];
 
@@ -588,77 +856,92 @@ class ParticleTModel extends TModel {
         this.setTargetStatus(key, "updating");
 
         if (this.hasDom()) {
-            this.particleRenderer.setTargetParticles(segment.values, segment.steps).then(() => {
-                if (this.childTransitions[TargetUtil.getTargetName(key)] === transition) {
+            this.particleRenderer.setTargetParticles(segment.values, segment.steps, transition.generation).then(applied => {
+                if (applied && this.childTransitions[TargetUtil.getTargetName(key)] === transition) {
                     this.handleSpecialTargetStep(key);
-                }
+                } 
             });
         }
 
         return true;
     }
 
-    buildChildTransitionSegment(children, segmentIndex, currentValues, defaultSteps) {
-        const values = currentValues.map(value => ({ ...value }));
-        const steps = Array.from({ length: currentValues.length }, () => ({}));
-        const loops = Array.from({ length: currentValues.length }, () => ({}));
+    buildChildTransitionSegment(children, segmentIndex, defaultSteps) {
+        const initialValues = new Array(this.childHandles.length);
+        const values = this.childHandles.map(child => child?.actualValues);
+        const steps = new Array(this.childHandles.length);
+        const loops = new Array(this.childHandles.length);
 
         let maxSteps = 0;
         let hasSegment = false;
         let hasLoop = false;
 
-        for (const child of children) {
-            const current = currentValues[child.index];
-            const target = { ...current };
+        for (const transitionChild of children) {
+            const index = transitionChild.index;
+            const child = this.childHandles[index];
 
-            for (const property of Object.keys(child.target)) {
-                const valueList = child.valueLists[property];
+            if (!child) {
+                continue;
+            }
+
+            const current = {
+                ...child.actualValues,
+                x: this.getChildValue(index, "x"),
+                y: this.getChildValue(index, "y")
+            };
+            let initial;
+            let target;
+            let childSteps;
+            let childLoops;
+
+            for (const property of Object.keys(transitionChild.target)) {
+                const valueList = transitionChild.valueLists[property];
+                let value;
 
                 if (valueList) {
                     if (segmentIndex >= valueList.length - 1) {
                         continue;
                     }
 
-                    target[property] = valueList[segmentIndex + 1];
-
-                    const propertySteps = this.getChildPropertySteps(child, property, segmentIndex, defaultSteps);
-
-                    steps[child.index][property] = propertySteps;
-                    loops[child.index][property] = child.loops[property] === true;
-
-                    maxSteps = Math.max(maxSteps, propertySteps);
-                    hasSegment = true;
-
-                    if (child.loops[property]) {
-                        hasLoop = true;
+                    value = valueList[segmentIndex + 1];
+                } else {
+                    if (segmentIndex !== 0 || current[property] === transitionChild.target[property]) {
+                        continue;
                     }
 
-                    continue;
+                    value = transitionChild.target[property];
                 }
 
-                if (segmentIndex !== 0 || current[property] === child.target[property]) {
-                    continue;
-                }
+                const propertySteps = this.getChildPropertySteps(transitionChild, property, segmentIndex, defaultSteps);
 
-                target[property] = child.target[property];
+                initial ||= {};
+                target ||= { ...current };
+                childSteps ||= {};
+                childLoops ||= {};
 
-                const propertySteps = this.getChildPropertySteps(child, property, segmentIndex, defaultSteps);
-
-                steps[child.index][property] = propertySteps;
-                loops[child.index][property] = child.loops[property] === true;
+                initial[property] = current[property];
+                target[property] = value;
+                childSteps[property] = propertySteps;
+                childLoops[property] = transitionChild.loops[property] === true;
 
                 maxSteps = Math.max(maxSteps, propertySteps);
                 hasSegment = true;
 
-                if (child.loops[property]) {
+                if (childLoops[property]) {
                     hasLoop = true;
                 }
             }
 
-            values[child.index] = target;
+            if (target) {
+                initialValues[index] = initial;
+                values[index] = target;
+                steps[index] = childSteps;
+                loops[index] = childLoops;
+            }
         }
 
         return {
+            initialValues,
             values,
             steps,
             loops,
@@ -714,8 +997,9 @@ class ParticleTModel extends TModel {
 
     handleSpecialTargetStep(key) {
         const targetName = TargetUtil.getTargetName(key);
+        const transition = this.childTransitions[targetName];
 
-        if (!this.childTransitions[targetName]) {
+        if (!transition || transition.generation !== this.childGeneration) {
             return false;
         }
 
@@ -732,6 +1016,22 @@ class ParticleTModel extends TModel {
             return false;
         }
 
+        if (transition.generation !== this.childGeneration) {
+            this.particleRenderer.completeTransition();
+
+            delete this.childTransitions[targetName];
+            delete this.childTargetValues[targetName];
+
+            if (this.activeChildTransitionKey === key) {
+                this.activeChildTransitionKey = undefined;
+            }
+
+            this.particleValuesDirty = true;
+            this.requestParticleRender();
+
+            return true;
+        }
+
         if (this.advanceChildTransitionSegment(key, transition)) {
             return true;
         }
@@ -741,7 +1041,7 @@ class ParticleTModel extends TModel {
             return true;
         }
 
-        this.particleValues = transition.values;
+        this.commitChildTransitionSegment(transition.children, transition.values, transition.steps);
         this.particleRenderer.completeTransition();
 
         delete this.childTransitions[targetName];
@@ -750,7 +1050,7 @@ class ParticleTModel extends TModel {
         if (this.activeChildTransitionKey === key) {
             this.activeChildTransitionKey = undefined;
         }
-
+        
         return true;
     }
 
@@ -807,9 +1107,18 @@ class ParticleTModel extends TModel {
         this.resetTargetInitialValue(key);
         this.setTargetStatus(key, "updating");
 
+        this.addChildTransitionLayoutTargets(transition);
         this.handleSpecialTargetStep(key);
 
         return true;
+    }
+    
+    shouldBeBracketed() {
+        if (this.gpuChildrenEnabled) {
+            return false;
+        }
+
+        return super.shouldBeBracketed();
     }
 
     shouldCalculateChildren() {
@@ -817,7 +1126,7 @@ class ParticleTModel extends TModel {
             return super.shouldCalculateChildren();
         }
 
-        if (this.completeLayoutEpoch === this.layoutEpoch && !this.hasChildrenLayoutStateChanged()) {
+        if (!this.getDirtyLayout() && this.completeLayoutEpoch === this.layoutEpoch && !this.hasLayoutStateChanged()) {
             this.currentStatus = undefined;
             this.requestParticleRender();
 
@@ -827,7 +1136,7 @@ class ParticleTModel extends TModel {
         return super.shouldCalculateChildren();
     }
 
-    getChildrenLayoutState() {
+    getLayoutState() {
         return [
             this.getWidth(),
             this.getHeight(),
@@ -846,15 +1155,20 @@ class ParticleTModel extends TModel {
         }
 
         this.completeLayoutEpoch = epoch;
-        this.completeChildrenLayoutState = this.getChildrenLayoutState();
+        this.completeLayoutState = this.getLayoutState();
 
-        if (this.particleRuntime.resolveLayoutFunctions()) {
+        if (this.particleRuntime.resolveInitialTargets()) {
             this.requestParticleRender();
-            return;
+
+            if (this.completeLayoutEpoch !== this.layoutEpoch) {
+                getRunScheduler().schedule(0, `particleInitialTargets-${this.oid}`);
+                return;
+            }
         }
+        
+        this.particleRenderer.updateCanvasLayerWidthHeight();
 
         this.resolveLayoutCompleteWaiters();
-
         this.particleRuntime.startReady();
 
         const key = this.activeChildTransitionKey;
@@ -870,27 +1184,101 @@ class ParticleTModel extends TModel {
             return;
         }
 
-        transition.values = transition.values.map((target, index) => ({
-            ...this.particleValues[index],
-            ...target
-        }));
+        const layoutProperties = ["x", "y", "width", "height"];
 
-        if (this.restoringParticleRuntime || !this.hasDom()) {
+        for (let index = 0; index < this.childHandles.length; index++) {
+            const child = this.childHandles[index];
+
+            if (!child) {
+                continue;
+            }
+
+            let target = transition.values[index];
+
+            if (!target || target === child.actualValues) {
+                target = { ...child.actualValues };
+                transition.values[index] = target;
+            }
+
+            const childSteps = transition.steps[index] ??= {};
+
+            for (const property of layoutProperties) {
+                if (Object.prototype.hasOwnProperty.call(childSteps, property)) {
+                    continue;
+                }
+
+                const value = this.getChildValue(index, property);
+
+                if (!TUtil.isDefined(value)) {
+                    continue;
+                }
+
+                target[property] = value;
+                childSteps[property] = 0;
+            }
+        }
+        
+        if (transition.generation !== this.childGeneration || this.restoringParticleRuntime || !this.hasDom()) {
             return;
         }
+        
+        const isCurrentTransition = () => {
+            return this.activeChildTransitionKey === key &&
+                this.childTransitions[targetName] === transition &&
+                transition.generation === this.childGeneration;
+        };
 
-        this.particleRenderer.setParticles(this.particleValues).then(() => {
-            return this.particleRenderer.setTargetParticles(transition.values, transition.steps);
-        }).then(() => {
-            if (this.childTransitions[targetName] === transition) {
+        this.particleRenderer.setTargetParticles(transition.values, transition.steps, transition.generation).then(applied => {
+            if (applied && isCurrentTransition()) {
                 this.handleSpecialTargetStep(key);
             }
         });
     }
+    
+    commitImmediateChildTransitionValues(children, values, steps) {
+        let changed = false;
 
-    hasChildrenLayoutStateChanged() {
-        const current = this.getChildrenLayoutState();
-        const previous = this.completeChildrenLayoutState;
+        for (const transitionChild of children) {
+            const index = transitionChild.index;
+            const child = this.childHandles[index];
+            const childSteps = steps?.[index];
+
+            if (!child || !childSteps) {
+                continue;
+            }
+
+            let layoutChanged = false;
+
+            for (const [property, propertySteps] of Object.entries(childSteps)) {
+                if (propertySteps !== 0) {
+                    continue;
+                }
+
+                const value = values[index]?.[property];
+
+                if (child.actualValues[property] === value) {
+                    continue;
+                }
+
+                child.actualValues[property] = value;
+                changed = true;
+
+                if (ParticleUtil.affectsChildLayout(property)) {
+                    layoutChanged = true;
+                }
+            }
+
+            if (layoutChanged) {
+                child.actualValues.isVisible = child.calcVisibility();
+            }
+        }
+
+        return changed;
+    }
+
+    hasLayoutStateChanged() {
+        const current = this.getLayoutState();
+        const previous = this.completeLayoutState;
 
         if (!previous || current.length !== previous.length) {
             return true;
@@ -899,12 +1287,12 @@ class ParticleTModel extends TModel {
         return current.some((value, index) => value !== previous[index]);
     }
 
-    invalidateChildrenLayout() {
+    invalidateLayout() {
         this.layoutEpoch++;
     }
 
     getParticleCount() {
-        return this.particleValues.length;
+        return this.childHandles.length;
     }
 
     excludeRuntimeSnapshotField(key) {
@@ -912,15 +1300,32 @@ class ParticleTModel extends TModel {
     }
 
     restoreRuntimeDerivedState() {
-        this.childHandles = this.particleValues.map((value, index) => new Child(this, index));
+        this.particleRenderer.destroy();
 
+        this.childActualValues ||= [];
+        this.childTargetMaps ||= [];
+
+        this.childHandles = this.childActualValues.map((values, index) => {
+            const child = new ParticleChild(this, index);
+            const targetMap = this.childTargetMaps[index] || {};
+            
+            Object.assign(child.actualValues, values);
+            Object.assign(child.allTargetMap, targetMap);
+            
+            this.childActualValues[index] = child.actualValues;
+            this.childTargetMaps[index] = child.allTargetMap;
+ 
+            return child;
+        });
+        
+        this.childGeneration = Number.isInteger(this.childGeneration) ? this.childGeneration : 0;
         this.particleValuesDirty = false;
         this.particleRenderRequested = false;
         this.pendingGpuChildren = {};
 
         this.layoutEpoch = 0;
-        this.completeLayoutEpoch = 0;
-        this.completeChildrenLayoutState = this.getChildrenLayoutState();
+        this.completeLayoutEpoch = -1;
+        this.completeLayoutState = undefined;
 
         this.layoutCompleteWaiters = [];
         this.particleSyncPromise = undefined;
@@ -958,7 +1363,7 @@ function isParticleTModel(targets) {
     }
 
     for (const [key, target] of Object.entries(targets)) {
-        if (!ParticleUtil.isGpuChildrenTarget(key)) {
+        if (!ParticleUtil.isChildrenTarget(key)) {
             continue;
         }
 

@@ -257,20 +257,18 @@ class TargetManager {
         const step = progress.step;
         const valuePointer = progress.valuePointer;
         const cycle = progress.cycle;
-        
-        const theValue = tmodel.getTargetValue(key);
-        const steps = tmodel.getTargetSteps(key);
         const cycles = tmodel.getTargetCycles(key);
-        
-        if (progress.done) {          
-            const finalValue = targetValue.valueList?.length ? targetValue.valueList[targetValue.valueList.length - 1] : theValue;
+
+        if (progress.done) {
+            const finalValue = targetValue.valueList?.length ? targetValue.valueList[targetValue.valueList.length - 1] : tmodel.getTargetValue(key);
 
             tmodel.val(key, finalValue);
             tmodel.setActual(key, finalValue);
             tmodel.addToStyleTargetList(key);
 
-            targetValue.step = steps;
+            targetValue.step = progress.steps ?? tmodel.getTargetSteps(key);
             targetValue.valuePointer = targetValue.valueList?.length ?? valuePointer;
+            targetValue.value = finalValue;
             targetValue.cycle = cycles;
 
             delete targetValue.catchupAt;
@@ -281,12 +279,34 @@ class TargetManager {
 
             return {
                 done: true,
-                step: steps,
+                step: targetValue.step,
                 cycle: cycles,
                 valuePointer: targetValue.valuePointer
             };
         }
 
+        if (targetValue.valueList?.length) {
+            targetValue.valuePointer = valuePointer;
+            targetValue.initialValue = targetValue.valueList[valuePointer - 1];
+            targetValue.value = targetValue.valueList[valuePointer];
+
+            targetValue.steps = targetValue.stepList[(valuePointer - 1) % targetValue.stepList.length];
+
+            targetValue.interval = Array.isArray(targetValue.intervalList)
+                ? targetValue.intervalList[(valuePointer - 1) % targetValue.intervalList.length]
+                : targetValue.interval;
+
+            targetValue.easing = targetValue.easingList[(valuePointer - 1) % targetValue.easingList.length];
+        }
+
+
+
+        targetValue.step = step;
+        targetValue.cycle = cycle;
+
+        const theValue = tmodel.getTargetValue(key);
+        const steps = tmodel.getTargetSteps(key);
+        
         let initialValue = tmodel.getTargetInitialValue(key);
 
         if (!TUtil.isDefined(initialValue)) {
@@ -297,15 +317,11 @@ class TargetManager {
         const value = step > 0
             ? TModelUtil.easingMorph(tmodel, key, initialValue, theValue, step, steps)
             : initialValue;
-                
+
         tmodel.val(key, value);
         tmodel.setActual(key, value);
         tmodel.addToStyleTargetList(key);
 
-        targetValue.step = step;
-        targetValue.valuePointer = valuePointer;
-        targetValue.cycle = cycle;
-        
         return {
             done: false,
             step,
@@ -344,7 +360,7 @@ class TargetManager {
         if (tmodel.canBeAnimated(state.cleanKey)) {
             this.animateActualValue(tmodel, key, targetValue, state, step, valuePointer);
         } else {
-            this.updateActualValue(tmodel, key, targetValue, state, step, valuePointer);
+            this.updateActualValue(tmodel, key, targetValue, state, step);
         }
     }
 
@@ -387,7 +403,7 @@ class TargetManager {
             tmodel.addToNoDomUpdatingTargets(key);
             return;
         }
-
+       
         const newValue = step > 0 ? TModelUtil.easingMorph(tmodel, key, state.initialValue, state.theValue, step, state.steps) : state.initialValue;
 
         const cycles = tmodel.isTargetImperative(key) ? tmodel.getTargetCycles(key) : 0;
@@ -401,7 +417,7 @@ class TargetManager {
         }
     }  
     
-    updateActualValue(tmodel, key, targetValue, state, step, valuePointer) {
+    updateActualValue(tmodel, key, targetValue, state, step) {
         if (step <= state.steps) {
             tmodel.incrementTargetStep(key, state.now, state.lastUpdateTime, state.interval, state.steps);
             const newValue = TModelUtil.easingMorph(tmodel, key, state.initialValue, state.theValue, step, state.steps );
@@ -417,10 +433,10 @@ class TargetManager {
             }
         }
 
-        this.finishCurrentSegment(tmodel, key, targetValue, state, valuePointer);
+        this.finishCurrentSegment(tmodel, key, targetValue, state);
     }
     
-    finishCurrentSegment(tmodel, key, targetValue, state, valuePointer) {
+    finishCurrentSegment(tmodel, key, targetValue, state) {
         tmodel.val(key, state.theValue);
         tmodel.setActual(key, state.theValue);
         tmodel.addToStyleTargetList(key);
@@ -430,16 +446,21 @@ class TargetManager {
 
         let scheduleTime = 1;
 
-        if (targetValue.valueList && valuePointer < targetValue.valueList.length) {
+        if (targetValue.valueList) {
             tmodel.incrementValueListPointer(key);
             const nextPointer = tmodel.getValueListPointer(key);
-            tmodel.resetTargetStep(key);
-            targetValue.initialValue = targetValue.value;
-            targetValue.value = targetValue.valueList[nextPointer];
-            targetValue.steps = targetValue.stepList[(nextPointer - 1) % targetValue.stepList.length];
-            targetValue.interval = Array.isArray(targetValue.intervalList) ? targetValue.intervalList[(nextPointer - 1) % targetValue.intervalList.length] : 0;
-            targetValue.easing = targetValue.easingList[(nextPointer - 1) % targetValue.easingList.length];
-            scheduleTime = state.interval;
+            
+            if (nextPointer < targetValue.valueList.length) {
+                tmodel.resetTargetStep(key);
+                targetValue.initialValue = targetValue.value;
+                targetValue.value = targetValue.valueList[nextPointer];
+                targetValue.steps = targetValue.stepList[(nextPointer - 1) % targetValue.stepList.length];
+                targetValue.interval = Array.isArray(targetValue.intervalList) ? targetValue.intervalList[(nextPointer - 1) % targetValue.intervalList.length] : 0;
+                targetValue.easing = targetValue.easingList[(nextPointer - 1) % targetValue.easingList.length];
+                scheduleTime = state.interval;
+            } else {
+                this.fireOnEnd(tmodel, key);
+            }
         } else {
             this.fireOnEnd(tmodel, key);
         }

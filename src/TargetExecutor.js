@@ -155,6 +155,11 @@ class TargetExecutor {
         if (targetValue) {
             TargetExecutor.resetImperativeProgress(targetValue);
             TargetExecutor.assignTargetOptions(targetValue, options);
+
+            if (targetValue.steps > 0 && tmodel.noDomUpdatingTargets?.has(key)) {
+                targetValue.catchupAt = TUtil.now();
+            }
+            
             TargetExecutor.updateTarget(tmodel, targetValue, key, true, snapUpdates);
 
             if (tmodel.isTargetDone(key)) {
@@ -270,7 +275,13 @@ class TargetExecutor {
         }
 
         const valueChanged = tmodel.val(key) !== newValue;
-        const isAnimating = tmodel.animatingMap?.has(key);
+
+        const cleanKey = TargetUtil.getTargetName(key);
+        const animatedKey = [...(tmodel.animatingMap?.keys() ?? [])].find(
+            animatedKey => TargetUtil.getTargetName(animatedKey) === cleanKey
+        );
+
+        const isAnimating = !!animatedKey;
 
         if (!valueChanged && !isAnimating) {
             return;
@@ -282,7 +293,7 @@ class TargetExecutor {
             TUtil.handleValueChange(tmodel, key);
         }
 
-        if (!tmodel.hasValidAnimation() || !tmodel.canBeAnimated(key)) {
+        if (!isAnimating || !tmodel.hasValidAnimation() || !tmodel.canBeAnimated(key)) {
             targetValue.snapAnimation = false;
             return;
         }

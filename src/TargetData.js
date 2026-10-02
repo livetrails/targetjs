@@ -616,6 +616,11 @@ class TargetData {
     static isTransformKey(key) {
         return !!TargetData.transformMap[key];
     }
+    
+    static affectsVisibility(key) {
+        key = TargetUtil.getTargetName(key);
+        return ["x", "y", "width", "height", "dim"].includes(TargetUtil.getTargetName(key));
+    }
 }
 
 export { TargetData };

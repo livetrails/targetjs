@@ -4,6 +4,7 @@ import { getLocationManager, getEvents, getTargetManager, tRoot } from "./App.js
 import { TModelUtil } from "./TModelUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { AnimationUtil } from "./AnimationUtil.js";
+import { TargetData } from "./TargetData.js";
 
 /**
  * It analyzes all objects and based on their needs, creates or removes DOM elements, restyles objects, and rerenders them. 
@@ -26,6 +27,7 @@ class TModelManager {
             noDom: [],
             updatingTModels: [],
             activeTModels: [],
+            noDomVisibilityTModels: [],
             updatingTargets: [],
             activeTargets: []
         };
@@ -47,6 +49,7 @@ class TModelManager {
         this.lists.noDom.length = 0;
         this.lists.updatingTModels.length = 0;
         this.lists.activeTModels.length = 0;
+        this.lists.noDomVisibilityTModels.length = 0;
         this.lists.updatingTargets.length = 0;
         this.lists.activeTargets.length = 0;
         this.targetMethodMap = {};
@@ -95,6 +98,14 @@ class TModelManager {
             }            
 
             const visible = tmodel.isVisible();
+            
+            if (!visible && tmodel.noDomUpdatingTargets?.size && [...tmodel.noDomUpdatingTargets].some(key => {
+                const targetValue = tmodel.targetValues[key];
+
+                return (TargetData.affectsVisibility(key) && targetValue?.catchupAt !== undefined);
+            })) {
+                this.lists.noDomVisibilityTModels.push(tmodel);
+            }
 
             if (visible && tmodel.isIncluded()) {
                 this.visibleOidMap[tmodel.oid] = tmodel;
@@ -259,9 +270,7 @@ class TModelManager {
             return false;
         }
 
-        return visible ||
-            tmodel.requiresDom() ||
-            this.getDomPolicy(tmodel) === "keep";
+        return visible || tmodel.requiresDom() || this.getDomPolicy(tmodel) === "keep";
     }
 
     shouldCreateDom(tmodel, visible = tmodel.isVisible()) {

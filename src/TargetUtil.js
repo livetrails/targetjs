@@ -189,7 +189,7 @@ class TargetUtil {
 
             if ((!isEndTrigger && sideStep === 0 && (canActivate || isImperative)) ||
                 (isEndTrigger && canActivate)) {
-
+           
                 const prevOk = isEndTrigger ? TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) : false;
                 
                 if (fetchAction) {
@@ -679,6 +679,10 @@ class TargetUtil {
                 continue;
             }
             
+            if (tmodel.isTargetComplete(targetName)) {
+                continue;
+            }
+            
             if (tmodel.activatedTargets.indexOf(targetName) >= 0) {
                 return "activated targets";
             }
@@ -732,13 +736,17 @@ class TargetUtil {
             if (target.childAction?.length > 0 && TargetUtil.getActiveChildren(tmodel, completionScope).size > 0) {
                 return 'active children';
             }
-            
+                        
             if (target.childAction?.length > 0 && TargetUtil.areTargetChildrenComplete(target.childAction, completionScope) !== true) {
                 return 'incomplete children';
             }
             
             if (target.fetchAction && !getLoader().isLoadingSuccessful(tmodel, key)) {
                 return 'incomplete loading';
+            }
+            
+            if (tmodel.particleRuntime?.hasPending(key, completionScope)) {
+                return "pending GPU children";
             }
         }
         
@@ -751,6 +759,13 @@ class TargetUtil {
         }
 
         for (const child of children) {
+            if (!child) {
+                continue;
+            }
+            if (completionScope === "visible" && !child.isLightweightChild && child.visibilityStatus?.isVisible === undefined) {
+                return "visibility not calculated";
+            }
+            
             if (TargetUtil.shouldIgnoreChildForCompletion(child, completionScope)) {
                 continue;
             }
@@ -864,18 +879,26 @@ class TargetUtil {
         if (!child || !child.exists()) {
             return true;
         }
-        
+
         if (completionScope === "none") {
             return true;
         }
 
         if (completionScope === "visible") {
-            return child.visibilityStatus?.isVisible !== true;
+            if (child.visibilityStatus) {
+                return child.visibilityStatus.isVisible !== true;
+            }
+
+            if (typeof child.isVisible === "function") {
+                return child.isVisible() !== true;
+            }
+
+            return true;
         }
 
         return false;
     }
-
+    
     static activateSingleTarget(tmodel, targetName) {
         if (tmodel.targets[targetName] && tmodel.canTargetBeActivated(targetName)) {
             if (tmodel.isTargetEnabled(targetName)) {
@@ -1032,6 +1055,10 @@ class TargetUtil {
     }
     
     static resetTargetChildState(tmodel, options = {}, visited = new Set()) {
+        if (tmodel.isLightweightChild) {
+            return;
+        }
+
         const sig = `${tmodel.oid}`;
 
         if (visited.has(sig)) {

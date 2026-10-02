@@ -1,6 +1,5 @@
-import { getLocationManager, tRoot, getEvents } from "./App.js";
+import { getLocationManager, tRoot } from "./App.js";
 import { TargetUtil } from "./TargetUtil.js";
-import { TargetData } from "./TargetData.js";
 import { TModel } from "./TModel.js";
 
 /**
@@ -79,6 +78,10 @@ class TUtil {
 
     static isDefined(obj) {
         return typeof obj !== "undefined" && obj !== null;
+    }
+    
+    static hasProperty(obj, key) {
+        return Object.prototype.hasOwnProperty.call(obj, key);
     }
 
     static isNumber(num) {
@@ -201,24 +204,6 @@ class TUtil {
         return false;
     }
     
-    static runTargetValue(tmodel, target, key, cycle, lastValue, instance = undefined) {
-        const cleanKey = TargetUtil.getTargetName(key);
-        const isExternalEvent = TargetData.allEventMap[cleanKey];
-        const instanceArgs = TUtil.isDefined(instance) ? [instance] : [];
-
-        if (isExternalEvent) {
-            return typeof target.value === 'function'
-                ? target.value.call(tmodel, ...instanceArgs, getEvents().getCurrentOriginalEvent(), cycle, lastValue)
-                : TUtil.isDefined(target.value) ? target.value : target;
-        } else if (tmodel.val(`___${key}`)) {
-            return typeof target.value === 'function'
-                ? target.value.call(tmodel, ...instanceArgs, tmodel.val(`___${key}`), cycle, lastValue)
-                : TUtil.isDefined(target.value) ? target.value : target;
-        } else {
-            return typeof target.value === 'function' ? target.value.call(tmodel, ...instanceArgs, cycle, lastValue) : TUtil.isDefined(target.value) ? target.value : target;
-        }
-    }
-    
     static mergeTargets(tmodel1, tmodel2) {
         const sourceTargets = tmodel2.targets;
         const targetNames = tmodel2.originalTargetNames;
@@ -306,41 +291,50 @@ class TUtil {
             };
         }
 
-        if (!targetValue.catchupAt) {
+        if (!TUtil.isDefined(targetValue.catchupAt)) {
+            const step = tmodel.getTargetStep(key);
+            const valuePointer = targetValue.valueList?.length ? tmodel.getValueListPointer(key) : 0;
+
             return {
-                step: tmodel.getTargetStep(key),
+                step,
                 cycle: tmodel.getTargetCycle(key),
-                valuePointer: targetValue.valueList?.length ? tmodel.getValueListPointer(key) : 0,
-                done: tmodel.getTargetStep(key) >= tmodel.getTargetSteps(key)
+                valuePointer,
+                done: targetValue.valueList?.length ? valuePointer >= targetValue.valueList.length : false
             };
         }
 
-        const elapsedMs = TUtil.now() - targetValue.catchupAt;
+        const now = TUtil.now();
+        const elapsedMs = now - targetValue.catchupAt;
 
-        if (targetValue.valueList?.length) {
-            return TUtil.advanceValueListTargetByElapsed(tmodel, key, elapsedMs);
-        } else {
-            return TUtil.advanceSimpleTargetByElapsed(tmodel, key, elapsedMs);
+        const progress = targetValue.valueList?.length
+            ? TUtil.advanceValueListTargetByElapsed(tmodel, key, elapsedMs)
+            : TUtil.advanceSimpleTargetByElapsed(tmodel, key, elapsedMs);
+
+        if (!progress.done) {
+            targetValue.catchupAt = now - progress.remainingMs;
         }
+
+        return progress;
     }
 
     static advanceSimpleTargetByElapsed(tmodel, key, elapsedMs) {
         const steps = tmodel.getTargetSteps(key);
         const interval = tmodel.getTargetInterval(key) || 8;
         const cycles = tmodel.getTargetCycles(key);
+
         let step = tmodel.getTargetStep(key);
         let cycle = tmodel.getTargetCycle(key);
+        let remainingMs = elapsedMs;
 
         if (steps <= 0) {
             return {
                 step: steps,
                 valuePointer: 0,
                 cycle: cycles,
-                done: true
+                done: true,
+                remainingMs: 0
             };
         }
-
-        let remainingMs = elapsedMs;
 
         while (remainingMs > 0 && cycle < cycles) {
             const remainingSteps = Math.max(steps - step, 0);
@@ -355,7 +349,8 @@ class TUtil {
                         step: steps,
                         valuePointer: 0,
                         cycle: cycles,
-                        done: true
+                        done: true,
+                        remainingMs
                     };
                 }
 
@@ -363,16 +358,22 @@ class TUtil {
                 continue;
             }
 
-            const advancedSteps = TUtil.limit(Math.floor(remainingMs / interval), 0, remainingSteps);
+            const advancedSteps = TUtil.limit(
+                Math.floor(remainingMs / interval),
+                0,
+                remainingSteps
+            );
 
             step += advancedSteps;
+            remainingMs -= advancedSteps * interval;
 
             return {
                 step,
                 steps,
                 valuePointer: 0,
                 cycle,
-                done: false
+                done: false,
+                remainingMs
             };
         }
 
@@ -381,7 +382,8 @@ class TUtil {
             steps,
             valuePointer: 0,
             cycle,
-            done: cycle >= cycles
+            done: cycle >= cycles,
+            remainingMs
         };
     }
     
@@ -397,10 +399,9 @@ class TUtil {
         let cycle = tmodel.getTargetCycle(key);
         let valuePointer = tmodel.getValueListPointer(key);
         let step = tmodel.getTargetStep(key);
-       
         let remainingMs = elapsedMs;
 
-        while (remainingMs > 0 && cycle < cycles) {
+        while (cycle < cycles) {
             while (remainingMs > 0 && valuePointer < valueList.length) {
                 const segmentSteps = stepList[(valuePointer - 1) % stepList.length];
                 const interval = intervalList[(valuePointer - 1) % intervalList.length] || 8;
@@ -424,34 +425,47 @@ class TUtil {
                 );
 
                 step += advancedSteps;
+                remainingMs -= advancedSteps * interval;
 
                 return {
                     step,
                     steps: segmentSteps,
                     valuePointer,
                     cycle,
-                    done: false
+                    done: false,
+                    remainingMs
                 };
             }
 
-            cycle++;
+            if (valuePointer >= valueList.length) {
+                cycle++;
 
-            if (cycle >= cycles) {
-                const finalPointer = valueList.length;
-                const finalStepIndex = Math.max(0, valueList.length - 2);
-                const finalSteps = stepList[finalStepIndex % stepList.length];
+                if (cycle >= cycles) {
+                    const finalPointer = valueList.length;
+                    const finalStepIndex = Math.max(0, valueList.length - 2);
+                    const finalSteps = stepList[finalStepIndex % stepList.length];
 
-                return {
-                    step: finalSteps,
-                    steps: finalSteps,
-                    valuePointer: finalPointer,
-                    cycle: cycles,
-                    done: true
-                };
+                    return {
+                        step: finalSteps,
+                        steps: finalSteps,
+                        valuePointer: finalPointer,
+                        cycle: cycles,
+                        done: true,
+                        remainingMs
+                    };
+                }
+
+                valuePointer = 1;
+                step = 0;
+
+                if (remainingMs <= 0) {
+                    break;
+                }
+
+                continue;
             }
 
-            valuePointer = 1;
-            step = 0;
+            break;
         }
 
         const currentSteps = stepList[(valuePointer - 1) % stepList.length];
@@ -461,6 +475,7 @@ class TUtil {
             steps: currentSteps,
             valuePointer,
             cycle,
+            remainingMs,
             done: cycle >= cycles
         };
     }

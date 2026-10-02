@@ -3,6 +3,8 @@ import { TargetData } from './TargetData.js';
 import { TUtil } from './TUtil.js';
 import { TModel } from "./TModel.js";
 import { Easing } from "./Easing.js";
+import { getEvents } from "./App.js";
+
 
 /**
  * It provides helper functions for classify target types
@@ -110,7 +112,25 @@ class TargetParser {
     }
 
     static getInstanceTargetValue(tmodel, key, target, cycle, lastValue, instance) {
-        return TUtil.runTargetValue(tmodel, target, key, cycle, lastValue, instance);
+        return TargetParser.runTargetValue(tmodel, target, key, cycle, lastValue, instance);
+    }
+        
+    static runTargetValue(tmodel, target, key, cycle, lastValue, instance = undefined) {
+        const cleanKey = TargetUtil.getTargetName(key);
+        const isExternalEvent = TargetData.allEventMap[cleanKey];
+        const instanceArgs = TUtil.isDefined(instance) ? [instance] : [];
+
+        if (isExternalEvent) {
+            return typeof target.value === 'function'
+                ? target.value.call(tmodel, ...instanceArgs, getEvents().getCurrentOriginalEvent(), cycle, lastValue)
+                : TUtil.isDefined(target.value) ? target.value : target;
+        } else if (tmodel.val(`___${key}`)) {
+            return typeof target.value === 'function'
+                ? target.value.call(tmodel, ...instanceArgs, tmodel.val(`___${key}`), cycle, lastValue)
+                : TUtil.isDefined(target.value) ? target.value : target;
+        } else {
+            return typeof target.value === 'function' ? target.value.call(tmodel, ...instanceArgs, cycle, lastValue) : TUtil.isDefined(target.value) ? target.value : target;
+        }
     }
 
     static isChildrenTarget(key, value) {
@@ -275,7 +295,7 @@ static isObjectTarget(key, value) {
 
             // Plain objects: compute value + params (steps/interval/easing/cycles)
             if (typeof target === "object" && target !== null && Object.getPrototypeOf(target) === Object.prototype) {
-                const valueResult = TUtil.runTargetValue(tmodel, target, key, cycle, lastValue, instance);
+                const valueResult = TargetParser.runTargetValue(tmodel, target, key, cycle, lastValue, instance);
               
                 if (TargetParser.isPrimitiveArray(valueResult) && (TUtil.isDefined(target.steps) || TUtil.isDefined(target.interval) || TUtil.isDefined(target.easing) || TUtil.isDefined(target.cycles))) {
                     value = { list: valueResult };

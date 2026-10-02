@@ -107,9 +107,8 @@ const AppFn = () => {
         my.events.detachWindowEvents();
         my.events.attachWindowEvents();
         my.events.clearAll();
-        my.events.attachEvents(my.manager.getVisibles());
-
-        await my.runScheduler.resetRuns();
+        my.events.attachEvents(Object.values(App.tmodelIdMap).filter(tmodel => tmodel.hasDom() && tmodel.$dom.element.isConnected));
+                await my.runScheduler.resetRuns();
 
         my.runningFlag = true;
         my.runScheduler.schedule(0, "appStart");
@@ -132,17 +131,22 @@ const AppFn = () => {
     };
 
     my.reset = async function() {
-        my.manager.getVisibles().forEach(tmodel => { 
+        my.manager.getVisibles().forEach(tmodel => {
             if (tmodel.allStyleTargetMap?.size) {
                 for (const [key] of tmodel.allStyleTargetMap) {
                     if (TUtil.isDefined(tmodel.val(key))) {
                         tmodel.addToStyleTargetList(key);
                     }
                 }
-            }            
+            }
         });
+
         await my.runScheduler.resetRuns();
-        
+        for (const tmodel of Object.values(App.tmodelIdMap)) {
+            tmodel.particleRuntime?.dispose();
+            tmodel.particleRenderer?.destroy();
+        }
+
         my.manager.clearAll();
         my.locationManager.clear();
         my.loader.clear();
