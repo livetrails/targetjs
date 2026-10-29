@@ -130,24 +130,26 @@ class EventListener {
         });
     }
     
-attachEvents(tmodels) {
-    for (const tmodel of tmodels) {
+    attachEvents(tmodels) {
+        const isScrollable = value => typeof value === 'string' && value.split(/\s+/).some(mode => mode === 'scroll' || mode === 'auto');
 
-        const overflowX = tmodel.val('overflowX');
-        const overflowY = tmodel.val('overflowY');
+        for (const tmodel of tmodels) {
+            const overflow = tmodel.val('overflow');
+            const overflowX = tmodel.val('overflowX');
+            const overflowY = tmodel.val('overflowY');
 
-        if (tmodel.hasDom() &&
-            (overflowX === 'scroll' || overflowX === 'auto' ||
-             overflowY === 'scroll' || overflowY === 'auto')) {
+            if (tmodel.hasDom() &&
+                (isScrollable(overflow) || isScrollable(overflowX) || isScrollable(overflowY))) {
 
-            this.attachTargetEvents(tmodel, 'onWindowScroll', true);
-        }
+                this.attachTargetEvents(tmodel, 'onWindowScroll', true);
+            }
 
-        for (const [targetName] of tmodel.externalEventMap ?? []) {
-            this.attachTargetEvents(tmodel, targetName, true);
+            for (const [targetName] of tmodel.externalEventMap ?? []) {
+                this.attachTargetEvents(tmodel, targetName, true);
+            }
         }
     }
-}
+
     attachTargetEvents(tmodel, targetName, force) {
         const targetKey = `${tmodel.oid} ${targetName}`;
         
@@ -660,7 +662,19 @@ attachEvents(tmodels) {
                         t.markLayoutDirty('window-scroll-event');
                     });
 
-                } else {
+                } else if (tmodel?.hasDom()) {
+                    const scrollTop = tmodel.$dom.getScrollTop();
+                    const scrollLeft = tmodel.$dom.getScrollLeft();
+
+                    if (tmodel.getScrollTop() !== scrollTop) {
+                        tmodel.val('scrollTop', scrollTop);
+                    }
+
+                    if (tmodel.getScrollLeft() !== scrollLeft) {
+                        tmodel.val('scrollLeft', scrollLeft);
+                    }
+
+                    tmodel.visibilityDirty = true;
                     tmodel.markLayoutDirty('container-scroll-event');
                 }
 
