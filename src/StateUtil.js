@@ -28,7 +28,8 @@ const EXCLUDED_RUNTIME_FIELDS = new Set([
 
     "parent",
     "allChildrenList",
-    "allChildrenMap",
+    "allChildrenMap",  
+    "bracket",
 
     "$dom",
     "viewport",
@@ -57,24 +58,23 @@ const CHILD_OPERATION_FIELDS = [
 
    
 const RUNTIME_TIMESTAMP_FIELDS = new Set([
-        "lastUpdate",
-        "scheduleTimeStamp",
-        "completeTime",
-        "creationTime",
-        "activationTime",
-        "catchupAt",
-        "startTime",
-        "lastResizeHandledTime"
-    ]);
-    
+    "lastUpdate",
+    "scheduleTimeStamp",
+    "completeTime",
+    "creationTime",
+    "activationTime",
+    "catchupAt",
+    "startTime",
+    "segmentStartTime",
+    "pausedAt",
+    "lastResizeHandledTime"
+]);
+
 const TARGET_RUNTIME_FIELDS = [
     "originalTargetName",
     "originalTModel",
     "invokerTargetName",
-    "invokerTModel",
-    "fetchAction",
-    "childAction",
-    "addChildAction"
+    "invokerTModel"
 ];
 
 /**
@@ -175,9 +175,15 @@ class StateUtil {
         }
 
         if (StateUtil.isTModel(value)) {
+            const parent = value.getParent?.();
+
+            if (parent && typeof value.exists === "function" && !value.exists()) {
+                return undefined;
+            }
+
             return StateUtil.createTModelReference(value);
         }
-
+        
         if (seen.has(value)) {
             return seen.get(value);
         }
@@ -239,17 +245,25 @@ class StateUtil {
         return copy;
     }
 
-    static decodeValue(value, tmodelIdMap, seen = new WeakMap()) {
-        if (value === null || value === undefined || typeof value !== "object") {
-            return value;
-        }
 
-        if (StateUtil.isTModelReference(value)) {
-            return tmodelIdMap[value[TMODEL_REF_KEY]];
+    static decodeValue(value, tmodelIdMap, seen = new WeakMap()) {
+        if (value === null || typeof value !== "object") {
+            return value;
         }
 
         if (seen.has(value)) {
             return seen.get(value);
+        }
+
+        if (Array.isArray(value)) {
+            const copy = new Array(value.length);
+            seen.set(value, copy);
+
+            for (let index = 0; index < value.length; index++) {
+                copy[index] = StateUtil.decodeValue(value[index], tmodelIdMap, seen);
+            }
+
+            return copy;
         }
 
         if (value instanceof Date) {
@@ -258,11 +272,13 @@ class StateUtil {
 
         if (value instanceof Map) {
             const copy = new Map();
-
             seen.set(value, copy);
 
             for (const [key, mapValue] of value) {
-                copy.set(StateUtil.decodeValue(key, tmodelIdMap, seen), StateUtil.decodeValue(mapValue, tmodelIdMap, seen));
+                copy.set(
+                    StateUtil.decodeValue(key, tmodelIdMap, seen),
+                    StateUtil.decodeValue(mapValue, tmodelIdMap, seen)
+                );
             }
 
             return copy;
@@ -270,7 +286,6 @@ class StateUtil {
 
         if (value instanceof Set) {
             const copy = new Set();
-
             seen.set(value, copy);
 
             for (const item of value) {
@@ -280,40 +295,39 @@ class StateUtil {
             return copy;
         }
 
-        if (Array.isArray(value)) {
-            const copy = [];
+        const prototype = Object.getPrototypeOf(value);
 
-            seen.set(value, copy);
-
-            for (const item of value) {
-                copy.push(StateUtil.decodeValue(item, tmodelIdMap, seen));
-            }
-
-            return copy;
-        }
-
-        if (!StateUtil.isPlainObject(value)) {
+        if (prototype !== Object.prototype && prototype !== null) {
             return value;
         }
 
-        const copy = {};
+        if (Object.prototype.hasOwnProperty.call(value, TMODEL_REF_KEY)) {
+            return tmodelIdMap[value[TMODEL_REF_KEY]] ?? value;
+        }
 
+        const copy = {};
         seen.set(value, copy);
 
-        for (const [key, propertyValue] of Object.entries(value)) {
-            copy[key] = StateUtil.decodeValue(propertyValue, tmodelIdMap, seen);
+        for (const key of Object.keys(value)) {
+            copy[key] = StateUtil.decodeValue(value[key], tmodelIdMap, seen);
         }
 
         return copy;
     }
 
-    static resolveTModelReferencesInPlace(value, tmodelIdMap, seen = new WeakSet()) {
+    static resolveTModelReferencesInPlace(value, tmodelIdMap, seen = new WeakSet(), clearUnresolved = false) {
         if (value === null || value === undefined || typeof value !== "object") {
             return value;
         }
 
         if (StateUtil.isTModelReference(value)) {
-            return tmodelIdMap[value[TMODEL_REF_KEY]];
+            const resolved = tmodelIdMap[value[TMODEL_REF_KEY]];
+
+            if (resolved) {
+                return resolved;
+            }
+
+            return clearUnresolved ? undefined : value;
         }
 
         if (seen.has(value)) {
@@ -332,7 +346,10 @@ class StateUtil {
             value.clear();
 
             for (const [key, mapValue] of entries) {
-                value.set(StateUtil.resolveTModelReferencesInPlace(key, tmodelIdMap, seen), StateUtil.resolveTModelReferencesInPlace(mapValue, tmodelIdMap, seen));
+                const resolvedKey = StateUtil.resolveTModelReferencesInPlace(key, tmodelIdMap, seen, clearUnresolved);
+                const resolvedValue = StateUtil.resolveTModelReferencesInPlace(mapValue, tmodelIdMap, seen, clearUnresolved);
+
+                value.set(resolvedKey, resolvedValue);
             }
 
             return value;
@@ -344,7 +361,7 @@ class StateUtil {
             value.clear();
 
             for (const item of entries) {
-                value.add(StateUtil.resolveTModelReferencesInPlace(item, tmodelIdMap, seen));
+                value.add(StateUtil.resolveTModelReferencesInPlace(item, tmodelIdMap, seen, clearUnresolved));
             }
 
             return value;
@@ -352,7 +369,7 @@ class StateUtil {
 
         if (Array.isArray(value)) {
             for (let index = 0; index < value.length; index++) {
-                value[index] = StateUtil.resolveTModelReferencesInPlace(value[index], tmodelIdMap, seen);
+                value[index] = StateUtil.resolveTModelReferencesInPlace(value[index], tmodelIdMap, seen, clearUnresolved);
             }
 
             return value;
@@ -363,7 +380,7 @@ class StateUtil {
         }
 
         for (const key of Object.keys(value)) {
-            value[key] = StateUtil.resolveTModelReferencesInPlace(value[key], tmodelIdMap, seen);
+            value[key] = StateUtil.resolveTModelReferencesInPlace(value[key], tmodelIdMap, seen, clearUnresolved);
         }
 
         return value;
@@ -403,6 +420,12 @@ class StateUtil {
             fields[key] = tmodel[key];
         }
 
+        const additionalFields = tmodel.getRuntimeSnapshotFields?.();
+
+        if (additionalFields) {
+            Object.assign(fields, additionalFields);
+        }
+
         const runtime = StateUtil.encodeValue({
             state: tmodel.state(),
             fields
@@ -414,11 +437,8 @@ class StateUtil {
     }
     
     static importRuntimeState(tmodel, runtime, tmodelIdMap, { timeOffset = 0 } = {}) {
-        const restored = StateUtil.decodeValue(
-            runtime,
-            tmodelIdMap
-        );
 
+        const restored = StateUtil.decodeValue(runtime, tmodelIdMap);
         StateUtil.rebaseRuntimeTimes(restored, timeOffset);
 
         tmodel._state = restored.state || {};
@@ -432,7 +452,7 @@ class StateUtil {
         }
 
         StateUtil.clearMaterializedChildOperations(tmodel._state);
-
+        
         tmodel.childrenUpdateFlag = false;
 
         tmodel.$dom = null;
@@ -450,6 +470,8 @@ class StateUtil {
     }
 
     static createRuntimeSnapshot(tmodel) {
+        tmodel.getChildren?.();
+
         const children = [...(tmodel.allChildrenList ?? [])];
         const targetDefinitions = TUtil.cloneTargetDefinition(tmodel.targetDefinitions);
 
@@ -518,9 +540,7 @@ class StateUtil {
 
     static fromRuntimeSnapshot(snapshot, TModelClass, options = {}) {
         if (!snapshot) {
-            throw new TypeError(
-                "A runtime snapshot is required."
-            );
+            throw new TypeError("A runtime snapshot is required.");
         }
 
         const tmodelIdMap = {};
@@ -528,26 +548,16 @@ class StateUtil {
         const imports = [];
 
         const buildTree = (modelSnapshot, parent) => {
-            const tmodel = StateUtil.createWithIdentity(
-                modelSnapshot,
-                TModelClass
-            );
+            const tmodel = StateUtil.createWithIdentity(modelSnapshot, TModelClass);
 
             tmodelIdMap[tmodel.oid] = tmodel;
             models.push(tmodel);
 
             if (parent) {
-                StateUtil.attachRestoredChild(
-                    parent,
-                    tmodel
-                );
+                StateUtil.attachRestoredChild(parent, tmodel);
             }
 
-            imports.push({
-                tmodel,
-                runtime: modelSnapshot.runtime,
-                targetRuntime: modelSnapshot.targetRuntime
-            });
+            imports.push({ tmodel, runtime: modelSnapshot.runtime, targetRuntime: modelSnapshot.targetRuntime });
 
             for (const childSnapshot of modelSnapshot.children || []) {
                 buildTree(childSnapshot, tmodel);
@@ -561,41 +571,75 @@ class StateUtil {
         for (const tmodel of models) {
             StateUtil.resolveTModelReferencesInPlace(tmodel.targets, tmodelIdMap);
         }
-        
+
         for (const { tmodel, targetRuntime } of imports) {
             StateUtil.applyTargetRuntime(tmodel, targetRuntime, tmodelIdMap);
         }
-        
+       
         for (const { tmodel, runtime } of imports) {
             StateUtil.importRuntimeState(tmodel, runtime, tmodelIdMap, options);
         }
 
-        return { root, tmodelIdMap, models };        
+        const runtimeReferenceMap = { ...tmodelIdMap };
+
+        for (const tmodel of models) {
+            for (const child of tmodel.childHandles ?? []) {
+                runtimeReferenceMap[child.oid] = child;
+            }
+        }
+          
+        for (const tmodel of models) {
+            StateUtil.resolveTModelReferencesInPlace(tmodel.targets, runtimeReferenceMap, new WeakSet(), true);
+
+            tmodel.targetValues = StateUtil.resolveTModelReferencesInPlace(tmodel.targetValues, runtimeReferenceMap, new WeakSet(), true);
+
+            tmodel._state = StateUtil.resolveTModelReferencesInPlace(tmodel._state, runtimeReferenceMap, new WeakSet(), true);
+
+            tmodel.updatingChildrenMap = StateUtil.resolveTModelReferencesInPlace(tmodel.updatingChildrenMap, runtimeReferenceMap, new WeakSet(), true);
+
+            tmodel.animatingChildrenMap = StateUtil.resolveTModelReferencesInPlace(tmodel.animatingChildrenMap, runtimeReferenceMap, new WeakSet(), true);
+
+            tmodel.activeChildrenMap = StateUtil.resolveTModelReferencesInPlace(tmodel.activeChildrenMap, runtimeReferenceMap, new WeakSet(), true);
+
+            for (const child of tmodel.childHandles ?? []) {
+                child.targets = StateUtil.resolveTModelReferencesInPlace(child.targets, runtimeReferenceMap, new WeakSet(), true);
+
+                child.targetValues = StateUtil.resolveTModelReferencesInPlace(child.targetValues, runtimeReferenceMap, new WeakSet(), true);
+            }
+        }
+        
+        return { root, tmodelIdMap, models };
     }
     
     static exportTargetRuntime(tmodel) {
-        const result = {};
+       const result = {};
 
-        for (const [targetName, target] of Object.entries(tmodel.targets)) {
-            if (!StateUtil.isPlainObject(target)) {
-                continue;
-            }
+       for (const [targetName, target] of Object.entries(tmodel.targets)) {
+           if (!StateUtil.isPlainObject(target)) {
+               continue;
+           }
 
-            const runtime = {};
+           const runtime = {};
 
-            for (const field of TARGET_RUNTIME_FIELDS) {
-                if (Object.prototype.hasOwnProperty.call(target, field)) {
-                    runtime[field] = target[field];
-                }
-            }
+           for (const field of TARGET_RUNTIME_FIELDS) {
+               if (!Object.prototype.hasOwnProperty.call(target, field)) {
+                   continue;
+               }
 
-            if (Object.keys(runtime).length) {
-                result[targetName] = StateUtil.encodeValue(runtime);
-            }
-        }
+               if ((field === "childAction" || field === "addChildAction") && Array.isArray(target[field])) {
+                   runtime[field] = target[field].filter(child => child?.exists?.());
+               } else {
+                   runtime[field] = target[field];
+               }
+           }
 
-        return result;
-    }
+           if (Object.keys(runtime).length) {
+               result[targetName] = StateUtil.encodeValue(runtime);
+           }
+       }
+
+       return result;
+   }
 
     static applyTargetRuntime(tmodel, encodedTargetRuntime, tmodelIdMap) {
         for (const [targetName, encodedRuntime] of Object.entries(encodedTargetRuntime || {})) {

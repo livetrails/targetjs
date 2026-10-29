@@ -5,7 +5,7 @@ import { TargetData } from "./TargetData.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { ScheduleUtil } from "./ScheduleUtil.js";
 import { TargetExecutor } from "./TargetExecutor.js";
-import { getTargetManager, tRoot, getEvents, getAnimationManager, getManager } from "./App.js";
+import { getTargetManager, getRunScheduler, tRoot, getEvents, getAnimationManager, getManager } from "./App.js";
 
 /*
  * It calculates the locations and dimensions of all objects and triggers the calculation of all targets. 
@@ -111,7 +111,7 @@ class LocationManager {
 
         if (this.calcQueued) {
             this.calcQueued = false;
-            return this.calculateAll(budgetMs, true);
+            getRunScheduler().schedule(1, "queuedLocationCalculation");
         }
 
         //console.log(this.locationListStats.length);
@@ -225,7 +225,7 @@ class LocationManager {
                 job.index++;
                 return;
             }
-
+            
             if (!child.getDirtyLayout() && !child.visibilityDirty && !container.visibilityDirty && !child.hasEventDirty() &&
                     !child.currentStatus && child.activeTargetList.length === 0) {
 
@@ -233,9 +233,12 @@ class LocationManager {
                 const previousAbsY = child.absY;
 
                 this.calcNextLocation(child, container, viewport);
+                
+                if (child.isIncluded() && child.activateChangedPassiveTargets()) {
+                    this.calcQueued = true;
+                }
 
                 const positionChanged = child.absX !== previousAbsX || child.absY !== previousAbsY;
-
                 const needsRefresh = child.visibilityDirty || (child.hasChildren() && child.isVisible() && positionChanged);
 
                 if (child.getDirtyLayout()) {
@@ -263,21 +266,28 @@ class LocationManager {
                 this.domIslandSet.add(child);
             }
 
+            const previousLayoutX = child.x;
+            const previousLayoutY = child.y;
+
             viewport.setLocation();
 
             if (viewport.isOverflow()) {
                 viewport.overflow();
                 viewport.setLocation();
-                child.markLayoutDirty('overflow');
+
+                if (child.x !== previousLayoutX || child.y !== previousLayoutY) {
+                    child.markLayoutDirty('overflow');
+                }
             }
 
             const prevX = Math.floor(child.actualValues.x);
             const prevY = Math.floor(child.actualValues.y);
-
+            
             if (child.isIncluded()) {
+                child.activateChangedPassiveTargets();
                 this.calculateTargets(child);
             }
-
+            
             if (child.isIncluded()) {
                 if (child.targets['onVisibleChildrenChange'] && !this.visibleChildrenLengthMap[child.oid]) {
                     this.visibleChildrenLengthMap[child.oid] = {
@@ -538,14 +548,15 @@ class LocationManager {
             container.visibleChildren.push(child);
         }
 
-        if (TUtil.isNumber(child.val("appendNewLine"))) {
-            viewport.appendNewLine();
-        } else {
-            viewport.nextLocation();
+        if (child.isInFlow()) {
+            if (TUtil.isNumber(child.val("appendNewLine"))) {
+                viewport.appendNewLine();
+            } else {
+                viewport.nextLocation();
+            }
+
+            container.calcContentWidthHeight();
         }
-        
-        container.calcContentWidthHeight();
-        
     }
 
     calculateVisibility(tmodel) {
@@ -585,6 +596,7 @@ class LocationManager {
         if (tmodel.isNowVisible || tmodel.isNowInvisible) {
             tmodel.markLayoutDirty('isNowVisible');
             this.addToLocationList(tmodel);
+            tmodel.onVisibilityChange?.(nowVisible);
         }
         
         if (tmodel.isNowVisible && tmodel.hasChildren()) {
@@ -599,6 +611,10 @@ class LocationManager {
     }
 
     calculateTargets(tmodel) {
+        if (tmodel.hasDomNow) {
+            this.retryDomTargets(tmodel);
+        }
+        
         this.checkInternalEvents(tmodel);
 
         let guard = 0;
@@ -612,8 +628,6 @@ class LocationManager {
         }
 
         ScheduleUtil.pauseResumeSchedule(tmodel);
-
-        tmodel.activateChangedPassiveTargets();
 
         getTargetManager().applyTargetValues(tmodel);
         if (tmodel.updatingTargetList.length > 0) {
@@ -735,6 +749,23 @@ class LocationManager {
                 }
 
                 TargetUtil.shouldActivateNextTarget(tmodel, targetName);
+            }
+        });
+    }
+    
+    retryDomTargets(tmodel) {
+        const onDomReady = tmodel.targets.onDomReady;
+        const value = onDomReady?.value ?? onDomReady;
+
+        if (!value) {
+            return;
+        }
+
+        const targets = Array.isArray(value) ? value : [value];
+
+        targets.forEach(targetName => {
+            if (!targetName.endsWith("$")) {
+                TargetUtil.activateSingleTarget(tmodel, targetName);
             }
         });
     }

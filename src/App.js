@@ -97,54 +97,73 @@ const AppFn = () => {
         return my;
     };
 
-    my.start = async function() {
+
+    my.start = async function({ skipSchedulerReset = false } = {}) {
         my.runningFlag = false;
 
-        TargetExecutor.executeDeclarativeTarget(my.tRoot, 'screenWidth');
-        TargetExecutor.executeDeclarativeTarget(my.tRoot, 'screenHeight');
+        if (!skipSchedulerReset) {
+            await my.runScheduler.resetRuns();
+        }
 
-        my.events.detachAll();        
+        my.animationManager.isShuttingDown = false;
+
+        TargetExecutor.executeDeclarativeTarget(my.tRoot, "screenWidth");
+        TargetExecutor.executeDeclarativeTarget(my.tRoot, "screenHeight");
+
+        my.events.detachAll();
         my.events.detachWindowEvents();
         my.events.attachWindowEvents();
         my.events.clearAll();
-        my.events.attachEvents(Object.values(App.tmodelIdMap).filter(tmodel => tmodel.hasDom() && tmodel.$dom.element.isConnected));
-                await my.runScheduler.resetRuns();
+
+        my.events.attachEvents(
+            Object.values(App.tmodelIdMap).filter(tmodel => tmodel.hasDom() && tmodel.$dom.element.isConnected)
+        );
 
         my.runningFlag = true;
         my.runScheduler.schedule(0, "appStart");
 
         return my;
     };
-
-    my.stop = async function() {
+    
+    my.stop = async function({ discardState = false } = {}) {
         my.runningFlag = false;
 
         my.events.detachAll();
-        my.events.detachWindowEvents(); 
+        my.events.detachWindowEvents();
         my.events.clearAll();
-        await my.animationManager.deleteAll();
-        await my.animationManager.flushOneFrame();
+
+        await my.animationManager.deleteAll({ discardState });
+
+        if (!discardState) {
+            await my.animationManager.flushOneFrame();
+        }
 
         await my.runScheduler.resetRuns();
 
         return my;
     };
 
-    my.reset = async function() {
-        my.manager.getVisibles().forEach(tmodel => {
-            if (tmodel.allStyleTargetMap?.size) {
-                for (const [key] of tmodel.allStyleTargetMap) {
-                    if (TUtil.isDefined(tmodel.val(key))) {
-                        tmodel.addToStyleTargetList(key);
+    my.reset = async function({ discardState = false, skipSchedulerReset = false, preserveCachedModels = false } = {}) {
+        if (!discardState) {
+            my.manager.getVisibles().forEach(tmodel => {
+                if (tmodel.allStyleTargetMap?.size) {
+                    for (const [key] of tmodel.allStyleTargetMap) {
+                        if (TUtil.isDefined(tmodel.val(key))) {
+                            tmodel.addToStyleTargetList(key);
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
 
-        await my.runScheduler.resetRuns();
-        for (const tmodel of Object.values(App.tmodelIdMap)) {
-            tmodel.particleRuntime?.dispose();
-            tmodel.particleRenderer?.destroy();
+        if (!preserveCachedModels) {
+            for (const tmodel of Object.values(App.tmodelIdMap)) {
+                tmodel.disposeRuntimeDerivedState?.();
+            }
+        }
+
+        if (!skipSchedulerReset) {
+            await my.runScheduler.resetRuns();
         }
 
         my.manager.clearAll();

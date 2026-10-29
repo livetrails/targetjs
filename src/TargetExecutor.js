@@ -95,13 +95,14 @@ class TargetExecutor {
             targetValue = TargetExecutor.assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel);
             TargetExecutor.assignListTarget(tmodel, key, targetValue, value.list, value.list[0], vSteps, vInterval, vEasing, vCycles);
         } else if (TargetParser.isTargetSpecObject(value)) {
+
             const targetOptions = TargetExecutor.getTargetOptions(value);
             const valueArray = TargetParser.getValueStepsCycles(tmodel, key, value);
             const newValue = valueArray[0];
             const newSteps = TUtil.isDefined(valueArray[1]) ? valueArray[1] : steps;
             const newInterval = TUtil.isDefined(valueArray[2]) ? valueArray[2] : interval;
             const newEasing = TUtil.isDefined(valueArray[3]) ? valueArray[3] : easing;
-            const newCycles = TUtil.isDefined(valueArray[4]) ? valueArray[4] : cycles;
+            const newCycles = TUtil.isDefined(valueArray[4]) ? valueArray[4] : cycles; 
 
             TargetExecutor._executeImperativeTarget(tmodel, key, newValue, newSteps, newInterval, newEasing, originalTargetName, originalTModel, newCycles, targetOptions, snapUpdates);
 
@@ -134,7 +135,7 @@ class TargetExecutor {
         } else {
             if (typeof value === 'object' && !TargetParser.isListTarget(value)) {
                 const valueArray = TargetParser.getValueStepsCycles(tmodel, key, value);
-
+                
                 if (value !== valueArray[0]) {
                     value = valueArray[0];
                     steps = TUtil.isDefined(valueArray[1]) ? valueArray[1] : steps;
@@ -211,8 +212,8 @@ class TargetExecutor {
             return 'updating'; 
        } else if (tmodel.isTargetInLoop(key) || cycle < cycles - 1) {
             return 'active'; 
-        } else if (tmodel.targets[key]?.fetchAction && !getLoader().isLoadingSuccessful(tmodel, key)) {
-            return 'fetching';            
+        } else if (TargetUtil.hasFetchAction(tmodel, key) && !getLoader().isLoadingSuccessful(tmodel, key)) {
+            return 'fetching';         
         } else {
             return 'done';
         }
@@ -345,25 +346,30 @@ class TargetExecutor {
             : undefined;
 
         const target = tmodel.targets[key];
-        const hasInstances = target && typeof target === 'object' && TUtil.isDefined(target.instances);
+        const isExplodeChildren = TargetParser.isExplodeChildrenTarget(key);
+        const hasInstances = !isExplodeChildren && target && typeof target === "object" && TUtil.isDefined(target.instances);
         const instances = hasInstances ? TargetParser.getTargetInstances(tmodel, key, target, cycle) : 1;
+        const valueTarget = isExplodeChildren && typeof target?.value === "function" ? { ...target, value: {} } : target;
+
 
         let valueArray;
 
         if (hasInstances) {
             const values = new Array(instances);
 
-            valueArray = TargetParser.getValueStepsCycles(tmodel, key, target, cycle, 0);
+            valueArray = TargetParser.getValueStepsCycles(tmodel, key, valueTarget, cycle, 0);
             values[0] = valueArray[0];
             valueArray[0] = values;
+
             const lastValues = tmodel.val(key);
 
             for (let instance = 1; instance < instances; instance++) {
                 const lastValue = Array.isArray(lastValues) ? lastValues[instance] : lastValues;
+
                 values[instance] = TargetParser.getInstanceTargetValue(tmodel, key, target, cycle, lastValue, instance);
             }
         } else {
-            valueArray = TargetParser.getValueStepsCycles(tmodel, key, target, cycle);
+            valueArray = TargetParser.getValueStepsCycles(tmodel, key, valueTarget, cycle);
         }
         
         const newValue    = valueArray[0];
@@ -395,11 +401,11 @@ class TargetExecutor {
                 targetValue,
                 newValue,
                 undefined,
-                options.steps ?? newSteps,
+                0,
                 options.cycles ?? newCycles,
                 options.interval ?? newInterval,
                 options.easing ?? easing
-            );    
+            );  
         } else if (TargetParser.isChildTarget(key, newValue)) {
                         
             tmodel.addChild(newValue);
@@ -412,7 +418,42 @@ class TargetExecutor {
                 newCycles, 
                 newInterval,
                 easing
-            );        
+            );   
+
+
+        } else if (TargetParser.isExplodeChildrenTarget(key)) {
+            const definition = typeof target?.value === "function"
+                ? {}
+                : TargetParser.getExplodeChildrenDefinition(newValue === target ? undefined : newValue);
+
+            if (typeof tmodel.createExplodeChildren !== "function") {
+                throw new Error("explodeChildren requires a createExplodeChildren() implementation on the TModel.");
+            }
+
+            const result = tmodel.createExplodeChildren(key, definition, {
+                renderer: target?.renderer ?? "gpu",
+                steps: newSteps,
+                cycles: newCycles,
+                interval: newInterval,
+                easing
+            });
+
+            if (result === false) {
+                throw new Error("explodeChildren could not create its fragment children.");
+            }
+
+            const options = result && typeof result === "object" ? result : {};
+
+            TargetExecutor.assignSingleTarget(
+                targetValue,
+                definition,
+                undefined,
+                options.steps ?? 0,
+                options.cycles ?? newCycles,
+                options.interval ?? newInterval,
+                options.easing ?? easing
+            );
+
         } else if (TargetParser.isChildrenTarget(key, newValue)) {
                         
             const values = Array.isArray(newValue) ? newValue : newValue ? [newValue] : [];
@@ -467,7 +508,7 @@ class TargetExecutor {
                 easing
             );
         } else if (typeof newValue === 'object' && newValue.asChild === true) {
-            const child = new TModel(key, newValue);
+            const child = TargetExecutor.createTModel(key, newValue);
             tmodel.addChild(child);
                        
             TargetExecutor.assignSingleTarget(
@@ -517,6 +558,7 @@ class TargetExecutor {
     }
 
     static createTModel(key, targets) {
+        key = key?.replace(/\${1,2}$/, '');
         return TModelFactory.create(key, targets, (type, targets) => new TModel(type, targets));
     }
 }

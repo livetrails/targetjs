@@ -28,7 +28,7 @@ class TargetManager {
             tmodel.removeFromActiveTargets(key);
             return;
         }
-        
+       
         if (ScheduleUtil.shouldPauseTarget(tmodel, key)) {
             return;
         }
@@ -41,7 +41,7 @@ class TargetManager {
             if (tmodel.isScheduledPending(key)) {
                 return;
             }
-            const schedulePeriod = ScheduleUtil.scheduleExecution(tmodel, key);          
+            const schedulePeriod = ScheduleUtil.scheduleExecution(tmodel, key);         
             if (schedulePeriod > 0) {
                 getRunScheduler().schedule(schedulePeriod, `targetSchedule__${tmodel.oid}`);
                 return;
@@ -56,12 +56,12 @@ class TargetManager {
         }
         
         tmodel.resetScheduleTimeStamp(key);
-
+       
         TargetExecutor.prepareTarget(tmodel, key);
         TargetExecutor.executeDeclarativeTarget(tmodel, key);
-        
-        if (!TUtil.isDefined(target.fetchAction)) {
-            TargetUtil.shouldActivateNextTarget(tmodel, key); 
+          
+        if (!TargetUtil.hasFetchAction(tmodel, key)) {
+            TargetUtil.shouldActivateNextTarget(tmodel, key);
         }
     }
 
@@ -82,7 +82,7 @@ class TargetManager {
             schedulePeriod = ScheduleUtil.scheduleExecution(tmodel, key);
             
             if (schedulePeriod > 0) {  
-                getRunScheduler().schedule(schedulePeriod, `setActualValues-${tmodel.oid}-${key}`);
+                getRunScheduler().scheduleOnlyIfEarlier(schedulePeriod, `setActualValues-${tmodel.oid}-${key}`);
             } else {
                 tmodel.resetScheduleTimeStamp(key);
                 this.setActualValue(tmodel, key);
@@ -174,7 +174,7 @@ class TargetManager {
         const originalTargetName = targetValue.originalTargetName;
         let originalTarget = tmodel.targets[originalTargetName];
         let originalTModel = tmodel;
-
+        
         if (!originalTarget && originalTargetName) {
             originalTModel = this.findOriginalTModel(tmodel, originalTargetName);
             originalTarget = originalTModel ? originalTModel.targets[originalTargetName] : null;
@@ -221,30 +221,19 @@ class TargetManager {
     
         
     calculateTargetStatus(tmodel, key) {
-        const targetValue = tmodel.targetValues[key];
-        
-        if (!targetValue) {
-            return;
+        if (TargetUtil.isTargetUpdating(tmodel, key)) {
+            return 'updating';
         }
-        
-        const valuePointer = tmodel.getValueListPointer(key);
+
         const cycle = tmodel.getTargetCycle(key);
         const cycles = tmodel.getTargetCycles(key);
-        const step = tmodel.getTargetStep(key);
-        const steps = tmodel.getTargetSteps(key);
-        
-        if (Array.isArray(targetValue.valueList) && valuePointer < targetValue.valueList.length) {
-            return 'updating';
-        } else if (tmodel.isTargetImperative(key) && cycle < cycles - 1) { 
-            return 'updating';
-       } else if (step < steps) {
-            return 'updating';            
-        } else if (tmodel.isTargetInLoop(key) || cycle < cycles - 1) {
-            return 'active';  
-        } else {
-            return 'done';
+
+        if (tmodel.isTargetInLoop(key) || cycle < cycles - 1) {
+            return 'active';
         }
-    }    
+
+        return 'done';
+    }
 
     catchupTargetByElapsed(tmodel, key, { fireEnd = false } = {}) {
         const targetValue = tmodel.targetValues[key];
@@ -398,25 +387,31 @@ class TargetManager {
         return undefined;
     }
 
+
     animateActualValue(tmodel, key, targetValue, state, step, valuePointer) {
         if (!tmodel.hasDom()) {
             tmodel.addToNoDomUpdatingTargets(key);
             return;
         }
-       
+
         const newValue = step > 0 ? TModelUtil.easingMorph(tmodel, key, state.initialValue, state.theValue, step, state.steps) : state.initialValue;
 
-        const cycles = tmodel.isTargetImperative(key) ? tmodel.getTargetCycles(key) : 0;
+        const cycleDuration = AnimationUtil.handleWebAnimationAPI(tmodel,state.cleanKey, key, targetValue, newValue, state.theValue, valuePointer,
+                    step, state.steps, state.interval, 0, false, true);
 
-        const cycleDuration = AnimationUtil.handleWebAnimationAPI(tmodel, state.cleanKey, key, targetValue, newValue, state.theValue, valuePointer, 
-                step, state.steps, state.interval, 0, false, true);
+        // AnimationUtil already expands all cycles for value lists.
+        if (targetValue.valueList?.length) {
+            return;
+        }
+
+        const cycles = tmodel.isTargetImperative(key) ? tmodel.getTargetCycles(key) : 1;
 
         for (let c = 1; c < cycles; c++) {
             AnimationUtil.handleWebAnimationAPI(tmodel, state.cleanKey, key, targetValue, newValue, state.theValue, valuePointer, 
                 step, state.steps, state.interval, c * cycleDuration, true, false);
         }
-    }  
-    
+    }     
+
     updateActualValue(tmodel, key, targetValue, state, step) {
         if (step <= state.steps) {
             tmodel.incrementTargetStep(key, state.now, state.lastUpdateTime, state.interval, state.steps);

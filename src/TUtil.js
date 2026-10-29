@@ -299,7 +299,7 @@ class TUtil {
                 step,
                 cycle: tmodel.getTargetCycle(key),
                 valuePointer,
-                done: targetValue.valueList?.length ? valuePointer >= targetValue.valueList.length : false
+                done: !TargetUtil.isTargetUpdating(tmodel, key)
             };
         }
 
@@ -478,7 +478,7 @@ class TUtil {
             remainingMs,
             done: cycle >= cycles
         };
-    }
+    }   
 }
 
 export { TUtil };

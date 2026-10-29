@@ -1,6 +1,6 @@
 import { $Dom } from "./$Dom.js";
 import { TUtil } from "./TUtil.js";
-import { getLocationManager, getEvents, getTargetManager, tRoot } from "./App.js";
+import { App, getLocationManager, getEvents, getTargetManager, tRoot } from "./App.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { AnimationUtil } from "./AnimationUtil.js";
@@ -124,7 +124,7 @@ class TModelManager {
             }
             
             if (tmodel.hasDom()) {
-                if (!tmodel.canHaveDom() || !tmodel.isIncluded() || (tmodel.canDeleteDom() && !visible && !preserveDom)) {
+                if (!tmodel.canHaveDom() || !tmodel.isIncluded() || (!visible && !preserveDom)) {
                     this.addToDeletedDom(tmodel);
 
                     tmodel.getChildren().forEach(child => {
@@ -224,7 +224,7 @@ class TModelManager {
             }
 
         });
-        
+                 
         return this.lists.noDom.length > 0 ? 0 :
                this.lists.reattach.length > 0 ? 1 :
                this.lists.relocation.length > 0 ? 2 :
@@ -238,39 +238,22 @@ class TModelManager {
         if (!tmodel.isIncluded()) {
             return false;
         }
-        
-        if (this.getDomPolicy(tmodel) === "keep") {
+
+        if (tmodel.reuseDomDefinition()) {
             return true;
         }
-        
-        if (!tmodel.isVisible() && TUtil.isDefined(tmodel.targets.isVisible)) {
-            return false;
-        }
-        
-        let parent = tmodel.parent;
-        
 
-        while (parent && parent !== tRoot()) {
-            if (TUtil.isDefined(parent.targets.canDeleteDom)) {
-                return parent.val('canDeleteDom') === false;
-            }
+        const policy = this.getDomPolicy(tmodel);
 
-            if (TUtil.isDefined(parent.targets.isVisible)) {
-                return parent.val('isVisible') === true;
-            }
-
-            parent = parent.parent;
-        }
-
-        return false;
+        return policy === "keep" || policy === "required";
     }
     
     shouldHaveDom(tmodel, visible = tmodel.isVisible()) {
-        if (!tmodel.canHaveDom() || !tmodel.isIncluded()) {
+        if (tmodel.isLightweightChild || !tmodel.canHaveDom() || !tmodel.isIncluded()) {
             return false;
         }
 
-        return visible || tmodel.requiresDom() || this.getDomPolicy(tmodel) === "keep";
+        return visible || tmodel.reuseDomDefinition() || this.getDomPolicy(tmodel) === "required";
     }
 
     shouldCreateDom(tmodel, visible = tmodel.isVisible()) {
@@ -370,9 +353,17 @@ class TModelManager {
             return;
         }
 
+        tmodel.disposeRuntimeDerivedState?.();
+
         delete this.visibleOidMap[tmodel.oid];
         delete this.preservedDomMap[tmodel.oid];
         this.domPolicyMap.delete(tmodel.oid);
+        
+        if (App.tmodelIdMap[tmodel.oid] === tmodel) {
+            delete App.tmodelIdMap[tmodel.oid];
+        }
+        
+        getLocationManager().domIslandSet.delete(tmodel);
 
         if (tmodel.hasDom() && !this.lists.deletedDom.includes(tmodel)) {
             this.lists.deletedDom.push(tmodel);
@@ -511,19 +502,23 @@ class TModelManager {
         if (tmodel.hasAnimatingTargets()) {
             AnimationUtil.detachAnimationsOnDeleteDom(tmodel);
         }
-        
+
+        // Remove the GPU layer, which may be mounted as a sibling of the model's DOM.
+        tmodel.particleRenderer?.canvasLayer?.remove();
+
         const domParent = tmodel.getDomParent();
         if (domParent && domParent.$dom) {
-            domParent.$dom.removeElement(tmodel.$dom.element); 
-        }        
+            domParent.$dom.removeElement(tmodel.$dom.element);
+        }
 
-        this.resetTModelDom(tmodel);
+        this.resetTModelDom(tmodel);        
     }
     
     fixStyles() {
         for (const tmodel of this.lists.restyle) {
             if (tmodel.hasDom()) {
                 TModelUtil.fixStyle(tmodel);
+                this.retryPendingTargetsAfterStyle(tmodel);
             }
         }       
     }
@@ -532,8 +527,19 @@ class TModelManager {
         for (const tmodel of this.lists.reasyncStyle) {
             if (tmodel.hasDom()) {
                 TModelUtil.fixAsyncStyle(tmodel);
+                this.retryPendingTargetsAfterStyle(tmodel);
             }
         }
+    }
+    
+    retryPendingTargetsAfterStyle(tmodel) {
+        if (TargetUtil.hasPendingStyles(tmodel)) {
+            return;
+        }
+
+        for (const key of [...(tmodel.pendingTargets ?? [])]) {
+            TargetUtil.shouldActivateNextTarget(tmodel, key);
+        } 
     }
     
     activatePendingTargetsAfterDom(tmodels, { restoredDoneTargets = true } = {}) {
@@ -553,8 +559,8 @@ class TModelManager {
 
             const pending = tmodel.pendingTargets;
             const visited = new Set();
-
-            if (pending) {
+            
+            if (pending) {            
                 for (const key of [...pending]) {
                     visited.add(key);
                     TargetUtil.cleanupTarget(tmodel, key);
@@ -574,9 +580,8 @@ class TModelManager {
                         continue;
                     }
                     
-                    if (TargetUtil.cleanupTarget(tmodel, key)) {
-                        TargetUtil.shouldActivateNextTarget(tmodel, key);
-                    }
+                    TargetUtil.cleanupTarget(tmodel, key);
+                    TargetUtil.shouldActivateNextTarget(tmodel, key);
                 }
             }
         }
@@ -612,7 +617,7 @@ class TModelManager {
         if (this.lists.noDom.length === 0) {
             return;
         }
-
+        
         const holdersMap = new Map();
         const styleBatch = [];
         const needsDom = [];
@@ -701,14 +706,12 @@ class TModelManager {
         }
         
         for (const tmodel of domReady) {
-            tmodel.onDomReady();
+            tmodel.onDomAvailable();
         }
 
         this.activatePendingTargetsAfterDom(attached);
 
-        getEvents().attachEvents(
-            attached.filter(t => t.externalEventMap?.size > 0)
-        );
+        getEvents().attachEvents(attached);
     }
 }
 

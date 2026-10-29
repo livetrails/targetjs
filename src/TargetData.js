@@ -22,10 +22,13 @@ class TargetData {
             isIncluded: true,
             bracketThreshold: 40,
             bracketSize: 2,
-            preventDefault: undefined,
-            canDeleteDom: undefined
+            preventDefault: undefined
         };
     }
+    
+    static onDomTargets = new Set([
+        "explodeChildren"
+    ]);
 
     static transformOrder = {
         perspective: 0,
@@ -157,6 +160,7 @@ class TargetData {
         alignItems: true,
         display: true,
         cursor: true,
+        pointerEvents: true,
         fontFamily: true,
         overflow: true,
         overflowX: true,
@@ -167,11 +171,14 @@ class TargetData {
         willChange: true,
         backgroundImage: true,
         backgroundSize: true,
+        backgroundPosition: true,
+        backgroundRepeat: true,        
         flexWrap: true,
         userSelect: true,
         outline: true,
         backfaceVisibility: true,
-        filter: true
+        filter: true,
+        whiteSpace: true
     };
 
     static scaleMap = {
@@ -229,8 +236,7 @@ class TargetData {
         widthFromDom: true,
         fetch: true,
         fetchImage: true,
-        isVisible: true,
-        canDeleteDom: true
+        isVisible: true
     };
 
     static ignoreRerun = {
@@ -259,8 +265,7 @@ class TargetData {
         styling: true,
         reuseDomDefinition: true,
         useWindowFrame: true,
-        canDeleteDom: true,
-        onDomEvent: true,
+        onDomReady: true,
         canHaveDom: true
     };
 
@@ -406,6 +411,8 @@ class TargetData {
         backgroundcolor: 'backgroundColor',
         backgroundimage: 'backgroundImage',
         backgroundsize: 'backgroundSize',
+        backgroundposition: 'backgroundPosition',
+        backgroundrepeat: 'backgroundRepeat',        
         bordertop: 'borderTop',
         borderleft: 'borderLeft',
         borderright: 'borderRight',
@@ -448,7 +455,9 @@ class TargetData {
         ariacurrent: 'ariaCurrent',
         ariapressed: 'ariaPressed',
         tabindex: 'tabIndex',
-        backfacevisibility: 'backfaceVisibility'
+        backfacevisibility: 'backfaceVisibility',
+        whitespace: 'whiteSpace',
+        pointerevents: 'pointerEvents'
     };
 
     static targetToEventsMapping = {
@@ -482,7 +491,6 @@ class TargetData {
     };
 
     static internalEventMap = {
-        onDomEvent: tmodel => tmodel.hasDomNow,
         onVisible: tmodel => tmodel.isNowVisible,
         onInvisible: tmodel => tmodel.isNowInvisible,
         onResize: tmodel => {
@@ -585,9 +593,9 @@ class TargetData {
         ...Object.keys(TargetData.allEventMap),
         ...Object.keys(TargetData.internalEventMap),
         ...Object.keys(TargetData.mustExecuteTargets),
-        'children', 'addChildren', 'addParticles',
+        'children', 'addChildren', 'explodeChildren',
         'html', 'isInFlow', 'domHolder', 'domParent', 'gap', 'widthFromDom', 'heightFromDom',
-        'requiresDom', 'preventDefault', 'canDeleteDom', 'textOnly', 'styling', '$dom',
+        'preventDefault', 'textOnly', 'styling', '$dom',
         'defaultStyling', 'reuseDomDefinition', 'canHaveDom', 'excludeXYCalc', 'excludeX', 'excludeY',
         'containerOverflowMode', 'itemOverflowMode', 'baseElement', 'element', 'otype',
         'calculateChildren','domIsland', 'bracketThreshold', 'bracketSize', 'shouldBeBracketed', 'sourceDom'
@@ -620,6 +628,10 @@ class TargetData {
     static affectsVisibility(key) {
         key = TargetUtil.getTargetName(key);
         return ["x", "y", "width", "height", "dim"].includes(TargetUtil.getTargetName(key));
+    }
+    
+    static requiresDom(targetName) {
+        return TargetData.onDomTargets.has(targetName);
     }
 }
 

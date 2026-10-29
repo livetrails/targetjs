@@ -230,7 +230,7 @@ class ParticleChild {
     }
 
     isInFlow() {
-        return true;
+        return this.val("isInFlow") ?? true;
     }
 
     isIncluded() {

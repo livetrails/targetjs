@@ -16,11 +16,16 @@ class TargetParser {
 
     static hasLifecycle(object) {
         for (const key in object) {
-            const value = object[key];
-            if (typeof value === 'function' && TargetData.isLifeCycleMethod(key)) {
+            // Event handlers are not target lifecycle callbacks.
+            if (TargetData.eventSet.has(key)) {
+                continue;
+            }
+
+            if (typeof object[key] === 'function' && TargetData.isLifeCycleMethod(key)) {
                 return true;
             }
         }
+
         return false;
     }
     
@@ -342,6 +347,30 @@ static isObjectTarget(key, value) {
         }
 
         return getValue(_target);
+    }
+    
+    static getInitialTargetValue(tmodel, key, target, cycle = 0) {
+        if (typeof target === "function") {
+            return TargetParser.getInitialTargetValue(tmodel, key, target.call(tmodel, cycle, tmodel.val(key)), cycle);
+        }
+
+        if (TargetParser.isPlainObject(target)) {
+            if (TUtil.isDefined(target.initialValue)) {
+                return TargetParser.getInitialTargetValue(tmodel, key, target.initialValue, cycle);
+            }
+
+            if (typeof target.value === "function") {
+                return TargetParser.getInitialTargetValue(tmodel, key, target.value.call(tmodel, cycle, tmodel.val(key)), cycle);
+            }
+        }
+
+        const [value] = TargetParser.getValueStepsCycles(tmodel, key, target, cycle);
+
+        return TargetParser.isListTarget(value) ? value.list[0] : value;
+    }
+    
+    static isExplodeChildrenTarget(key) {
+        return TargetUtil.getTargetName(key) === "explodeChildren";
     }
 }
 

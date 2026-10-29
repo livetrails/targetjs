@@ -704,7 +704,6 @@ class AnimationUtil {
             if (remainingSteps <= 0) {
                 tmodel.val(key, to);
                 targetValue.step = steps;
-                return 0;
             }
 
             keyDuration = remainingSteps * interval;

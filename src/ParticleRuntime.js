@@ -24,16 +24,24 @@ class ParticleRuntime {
         this.startQueue = [];
         this.startQueueIndex = 0;
         this.disposed = false;
-        this.animationFrameId = undefined;        
+        this.animationFrameId = undefined;
+        this.loopQueue = [];
+        this.queuedLoops = new WeakMap();
+        this.runningLoops = new WeakMap();
+        this.imperativeCompletionFrame = undefined;
+        this.visibilityPaused = false;
+        this.restorePending = false;
+        this.propertyOwners = new WeakMap();
+        this.imperativeSequenceCount = 0;
     }
 
-    registerChild(index, targetName, compiled) {
+    registerChild(index, originalTargetName, compiled) {
         const hasRuntime = compiled.runtimeTargets.some(target => target.requiresRuntime !== false);
         
         this.tmodel.childRuntimePrograms[index] = compiled.runtimeTargets;
 
         this.tmodel.childRuntimeStates[index] = {
-            ownerTargetName: targetName,
+            originalTargetName,
             nextTargetIndex: 0,
             activationCount: 0,
             executions: {},
@@ -41,11 +49,14 @@ class ParticleRuntime {
             startQueued: false,
             renderReady: false,
             started: false,
-            done: !hasRuntime
+            done: !hasRuntime,
+            targetCycles: {},
+            loopTargets: {},
+            mainFinished: false,
         };
 
         if (hasRuntime) {
-            this.tmodel.pendingGpuChildRuntimeCounts[targetName] = (this.tmodel.pendingGpuChildRuntimeCounts[targetName] || 0) + 1;
+            this.tmodel.pendingGpuChildRuntimeCounts[originalTargetName] = (this.tmodel.pendingGpuChildRuntimeCounts[originalTargetName] || 0) + 1;
         }
 
         return hasRuntime;
@@ -56,6 +67,7 @@ class ParticleRuntime {
 
         if (state) {
             state.cancelled = true;
+            state.loopTargets = {};
 
             if (!state.done) {
                 this.complete(index);
@@ -108,10 +120,8 @@ class ParticleRuntime {
             return false;
         }
 
-        const targetName = TargetUtil.getTargetName(key);
-
         return this.tmodel.childRuntimeStates.some((state, index) => {
-            if (!state || state.ownerTargetName !== targetName) {
+            if (!state || (key !== undefined && state.originalTargetName !== key)) {
                 return false;
             }
 
@@ -119,8 +129,12 @@ class ParticleRuntime {
                 return false;
             }
 
-            return !state.done || Object.keys(this.activeTargets[index] || {}).length > 0;
+            return !state.renderReady || !state.done || Object.keys(this.activeTargets[index] || {}).length > 0;
         });
+    }
+    
+    hasPendingAny(completionScope = "all") {
+        return this.hasPending(undefined, completionScope);
     }
 
     isIntervalTarget(runtimeTarget) {
@@ -128,6 +142,8 @@ class ParticleRuntime {
     }
 
     prepareRestore() {
+        this.restorePending = true;
+
         this.restoredMainIndexes = [];
         this.restoredActivationSequences = [];
         this.restoredImperativeExecutions = [];
@@ -141,6 +157,9 @@ class ParticleRuntime {
 
             state.executions ??= {};
             state.activationCount ??= 0;
+            state.targetCycles ??= {};
+            state.loopTargets ??= {};
+            state.mainFinished ??= false;
 
             const executions = Object.values(state.executions);
 
@@ -172,6 +191,12 @@ class ParticleRuntime {
 
             for (const execution of executions) {
                 if (execution.sequenceId?.startsWith("imperative:")) {
+                    const lastPart = execution.sequenceId.split(":").pop();
+                    const count = Number(lastPart);
+                    if (Number.isFinite(count)) {
+                        this.imperativeSequenceCount = Math.max(this.imperativeSequenceCount, count);
+                    }
+
                     this.restoredImperativeExecutions.push({
                         index,
                         execution
@@ -186,10 +211,16 @@ class ParticleRuntime {
     }
     
     resumeRestored() {
+        if (this.disposed || !this.restorePending || !this.tmodel.isVisible()) {
+            return false;
+        }
+
+        this.restorePending = false;
+        
         const mainIndexes = this.restoredMainIndexes.splice(0);
         const activationSequences = this.restoredActivationSequences.splice(0);
         const imperativeExecutions = this.restoredImperativeExecutions.splice(0);
-        
+
         for (const index of mainIndexes) {
             this.resumeMainProgram(index);
         }
@@ -197,10 +228,39 @@ class ParticleRuntime {
         for (const { index, sequenceId } of activationSequences) {
             this.resumeActivationSequence(index, sequenceId);
         }
-        
-        for (const { index, execution } of imperativeExecutions) {
-            this.resumeImperativeExecution(index, execution);
-        }        
+
+            for (const { index, execution } of imperativeExecutions) {
+                this.resumeImperativeExecution(index, execution);
+            }
+
+        for (let index = 0; index < this.tmodel.childRuntimeStates.length; index++) {
+            const state = this.tmodel.childRuntimeStates[index];
+
+            if (!state || state.done) {
+                continue;
+            }
+
+            for (const [key, active] of Object.entries(state.loopTargets || {})) {
+                if (!active) {
+                    continue;
+                }
+
+                const targetIndex = Number(key);
+                const sequenceId = `loop:${targetIndex}`;
+                const execution = state.executions?.[this.getExecutionId(sequenceId, targetIndex)];
+
+                if (execution?.segmentReady && execution.interval > 0) {
+                    execution.segmentStartTime = TUtil.now() - execution.step * execution.interval;
+                    execution.pausedAt = undefined;
+                }
+
+                this.queueLoop(index, targetIndex);
+            }
+        }
+
+        if (this.tmodel.pendingImperativeCompletions.size) {
+            this.queueImperativeCompletion();
+        }
     }
 
     resumeActivationSequence(index, sequenceId) {
@@ -221,7 +281,11 @@ class ParticleRuntime {
         const activeTargets = this.activeTargets[index] ??= {};
 
         const promise = Promise.all(executions.map(execution => this.resumeExecution(index, execution)))
-            .then(() => this.continueActivatedSequence(index, currentTargetIndex + 1, sequenceId))
+            .then(results => {
+                if (results.every(Boolean)) {
+                    return this.continueActivatedSequence(index, currentTargetIndex + 1, sequenceId);
+                }
+            })  
             .catch(error => {
                 console.error(error);
             })
@@ -263,33 +327,35 @@ class ParticleRuntime {
             value: runtimeTarget.target.value,
             steps: runtimeTarget.target.steps || 0,
             interval: runtimeTarget.target.interval || 0,
-            easing: runtimeTarget.target.easing
+            easing: runtimeTarget.target.easing,
+            cycles: runtimeTarget.target.cycles ?? 1
         };
 
         child.targetValues[imperativeKey] = targetValue;
         child.addToUpdatingTargets(imperativeKey);
-
-        const promise = execution.kind === "render"
-            ? this.runRenderTarget(index, runtimeTarget, execution.targetIndex, execution.sequenceId)
-            : this.runRuntimeTarget(index, runtimeTarget, execution.targetIndex, execution.sequenceId);
+        
+        const promise = this.runTarget(index, runtimeTarget, execution.targetIndex, execution.sequenceId, targetValue);
 
         Promise.resolve(promise)
             .catch(error => {
                 console.error(error);
+                return false;
             })
-            .finally(() => {
-                if (this.disposed || child.targetValues[imperativeKey] !== targetValue) {
+            .then(completed => {
+                if (this.disposed ||
+                    child.targetValues[imperativeKey] !== targetValue) {
                     return;
                 }
 
-                targetValue.status = "done";
+                targetValue.status = completed ? "done" : "cancelled";
                 child.removeFromUpdatingTargets(imperativeKey);
 
-                if (runtimeTarget.originalTargetIsParent && runtimeTarget.originalTargetName) {
-                    TargetUtil.shouldActivateNextTarget(this.tmodel, runtimeTarget.originalTargetName, 1, 0, true, "complete");
+                if (completed) {
+                    this.queueImperativeCompletion(
+                        runtimeTarget.originalTargetIsParent ? this.tmodel : undefined,
+                        runtimeTarget.originalTargetName
+                    );
                 }
-
-                getRunScheduler().schedule(1, `gpuImperativeComplete-${child.oid}-${imperativeKey}`);
             });
 
         return true;
@@ -313,8 +379,12 @@ class ParticleRuntime {
                 break;
             }
 
-            await this.runTarget(index, runtimeTarget, nextTargetIndex, sequenceId);
-        }
+            const completed = await this.runTarget(index, runtimeTarget, nextTargetIndex, sequenceId);
+
+            if (!completed) {
+                return;
+            }        
+        }   
     }
 
     resumeMainProgram(index) {
@@ -334,7 +404,7 @@ class ParticleRuntime {
                 console.error(error);
             })
             .finally(() => {
-                this.complete(index);
+                this.finishMainProgram(index, state);
             });
     }
 
@@ -346,19 +416,7 @@ class ParticleRuntime {
             return Promise.resolve();
         }
 
-        if (execution.kind === "interval") {
-            return this.runIntervalTarget(index, runtimeTarget, execution.targetIndex, execution.sequenceId);
-        }
-
-        if (execution.kind === "render") {
-            return this.runRenderTarget(index, runtimeTarget, execution.targetIndex, execution.sequenceId);
-        }
-
-        if (execution.kind === "runtime") {
-            return this.runRuntimeTarget(index, runtimeTarget, execution.targetIndex, execution.sequenceId);
-        }
-
-            return Promise.resolve();
+        return this.runTarget(index, runtimeTarget, execution.targetIndex, execution.sequenceId);
     }
     
     complete(index) {
@@ -376,28 +434,33 @@ class ParticleRuntime {
         state.done = true;
         state.started = false;
 
-        const targetName = state.ownerTargetName;
-        const count = Math.max(0, (tmodel.pendingGpuChildRuntimeCounts[targetName] || 0) - 1);
+        const originalTargetName = state.originalTargetName;
+        const count = Math.max(0, (tmodel.pendingGpuChildRuntimeCounts[originalTargetName] || 0) - 1);
 
         if (count > 0) {
-            tmodel.pendingGpuChildRuntimeCounts[targetName] = count;
+            tmodel.pendingGpuChildRuntimeCounts[originalTargetName] = count;
         } else {
-            delete tmodel.pendingGpuChildRuntimeCounts[targetName];
+            delete tmodel.pendingGpuChildRuntimeCounts[originalTargetName];
             getRunScheduler().schedule(1, `gpuChildRuntimeComplete-${tmodel.oid}`);
         }
 
-        TargetUtil.cleanupVisibleComplete(tmodel, targetName);
+        TargetUtil.cleanupVisibleComplete(tmodel, originalTargetName);
 
-        // Retry the parent pipeline when its GPU children are ready.
-        const pendingKey = [...(tmodel.pendingTargets ?? [])].find(key =>
-            TargetUtil.getTargetName(key) === targetName
-        );
+        this.completeOriginalTarget(originalTargetName);
+    }
+    
+    completeOriginalTarget(originalTargetName) {
+        const tmodel = this.tmodel;
 
-        if (pendingKey && tmodel.isTargetDone(pendingKey) &&
-                tmodel.isTargetTreeComplete(pendingKey) === true) {
-            TargetUtil.cleanupTarget(tmodel, pendingKey);
-            TargetUtil.shouldActivateNextTarget(tmodel, pendingKey);
+        if (!tmodel.isTargetDone(originalTargetName) ||
+            !tmodel.isTargetTreeComplete(originalTargetName)) {
+            return false;
         }
+
+        TargetUtil.cleanupTarget(tmodel, originalTargetName);
+        TargetUtil.shouldActivateNextTarget(tmodel, originalTargetName);
+
+        return true;
     }
 
     queueStart(index) {
@@ -410,26 +473,46 @@ class ParticleRuntime {
         state.startRequested = true;
     }
 
+
     markRenderReady(indexes) {
+        const originalTargetNames = new Set();
+
         for (const index of indexes) {
             const state = this.tmodel.childRuntimeStates[index];
 
-            if (state) {
-                state.renderReady = true;
+            if (!state) {
+                continue;
             }
+
+            state.renderReady = true;
+            originalTargetNames.add(state.originalTargetName);
         }
 
         this.startReady();
+
+        const tmodel = this.tmodel;
+        
+        for (const originalTargetName of originalTargetNames) {
+            this.completeOriginalTarget(originalTargetName);
+        }
+        
+        if (originalTargetNames.size > 0) {
+            getRunScheduler().schedule(1,`gpuChildrenRenderReady-${tmodel.oid}`);
+        }
     }
 
     markPendingRenderReady() {
-        for (const state of this.tmodel.childRuntimeStates) {
-            if (state?.startRequested && !state.started && !state.done) {
-                state.renderReady = true;
+        const indexes = [];
+
+        for (let i = 0; i < this.tmodel.childRuntimeStates.length; i++) {
+            const state = this.tmodel.childRuntimeStates[i];
+
+            if (state && !state.renderReady) {
+                indexes.push(i);
             }
         }
 
-        this.startReady();
+        this.markRenderReady(indexes);
     }
 
     startReady() {
@@ -439,7 +522,7 @@ class ParticleRuntime {
         
         const tmodel = this.tmodel;
 
-        if (!tmodel.hasDom() || tmodel.completeLayoutEpoch !== tmodel.layoutEpoch) {
+        if (!tmodel.isVisible() || !tmodel.hasDom() || tmodel.completeLayoutEpoch !== tmodel.layoutEpoch) {
             return false;
         }
 
@@ -513,7 +596,7 @@ class ParticleRuntime {
                 console.error(error);
             })
             .finally(() => {
-                this.complete(index);
+                this.finishMainProgram(index, state);
             });
     }
 
@@ -552,35 +635,320 @@ class ParticleRuntime {
         }
     }
 
-    async runTarget(index, runtimeTarget, targetIndex, sequenceId = "main") {
-        if (this.disposed) {
-            return;
+    async runTarget(index, runtimeTarget, targetIndex, sequenceId = "main", owner) {
+        if (this.disposed || runtimeTarget.requiresRuntime === false) {
+            return false;
         }
-        
-        if (runtimeTarget.requiresRuntime === false) {
-            return;
-        }        
-        
+
+        const state = this.tmodel.childRuntimeStates[index];
         const child = this.tmodel.childHandles[index];
 
-        if (!child) {
-            return;
+        if (!state || !child || state.cancelled) {
+            return false;
         }
 
-        if (this.isIntervalTarget(runtimeTarget)) {
-            await this.runIntervalTarget(index, runtimeTarget, targetIndex, sequenceId);
-            return;
+        const targetName = ParticleUtil.getTargetName(runtimeTarget.targetName);
+        const automaticLoop = sequenceId.startsWith("loop:");
+
+        if (automaticLoop &&
+            this.isTargetUpdating(index, targetName, sequenceId, targetIndex)) {
+            this.blockLoop(index, targetIndex);
+            return false;
         }
 
-        if (runtimeTarget.renderable) {
-            await this.runRenderTarget(index, runtimeTarget, targetIndex, sequenceId);
-            return;
+        // Any newly activated target replaces the previous property owner.
+        this.cancelPropertyExecutions(index, targetName, sequenceId, targetIndex);
+
+        let owners = this.propertyOwners.get(state);
+
+        if (!owners) {
+            owners = new Map();
+            this.propertyOwners.set(state, owners);
         }
 
-        await this.runRuntimeTarget(index, runtimeTarget, targetIndex, sequenceId);
+        const ownership = { sequenceId, targetIndex };
+        owners.set(targetName, ownership);
+
+        const cycleKey = this.getExecutionId(sequenceId, targetIndex);
+        state.targetCycles ??= {};
+
+        const isCancelled = () =>
+            this.disposed ||
+            state.cancelled ||
+            this.tmodel.childHandles[index] !== child ||
+            owners.get(targetName) !== ownership ||
+            (owner && child.targetValues[runtimeTarget.imperativeKey] !== owner);
+
+        try {
+            while (!isCancelled()) {
+                if (this.isIntervalTarget(runtimeTarget)) {
+                    await this.runIntervalTarget(index, runtimeTarget, targetIndex, sequenceId, isCancelled);
+                } else if (runtimeTarget.renderable) {
+                    await this.runRenderTarget(index, runtimeTarget, targetIndex, sequenceId, isCancelled);
+                } else {
+                    await this.runRuntimeTarget(index, runtimeTarget, targetIndex, sequenceId, isCancelled);
+                }
+
+                if (isCancelled()) {
+                    return false;
+                }
+
+                const completedCycles = (state.targetCycles[cycleKey] || 0) + 1;
+                const cycles = this.getTargetCycles(runtimeTarget, child, completedCycles - 1);
+
+                if (completedCycles >= cycles) {
+                    break;
+                }
+
+                state.targetCycles[cycleKey] = completedCycles;
+            }
+
+            if (isCancelled()) {
+                return false;
+            }
+
+            if (!sequenceId.startsWith("imperative:") &&
+                this.isTargetInLoop(runtimeTarget, child)) {
+                this.queueLoop(index, targetIndex);
+            } else if (automaticLoop) {
+                delete state.loopTargets[targetIndex];
+                this.completeIfReady(index);
+            }
+
+            return true;
+        } finally {
+            if (owners.get(targetName) === ownership) {
+                owners.delete(targetName);
+                this.queueBlockedLoops(index, targetName);
+            }
+
+            delete state.targetCycles[cycleKey];
+        }
     }
-    
-    async runRuntimeTarget(index, runtimeTarget, targetIndex, sequenceId = "main") {
+
+    isTargetUpdating(index, key, sequenceId, targetIndex) {
+        const state = this.tmodel.childRuntimeStates[index];
+        const property = ParticleUtil.getTargetName(key);
+        const owner = this.propertyOwners.get(state)?.get(property);
+
+        if (owner &&
+            !(owner.sequenceId === sequenceId &&
+              owner.targetIndex === targetIndex)) {
+            return true;
+        }
+
+        return Object.values(state?.executions || {}).some(execution =>
+            !execution.cancelled &&
+            execution.targetName === property &&
+            !(execution.sequenceId === sequenceId &&
+              execution.targetIndex === targetIndex)
+        );
+    }
+
+    blockLoop(index, targetIndex) {
+        const state = this.tmodel.childRuntimeStates[index];
+
+        if (!state) {
+            return;
+        }
+
+        (state.blockedLoops ??= {})[targetIndex] = true;
+    }
+
+    queueBlockedLoops(index, key) {
+        const state = this.tmodel.childRuntimeStates[index];
+        const program = this.tmodel.childRuntimePrograms[index];
+
+        if (!state || !program || state.cancelled || this.disposed ||
+            this.isTargetUpdating(index, key)) {
+            return;
+        }
+
+        const running = this.runningLoops.get(state);
+
+        for (const id of Object.keys(state.blockedLoops || {})) {
+            const targetIndex = Number(id);
+
+            if (program[targetIndex]?.targetName !== key ||
+                !state.loopTargets?.[targetIndex] ||
+                running?.has(targetIndex)) {
+                continue;
+            }
+
+            delete state.blockedLoops[id];
+            this.queueLoop(index, targetIndex);
+        }
+    }
+
+    cancelPropertyExecutions(index, key, sequenceId, targetIndex) {
+        const state = this.tmodel.childRuntimeStates[index];
+        const child = this.tmodel.childHandles[index];
+        const program = this.tmodel.childRuntimePrograms[index];
+
+        if (!state || !child) {
+            return;
+        }
+
+        const property = ParticleUtil.getTargetName(key);
+        const owners = this.propertyOwners.get(state);
+        const previous = owners?.get(property);
+
+        const rememberLoop = (previousSequence, previousIndex) => {
+            if (previousSequence?.startsWith("imperative:")) {
+                return;
+            }
+
+            const target = program?.[previousIndex];
+
+            if (target?.targetName === property &&
+                this.isTargetInLoop(target, child)) {
+                state.loopTargets ??= {};
+                state.loopTargets[previousIndex] = true;
+
+                this.blockLoop(index, previousIndex);
+            }
+        };
+
+        if (previous &&
+            !(previous.sequenceId === sequenceId &&
+              previous.targetIndex === targetIndex)) {
+            rememberLoop(previous.sequenceId, previous.targetIndex);
+            owners.delete(property);
+        }
+
+        // Preserve previously queued loops.
+        for (const [id, pending] of Object.entries(state.loopTargets || {})) {
+            if (pending && program?.[Number(id)]?.targetName === property) {
+                this.blockLoop(index, Number(id));
+            }
+        }
+
+        // Cancel every previous execution of the same property.
+        for (const [id, execution] of Object.entries(state.executions || {})) {
+            if (execution.cancelled ||
+                execution.targetName !== property ||
+                (execution.sequenceId === sequenceId &&
+                 execution.targetIndex === targetIndex)) {
+                continue;
+            }
+
+            rememberLoop(execution.sequenceId, execution.targetIndex);
+
+            execution.cancelled = true;
+            execution.cancelWait?.();
+            execution.cancelWait = undefined;
+            this.activeRenderExecutions.delete(execution);
+            delete state.executions[id];
+
+            const resolve = execution.resolve;
+            execution.resolve = undefined;
+            resolve?.();
+        }
+    }
+
+    queueLoop(index, targetIndex) {
+        const state = this.tmodel.childRuntimeStates[index];
+
+        if (this.disposed || !state || state.cancelled) {
+            return;
+        }
+
+        state.loopTargets ??= {};
+        state.loopTargets[targetIndex] = true;
+
+        const targetName =
+            this.tmodel.childRuntimePrograms[index]?.[targetIndex]?.targetName;
+
+        if (targetName && this.isTargetUpdating(index, targetName)) {
+            this.blockLoop(index, targetIndex);
+            return;
+        }
+
+        let queued = this.queuedLoops.get(state);
+
+        if (!queued) {
+            queued = new Set();
+            this.queuedLoops.set(state, queued);
+        }
+
+        if (queued.has(targetIndex)) {
+            return;
+        }
+
+        queued.add(targetIndex);
+        this.loopQueue.push({ state, targetIndex });
+        this.requestAnimationFrame();
+    }
+
+    startQueuedLoops() {
+        const queue = this.loopQueue.splice(0);
+
+        for (const { state, targetIndex } of queue) {
+            this.queuedLoops.get(state)?.delete(targetIndex);
+
+            const index = this.tmodel.childRuntimeStates.indexOf(state);
+
+            if (this.disposed || index < 0 || state.cancelled ||
+                !state.loopTargets?.[targetIndex]) {
+                continue;
+            }
+
+            const runtimeTarget =
+                this.tmodel.childRuntimePrograms[index]?.[targetIndex];
+
+            if (!runtimeTarget) {
+                delete state.loopTargets[targetIndex];
+                this.completeIfReady(index);
+                continue;
+            }
+
+            let running = this.runningLoops.get(state);
+
+            if (!running) {
+                running = new Set();
+                this.runningLoops.set(state, running);
+            }
+
+            if (running.has(targetIndex) ||
+                this.isTargetUpdating(index, runtimeTarget.targetName)) {
+                this.blockLoop(index, targetIndex);
+                continue;
+            }
+
+            running.add(targetIndex);
+
+            this.runTarget(index, runtimeTarget, targetIndex, `loop:${targetIndex}`)
+                .catch(error => {
+                    console.error(error);
+                    delete state.loopTargets[targetIndex];
+
+                    const currentIndex =
+                        this.tmodel.childRuntimeStates.indexOf(state);
+
+                    if (currentIndex >= 0) {
+                        this.completeIfReady(currentIndex);
+                    }
+                })
+                .finally(() => {
+                    running.delete(targetIndex);
+
+                    const currentIndex =
+                        this.tmodel.childRuntimeStates.indexOf(state);
+
+                    if (currentIndex >= 0) {
+                        this.queueBlockedLoops(
+                            currentIndex,
+                            runtimeTarget.targetName
+                        );
+                    }
+                });
+        }
+    }
+
+    async runRuntimeTarget(index, runtimeTarget, targetIndex, sequenceId = "main", isCancelled) {
+        if (isCancelled()) {
+            return;
+        }
         const child = this.tmodel.childHandles[index];
         const target = runtimeTarget.target;
         const targetName = runtimeTarget.targetName;
@@ -596,13 +964,13 @@ class ParticleRuntime {
                 if (value?.then) {
                     value = await value;
                 }
-                
-                if (this.disposed) {
+
+                if (isCancelled()) {
                     return;
-                }                
+                }            
             }
 
-            if (!TUtil.isDefined(value)) {
+            if (isCancelled() || !TUtil.isDefined(value)) {
                 return;
             }
 
@@ -649,13 +1017,21 @@ class ParticleRuntime {
         }
 
         while (execution.segmentIndex < execution.values.length - 1) {
+            if (execution.cancelled || isCancelled()) {
+                return;
+            }
+
             if (!execution.segmentReady) {
                 this.prepareRenderSegment(execution, runtimeTarget, child);
             }
 
+            if (execution.cancelled || isCancelled()) {
+                return;
+            }
+
             await this.animateExecution(index, execution);
 
-            if (execution.cancelled) {
+            if (execution.cancelled || isCancelled()) {
                 return;
             }
 
@@ -701,7 +1077,7 @@ class ParticleRuntime {
         delete state.executions[this.getExecutionId(sequenceId, targetIndex)];
     }
 
-    async runIntervalTarget(index, runtimeTarget, targetIndex, sequenceId) {
+    async runIntervalTarget(index, runtimeTarget, targetIndex, sequenceId, isCancelled) {
         const child = this.tmodel.childHandles[index];
         let execution = this.getExecution(index, sequenceId, targetIndex);
 
@@ -710,6 +1086,7 @@ class ParticleRuntime {
                 sequenceId,
                 targetIndex,
                 kind: "interval",
+                targetName: runtimeTarget.targetName,
                 interval: Math.max(0, Number(this.resolveOption(runtimeTarget.target.interval, child)) || 0),
                 waiting: false,
                 startTime: 0
@@ -718,11 +1095,18 @@ class ParticleRuntime {
             this.setExecution(index, sequenceId, targetIndex, execution);
         }
 
-        await this.waitForExecution(execution);
-        
-        if (this.disposed || execution.cancelled) {
+        await Promise.race([
+            this.waitForExecution(execution),
+            new Promise(resolve => {
+                execution.cancelWait = resolve;
+            })
+        ]);
+
+        execution.cancelWait = undefined;
+
+        if (isCancelled() || execution.cancelled) {
             return;
-        }
+        }        
 
         this.clearExecution(index, sequenceId, targetIndex);
     }
@@ -796,7 +1180,10 @@ class ParticleRuntime {
         return changed;
     }
 
-    async runRenderTarget(index, runtimeTarget, targetIndex, sequenceId = "main") {
+    async runRenderTarget(index, runtimeTarget, targetIndex, sequenceId, isCancelled) {
+        if (isCancelled()) {
+            return;
+        }
         const tmodel = this.tmodel;
         const child = tmodel.childHandles[index];
         const target = runtimeTarget.target;
@@ -819,6 +1206,9 @@ class ParticleRuntime {
             }
 
             const isValueList = Array.isArray(value);
+            if (isCancelled()) {
+                return;
+            }
             const values = isValueList ? value : [tmodel.getChildValue(index, targetName), value];
 
             execution = {
@@ -846,17 +1236,26 @@ class ParticleRuntime {
                     target: { ...runtimeTarget.target }
                 }: undefined
             };
-                        this.setExecution(index, sequenceId, targetIndex, execution);
+                        
+            this.setExecution(index, sequenceId, targetIndex, execution);
         }
 
         while (execution.segmentIndex < execution.values.length - 1) {
+            if (isCancelled() || execution.cancelled) {
+                return;
+            }
+
             if (!execution.segmentReady) {
                 this.prepareRenderSegment(execution, runtimeTarget, child);
             }
 
+            if (isCancelled() || execution.cancelled) {
+                return;
+            }
+
             await this.animateExecution(index, execution);
 
-            if (execution.cancelled) {
+            if (isCancelled() || execution.cancelled) {
                 return;
             }
 
@@ -887,13 +1286,37 @@ class ParticleRuntime {
 
         execution.easingName = this.resolveOption(target.easing, child, segmentIndex);
 
-        if (!execution.segmentStartTime) {
-            execution.segmentStartTime = TUtil.now() - execution.step * execution.interval;
-        }
-
         execution.segmentReady = true;
     }
+    
+    isTargetInLoop(runtimeTarget, child) {
+        const loop = runtimeTarget.target.loop;
 
+        return (typeof loop === "function" ? loop.call(child, runtimeTarget.key) : loop) === true;
+    }
+
+    getTargetCycles(runtimeTarget, child, cycle) {
+        const option = runtimeTarget.target.cycles;
+        const cycles = typeof option === "function" ? option.call(child, cycle) : option;
+
+        return Math.max(1, Math.floor(Number(cycles) || 1));
+    }
+
+    completeIfReady(index) {
+        const state = this.tmodel.childRuntimeStates[index];
+
+        if (!state || state.done || !state.mainFinished) {
+            return;
+        }
+
+        if (Object.values(state.loopTargets || {}).some(Boolean) ||
+                Object.keys(this.activeTargets[index] || {}).length > 0) {
+            return;
+        }
+
+        this.complete(index);
+    }
+    
     resolveOption(value, child, segmentIndex = 0) {
         if (typeof value === "function") {
             return value.call(child, segmentIndex);
@@ -943,7 +1366,7 @@ class ParticleRuntime {
     }
     
     requestAnimationFrame() {
-        if (this.disposed || this.animationFrameRequested) {
+        if (this.disposed || this.visibilityPaused || !this.tmodel.isVisible() || this.animationFrameRequested) {
             return;
         }
 
@@ -958,13 +1381,30 @@ class ParticleRuntime {
             }
         });
     }
+    
+    finishMainProgram(index, state) {
+        if (this.disposed || this.tmodel.childRuntimeStates[index] !== state || state.cancelled) {
+            return;
+        }
+
+        state.started = false;
+        state.mainFinished = true;
+
+        this.completeIfReady(index);
+    }
 
     updateRenderExecutions() {
         if (this.disposed) {
             return;
         }
         
+        if (!this.tmodel.isVisible()) {
+            this.pauseForVisibility();
+            return;
+        }
+
         this.startQueuedPrograms();
+        this.startQueuedLoops();
 
         const now = TUtil.now();
         let renderChanged = false;
@@ -975,11 +1415,16 @@ class ParticleRuntime {
             const paused = typeof execution.pauseOn === "function" ? execution.pauseOn.call(child) : execution.pauseOn === true;
 
             if (paused) {
-                execution.pausedAt ??= now;
+                if (execution.segmentStartTime) {
+                    execution.pausedAt ??= now;
+                }
                 continue;
             }
 
-            if (execution.pausedAt !== undefined) {
+            if (!execution.segmentStartTime) {
+                execution.segmentStartTime = now - execution.step * execution.interval;
+                execution.pausedAt = undefined;
+            } else if (execution.pausedAt !== undefined) {
                 execution.segmentStartTime += now - execution.pausedAt;
                 execution.pausedAt = undefined;
             }
@@ -1024,7 +1469,7 @@ class ParticleRuntime {
             this.tmodel.requestParticleRender();
         }
 
-        if (this.startQueueIndex < this.startQueue.length || this.activeRenderExecutions.size) {
+        if (this.startQueueIndex < this.startQueue.length || this.loopQueue.length || this.activeRenderExecutions.size) {
             this.requestAnimationFrame();
         }
     }
@@ -1092,37 +1537,18 @@ class ParticleRuntime {
             return;
         }
 
-        await this.runTarget(index, program[startIndex], startIndex, sequenceId);
-
-        if (!this.disposed) {
+        const completed = await this.runTarget(index, program[startIndex], startIndex, sequenceId);
+        
+        if (completed && !this.disposed) {
             await this.continueActivatedSequence(index, startIndex + 1, sequenceId);
         }
     }
 
-    
-    cancelImperativeExecution(index, imperativeKey) {
-        for (const execution of [...this.activeRenderExecutions]) {
-            if (execution.index !== index || execution.imperativeKey !== imperativeKey) {
-                continue;
-            }
-
-            this.activeRenderExecutions.delete(execution);
-            execution.cancelled = true;
-
-            this.clearExecution(index, execution.sequenceId, execution.targetIndex);
-
-            const resolve = execution.resolve;
-
-            execution.resolve = undefined;
-            resolve?.();
-        }
-    }
-    
     setImperativeTarget(index, key, rawTarget, steps, interval, easing, originalTargetName, originalTModel) {
         if (this.disposed) {
             return;
         }
-        
+
         const child = this.tmodel.childHandles[index];
 
         if (!child) {
@@ -1131,22 +1557,20 @@ class ParticleRuntime {
 
         const imperativeKey = key.endsWith("+") ? key : `${key}+`;
 
-        this.cancelImperativeExecution(index, imperativeKey);
-        const target = TargetParser.isTargetSpecObject(rawTarget) ? { ...rawTarget } : { value: rawTarget };
+        // List targets carry their animation options beside the list, not beside a `value` property.
+        // Unwrap them without calling TargetParser.getValueStepsCycles(), which requires a full TModel.
+        const outerList = TargetParser.isListTarget(rawTarget) ? rawTarget : undefined;
+        const target = outerList ? { value: outerList.list } :
+            TargetParser.isTargetSpecObject(rawTarget) ? { ...rawTarget } : { value: rawTarget };
+        const innerList = TargetParser.isListTarget(target.value) ? target.value : undefined;
+        const listOptions = outerList ?? innerList;
 
-        if (target.steps === undefined) {
-            target.steps = steps;
-        }
-
-        if (target.interval === undefined) {
-            target.interval = interval;
-        }
-
-        if (target.easing === undefined) {
-            target.easing = easing;
-        }
-
-        const [value, parsedSteps, parsedInterval, parsedEasing] = TargetParser.getValueStepsCycles(child, imperativeKey, target, 0);
+        const value = listOptions ? listOptions.list : target.value;
+        const parsedSteps = target.steps ?? listOptions?.steps ?? steps ?? 0;
+        const parsedInterval = target.interval ?? listOptions?.interval ?? interval ?? 0;
+        const parsedEasing = target.easing ?? listOptions?.easing ?? easing;
+        const cycles = target.cycles ?? listOptions?.cycles ?? 1;
+        const pauseOn = target.pauseOn ?? listOptions?.pauseOn;
 
         const targetValue = {
             isImperative: true,
@@ -1156,14 +1580,15 @@ class ParticleRuntime {
             value,
             steps: parsedSteps || 0,
             interval: parsedInterval || 0,
-            easing: parsedEasing
+            easing: parsedEasing,
+            cycles
         };
 
         child.targetValues[imperativeKey] = targetValue;
         child.addToUpdatingTargets(imperativeKey);
 
         const runtimeTarget = {
-            targetName: key,
+            targetName: ParticleUtil.getTargetName(key),
             imperativeKey,
             renderable: ParticleUtil.isGpuTarget(key),
 
@@ -1171,35 +1596,71 @@ class ParticleRuntime {
             originalTargetIsParent: originalTModel === this.tmodel,
 
             target: {
-                value: TargetParser.isListTarget(value) ? value.list : value,
+                value,
                 steps: parsedSteps,
                 interval: parsedInterval,
                 easing: parsedEasing,
-                pauseOn: target.pauseOn
+                cycles,
+                pauseOn
             }
         };
 
-        const sequenceId = `imperative:${index}:${imperativeKey}:${TUtil.now()}`;
-        const promise = runtimeTarget.renderable
-            ? this.runRenderTarget(index, runtimeTarget, 0, sequenceId)
-            : this.runRuntimeTarget(index, runtimeTarget, 0, sequenceId);
+        const sequenceId = `imperative:${index}:${imperativeKey}:${++this.imperativeSequenceCount}`;
+        const promise = this.runTarget(index, runtimeTarget, 0, sequenceId, targetValue);
 
-        promise.finally(() => {
-            if (this.disposed || child.targetValues[imperativeKey] !== targetValue) {
+        promise.then(completed => {
+            if (this.disposed ||
+                child.targetValues[imperativeKey] !== targetValue) {
                 return;
             }
 
-            targetValue.status = "done";
+            targetValue.status = completed ? "done" : "cancelled";
             child.removeFromUpdatingTargets(imperativeKey);
 
-            if (originalTModel && originalTargetName) {
-                TargetUtil.shouldActivateNextTarget(originalTModel, originalTargetName, 1, 0, true, "complete");
+            if (completed) {
+                this.queueImperativeCompletion(originalTModel, originalTargetName);
             }
-
-            getRunScheduler().schedule(1, `gpuImperativeComplete-${child.oid}-${imperativeKey}`);
         });
 
         return promise;
+    }
+
+    queueImperativeCompletion(originalTModel, originalTargetName) {
+        const pending = this.tmodel.pendingImperativeCompletions;
+
+        if (originalTModel && originalTargetName) {
+            let targets = pending.get(originalTModel);
+
+            if (!targets) {
+                targets = new Set();
+                pending.set(originalTModel, targets);
+            }
+
+            targets.add(originalTargetName);
+        }
+
+        if (this.imperativeCompletionFrame !== undefined) {
+            return;
+        }
+
+        this.imperativeCompletionFrame = requestAnimationFrame(() => {
+            this.imperativeCompletionFrame = undefined;
+
+            if (this.disposed) {
+                return;
+            }
+
+            const completions = this.tmodel.pendingImperativeCompletions;
+            this.tmodel.pendingImperativeCompletions = new Map();
+
+            for (const [tmodel, targets] of completions) {
+                for (const key of targets) {
+                    TargetUtil.shouldActivateNextTarget(tmodel, key, 1, 0, true, "complete");
+                }
+            }
+
+            getRunScheduler().schedule(1, `gpuImperativeComplete-${this.tmodel.oid}`);
+        });
     }
 
     activateTarget(index, key) {
@@ -1224,7 +1685,12 @@ class ParticleRuntime {
 
         const activationId = `${runtimeTarget.key}-${++state.activationCount}`;
         const sequenceId = `activation:${activationId}`;
-        const activeTargets = this.activeTargets[index] ??= {};
+        const activeTargets = this.activeTargets[index] ??= {}
+        
+        if (state.done) {
+            state.done = false;
+            this.tmodel.pendingGpuChildRuntimeCounts[state.originalTargetName] = (this.tmodel.pendingGpuChildRuntimeCounts[state.originalTargetName] || 0) + 1;
+        };
 
         const promise = Promise.resolve()
             .then(() => this.runActivatedSequence(index, startIndex, sequenceId))
@@ -1233,8 +1699,10 @@ class ParticleRuntime {
             })
             .finally(() => {
                 delete activeTargets[activationId];
+
                 if (!this.disposed) {
-                    TargetUtil.cleanupVisibleComplete(this.tmodel, state.ownerTargetName);
+                    this.completeIfReady(index);
+                    TargetUtil.cleanupVisibleComplete(this.tmodel, state.originalTargetName);
                 }
             });
 
@@ -1243,13 +1711,57 @@ class ParticleRuntime {
         return true;
     }
     
+    pauseForVisibility() {
+        if (this.disposed || this.visibilityPaused) {
+            return;
+        }
+
+        this.visibilityPaused = true;
+
+        const now = TUtil.now();
+
+        for (const execution of this.activeRenderExecutions) {
+            if (execution.segmentStartTime) {
+                execution.pausedAt ??= now;
+            }
+        }
+
+        if (this.animationFrameId !== undefined) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = undefined;
+        }
+
+        this.animationFrameRequested = false;
+    }
+
+    resumeForVisibility() {
+        if (this.disposed || !this.tmodel.isVisible()) {
+            return;
+        }
+
+        this.visibilityPaused = false;
+
+        this.resumeRestored();
+        this.startReady();
+
+        if (this.startQueueIndex < this.startQueue.length ||
+                this.loopQueue.length ||
+                this.activeRenderExecutions.size) {
+            this.requestAnimationFrame();
+        }
+
+        if (this.tmodel.particleValuesDirty || this.tmodel.activeChildTransitionKey) {
+            this.tmodel.requestParticleRender();
+        }
+    }
+        
     dispose() {
         if (this.disposed) {
             return;
         }
 
         this.disposed = true;
-
+        
         if (this.animationFrameId !== undefined) {
             cancelAnimationFrame(this.animationFrameId);
             this.animationFrameId = undefined;
@@ -1258,7 +1770,13 @@ class ParticleRuntime {
         this.animationFrameRequested = false;
         this.startQueue.length = 0;
         this.startQueueIndex = 0;
-
+        this.loopQueue.length = 0;
+        
+        if (this.imperativeCompletionFrame !== undefined) {
+            cancelAnimationFrame(this.imperativeCompletionFrame);
+            this.imperativeCompletionFrame = undefined;
+        }
+        
         for (const state of this.tmodel.childRuntimeStates) {
             if (!state) {
                 continue;

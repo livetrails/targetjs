@@ -159,12 +159,12 @@ class AnimationManager {
 
     finalizeAnimation(anim) {
         let finalized = false;
-
+        
         for (const [recId, rec] of this.recordMap) {
             if (rec.anim !== anim) {
                 continue;
             }
-
+            
             if (rec.status === 'playing' || rec.status === 'canceled') {
                 continue;
             }
@@ -177,7 +177,7 @@ class AnimationManager {
             this.recordMap.delete(recId);
 
             this.completeRecord(tmodel, rec, cleanKey, originalKey);
-
+                                
             if (!tmodel.hasAnimatingTargets()) {
                 if (tmodel.finalKeyframe && tmodel.hasDom()) {
                     AnimationUtil.fixStyleByAnimation(tmodel, tmodel.finalKeyframe);
@@ -198,7 +198,7 @@ class AnimationManager {
             } catch {}
         }
 
-        getRunScheduler().schedule(35, 'finalizeAnimation');
+        getRunScheduler().schedule(50, 'finalizeAnimation');
     }
 
     startProgressPoller() {
@@ -240,7 +240,7 @@ class AnimationManager {
                 const ct = record.anim.effect?.getComputedTiming?.();
                 const progress = ct?.progress ?? 0;
                 const finished = ps === "finished" || ps === "idle" || progress >= 0.999999;
-
+                
                 if (finished) {
                     record.status = 'done';
                     animsToFinalize.add(record.anim);
@@ -492,6 +492,11 @@ class AnimationManager {
         }
 
         TModelUtil.commitAnimatedStyles(tmodel, keys);
+        
+        for (const record of records) {
+            record.status = 'detached';
+            this.recordMap.delete(record.recId);
+        }
 
         for (const animation of animations) {
             try {
@@ -518,13 +523,36 @@ class AnimationManager {
         }
     }
     
-    async deleteAll() {
+    async deleteAll({ discardState = false } = {}) {
         this.isShuttingDown = true;
 
         if (this.waapiPoller.rafId) {
             cancelAnimationFrame(this.waapiPoller.rafId);
             this.waapiPoller.rafId = 0;
-            this.waapiPoller.alive = false;
+        }
+
+        this.waapiPoller.alive = false;
+
+        if (discardState) {
+            const animations = new Set();
+
+            for (const record of this.recordMap.values()) {
+                record.status = "detached";
+
+                if (record.anim) {
+                    animations.add(record.anim);
+                }
+            }
+
+            this.recordMap.clear();
+
+            for (const animation of animations) {
+                try {
+                    animation.cancel();
+                } catch {}
+            }
+
+            return;
         }
 
         const animations = new Set();
@@ -534,9 +562,8 @@ class AnimationManager {
             if (record.status === "canceled" || record.status === "detached") {
                 continue;
             }
-            
-            AnimationUtil.updateTModelFromRecord(record);
 
+            AnimationUtil.updateTModelFromRecord(record);
             animations.add(record.anim);
 
             let keys = keysByTModel.get(record.tmodel);
@@ -550,9 +577,7 @@ class AnimationManager {
         }
 
         for (const [tmodel, keys] of keysByTModel) {
-
             TModelUtil.commitAnimatedStyles(tmodel, keys);
-
             AnimationUtil.addToUpdatingTargets(tmodel, keys);
 
             tmodel.lastBatch = undefined;
@@ -573,6 +598,7 @@ class AnimationManager {
 
         this.recordMap.clear();
     }
+    
     async flushOneFrame() {
         await new Promise(requestAnimationFrame);
         this.isShuttingDown = false;
@@ -761,11 +787,13 @@ class AnimationManager {
                 const oldRec = this.recordMap.get(recId);
 
                 if (oldRec) {
-                   this.completeRecord(tmodel, oldRec, cleanKey, oldOriginal);
+                    this.completeRecord(tmodel, oldRec, cleanKey, oldOriginal);
+
                     oldRec.status = 'complete';
-                    oldRec.hooks.fireOnEnd(oldRec.tmodel, oldOriginal);
                     oldRec.tmodel.removeFromAnimatingMap(oldOriginal);
                     this.recordMap.delete(recId);
+
+                    oldRec.hooks.fireOnEnd(oldRec.tmodel, oldOriginal);
                 }
             }
         }

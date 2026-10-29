@@ -3,7 +3,7 @@ import { TargetUtil } from "./TargetUtil.js";
 import { TUtil } from "./TUtil.js";
 
 class ParticleUtil {
-    static gpuRenderTargets = new Set(["x", "y", "width", "height", "borderRadius", "backgroundColor", "rotate", "opacity", "scale"]);
+    static gpuRenderTargets = new Set(["x", "y", "width", "height", "borderRadius", "backgroundColor", "rotate", "opacity", "scale", "image"]);
     
     static gpuRenderAliases = {
         background: "backgroundColor"
@@ -12,9 +12,18 @@ class ParticleUtil {
     static childrenTargets = new Set(["addChildren", "children"]);
 
     static transientRuntimeFields = new Set([
-        "particleRenderer", "childHandles", "particleValuesDirty", "particleRenderRequested", "pendingGpuChildren",
-        "layoutEpoch", "completeLayoutEpoch", "completeChildrenLayoutState", "layoutCompleteWaiters", 
-        "particleSyncPromise", "restoringParticleRuntime"
+        "particleRenderer",
+        "childHandles",
+        "particleValuesDirty",
+        "particleRenderRequested",
+        "pendingGpuChildren",
+        "explodeCapturePromise",
+        "layoutEpoch",
+        "completeLayoutEpoch",
+        "completeLayoutState",
+        "layoutCompleteWaiters",
+        "particleSyncPromise",
+        "restoringParticleRuntime"
     ]);
     
     static affectsChildLayout(key) {
@@ -50,7 +59,6 @@ class ParticleUtil {
 
         return "immediate";
     }
-
 
     static isTransientRuntimeField(key) {
         return ParticleUtil.transientRuntimeFields.has(key);

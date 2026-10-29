@@ -130,17 +130,24 @@ class EventListener {
         });
     }
     
-    attachEvents(tmodels) {
-        for (const tmodel of tmodels) {
-            if (!tmodel.externalEventMap) {
-                continue;
-            }
-            for (const [targetName] of tmodel.externalEventMap) {
-                this.attachTargetEvents(tmodel, targetName, true);
-            }
+attachEvents(tmodels) {
+    for (const tmodel of tmodels) {
+
+        const overflowX = tmodel.val('overflowX');
+        const overflowY = tmodel.val('overflowY');
+
+        if (tmodel.hasDom() &&
+            (overflowX === 'scroll' || overflowX === 'auto' ||
+             overflowY === 'scroll' || overflowY === 'auto')) {
+
+            this.attachTargetEvents(tmodel, 'onWindowScroll', true);
+        }
+
+        for (const [targetName] of tmodel.externalEventMap ?? []) {
+            this.attachTargetEvents(tmodel, targetName, true);
         }
     }
-    
+}
     attachTargetEvents(tmodel, targetName, force) {
         const targetKey = `${tmodel.oid} ${targetName}`;
         
@@ -407,10 +414,10 @@ class EventListener {
         if (!event) {
             return;
         }
-        
+
         const { type: originalName } = event;             
         const eventItem = this.allEvents[originalName];
-                        
+                                
         if (!eventItem) {
             return;
         }
@@ -425,9 +432,7 @@ class EventListener {
         } else {
             tmodel = this.getTModelFromEvent(event);
         } 
-        
-        
-                
+                      
         const newEvent = { eventName, eventItem, eventType, originalName, tmodel, originalEvent: event, timeStamp: now };
 
         if (this.lastEvent?.eventItem) {
@@ -436,13 +441,14 @@ class EventListener {
            
             const isTerminal = (eventType === 'end' || eventType === 'cancel' || eventType === 'start');
 
-            if (!isTerminal &&
-                    inputType && lastEventItem.inputType &&
-                    lastEventItem.inputType !== inputType &&
-                    eventOrder > lastEventItem.order) {
+
+            const isDuplicateInput = eventType === lastEventItem.eventType && now - lastTimeStamp < 60 &&
+                inputType && lastEventItem.inputType && lastEventItem.inputType !== inputType &&
+                eventOrder > lastEventItem.order;
+
+            if (!isTerminal && isDuplicateInput) {
                 return;
             }
-
             if (this.eventQueue.length > EventListener.MAX_EVENT_QUEUE_SIZE && rateLimit > 0 && rate < rateLimit) {
                 let capacity = 0;
                 for (let i = this.eventQueue.length - 1; i >= 0; i--) {

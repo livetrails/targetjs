@@ -59,11 +59,19 @@ class RunScheduler {
     }
 
     scheduleOnlyIfEarlier(delay, runId) {
+        if (!tApp.isRunning() || this.resetting) {
+            return;
+        }
 
-        const base = this.runningFlag ? (this.runStartTime ?? TUtil.now()) : TUtil.now();
-        const runTime = base + (delay ?? 0);
-        
-        if (this.delayProcess && runTime >= this.delayProcess.runTime) {
+        const effectiveDelay = tApp.throttle === 0 ? Math.max(0, delay ?? 0) : tApp.throttle;
+
+        const requestedTime = TUtil.now() + effectiveDelay;
+
+        const activeTime = this.delayProcess?.runTime ?? Infinity;
+
+        const queuedTime = this.nextRuns.length ? this.nextRuns[0].insertTime + this.nextRuns[0].delay : Infinity;
+
+        if (Math.min(activeTime, queuedTime) <= requestedTime) {
             return;
         }
 

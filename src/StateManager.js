@@ -6,6 +6,7 @@ import { $Dom } from "./$Dom.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { TModel } from "./TModel.js";
+import { ParticleTModel } from "./ParticleTModel.js";
 import { StateUtil } from "./StateUtil.js";
 /**
  * It enables storing and restoring state.
@@ -13,6 +14,7 @@ import { StateUtil } from "./StateUtil.js";
 class StateManager {
     constructor() {
         this.stateCheckpoints = {};
+        this.restoreQueue = Promise.resolve();
     }
     
     async store(key = "default") {
@@ -34,16 +36,32 @@ class StateManager {
             scrollLeft: $Dom.getWindowScrollLeft() || 0,
             scrollTop: $Dom.getWindowScrollTop() || 0,
             runSnapshot,
-            gpuVisuals: await this.captureGpuVisuals()
+            gpuVisuals: await this.captureGpuVisuals(),
+            explodeSources: await this.captureExplodeSources()
         };
+        
+        const template = document.createElement("template");
+        template.innerHTML = checkpoint.html;
 
-        this.releaseGpuVisuals(this.stateCheckpoints[key]);
+        checkpoint.domTemplate = template;
+
+        this.releaseGpuResources(this.stateCheckpoints[key]);
         this.stateCheckpoints[key] = checkpoint;
         
         return checkpoint;
     }
+    
+    restore(key = "default") {
+        const promise = this.restoreQueue.then(() => this.restoreCheckpoint(key));
 
-    async restore(key = "default") {
+        this.restoreQueue = promise.catch(error => {
+            console.error("State restoration failed:", error);
+        });
+
+        return promise;
+    }
+
+    async restoreCheckpoint(key = "default") {        
         TargetUtil.currentTargetName = undefined;
         TargetUtil.currentTModel = undefined;
 
@@ -54,11 +72,16 @@ class StateManager {
         }
 
         getLoader().clear();
+        
+        await tApp.stop({ discardState: true });
 
-        await tApp.stop();
         getLocationManager().cancelCurrentCalculation();
-        await tApp.reset();
 
+        await tApp.reset({
+            discardState: true,
+            skipSchedulerReset: true
+        });
+        
         App.oids = {};
         App.tmodelIdMap = {};
 
@@ -74,39 +97,45 @@ class StateManager {
         
         const $pageDom = TModelUtil.getPageDom();
 
-        $pageDom.innerHTML(checkpoint.html);
+        const fragment = checkpoint.domTemplate.content.cloneNode(true);
+
+        $pageDom.getElement().replaceChildren(fragment);
+
         TModelUtil.restoreMountedDom($pageDom, checkpoint.domState);
 
         this.showGpuRestoreVisuals(checkpoint.gpuVisuals);
 
-
         tApp.tRoot.$dom = TModelUtil.getRootDom();
 
         const visibleModels = checkpoint.visibleOids.map(oid => tmodelIdMap[oid]).filter(Boolean);
-
+        
         const restoredWithDom = this.connectRestoredDoms(visibleModels, models);
-
+        
         tApp.manager.activatePendingTargetsAfterDom(restoredWithDom, { restoredDoneTargets: true });
 
         tApp.tRoot.markLayoutDirty("checkpointRestore");
-        
-        await tApp.start();
+
+        await tApp.start({ skipSchedulerReset: true });
 
         const $restoredPageDom = TModelUtil.getPageDom();
 
         TModelUtil.restoreMountedDom($restoredPageDom, checkpoint.domState);
-
+        
         await TModelUtil.restoreScroll(checkpoint);
         await TModelUtil.restoreDomInteractionState($restoredPageDom, checkpoint.domState);
 
-        await Promise.all(
-            models.map(tmodel => tmodel.restoreRuntimeDomDerivedState?.())
-        );
+        const gpuModels = models.filter(tmodel => tmodel instanceof ParticleTModel);
+
+        await Promise.all(gpuModels.map(tmodel => tmodel.restoreRuntimeDomDerivedState(checkpoint.explodeSources[tmodel.oid])));
+
+        for (let index = 0; index < gpuModels.length; index++) {
+            gpuModels[index].particleRuntime.resumeRestored();
+        }
 
         this.hideGpuRestoreVisuals();
 
         getRunScheduler().restoreSnapshot(checkpoint.runSnapshot);
-
+        
         return true;
     }
     
@@ -222,8 +251,6 @@ class StateManager {
         };
     }
     
-    
-    
     async captureGpuVisuals() {
         const visuals = {};
 
@@ -264,6 +291,26 @@ class StateManager {
         return visuals;
     }
     
+    async captureExplodeSources() {
+        const sources = {};
+
+        for (const tmodel of Object.values(App.tmodelIdMap)) {
+            const renderer = tmodel.particleRenderer;
+
+            if (!renderer || !tmodel.explodeChildrenState) {
+                continue;
+            }
+
+            const source = await renderer.captureExplodeSourceBitmap?.();
+
+            if (source) {
+                sources[tmodel.oid] = source;
+            }
+        }
+
+        return sources;
+    }
+
     showGpuRestoreVisuals(visuals) {
         this.hideGpuRestoreVisuals();
 
@@ -330,9 +377,13 @@ class StateManager {
         document.querySelector('[data-targetjs-gpu-restore-overlay="true"]')?.remove();
     }
     
-    releaseGpuVisuals(checkpoint) {
+    releaseGpuResources(checkpoint) {
         for (const visual of Object.values(checkpoint?.gpuVisuals || {})) {
             visual?.bitmap?.close?.();
+        }
+
+        for (const source of Object.values(checkpoint?.explodeSources || {})) {
+            source?.close?.();
         }
     }
 
@@ -355,7 +406,7 @@ class StateManager {
             return false;
         }
 
-        this.releaseGpuVisuals(checkpoint);
+        this.releaseGpuResources(checkpoint);
 
         delete this.stateCheckpoints[key];
 
@@ -364,7 +415,7 @@ class StateManager {
 
     clearAll() {
         for (const checkpoint of Object.values(this.stateCheckpoints)) {
-            this.releaseGpuVisuals(checkpoint);
+            this.releaseGpuResources(checkpoint);
         }
 
         this.stateCheckpoints = {};

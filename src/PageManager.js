@@ -1,5 +1,5 @@
 import { TUtil } from "./TUtil.js";
-import { tApp, App, getLocationManager, getEvents } from "./App.js";
+import { tApp, App, getLocationManager, getEvents, getRunScheduler } from "./App.js";
 import { DomInit } from "./DomInit.js";
 import { TModelUtil } from "./TModelUtil.js";
 
@@ -10,7 +10,7 @@ import { TModelUtil } from "./TModelUtil.js";
 class PageManager {
     constructor() {
         this.currentLink = TUtil.getFullLink(document.URL);
-        this.lastCachedLink = undefined;
+        this.pageCache = new Map();        
         this.initHistory();
     }
     
@@ -60,10 +60,12 @@ class PageManager {
 
     async openLink(link, updateHistory = true) {
         link = TUtil.getFullLink(link);
-        
-        await this.storePage(this.currentLink);
 
-        this.lastCachedLink = this.currentLink;
+        if (link === this.currentLink) {
+            return;
+        }
+
+        await this.storePage(this.currentLink);
 
         if (updateHistory) {
             history.pushState({ link }, "", link);
@@ -71,23 +73,24 @@ class PageManager {
 
         this.currentLink = link;
 
-        if (tApp.stateManager.has(this.getStateKey(link))) {
+        if (this.pageCache.has(link)) {
             await this.restorePage(link);
             return;
         }
 
-        await tApp.stop();
-        await tApp.reset();
-
+        // Application was already stopped and reset by storePage().
         tApp.tRoot.$dom.innerHTML("");
 
         App.oids = {};
         App.tmodelIdMap = {};
+
         tApp.tRoot = tApp.tRootFactory();
 
-        await tApp.start();
-    }
+        await tApp.start({ skipSchedulerReset: true });
 
+        getRunScheduler().schedule(0, "pagemanager-processOpenLink");
+    }  
+    
     back() {
         return history.back();
     }
@@ -99,23 +102,70 @@ class PageManager {
     async storePage(link) {
         link = TUtil.getFullLink(link);
 
+        const runSnapshot = getRunScheduler().getSnapshot();
+
+        await tApp.stop();
+        getLocationManager().cancelCurrentCalculation();
+
         this.onPageClose();
 
-        const key = this.getStateKey(link);
-        const checkpoint = await tApp.stateManager.store(key);
+        this.pageCache.set(link, {
+            html: TModelUtil.getPageDom().innerHTML(),
+            tRoot: tApp.tRoot,
+            oids: { ...App.oids },
+            tmodelIdMap: { ...App.tmodelIdMap },
+            visibleOidMap: { ...tApp.manager.visibleOidMap },
+            scrollLeft: window.scrollX,
+            scrollTop: window.scrollY,
+            runSnapshot
+        });
 
-        return checkpoint;
+        await tApp.reset({
+            preserveCachedModels: true,
+            skipSchedulerReset: true
+        });
     }
 
     async restorePage(link) {
-        
-        const key = this.getStateKey(link);
-                
-        if (tApp.stateManager.has(key)) {
-            return tApp.stateManager.restore(key);
+        const cached = this.pageCache.get(TUtil.getFullLink(link));
+
+        if (!cached) {
+            return false;
         }
+
+        tApp.tRoot = cached.tRoot;
+        App.oids = { ...cached.oids };
+        App.tmodelIdMap = { ...cached.tmodelIdMap };
+
+        TModelUtil.getPageDom().innerHTML(cached.html);
+        tApp.tRoot.$dom = TModelUtil.getRootDom();
+
+        const visibles = Object.values(cached.visibleOidMap);
+        const newVisibles = DomInit.initCacheDoms(visibles);
         
-        return false;
+        visibles.forEach(tmodel => {
+            tmodel.visibilityStatus = undefined;
+        });
+
+        tApp.manager.visibleOidMap = { ...cached.visibleOidMap };
+
+        newVisibles.forEach(tmodel => {
+            tApp.manager.visibleOidMap[tmodel.oid] = tmodel;
+        });
+
+        const restored = [...new Set([...visibles, ...newVisibles])];
+
+        tApp.manager.activatePendingTargetsAfterDom(restored);
+
+        window.scrollTo(cached.scrollLeft, cached.scrollTop);
+
+        tApp.tRoot.markLayoutDirty("pageCacheRestore");
+
+        await tApp.start({ skipSchedulerReset: true });
+
+        getRunScheduler().restoreSnapshot(cached.runSnapshot);
+
+        return true;
     }
 
 }

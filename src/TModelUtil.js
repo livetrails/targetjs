@@ -18,76 +18,96 @@ class TModelUtil {
 
         window.scrollTo(left, top);
 
+        if (left === 0 && top === 0) {
+            return;
+        }
+
         await new Promise(requestAnimationFrame);
         window.scrollTo(left, top);
 
         await new Promise(requestAnimationFrame);
         window.scrollTo(left, top);
     }
-         
+    
     static getRootDom() {
         return $Dom.query("#tgjs-root") ? new $Dom("#tgjs-root") : new $Dom("body");
     }
     
     static getPageDom() {
         return new $Dom("body");
-    }
-    
+    } 
+
     static captureDomState($root) {
-        if (!$root?.getElement()) {
+        const root = $root?.getElement();
+
+        if (!root) {
             return undefined;
         }
 
-        const elements = [$root.getElement(), ...$root.queryAll("*")];
         const controls = [];
         const scrollPositions = [];
+        const doc = root.ownerDocument;
+        const focusedElement = doc.activeElement;
+        const activeElement = focusedElement === doc.body || focusedElement === doc.documentElement ? null : focusedElement;
+        const walker = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
 
-        elements.forEach((element, index) => {
-            const tagName = element.tagName?.toLowerCase();
+        let element = root;
+        let index = 0;
+        let controlIndex = 0;
+        let activeIndex = -1;
 
-            if (tagName === "input") {
-                const type = (element.type || "text").toLowerCase();
+        while (element) {
+            const kind = element.localName;
 
-                if (type !== "file") {
-                    controls.push({
-                        index,
-                        kind: "input",
-                        value: element.value,
-                        checked: element.checked,
-                        indeterminate: element.indeterminate
-                    });
+            if (element === activeElement) {
+                activeIndex = index;
+            }
+
+            switch (kind) {
+                case "input": {
+                    const currentControlIndex = controlIndex++;
+
+                    if (element.type !== "file") {
+                        controls.push({
+                            index,
+                            controlIndex: currentControlIndex,
+                            kind,
+                            value: element.value,
+                            checked: element.checked,
+                            indeterminate: element.indeterminate
+                        });
+                    }
+                    break;
                 }
-            } else if (tagName === "textarea") {
-                controls.push({
-                    index,
-                    kind: "textarea",
-                    value: element.value
-                });
-            } else if (tagName === "select") {
-                controls.push({
-                    index,
-                    kind: "select",
-                    selected: [...element.options].map(option => option.selected)
-                });
-            } else if (tagName === "details") {
-                controls.push({
-                    index,
-                    kind: "details",
-                    open: element.open
-                });
+                case "textarea":
+                    controls.push({ index, controlIndex: controlIndex++, kind, value: element.value });
+                    break;
+                case "select": {
+                    const options = element.options;
+                    const selected = new Array(options.length);
+
+                    for (let i = 0; i < options.length; i++) {
+                        selected[i] = options[i].selected;
+                    }
+
+                    controls.push({ index, controlIndex: controlIndex++, kind, selected });
+                    break;
+                }
+                case "details":
+                    controls.push({ index, controlIndex: controlIndex++, kind, open: element.open });
+                    break;
             }
 
-            if (element.scrollLeft || element.scrollTop) {
-                scrollPositions.push({
-                    index,
-                    scrollLeft: element.scrollLeft,
-                    scrollTop: element.scrollTop
-                });
-            }
-        });
+            const scrollLeft = element.scrollLeft;
+            const scrollTop = element.scrollTop;
 
-        const activeElement = document.activeElement;
-        const activeIndex = activeElement && $root.contains(activeElement) ? elements.indexOf(activeElement) : -1;
+            if (scrollLeft || scrollTop) {
+                scrollPositions.push({ index, scrollLeft, scrollTop });
+            }
+
+            element = walker.nextNode();
+            index++;
+        }
 
         let selection;
 
@@ -99,70 +119,135 @@ class TModelUtil {
             };
         }
 
-        return {
-            controls,
-            scrollPositions,
-            activeIndex,
-            selection
-        };
+        return { controls, scrollPositions, activeIndex, selection };
     }
-    
+
     static restoreMountedDom($root, domState) {
-        if (!$root?.getElement() || !domState) {
+        const root = $root?.getElement();
+        const states = domState?.controls;
+
+        if (!root || !states?.length) {
             return;
         }
 
-        const elements = [$root.getElement(), ...$root.queryAll("*")];
+        const selector = "input,textarea,select,details";
+        const offset = root.matches(selector) ? 1 : 0;
+        const elements = root.querySelectorAll(selector);
 
-        for (const state of domState.controls || []) {
-            const element = elements[state.index];
+        for (const state of states) {
+            const element = offset && state.controlIndex === 0
+                ? root
+                : elements[state.controlIndex - offset];
 
-            if (!element) {
+            if (!element || element.localName !== state.kind) {
                 continue;
             }
 
-            const tagName = element.tagName?.toLowerCase();
+            switch (state.kind) {
+                case "input":
+                    if (element.value !== state.value) {
+                        element.value = state.value;
+                    }
+                    if (element.checked !== state.checked) {
+                        element.checked = state.checked;
+                    }
+                    if (element.indeterminate !== state.indeterminate) {
+                        element.indeterminate = state.indeterminate;
+                    }
+                    break;
+                case "textarea":
+                    if (element.value !== state.value) {
+                        element.value = state.value;
+                    }
+                    break;
+                case "select": {
+                    const options = element.options;
+                    const selected = state.selected || [];
 
-            if (state.kind === "input" && tagName === "input") {
-                element.value = state.value;
-                element.checked = state.checked;
-                element.indeterminate = state.indeterminate;
-            } else if (state.kind === "textarea" && tagName === "textarea") {
-                element.value = state.value;
-            } else if (state.kind === "select" && tagName === "select") {
-                Array.from(element.options).forEach((option, index) => {
-                    option.selected = state.selected?.[index] === true;
-                });
-            } else if (state.kind === "details" && tagName === "details") {
-                element.open = state.open;
+                    for (let i = 0; i < options.length; i++) {
+                        const value = selected[i] === true;
+
+                        if (options[i].selected !== value) {
+                            options[i].selected = value;
+                        }
+                    }
+                    break;
+                }
+                case "details":
+                    if (element.open !== state.open) {
+                        element.open = state.open;
+                    }
+                    break;
             }
         }
     }
-    
-    static async restoreDomInteractionState($root, domState) {
-        if (!$root?.getElement() || !domState) {
+
+    static async restoreDomInteractionState($root, domState, { focus = "editable" } = {}) {
+        
+        const root = $root?.getElement();
+
+        if (!root || !domState) {
             return;
         }
 
-        await new Promise(requestAnimationFrame);
+        const scrollPositions = domState.scrollPositions || [];
+        let activeIndex = domState.activeIndex ?? -1;
 
-        const elements = [$root.getElement(), ...$root.queryAll("*")];
+        if (root === root.ownerDocument.body && activeIndex === 0) {
+            activeIndex = -1;
+        }
 
-        for (const state of domState.scrollPositions || []) {
-            const element = elements[state.index];
+        if (!scrollPositions.length && activeIndex < 0) {
+            return;
+        }
 
-            if (!element) {
-                continue;
+        // Wait only when restoring nonzero scroll positions.
+        //if (scrollPositions.length) {
+        //    await new Promise(requestAnimationFrame);
+        //}
+
+        const lastScrollIndex = scrollPositions.length ? scrollPositions[scrollPositions.length - 1].index : -1;
+        const lastIndex = Math.max(activeIndex, lastScrollIndex);
+        const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+
+        let element = root;
+        let activeElement;
+        let scrollIndex = 0;
+
+        for (let index = 0; element && index <= lastIndex; index++, element = walker.nextNode()) {
+            if (index === activeIndex) {
+                activeElement = element;
             }
 
-            element.scrollLeft = state.scrollLeft;
-            element.scrollTop = state.scrollTop;
+            if (scrollIndex < scrollPositions.length && scrollPositions[scrollIndex].index === index) {
+                const state = scrollPositions[scrollIndex++];
+
+                const left = element.scrollLeft;
+                const top = element.scrollTop;
+
+                if (left !== state.scrollLeft) {
+                    element.scrollLeft = state.scrollLeft;
+                }
+
+                if (top !== state.scrollTop) {
+                    element.scrollTop = state.scrollTop;
+                }
+            }
+        }
+        
+        if (!activeElement || focus === "none") {
+            return;
         }
 
-        const activeElement = elements[domState.activeIndex];
+        if (focus === "editable") {
+            const tag = activeElement.localName;
 
-        if (!activeElement) {
-            return;
+            const editable = tag === "textarea" || tag === "select" || (tag === "input" && activeElement.type !== "hidden") 
+                    || activeElement.isContentEditable;
+
+            if (!editable) {
+                return;
+            }
         }
 
         try {
@@ -174,8 +259,10 @@ class TModelUtil {
         if (domState.selection && typeof activeElement.setSelectionRange === "function") {
             try {
                 activeElement.setSelectionRange(domState.selection.start, domState.selection.end, domState.selection.direction);
-            } catch {}
+            } 
+            catch {}
         }
+
     }
 
     static getMarginValue(tmodel, side) {

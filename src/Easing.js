@@ -34,7 +34,11 @@ class Easing {
         [Easing.EASE_IN_OUT, Easing.#easeInOut],
         [Easing.STEP_START, Easing.#stepStart],
         [Easing.STEP_END, Easing.#stepEnd],
-    ]);    
+    ]);  
+    
+    static isEasing(value) {
+        return Easing.easeMap.has(value);
+    }
 
     static easingFunction(easingStr) {
         if (!easingStr) {

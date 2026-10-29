@@ -10,6 +10,9 @@ import { TModelUtil } from "./TModelUtil.js";
 import { DomInit } from "./DomInit.js";
 import { StateUtil } from "./StateUtil.js";
 import { TModelFactory } from "./TModelFactory.js";
+import { ParticleExplode } from "./ParticleExplode.js";
+import { HtmlToCanvas } from "./htmlToCanvas.js";
+
 
 /**
  * It provides the base class for all objects in an app where targets are defined. 
@@ -108,11 +111,21 @@ class TModel extends BaseModel {
         TModelUtil.calcAbsolutePositionFromDom(this);
     }
 
-    removeChild(child) {
+    removeChild(child, { reset = false } = {}) {
         if (!child || !this.allChildrenMap[child.oid]) {
             return;
         }
-            
+
+        if (reset) {
+            for (const key of this.functionTargetNames) {
+                const targetValue = this.targetValues[key];
+
+                if (targetValue?.childAction?.includes(child) || targetValue?.addChildAction?.includes(child)) {
+                    TargetUtil.resetRemovedChildTarget(this, key, child);
+                }
+            }
+        }
+
         TargetUtil.resetBeforeDeletion(child);
         
         getManager().markTModelDeleted(child);
@@ -154,7 +167,8 @@ class TModel extends BaseModel {
         if (!(child instanceof TModel)) {
             const childDefinition = TUtil.cloneTargetDefinition(child);
             const foundKey = Object.keys(this.actualValues).find(key => this.actualValues[key] === child);
-            const type = foundKey ? childDefinition.id || foundKey : `${this.oid}_`;
+            
+            const type = childDefinition.id || foundKey || `${this.oid}_`;
 
             child = TModelFactory.create(type, childDefinition, (type, targets) => new TModel(type, targets));
         }
@@ -215,10 +229,6 @@ class TModel extends BaseModel {
                 
                 if (this.allChildrenMap[child.oid]) {
                     return;
-                }
-                
-                if (!TUtil.isDefined(child.val('canDeleteDom')) && this.val('canDeleteDom') === false) {
-                    child.val('canDeleteDom', false);
                 }
 
                 if (index >= this.allChildrenList.length) {
@@ -322,6 +332,46 @@ class TModel extends BaseModel {
         return this;
     } 
     
+    createExplodeChildren(key, definition = {}) {
+        return ParticleExplode.createExplodeChildren(this, key, definition);
+    }
+
+    captureExplodeSource(width = this.getWidth(), height = this.getHeight(), source = this) {
+        const element = ParticleExplode.resolveDomElement(source);
+
+        return HtmlToCanvas.captureSource(element, width, height, () => this.particleRenderer?.canvasLayer);
+    }
+
+    async restoreExplodeSource() {
+        const state = this.explodeChildrenState;
+
+        if (!state || !this.hasDom()) {
+            return true;
+        }
+
+        const target = this.targets[state.key] ?? {};
+        const source = ParticleExplode.resolveSource(this, target.dom);
+        const sourceElement = ParticleExplode.resolveDomElement(source);
+
+        if (!sourceElement) {
+            return false;
+        }
+
+        const capture = await this.captureExplodeSource(state.width, state.height, source);
+
+        return this.particleRenderer.setExplodeSource(capture);
+    }
+
+    getExplodeFragment(childIndex) {
+        const state = this.explodeChildrenState;
+
+        if (!state) {
+            return;
+        }
+
+        return ParticleExplode.getExplodeFragment(state, childIndex);
+    }
+
     exists() {
         const parent = this.getParent();
 
@@ -557,6 +607,7 @@ class TModel extends BaseModel {
             { oid: this.oid },
             { visible: this.isVisible() },
             { visibilityStatus: this.visibilityStatus },
+            { complete: TargetUtil.isTModelComplete(this) },
             { hasDom: this.hasDom() },
             { shouldCalculateChildren: this.shouldCalculateChildren() },
             { dirtyLayout: this.getDirtyLayout() },
@@ -564,8 +615,8 @@ class TModel extends BaseModel {
             { y: this.getY() },
             { width: this.getWidth() },
             { height: this.getHeight() },
-            { tmodelComplete: TargetUtil.isTModelComplete(this) },
             { targets: this.originalTargetNames },
+            { completedTargets: Object.keys(this.targetValues).filter(key => this.targetValues[key]?.status === 'complete').length },
             { activeTargetList: this.activeTargetList },
             { activatedTargets: this.activatedTargets },
             { updatingTargetList: this.updatingTargetList },
@@ -573,14 +624,17 @@ class TModel extends BaseModel {
             { noDomUpdatingTargets: [ ...(this.noDomUpdatingTargets ? [ ...this.noDomUpdatingTargets ] : []) ] },
             { pendingTargets: [ ...(this.pendingTargets ? [ ...this.pendingTargets ] : []) ] },
             { styleTargetMap: [ ...(this.styleTargetMap ? [ ...this.styleTargetMap.keys() ] : []) ] },
+            { asyncStyleTargetMap: [ ...(this.asyncStyleTargetMap ? [ ...this.asyncStyleTargetMap.keys() ] : []) ] },
             { passiveTargetList: this.passiveTargetList },
-            { incompleteTargets: Object.keys(this.targetValues)
-                    .filter(key => this.targetValues[key]?.status !== 'complete')
+            { incompleteTargets: Object.keys(this.targetValues).filter(key => this.targetValues[key]?.status !== 'complete')
                     .map(key => `${key}:${this.targetValues[key]?.status}`)
             },
             { updatingChildren: this.updatingChildrenMap ? [ ...this.updatingChildrenMap.keys() ] : [] },
             { activeChildren: this.activeChildrenMap ? [ ...this.activeChildrenMap.keys() ] : [] },            
             { children: this.getChildren() },
+            { visibleChildren: this.visibleChildren },
+            { allVisibleChildren: this.getChildren().filter(child => child.isVisible()) },
+            { allInvisibleChilden: this.getChildren().filter(child => !child.isVisible()) },
             { targetValues: this.targetValues },
             { actualValues: this.actualValues }
         ];
@@ -770,14 +824,6 @@ class TModel extends BaseModel {
 
     preventDefault() {
         return TUtil.isDefined(this.val('preventDefault')) ? this.val('preventDefault') : this.getParentValue('preventDefault') || false;
-    }
-    
-    canDeleteDom() {
-        return TUtil.isDefined(this.val('canDeleteDom')) ? this.val('canDeleteDom') : !this.reuseDomDefinition();
-    }
-    
-    requiresDom() {
-        return TUtil.isDefined(this.val('requiresDom')) ? this.val('requiresDom') : this.reuseDomDefinition();
     }
     
     excludeStyling() {
@@ -1031,7 +1077,7 @@ class TModel extends BaseModel {
         return false;
     }
 
-    onDomReady() {}
+    onDomAvailable() {}
 }
 
 export { TModel };

@@ -5,6 +5,7 @@ import { TargetParser } from "./TargetParser.js" ;
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
 import { $Dom } from "./$Dom.js";
+import { Easing } from "./Easing.js";
 
 /**
  * It provides the target state and associated logic to the TModel.
@@ -221,7 +222,12 @@ class BaseModel {
 
         if (isInactiveKey) {
             this.targets[key].active = false;
-        }            
+        }     
+        
+        if (TargetData.requiresDom(cleanKey)) {
+            this.addOnDomTarget(key);
+            this.targets[key].active = false;
+        }
 
         if (TargetData.bypassInitialProcessingTargetMap[cleanKey]) {
             return;
@@ -271,14 +277,38 @@ class BaseModel {
     }    
     
     canTargetBeActivated(key) {
-        const onDomEvent = this.targets.onDomEvent;
-        if (onDomEvent) {
-            const included = Array.isArray(onDomEvent) ? onDomEvent.includes(key) : onDomEvent === key;
+        const onDomReady = this.targets.onDomReady;
+
+        if (onDomReady) {
+            const value = onDomReady.value ?? onDomReady;
+            const included = Array.isArray(value) ? value.includes(key) : value === key;
+
             if (included && !this.hasDom()) {
                 return false;
             }
         }
+
         return !this.activeTargetMap[key];
+    }
+    
+    addOnDomTarget(key) {
+        let onDomReady = this.targets.onDomReady;
+
+        if (!onDomReady) {
+            this.targets.onDomReady = {
+                value: [key],
+                active: false
+            };
+
+            this.processNewTarget('onDomReady');
+            return;
+        }
+
+        const values = Array.isArray(onDomReady) ? onDomReady : onDomReady.value;
+
+        if (Array.isArray(values) && !values.includes(key)) {
+            values.push(key);
+        }
     }
     
     addToStyleTargetList(key, enforce) {
@@ -531,13 +561,15 @@ class BaseModel {
         if (!TUtil.isDefined(target)) {
             return false;
         }
-        
-        if (typeof target.enabledOn === 'function') {  
-            this.setTargetMethodName(key, 'enabledOn');
-            return target.enabledOn.call(this);
-        } else {
-            return true;
+
+        const enabledOn = target.enabledOn;
+
+        if (typeof enabledOn === "function") {
+            this.setTargetMethodName(key, "enabledOn");
+            return !!enabledOn.call(this);
         }
+
+        return enabledOn !== false;
     }
 
     doesTargetEqualActual(key) {
@@ -694,10 +726,11 @@ class BaseModel {
                 continue;
             }
 
-            if (!this.shouldScheduleRun(key)) {
+            if (!this.shouldScheduleRun(key) || !this.canTargetBeActivated(key)) {
                 continue;
             }
-
+            
+            this.resetTargetStep(key);
             this.addToActiveTargets(key);
             activated = true;
         }
@@ -827,25 +860,33 @@ class BaseModel {
         }
     }
 
-    setTarget(key, value, steps, interval, easing) {     
+    setTarget(key, value, steps, interval, easing) {
         if (typeof key === 'object' && key !== null) {
-            [value, steps, interval, easing] = [key, value, steps, interval, easing];
+            [value, steps, interval, easing] = [key, value, steps, interval];
             key = '';
         }
-        
+
+        if (easing === undefined && Easing.isEasing(interval)) {
+            easing = interval;
+            interval = undefined;
+        }
+
         if (typeof key === 'string') {
             key = !key.endsWith('+') ? key + "+" : key;
         }
 
         const originalTargetName = TargetUtil.currentTargetName;
         const originalTModel = TargetUtil.currentTModel;
-            
-        if (this.getParent() === originalTModel) {
+
+        if (originalTargetName === 'swell') {
+            console.log("setTarget: " + this.oid + ", " + originalTModel.oid + ", " + originalTargetName);
+        }
+        if (originalTModel && originalTargetName && originalTModel !== this) {
             TargetUtil.markChildAction(originalTModel, originalTargetName, this);
         }
-        
+
         this.markLayoutDirty(key);
-                
+        
         TargetExecutor.executeImperativeTarget(this, key, value, steps, interval, easing, originalTargetName, originalTModel);
 
         return this;
@@ -856,6 +897,7 @@ class BaseModel {
 
         return getAnimationManager().cancelTModelAnimation(this, { mode, commitStyle });
     }
+    
     hasTargetUpdates(key) {
         return key ? this.updatingTargetMap[key] === true || this.animatingMap?.has(key) : this.updatingTargetList.length > 0;
     }
