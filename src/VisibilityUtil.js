@@ -142,8 +142,8 @@ class VisibilityUtil {
         const modelLeft = tmodel.getScrollLeft() ?? 0;
 
         return {
-            x: Math.max(0, domLeft - modelLeft),
-            y: Math.max(0, domTop - modelTop)
+            x: modelLeft - domLeft,
+            y: modelTop - domTop
         };
     }
 }

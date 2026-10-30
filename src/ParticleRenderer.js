@@ -1015,11 +1015,9 @@ class ParticleRenderer {
     }
     
     getParticlePosition(child, values = child?.actualValues) {
-        const scroll = this.tmodel.getUnappliedScroll();
-
         return {
-            x: child.allTargetMap.x ? values.x : child.x + scroll.x,
-            y: child.allTargetMap.y ? values.y : child.y + scroll.y
+            x: child.allTargetMap.x ? values.x : child.x,
+            y: child.allTargetMap.y ? values.y : child.y
         };
     }
 
