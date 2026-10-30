@@ -56,12 +56,18 @@ class TModel extends BaseModel {
         this.initTargets();  
         this.restoringRuntime = false;
     }
-
+    
+    getUnappliedScroll() {
+        return VisibilityUtil.getUnappliedScroll(this);
+    }
+    
     createViewport() {
         this.viewport = this.viewport || new Viewport();
         
-        const scrollTop = this.getScrollTop(); 
-        const scrollLeft = this.getScrollLeft(); 
+        const scroll = this.getUnappliedScroll();
+
+        const scrollTop = scroll.y;
+        const scrollLeft = scroll.x;
         
         const x = -scrollLeft, y = -scrollTop;
         

@@ -363,6 +363,12 @@ class TModelManager {
             delete App.tmodelIdMap[tmodel.oid];
         }
         
+        for (const child of tmodel.childHandles ?? []) {
+            if (App.tmodelIdMap[child.oid] === child) {
+                delete App.tmodelIdMap[child.oid];
+            }
+        }
+
         getLocationManager().domIslandSet.delete(tmodel);
 
         if (tmodel.hasDom() && !this.lists.deletedDom.includes(tmodel)) {
@@ -499,19 +505,17 @@ class TModelManager {
     }
     
     deleteDom(tmodel) {
+        const element = tmodel.$dom?.element;
+        const canvas = tmodel.particleRenderer?.canvasLayer;
+
         if (tmodel.hasAnimatingTargets()) {
             AnimationUtil.detachAnimationsOnDeleteDom(tmodel);
         }
 
-        // Remove the GPU layer, which may be mounted as a sibling of the model's DOM.
-        tmodel.particleRenderer?.canvasLayer?.remove();
-
-        const domParent = tmodel.getDomParent();
-        if (domParent && domParent.$dom) {
-            domParent.$dom.removeElement(tmodel.$dom.element);
-        }
-
-        this.resetTModelDom(tmodel);        
+        canvas?.remove();
+        element?.remove();
+        
+        this.resetTModelDom(tmodel);
     }
     
     fixStyles() {

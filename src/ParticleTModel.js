@@ -7,7 +7,7 @@ import { ParticleChild } from "./ParticleChild.js";
 import { TargetParser } from "./TargetParser.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TUtil } from "./TUtil.js";
-import { getRunScheduler } from "./App.js";
+import { App, getRunScheduler } from "./App.js";
 
 /**
  * It provides a TModel that can render instanced addChildren values on the GPU.
@@ -587,7 +587,8 @@ class ParticleTModel extends TModel {
         this.gpuChildrenEnabled = true;
 
         const handle = new ParticleChild(this, index);
-
+        handle.oid = `${this.oid}_${this.childGeneration}`;
+        
         this.childHandles[index] = handle;
         this.childActualValues[index] = handle.actualValues;
         this.childTargetMaps[index] = handle.allTargetMap;
@@ -624,6 +625,8 @@ class ParticleTModel extends TModel {
             this.childGeneration++;
             this.childrenUpdateFlag = true;
             this.markLayoutDirty("addGpuChild");
+
+            App.tmodelIdMap[handle.oid] = handle;
 
             return true;
         } catch (error) {
@@ -697,6 +700,10 @@ class ParticleTModel extends TModel {
 
         if (index < 0) {
             return;
+        }
+
+        if (App.tmodelIdMap[child.oid] === child) {
+            delete App.tmodelIdMap[child.oid];
         }
 
         this.particleRuntime.removeChild(index);
@@ -1426,6 +1433,7 @@ class ParticleTModel extends TModel {
     getRuntimeSnapshotFields() {
         return {
             childHandleRuntimeStates: this.childHandles.map(child => ({
+                oid: child.oid,
                 x: child.x,
                 y: child.y,
                 targets: child.targets,
@@ -1452,8 +1460,10 @@ class ParticleTModel extends TModel {
 
         this.childHandles = this.childActualValues.map((values, index) => {
             const child = new ParticleChild(this, index);
-            const targetMap = this.childTargetMaps[index] || {};
             const runtimeState = childHandleRuntimeStates[index];
+            child.oid = runtimeState?.oid ?? child.oid;
+            
+            const targetMap = this.childTargetMaps[index] || {};
 
             Object.assign(child.actualValues, values);
             Object.assign(child.allTargetMap, targetMap);

@@ -133,8 +133,16 @@ class ParticleUtil {
             return false;
         }
 
-        return typeof target.value === "function" ||
-            typeof target.steps === "function" ||
+        const value = target.value;
+        const steps = target.steps;
+
+        const hasValues = Array.isArray(value) && value.length > 1;
+        const hasSteps = Array.isArray(steps) ? steps.some(step => Number(step) > 0) : Number(steps) > 0;
+
+        return hasValues ||
+            hasSteps ||
+            typeof value === "function" ||
+            typeof steps === "function" ||
             TUtil.isDefined(target.interval) ||
             TUtil.isDefined(target.easing) ||
             TUtil.isDefined(target.cycles) ||

@@ -608,7 +608,11 @@ class StateUtil {
             }
         }
         
-        return { root, tmodelIdMap, models };
+        return {
+            root,
+            tmodelIdMap: runtimeReferenceMap,
+            models
+        };
     }
     
     static exportTargetRuntime(tmodel) {

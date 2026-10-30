@@ -102,22 +102,18 @@ class VisibilityUtil {
     }
 
     static getParentClip(parent) {
-        const domScrollLeft = parent.$dom?.getScrollLeft() || 0;
-        const domScrollTop = parent.$dom?.getScrollTop() || 0;
-        
-        const height = parent.getHeight();
-        const width = parent.getWidth();
-        
+        const domScrollLeft = parent.$dom?.getScrollLeft() ?? 0;
+        const domScrollTop = parent.$dom?.getScrollTop() ?? 0;
+
         return {
             x: parent.absX + domScrollLeft,
             y: parent.absY + domScrollTop,
-            r: parent.absX + width + domScrollLeft,
-            b: parent.absY + height + domScrollTop,
+            r: parent.absX + parent.getWidth() + domScrollLeft,
+            b: parent.absY + parent.getHeight() + domScrollTop,
             source: parent
         };
     }
-    
-    
+
     static rectsOverlap(a, b, verticalOnly = false) {
         return (
             (verticalOnly || (a.x <= b.r && a.r >= b.x)) &&
@@ -127,18 +123,29 @@ class VisibilityUtil {
     }
 
     static intersectRects(parent, a, b) {
-        const domScrollLeft = parent.$dom?.getScrollLeft() || 0;
-        const domScrollTop = parent.$dom?.getScrollTop() || 0;
-        
+        const scrollLeft = parent.$dom?.getScrollLeft() ?? 0;
+        const scrollTop = parent.$dom?.getScrollTop() ?? 0;
+
         return {
-            x: Math.max(a.x - domScrollLeft, b.x - domScrollLeft),
-            y: Math.max(a.y - domScrollTop, b.y - domScrollTop),
-            r: Math.min(a.r - domScrollLeft, b.r - domScrollLeft),
-            b: Math.min(a.b - domScrollTop, b.b - domScrollTop),
+            x: Math.max(a.x, b.x) - scrollLeft,
+            y: Math.max(a.y, b.y) - scrollTop,
+            r: Math.min(a.r, b.r) - scrollLeft,
+            b: Math.min(a.b, b.b) - scrollTop,
             source: b.source
         };
-    }
+    }  
+    
+    static getUnappliedScroll(tmodel) {
+        const domTop = tmodel.$dom?.getScrollTop() ?? 0;
+        const domLeft = tmodel.$dom?.getScrollLeft() ?? 0;
+        const modelTop = tmodel.getScrollTop() ?? 0;
+        const modelLeft = tmodel.getScrollLeft() ?? 0;
 
+        return {
+            x: Math.max(0, domLeft - modelLeft),
+            y: Math.max(0, domTop - modelTop)
+        };
+    }
 }
 
 export { VisibilityUtil };
