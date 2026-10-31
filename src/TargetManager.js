@@ -242,7 +242,7 @@ class TargetManager {
             return { done: false };
         }
 
-        const progress = TUtil.advanceTargetByElapsed(tmodel, key);
+        const progress = ScheduleUtil.advanceTargetByElapsed(tmodel, key);
         const step = progress.step;
         const valuePointer = progress.valuePointer;
         const cycle = progress.cycle;

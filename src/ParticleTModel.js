@@ -129,10 +129,10 @@ class ParticleTModel extends TModel {
             return false;
         }
 
-        if (this.childHandles.length) {
-            await this.particleRenderer.setParticles(this.childHandles);
-        } else {
-            await this.particleRenderer.init();
+        const ready = this.childHandles.length ? await this.particleRenderer.setParticles(this.childHandles) : await this.particleRenderer.init();
+
+        if (!ready) {
+            return false;
         }
 
         const key = this.activeChildTransitionKey;
@@ -154,7 +154,7 @@ class ParticleTModel extends TModel {
             this.handleSpecialTargetStep(key);
         }
 
-        return true;
+        return applied;
     }
 
     requestParticleRender() {
@@ -199,6 +199,10 @@ class ParticleTModel extends TModel {
     }
     
     getChildrenRenderer() {
+        if (!TUtil.webGpuAvailable) {
+            return "dom";
+        }
+        
         const target = this.targets[TargetUtil.currentTargetName];
 
         return target?.renderer || "auto";
@@ -1538,7 +1542,7 @@ class ParticleTModel extends TModel {
 }
 
 function isParticleTModel(targets) {
-    if (!targets) {
+    if (!targets || !TUtil.webGpuAvailable) {
         return false;
     }
 

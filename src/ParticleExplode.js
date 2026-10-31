@@ -23,8 +23,9 @@ class ParticleExplode {
         };
         
         const target = tmodel.targets[key] ?? {};
-        const renderer = target.renderer ?? "gpu";
-
+        const requestedRenderer = target.renderer ?? "gpu";
+        const renderer = requestedRenderer === "gpu" && !TUtil.webGpuAvailable ? "dom" : requestedRenderer;
+        
         if (renderer !== "gpu" && renderer !== "dom") {
             throw new Error(`Unsupported explodeChildren renderer: ${renderer}`);
         }
@@ -74,7 +75,14 @@ class ParticleExplode {
         };
 
         const planned = [];
-        const maxFragments = 20000;
+        const maxFragments = renderer === "gpu" ? 20000 : 300;
+        const autoDomGrid = renderer === "dom" && requestedRenderer === "gpu" && requestedCount === undefined;
+
+        const domColumns = autoDomGrid ? Math.max(1, Math.min(maxFragments, Math.floor(Math.sqrt(maxFragments * uiWidth / uiHeight)))) : 0;
+        const domRows = autoDomGrid ? Math.max(1, Math.floor(maxFragments / domColumns)) : 0;
+        const domWidth = autoDomGrid ? Math.ceil(uiWidth / domColumns) : 0;
+        const domHeight = autoDomGrid ? Math.ceil(uiHeight / domRows) : 0;
+        
         const epsilon = 1e-7;
         let nextX = 0;
         let rowY = 0;
@@ -83,9 +91,6 @@ class ParticleExplode {
         while (requestedCount === undefined ? rowY < uiHeight - epsilon : planned.length < requestedCount) {
             const index = planned.length;
 
-            if (index >= maxFragments) {
-                throw new RangeError(`explodeChildren exceeded ${maxFragments} fragments. Specify instances or larger dimensions.`);
-            }
 
             const raw = valueFactory ? valueFactory.call(tmodel, index) : sharedDefinition ?? {};
 
@@ -95,8 +100,8 @@ class ParticleExplode {
 
             const childDefinition = TUtil.cloneTargetDefinition({
                 ...raw,
-                width: raw.width ?? 20,
-                height: raw.height ?? 20,
+                width: autoDomGrid ? domWidth : raw.width ?? 20,
+                height: autoDomGrid ? domHeight : raw.height ?? 20,
                 isInFlow: raw.isInFlow ?? false
             });
 

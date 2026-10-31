@@ -18,6 +18,7 @@ import "./ParticleTModel.js";
 
 let tApp;
 let queuedAppCalls = [];
+let appStarting = false;
 
 const AppFn = () => {
     const my = {};
@@ -197,15 +198,13 @@ const App = firstChild => {
     }
 
     const tmodel = firstChild instanceof TModel ? firstChild : TargetExecutor.createTModel("App", firstChild);
-    
+
     if (!tApp?.tRoot) {
-        if (document.readyState === "loading") {
-            queuedAppCalls.push(tmodel);
-            return tmodel;
+        queuedAppCalls.push(tmodel);
+        if (document.readyState !== "loading") {
+            ensureRunning();
         }
 
-        ensureRunning();
-        tApp.tRoot.addChild(tmodel);
         return tmodel;
     }
 
@@ -297,13 +296,21 @@ if (typeof window !== "undefined") {
     window.t = window.t || getTModelById;
 }
 
-const runApp = () => {
-    if (tApp) {
+const runApp = async () => {
+    if (tApp || appStarting) {
         return;
     }
 
-    tApp = AppFn();
-    tApp.init().start();
+    appStarting = true;
+
+    try {
+        await TUtil.initWebGpu();
+
+        tApp = AppFn();
+        await tApp.init().start();
+    } finally {
+        appStarting = false;
+    }
 };
 
 if (typeof document !== "undefined") {

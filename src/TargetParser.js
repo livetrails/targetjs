@@ -107,13 +107,28 @@ class TargetParser {
     } 
     
     static getTargetInstances(tmodel, key, target = tmodel.targets[key], cycle = tmodel.getTargetCycle(key)) {
-        if (!target || typeof target !== 'object' || !TUtil.isDefined(target.instances)) {
+        if (!target || typeof target !== "object" || !TUtil.isDefined(target.instances)) {
             return 1;
         }
 
-        const instances = typeof target.instances === 'function' ? target.instances.call(tmodel, cycle) : target.instances;
+        const instances = typeof target.instances === "function"
+            ? target.instances.call(tmodel, cycle)
+            : target.instances;
 
-        return Math.max(1, Math.floor(Number(instances) || 1));
+        const requested = Math.max(1, Math.floor(Number(instances) || 1));
+
+        if (!TUtil.webGpuAvailable && target.renderer !== "dom") {
+            const maxDomInstances = Math.max(1, Math.floor(Number(target.maxDomInstances) || 100));
+            const count = Math.min(requested, maxDomInstances);
+
+            if (count < requested) {
+                console.warn(`TargetJS: ${key} reduced from ${requested} to ${count} children for DOM fallback.`);
+            }
+
+            return count;
+        }
+
+        return requested;
     }
 
     static getInstanceTargetValue(tmodel, key, target, cycle, lastValue, instance) {

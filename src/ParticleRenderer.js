@@ -46,9 +46,8 @@ class ParticleRenderer {
     }
 
     async init() {
-        if (this.device) {
-            this.mountCanvasLayer();
-            return true;
+        if (this.device && this.context && this.pipeline && this.bindGroup) {
+            return this.mountCanvasLayer();
         }
 
         if (!this.tmodel.hasDom()) {
@@ -64,16 +63,12 @@ class ParticleRenderer {
 
         await this.initializationPromise;
 
-        return !!this.device;
+        return !!(this.device && this.context && this.pipeline && this.bindGroup);
     }
 
     async initialize() {
-        if (!navigator.gpu) {
-            throw new Error("WebGPU is not supported by this browser.");
-        }
-
-        if (!globalThis.GPUBufferUsage) {
-            throw new Error("GPUBufferUsage is not available in this WebGPU environment.");
+        if (!TUtil.webGpuAvailable) {
+            throw new Error("WebGPU is not available.");
         }
 
         this.createCanvas();

@@ -7,6 +7,9 @@ import { TModel } from "./TModel.js";
  * It provides a variety of helping functions that are used by the framework.
  */
 class TUtil {
+    static webGpuAvailable = false;
+    static webGpuInitPromise;
+
     static contains(container, tmodel) {
         if (!container || !tmodel) {
             return false;
@@ -278,207 +281,61 @@ class TUtil {
 
         return cloned;
     }
-    
-    static advanceTargetByElapsed(tmodel, key) {
-        const targetValue = tmodel.targetValues[key];
+  
+    static initWebGpu() {
+        return this.webGpuInitPromise ??= (async () => {
+            this.webGpuAvailable = false;
 
-        if (!targetValue) {
-            return {
-                step: 0,
-                cycle: 0,
-                valuePointer: 1,
-                done: false
-            };
-        }
-
-        if (!TUtil.isDefined(targetValue.catchupAt)) {
-            const step = tmodel.getTargetStep(key);
-            const valuePointer = targetValue.valueList?.length ? tmodel.getValueListPointer(key) : 0;
-
-            return {
-                step,
-                cycle: tmodel.getTargetCycle(key),
-                valuePointer,
-                done: !TargetUtil.isTargetUpdating(tmodel, key)
-            };
-        }
-
-        const now = TUtil.now();
-        const elapsedMs = now - targetValue.catchupAt;
-
-        const progress = targetValue.valueList?.length
-            ? TUtil.advanceValueListTargetByElapsed(tmodel, key, elapsedMs)
-            : TUtil.advanceSimpleTargetByElapsed(tmodel, key, elapsedMs);
-
-        if (!progress.done) {
-            targetValue.catchupAt = now - progress.remainingMs;
-        }
-
-        return progress;
-    }
-
-    static advanceSimpleTargetByElapsed(tmodel, key, elapsedMs) {
-        const steps = tmodel.getTargetSteps(key);
-        const interval = tmodel.getTargetInterval(key) || 8;
-        const cycles = tmodel.getTargetCycles(key);
-
-        let step = tmodel.getTargetStep(key);
-        let cycle = tmodel.getTargetCycle(key);
-        let remainingMs = elapsedMs;
-
-        if (steps <= 0) {
-            return {
-                step: steps,
-                valuePointer: 0,
-                cycle: cycles,
-                done: true,
-                remainingMs: 0
-            };
-        }
-
-        while (remainingMs > 0 && cycle < cycles) {
-            const remainingSteps = Math.max(steps - step, 0);
-            const remainingSegmentMs = remainingSteps * interval;
-
-            if (remainingMs >= remainingSegmentMs) {
-                remainingMs -= remainingSegmentMs;
-                cycle++;
-
-                if (cycle >= cycles) {
-                    return {
-                        step: steps,
-                        valuePointer: 0,
-                        cycle: cycles,
-                        done: true,
-                        remainingMs
-                    };
-                }
-
-                step = 0;
-                continue;
+            if (!this.hasWebGpu()) {
+                return false;
             }
 
-            const advancedSteps = TUtil.limit(
-                Math.floor(remainingMs / interval),
-                0,
-                remainingSteps
-            );
+            let device;
 
-            step += advancedSteps;
-            remainingMs -= advancedSteps * interval;
+            try {
+                const adapter = await navigator.gpu.requestAdapter();
 
-            return {
-                step,
-                steps,
-                valuePointer: 0,
-                cycle,
-                done: false,
-                remainingMs
-            };
-        }
+                if (!adapter) {
+                    return false;
+                }
 
-        return {
-            step,
-            steps,
-            valuePointer: 0,
-            cycle,
-            done: cycle >= cycles,
-            remainingMs
-        };
+                device = await adapter.requestDevice();
+
+                const canvas = document.createElement("canvas");
+                const context = canvas.getContext("webgpu");
+
+                if (!context) {
+                    return false;
+                }
+
+                context.configure({
+                    device,
+                    format: navigator.gpu.getPreferredCanvasFormat(),
+                    alphaMode: "premultiplied",
+                    usage: globalThis.GPUTextureUsage.RENDER_ATTACHMENT | globalThis.GPUTextureUsage.COPY_SRC
+                });
+
+                context.unconfigure();
+
+                this.webGpuAvailable = true;
+                return true;
+            } catch (error) {
+                console.warn("TargetJS: WebGPU unavailable. Using DOM.", error);
+                return false;
+            } finally {
+                device?.destroy();
+            }
+        })();
     }
     
-    static advanceValueListTargetByElapsed(tmodel, key, elapsedMs) {
-        const targetValue = tmodel.targetValues[key];
-
-        const valueList = targetValue.valueList;
-        const stepList = targetValue.stepList || [1];
-        const intervalList = targetValue.intervalList || [targetValue.interval || 8];
-
-        const cycles = tmodel.getTargetCycles(key);
-
-        let cycle = tmodel.getTargetCycle(key);
-        let valuePointer = tmodel.getValueListPointer(key);
-        let step = tmodel.getTargetStep(key);
-        let remainingMs = elapsedMs;
-
-        while (cycle < cycles) {
-            while (remainingMs > 0 && valuePointer < valueList.length) {
-                const segmentSteps = stepList[(valuePointer - 1) % stepList.length];
-                const interval = intervalList[(valuePointer - 1) % intervalList.length] || 8;
-
-                step = TUtil.limit(step, 0, segmentSteps);
-
-                const remainingSteps = Math.max(segmentSteps - step, 0);
-                const remainingSegmentMs = remainingSteps * interval;
-
-                if (remainingMs >= remainingSegmentMs) {
-                    remainingMs -= remainingSegmentMs;
-                    valuePointer++;
-                    step = 0;
-                    continue;
-                }
-
-                const advancedSteps = TUtil.limit(
-                    Math.floor(remainingMs / interval),
-                    0,
-                    remainingSteps
-                );
-
-                step += advancedSteps;
-                remainingMs -= advancedSteps * interval;
-
-                return {
-                    step,
-                    steps: segmentSteps,
-                    valuePointer,
-                    cycle,
-                    done: false,
-                    remainingMs
-                };
-            }
-
-            if (valuePointer >= valueList.length) {
-                cycle++;
-
-                if (cycle >= cycles) {
-                    const finalPointer = valueList.length;
-                    const finalStepIndex = Math.max(0, valueList.length - 2);
-                    const finalSteps = stepList[finalStepIndex % stepList.length];
-
-                    return {
-                        step: finalSteps,
-                        steps: finalSteps,
-                        valuePointer: finalPointer,
-                        cycle: cycles,
-                        done: true,
-                        remainingMs
-                    };
-                }
-
-                valuePointer = 1;
-                step = 0;
-
-                if (remainingMs <= 0) {
-                    break;
-                }
-
-                continue;
-            }
-
-            break;
-        }
-
-        const currentSteps = stepList[(valuePointer - 1) % stepList.length];
-
-        return {
-            step,
-            steps: currentSteps,
-            valuePointer,
-            cycle,
-            remainingMs,
-            done: cycle >= cycles
-        };
-    }   
+    static hasWebGpu() {
+        return typeof navigator !== "undefined" &&
+            !!navigator.gpu &&
+            !!globalThis.GPUBufferUsage &&
+            !!globalThis.GPUTextureUsage &&
+            globalThis.isSecureContext === true;
+    }
+    
 }
 
 export { TUtil };
