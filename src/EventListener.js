@@ -633,8 +633,8 @@ class EventListener {
                 this.currentTouch.key = event.which || event.keyCode;
                 this.currentHandlers.focus?.markLayoutDirty('keydown-event');
                 
-                break;                
-                
+                break;                  
+
             case 'resize':
                 this.windowEpoch++;
                 this.resizeRoot();
@@ -642,9 +642,9 @@ class EventListener {
                     if (t.targets['onResize']) {
                         t.markLayoutDirty('resize-event');
                     }
-                });  
+                });
                 break;
-                
+
             case 'scroll':
                 clearTimeout(this.windowScrollEndTimer);
 

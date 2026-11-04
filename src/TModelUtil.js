@@ -435,27 +435,11 @@ class TModelUtil {
                     transformUpdate = true;
                 }
             } else if (key === 'dim') {
-                const dim = Math.floor(tmodel.val('dim'));
-                if (tmodel.styleMap['height'] !== dim || tmodel.$dom.getStyleValue('height') !== dim) {
-                    tmodel.styleMap['height'] = dim;
-                    tmodel.$dom.height(dim);
-                }
-                if (tmodel.styleMap['width'] !== dim || tmodel.$dom.getStyleValue('width') !== dim) {
-                    tmodel.styleMap['width'] = dim;
-                    tmodel.$dom.width(dim);
-                }
-            } else if (key === 'width') {
-                const width = Math.floor(tmodel.getWidth());
-                if (tmodel.styleMap['width'] !== width || tmodel.$dom.getStyleValue('width') !== width) {
-                    tmodel.styleMap['width'] = width;
-                    tmodel.$dom.width(width);
-                }
-            } else if (key === 'height') {
-                const height = Math.floor(tmodel.getHeight());
-                if (tmodel.styleMap['height'] !== height || tmodel.$dom.getStyleValue('height') !== height) {
-                    tmodel.styleMap['height'] = height;
-                    tmodel.$dom.height(height);
-                }
+                const dim = tmodel.val('dim');
+                TModelUtil.applyDimensionStyle(tmodel, 'width', dim);
+                TModelUtil.applyDimensionStyle(tmodel, 'height', dim);
+            } else if (key === 'width' || key === 'height') {
+                TModelUtil.applyDimensionStyle(tmodel, key, tmodel.val(key));
             } else if (TargetData.styleWithUnitMap[key]) {
                 if (TUtil.isDefined(tmodel.val(key)) && tmodel.styleMap[key] !== tmodel.val(key)) {
                     tmodel.$dom.style(key, TUtil.isNumber(tmodel.val(key)) ? `${tmodel.val(key)}px` : tmodel.val(key));
@@ -474,6 +458,65 @@ class TModelUtil {
         }
         
         tmodel.styleTargetMap.clear();
+    }
+    
+    static applyDimensionStyle(tmodel, key, value) {
+        if (!TUtil.isDefined(value)) {
+            return;
+        }
+
+        const cssValue = typeof value === 'number' ? `${Math.floor(value)}px` : value;
+
+        if (tmodel.styleMap[key] !== value || tmodel.$dom.style(key) !== cssValue) {
+            tmodel.styleMap[key] = value;
+            tmodel.$dom.style(key, cssValue);
+            
+            if (tmodel.isDomIsland()) {
+                tmodel.originWindowEpoch = -1;
+                getRunScheduler().schedule(1, 'domIslandDimensionStyle');
+            }            
+        }
+    }
+    
+    static resolveDimension(value, parentSize) {
+        if (typeof value !== 'string') {
+            return value;
+        }
+
+        const str = value.trim();
+        const single = /^([+-]?(?:\d+\.?\d*|\.\d+))(px|%)$/i.exec(str);
+
+        const convert = (term) => {
+            const number = parseFloat(term);
+
+            if (term.endsWith('%')) {
+                if (!Number.isFinite(parentSize)) {
+                    throw new Error(`Percentage dimension requires a definite parent size: ${value}`);
+                }
+                return number * parentSize / 100;
+            }
+
+            return number;
+        };
+
+        if (single) {
+            return convert(str);
+        }
+
+        const calc = /^calc\((.*)\)$/i.exec(str);
+
+        if (!calc) {
+            throw new Error(`Unsupported dimension: ${value}`);
+        }
+
+        const expression = calc[1].replace(/\s+/g, '');
+        const terms = expression.match(/[+-]?(?:\d+\.?\d*|\.\d+)(?:%|px)/gi);
+
+        if (!terms || terms.join('') !== expression || terms.slice(1).some(term => !/^[+-]/.test(term))) {
+            throw new Error(`Unsupported calc expression: ${value}`);
+        }
+
+        return terms.reduce((total, term) => total + convert(term), 0);
     }
     
     static commitAnimatedStyles(tmodel, originalKeys) {
@@ -502,33 +545,14 @@ class TModelUtil {
                 continue;
             }
 
-            if (key === "dim") {
-                const dim = Math.floor(value);
-
-                tmodel.styleMap.width = dim;
-                tmodel.styleMap.height = dim;
-
-                tmodel.$dom.width(dim);
-                tmodel.$dom.height(dim);
-
+            if (key === 'dim') {
+                TModelUtil.applyDimensionStyle(tmodel, 'width', value);
+                TModelUtil.applyDimensionStyle(tmodel, 'height', value);
                 continue;
             }
 
-            if (key === "width") {
-                const width = Math.floor(value);
-
-                tmodel.styleMap.width = width;
-                tmodel.$dom.width(width);
-
-                continue;
-            }
-
-            if (key === "height") {
-                const height = Math.floor(value);
-
-                tmodel.styleMap.height = height;
-                tmodel.$dom.height(height);
-
+            if (key === 'width' || key === 'height') {
+                TModelUtil.applyDimensionStyle(tmodel, key, value);
                 continue;
             }
 
@@ -648,10 +672,10 @@ class TModelUtil {
                 if (TUtil.isDefined(style) && tmodel.styleMap.style !== style) {
                     tmodel.$dom.setStyleByMap(style);
                     if (style.height) {
-                        tmodel.val('height', parseInt(style.height, 10));
+                        tmodel.val('height', style.height);
                     }
                     if (style.width) {
-                        tmodel.val('width', parseInt(style.width, 10));
+                        tmodel.val('width', style.width);
                     }
                     tmodel.styleMap.style = style;
                 }
@@ -1006,7 +1030,23 @@ class TModelUtil {
             tmodel.absY = rect.top;
             tmodel.markLayoutDirty('islandAbsXY');
         }
+
+        const size = tmodel.domIslandSize;
+
+        if (!size || size.width !== rect.width || size.height !== rect.height) {
+            tmodel.domIslandSize = {
+                width: rect.width,
+                height: rect.height
+            };
+
+            const now = TUtil.now();
+            tmodel.domWidthTimestamp = now;
+            tmodel.domHeightTimestamp = now;
+
+            tmodel.markLayoutDirty('islandDimensions');
+        }
     }
+
 }
 
 export { TModelUtil };

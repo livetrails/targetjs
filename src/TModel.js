@@ -1,5 +1,5 @@
 import { BaseModel } from "./BaseModel.js";
-import { App, getLocationManager, getRunScheduler, getEvents, getManager } from "./App.js";
+import { App, getLocationManager, getRunScheduler, getEvents, getManager, getScreenWidth, getScreenHeight } from "./App.js";
 import { Viewport } from "./Viewport.js";
 import { TUtil } from "./TUtil.js";
 import { VisibilityUtil } from "./VisibilityUtil.js";
@@ -747,21 +747,21 @@ class TModel extends BaseModel {
     getTopBaseHeight() {
         return this.val('topBaseHeight') ?? 0;
     }
-    
+
     getLayoutHeight() {
         let height = this.getHeight();
 
-        if (this.usesContentBoxSizing()) {
+        if (!this.isDomIsland() && this.usesContentBoxSizing()) {
             height += this.getPaddingTop() + this.getPaddingBottom();
         }
 
         return height;
     }
-    
+
     getLayoutWidth() {
         let width = this.getWidth();
 
-        if (this.usesContentBoxSizing()) {
+        if (!this.isDomIsland() && this.usesContentBoxSizing()) {
             width += this.getPaddingLeft() + this.getPaddingRight();
         }
 
@@ -995,27 +995,41 @@ class TModel extends BaseModel {
     }
 
     getWidth() {
-        if (TUtil.isDefined(this.targets.width) || TUtil.isDefined(this.targetValues.width)) {
-            return this.val("width");
+        if (this.isDomIsland() && this.domIslandSize) {
+            return this.domIslandSize.width;
+        }
+        
+        const hasWidth = TUtil.isDefined(this.targets.width) || TUtil.isDefined(this.targetValues.width);
+        const hasDim = TUtil.isDefined(this.targets.dim) || TUtil.isDefined(this.targetValues.dim);
+        const value = this.val(!hasWidth && hasDim ? 'dim' : 'width');
+
+        if (typeof value !== 'string') {
+            return value;
         }
 
-        if (TUtil.isDefined(this.targets.dim) || TUtil.isDefined(this.targetValues.dim)) {
-            return this.val("dim");
-        }
+        const parent = this.getRealParent();
+        const parentWidth = parent ? parent.getWidth() : getScreenWidth();
 
-        return this.val("width");
+        return TModelUtil.resolveDimension(value, parentWidth);
     }
 
     getHeight() {
-        if (TUtil.isDefined(this.targets.height) || TUtil.isDefined(this.targetValues.height)) {
-            return this.val("height");
+        if (this.isDomIsland() && this.domIslandSize) {
+            return this.domIslandSize.height;
+        }
+        
+        const hasHeight = TUtil.isDefined(this.targets.height) || TUtil.isDefined(this.targetValues.height);
+        const hasDim = TUtil.isDefined(this.targets.dim) || TUtil.isDefined(this.targetValues.dim);
+        const value = this.val(!hasHeight && hasDim ? 'dim' : 'height');
+
+        if (typeof value !== 'string') {
+            return value;
         }
 
-        if (TUtil.isDefined(this.targets.dim) || TUtil.isDefined(this.targetValues.dim)) {
-            return this.val("dim");
-        }
+        const parent = this.getRealParent();
+        const parentHeight = parent ? parent.getHeight() : getScreenHeight();
 
-        return this.val("height");
+        return TModelUtil.resolveDimension(value, parentHeight);
     }
 
     getScrollTop() {

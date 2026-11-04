@@ -335,7 +335,7 @@ class BaseModel {
                     this.calcAbsolutePosition(this.getX(), this.getY());
                 }
             } else if (key === 'width' || key === 'height') {
-                const dimension = Math.floor(key === 'width' ? this.getWidth() : this.getHeight());
+                const dimension = Math.floor(key === 'width' ? this.val('width') : this.val('height'));
                 if (this.styleMap[key] === dimension) {
                     styleFlag = false;
                 }
