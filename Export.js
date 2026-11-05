@@ -81,7 +81,7 @@ const TargetJS = {
     ...ParticleRendererModule,
     ...ParticleRuntimeModule,
     ...ParticleUtilModule,
-    ...HtmlToCanvas
+    ...HtmlToCanvasModule
 };
 
 if (typeof window !== "undefined") {
