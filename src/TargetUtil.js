@@ -924,16 +924,16 @@ class TargetUtil {
     }
 
 
-    static wrapTarget(tmodel, target, key) {      
+    static wrapTarget(tmodel, target, key) {
         if (!TargetData.controlTargetMap[key]) {
-                tmodel.targets[key] = { 
-                    value: target,
-                    originalTargetName: TargetUtil.currentTargetName,
-                    originalTModel: TargetUtil.currentTModel
-                };
-                target = tmodel.targets[key];
-        } 
-        
+            tmodel.targets[key] = {
+                value: target,
+                originalTargetName: TargetUtil.currentTargetName,
+                originalTModel: TargetUtil.currentTModel
+            };
+            target = tmodel.targets[key];
+        }
+
         return target;
     }
     

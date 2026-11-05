@@ -24,3 +24,4 @@ export * from "./ParticleChild.js";
 export * from "./ParticleRenderer.js";
 export * from "./ParticleRuntime.js";
 export * from "./ParticleUtil.js";
+export * from "./HtmlToCanvas.js";

@@ -24,6 +24,7 @@ export * from "./build/ParticleChild.js";
 export * from "./build/ParticleRenderer.js";
 export * from "./build/ParticleRuntime.js";
 export * from "./build/ParticleUtil.js";
+export * from "./build/HtmlToCanvas.js";
 
 import * as AppModule from "./build/App.js";
 import * as TModelModule from "./build/TModel.js";
@@ -51,6 +52,7 @@ import * as ParticleChildModule from "./build/ParticleChild.js";
 import * as ParticleRendererModule from "./build/ParticleRenderer.js";
 import * as ParticleRuntimeModule from "./build/ParticleRuntime.js";
 import * as ParticleUtilModule from "./build/ParticleUtil.js";
+import * as HtmlToCanvasModule from "./build/HtmlToCanvas.js";
 
 const TargetJS = {
     ...AppModule,
@@ -78,7 +80,8 @@ const TargetJS = {
     ...ParticleChildModule,
     ...ParticleRendererModule,
     ...ParticleRuntimeModule,
-    ...ParticleUtilModule
+    ...ParticleUtilModule,
+    ...HtmlToCanvas
 };
 
 if (typeof window !== "undefined") {

@@ -639,14 +639,28 @@ class $Dom {
         }
 
         xhr.onreadystatechange = function () {
-            if (xhr.readyState === 4) {
-                if (xhr.status === 200) {
-                    const response = query.dataType === 'json' ? JSON.parse(this.responseText) : this.responseText;
-                    query.success(response);
-                } else {
-                    query.error(xhr.status);
+            if (xhr.readyState !== 4) {
+                return;
+            }
+
+            if (xhr.status < 200 || xhr.status >= 300) {
+                query.error(xhr.status);
+                return;
+            }
+
+            let response = xhr.responseText;
+
+            if (query.dataType === 'json') {
+                try {
+                    response = response.trim() ? JSON.parse(response) : null;
+                } catch (error) {
+                    console.error('Invalid JSON response:', xhr.responseURL, error);
+                    query.error(error);
+                    return;
                 }
             }
+
+            query.success(response);
         };
 
         if (query.type === 'POST') {

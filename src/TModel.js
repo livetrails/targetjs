@@ -11,7 +11,7 @@ import { DomInit } from "./DomInit.js";
 import { StateUtil } from "./StateUtil.js";
 import { TModelFactory } from "./TModelFactory.js";
 import { ParticleExplode } from "./ParticleExplode.js";
-import { HtmlToCanvas } from "./htmlToCanvas.js";
+import { HtmlToCanvas } from "./HtmlToCanvas.js";
 
 
 /**

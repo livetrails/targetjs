@@ -425,7 +425,7 @@ class LoadingManager {
     }
 
     callOnSuccessHandler(tmodel, targetName, res) {
-        const onSuccess = tmodel.targets[targetName]?.onSuccess;
+        const onSuccess = tmodel.targets[targetName]?.onSuccess;        
         if (onSuccess) {
             if (typeof onSuccess === 'function') {
                 tmodel.setTargetMethodName(targetName, 'onSuccess');
