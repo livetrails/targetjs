@@ -344,12 +344,13 @@ class BaseModel {
                     this.calcAbsolutePosition(this.getX(), this.getY());
                 }
             } else if (key === 'width' || key === 'height') {
-                const dimension = Math.floor(key === 'width' ? this.val('width') : this.val('height'));
-                if (this.styleMap[key] === dimension) {
+                if (this.styleMap[key] === this.val(key)) {
                     styleFlag = false;
                 }
+            
             } else if (key === 'dim') {
-                if (this.styleMap[key] === Math.floor(this.val('dim'))) {
+                const dim = this.val('dim');
+                if (this.styleMap.width === dim && this.styleMap.height === dim) {
                     styleFlag = false;
                 }
             } else if (TUtil.isDefined(this.val(key)) && this.styleMap[key] === this.val(key)) {
