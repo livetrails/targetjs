@@ -378,7 +378,7 @@ class TModelUtil {
         tmodel.$dom = new $Dom();
         tmodel.$dom.create(tmodel.getBaseElement());
     }
-    
+
     static patchDom(tmodel) {
         tmodel.$dom.ensureId(tmodel.oid);
         tmodel.$dom.attr('tgjs', 'true');
@@ -393,7 +393,8 @@ class TModelUtil {
         tmodel.domWidthTimestamp = 0;
         tmodel.tfMap = {};
         tmodel.styleMap = {};
-        for (const [key] of tmodel.allStyleTargetMap) {
+
+        for (const [key] of tmodel.allStyleTargetMap ?? []) {
             if (TUtil.isDefined(tmodel.val(key))) {
                 tmodel.addToStyleTargetList(key);
             }
@@ -419,10 +420,10 @@ class TModelUtil {
     static fixStyle(tmodel, { keys, frame } = {}) {
         const commit = keys !== undefined || frame !== undefined;
         
-        if (!tmodel.hasDom()) {
+        if (!tmodel.$dom?.element) {
             return;
         }
-
+                
         let styleValues;
 
         if (frame) {

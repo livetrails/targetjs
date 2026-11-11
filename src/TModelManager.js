@@ -1,6 +1,6 @@
 import { $Dom } from "./$Dom.js";
 import { TUtil } from "./TUtil.js";
-import { App, getLocationManager, getEvents, getTargetManager, tRoot } from "./App.js";
+import { App, getLocationManager, getEvents, getTargetManager, tRoot, getRunScheduler } from "./App.js";
 import { TModelUtil } from "./TModelUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { AnimationUtil } from "./AnimationUtil.js";
@@ -618,6 +618,7 @@ class TModelManager {
         }
         
         const holdersMap = new Map();
+        const preStyled = new Set();
         const styleBatch = [];
         const needsDom = [];
         const attached = [];
@@ -669,6 +670,12 @@ class TModelManager {
 
             TModelUtil.createDom(tmodel);
             TModelUtil.patchDom(tmodel);
+
+            TModelUtil.initStyleMaps(tmodel);
+            TModelUtil.fixStyle(tmodel);
+            TModelUtil.fixAsyncStyle(tmodel);
+
+            preStyled.add(tmodel);
             styleBatch.push(tmodel);
             attached.push(tmodel);
 
@@ -705,7 +712,10 @@ class TModelManager {
                 continue;
             }
 
-            TModelUtil.initStyleMaps(tmodel);
+            if (!preStyled.has(tmodel)) {
+                TModelUtil.initStyleMaps(tmodel);
+            }
+            
             TModelUtil.fixStyle(tmodel);
             TModelUtil.fixAsyncStyle(tmodel);
         }
@@ -717,6 +727,10 @@ class TModelManager {
         this.activatePendingTargetsAfterDom(attached);
 
         getEvents().attachEvents(attached);
+        
+        if (domReady.length) {
+            getRunScheduler().schedule(1, 'createDoms');
+        }
     }
 }
 
