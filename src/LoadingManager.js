@@ -255,15 +255,14 @@ class LoadingManager {
     }
 
     isNextLoadingItemSuccessful(tmodel, targetName) {
-        const key = this.getTModelKey(tmodel, targetName);
-        const modelEntry = this.tmodelKeyMap[key];
-        if (!modelEntry) {
+        const entry = this.isLoading(tmodel, targetName);
+        if (!entry || entry.activeIndex >= entry.entryCount) {
             return false;
         }
-        const loadTargetName = TUtil.getLoadTargetName(targetName);
-        const targetValue = tmodel.val(loadTargetName);
 
-        return Array.isArray(targetValue) && TUtil.isDefined(targetValue[modelEntry.activeIndex]) && TUtil.isDefined(targetValue[modelEntry.accessIndex]);
+        const results = tmodel.val(TUtil.getLoadTargetName(targetName));
+
+        return Array.isArray(results) && TUtil.isDefined(results[entry.activeIndex]);
     }
 
     getLoadingItemValue(tmodel, prevTargetName, currentTargetName) {

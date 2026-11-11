@@ -139,7 +139,7 @@ class TModelManager {
                 }
             }
             
-            if (visible || tmodel.isActivated()) {
+            if (visible) {
 
                 const state = tmodel.state();
 
@@ -155,13 +155,13 @@ class TModelManager {
                               
             }
             
-            if (preserveDom && !visible && !tmodel.isActivated()) {
+            if (preserveDom && !visible) {
                 if (this.needsRestyle(tmodel)) {
                     this.lists.restyle.push(tmodel);               
                 }
             }
             
-            if (visible || tmodel.isActivated()) {
+            if (visible) {
                 if (this.needsRerender(tmodel)) {
                     this.lists.rerender.push(tmodel);            
                 }
@@ -184,11 +184,6 @@ class TModelManager {
                     this.targetMethodMap[tmodel.oid] = { ...state.targetMethodMap };
                     state.targetMethodMap = {};
                 }                  
-                
-                if (tmodel.isActivated()) {
-                    activated.push(tmodel);
-                }
-
             }
 
             if (this.shouldCreateDom(tmodel, visible) && !this.noDomMap[tmodel.oid]) {
@@ -694,7 +689,7 @@ class TModelManager {
         for (const tmodel of attached) {
             this.catchupNoDomTargetsBeforeStyle(tmodel);
         }
-        
+
         const domReady = [];
 
         for (const tmodel of styleBatch) {
@@ -702,6 +697,12 @@ class TModelManager {
                 tmodel.hasDomNow = true;
                 tmodel.markLayoutDirty('hasDomNow');
                 domReady.push(tmodel);
+            }
+        }
+
+        for (const tmodel of attached) {
+            if (!tmodel.hasDom()) {
+                continue;
             }
 
             TModelUtil.initStyleMaps(tmodel);

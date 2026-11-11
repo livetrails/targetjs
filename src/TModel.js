@@ -624,7 +624,6 @@ class TModel extends BaseModel {
             { targets: this.originalTargetNames },
             { completedTargets: Object.keys(this.targetValues).filter(key => this.targetValues[key]?.status === 'complete').length },
             { activeTargetList: this.activeTargetList },
-            { activatedTargets: this.activatedTargets },
             { updatingTargetList: this.updatingTargetList },
             { animatingMap: [ ...(this.animatingMap ? [ ...this.animatingMap.keys() ] : []) ] },
             { noDomUpdatingTargets: [ ...(this.noDomUpdatingTargets ? [ ...this.noDomUpdatingTargets ] : []) ] },
@@ -807,11 +806,17 @@ class TModel extends BaseModel {
 
         return depth;
     }
-    
-    canBeAnimated(key) {
-        return TargetData.isGpuPreferred(key) && this.actualValues.webAnimation !== false;
-    }
-    
+        
+        canBeAnimated(key) {
+            const target = this.targets[key];
+            const originalTarget = target?.originalTModel?.targets[target.originalTargetName];
+            const renderer = originalTarget?.renderer;
+
+            return renderer !== 'manual' &&
+                TargetData.isWaapiSupported(key) &&
+                this.actualValues.webAnimation !== false;
+        }
+
     isTextOnly() {
         return TUtil.isDefined(this.val('textOnly')) ? this.val('textOnly') : typeof this.getHtml() === 'string' &&  this.getHtml().trim().startsWith('<') ? false : true;
     }

@@ -106,7 +106,7 @@ class AnimationManager {
         
         tmodel.finalKeyframe = compactKeyframes[compactKeyframes.length - 1];
         tmodel.finalRawFrame =  batch.frames[ batch.frames.length - 1];
-
+        
         let anim = el.animate(compactKeyframes, timing);
         
         for (const originalKey of originalKeys) {
@@ -163,9 +163,9 @@ class AnimationManager {
         for (const [recId, rec] of this.recordMap) {
             if (rec.anim !== anim) {
                 continue;
-            }
-            
-            if (rec.status === 'playing' || rec.status === 'canceled') {
+            }            
+
+            if (rec.status === 'playing' || rec.status === 'canceled') {            
                 continue;
             }
 
@@ -173,16 +173,13 @@ class AnimationManager {
 
             const { tmodel, originalKey, cleanKey } = rec;
 
-            tmodel.removeFromAnimatingMap(originalKey);
+            tmodel.removeFromAnimatingMap(originalKey);            
             this.recordMap.delete(recId);
 
             this.completeRecord(tmodel, rec, cleanKey, originalKey);
-                                
-            if (!tmodel.hasAnimatingTargets()) {
-                if (tmodel.finalKeyframe && tmodel.hasDom()) {
-                    AnimationUtil.fixStyleByAnimation(tmodel, tmodel.finalKeyframe);
-                }
+            TModelUtil.commitAnimatedStyles(tmodel, new Set([originalKey]));
 
+            if (!tmodel.hasAnimatingTargets()) {
                 tmodel.lastBatch = undefined;
             }
 
@@ -198,7 +195,7 @@ class AnimationManager {
             } catch {}
         }
 
-        getRunScheduler().schedule(50, 'finalizeAnimation');
+                getRunScheduler().schedule(50, 'finalizeAnimation');
     }
 
     startProgressPoller() {
@@ -241,7 +238,7 @@ class AnimationManager {
                 const progress = ct?.progress ?? 0;
                 const finished = ps === "finished" || ps === "idle" || progress >= 0.999999;
                 
-                if (finished) {
+                if (finished && record.status !== 'done') {
                     record.status = 'done';
                     animsToFinalize.add(record.anim);
                 }
@@ -262,7 +259,7 @@ class AnimationManager {
             for (const anim of animsToFinalize) {
                 this.finalizeAnimation(anim);
             }
-
+            
             if (this.recordMap.size > 0 || hasPlaying) {
                 this.waapiPoller.rafId = requestAnimationFrame(tick);
             } else {        
@@ -400,29 +397,13 @@ class AnimationManager {
     }
 
     fixTModelStyleFromFrame(tmodel, frame) {
-        if (!tmodel.hasDom() || !frame) {
+        if (!frame) {
             return;
         }
 
-        const out = { ...frame.styleMap };
-
-        const hasTf = Object.keys(frame.tfMap).length > 0;
-
-        if (hasTf) {
-            Object.keys(tmodel.tfMap).forEach(key => {
-                tmodel.tfMap[key] = tmodel.val(key);
-            });
-
-            const tfMap = { ...tmodel.tfMap, ...frame.tfMap };
-            frame.tfMap = tfMap;
-
-            out.transform = TModelUtil.getTransformString(tmodel, tfMap);
-        }
-
-        AnimationUtil.addUnitsToFrame(out);
-        AnimationUtil.fixStyleByAnimation(tmodel, out);
+        TModelUtil.fixStyle(tmodel, { frame, force: true });
     }
-   
+
     collectFramesForKey(batch, cleanKey) {
         const out = [];
         const total = batch.totalDuration;

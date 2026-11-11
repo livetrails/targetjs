@@ -1,8 +1,9 @@
-import { App, getRunScheduler, getLocationManager, getAnimationManager, getDomTModelById, getEvents } from "./App.js";
+import { App, getRunScheduler, getAnimationManager, getDomTModelById, getEvents } from "./App.js";
 import { TargetExecutor } from "./TargetExecutor.js";
 import { TUtil } from "./TUtil.js";
 import { TargetParser } from "./TargetParser.js" ;
 import { TargetUtil } from "./TargetUtil.js";
+import { TModelUtil } from "./TModelUtil.js";
 import { TargetData } from "./TargetData.js";
 import { $Dom } from "./$Dom.js";
 import { Easing } from "./Easing.js";
@@ -55,7 +56,6 @@ class BaseModel {
     get updatingTargetList() { return this.state().updatingTargetList ??= []; }
     get updatingTargetMap() { return this.state().updatingTargetMap ??= {}; }
     get fetchActionTargetList() { return this.state().fetchActionTargetList ??= []; } 
-    get activatedTargets() { return this.state().activatedTargets ??= []; }
     get targetMethodMap() { return this.state().targetMethodMap ??= {}; }
     get targetExecutionCount() { return this.state().targetExecutionCount ??= 0; }
     set targetExecutionCount(val) { this.state().targetExecutionCount = val; }
@@ -190,7 +190,7 @@ class BaseModel {
                 if (!TUtil.isDefined(target.value) && !TargetParser.isChildObjectTarget(key, target) && !TargetParser.isIntervalTarget(target)) {
                     needsTargetExecution = true;
 
-                    const value = { ...target };
+                    const value = typeof target === 'object' && target !== null && !Array.isArray(target) ? { ...target } : target; 
                     target = TargetUtil.wrapTarget(this, value, key);
 
                     for (const name of TargetData.lifecycleCallbackSet) {
@@ -264,22 +264,6 @@ class BaseModel {
         
         this.functionTargetNames.push(key);
     }
-    
-    activate(targetName) {
-        getLocationManager().addToActivatedList(this);
-        this.currentStatus = 'active';
-        if (targetName && this.isTargetEnabled(targetName) && this.activatedTargets.indexOf(targetName) === -1) {
-            this.activatedTargets.push(targetName);
-        }
-    }
-
-    isActivated() {
-        return this.currentStatus === 'active';
-    }
-    
-    deactivate() {
-        this.currentStatus = undefined;
-    }
 
     excludeDefaultStyling() {
         return this.targets['defaultStyling'] === false || this.excludeStyling() || (this.reuseDomDefinition() && !this.allStyleTargetMap);
@@ -340,14 +324,15 @@ class BaseModel {
         } else if (this.isStyleTarget(key)) {
             let styleFlag = true;
             if (TargetData.transformMap[key]) {
-                if (this.getParent()) {
+                if (this.getParent() && !this.isDomIsland()) {
                     this.calcAbsolutePosition(this.getX(), this.getY());
                 }
+
+                styleFlag = this.tfMap[key] !== TModelUtil.getTransformValue(this, key);
             } else if (key === 'width' || key === 'height') {
                 if (this.styleMap[key] === this.val(key)) {
                     styleFlag = false;
                 }
-            
             } else if (key === 'dim') {
                 const dim = this.val('dim');
                 if (this.styleMap.width === dim && this.styleMap.height === dim) {
@@ -887,10 +872,7 @@ class BaseModel {
 
         const originalTargetName = TargetUtil.currentTargetName;
         const originalTModel = TargetUtil.currentTModel;
-
-        if (originalTargetName === 'swell') {
-            console.log("setTarget: " + this.oid + ", " + originalTModel.oid + ", " + originalTargetName);
-        }
+        
         if (originalTModel && originalTargetName && originalTModel !== this) {
             TargetUtil.markChildAction(originalTModel, originalTargetName, this);
         }
@@ -1184,7 +1166,7 @@ class BaseModel {
                                             
             const invokerTModel = TargetUtil.currentTModel;
             const invokerTarget = TargetUtil.currentTargetName;
-
+            
             const targetValue = this.targetValues[key] || TargetUtil.emptyValue();
 
             if (this.getParent() === invokerTModel) {
@@ -1193,6 +1175,8 @@ class BaseModel {
 
             targetValue.invokerTModel = invokerTModel;
             targetValue.invokerTarget = invokerTarget;
+            
+            TargetUtil.disableEventBatching(invokerTModel, invokerTarget);
 
             if (this.targetValues[key]) {
                 targetValue.activationTime = TUtil.now();
@@ -1209,9 +1193,7 @@ class BaseModel {
                 targetValue.cycles = this.targets[key]?.cycles ?? targetValue.cycles;                
             }
                             
-            this.setTargetStatus(key, 'active');
-
-            this.activate(key);           
+            this.setTargetStatus(key, 'active');          
         }
 
         return this;

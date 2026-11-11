@@ -103,6 +103,10 @@ class TargetUtil {
             }
         }
         
+        if (TargetData.allEventMap[TargetUtil.getTargetName(key)] && target.activateNextTarget) {
+            target.eventBatchable = false;
+        }
+        
         Object.keys(target).forEach(method => {
             const originalMethod = target[method];
             const sourceMethod = originalMethod?.__targetjsSource ?? originalMethod;
@@ -166,7 +170,10 @@ class TargetUtil {
 
         const nextTarget = target.activateNextTarget;
         const isEndTrigger = nextTarget?.endsWith('$$') ?? false;
-        const fetchAction = TargetUtil.hasFetchAction(tmodel, key);
+        const isSingleFetchTarget = nextTarget?.endsWith('$') && !isEndTrigger;
+        const loadingEntry = isSingleFetchTarget ? getLoader().isLoading(tmodel, key) : undefined;
+        const hasBufferedResults = !!loadingEntry && loadingEntry.activeIndex < loadingEntry.entryCount;
+        const fetchAction = TargetUtil.hasFetchAction(tmodel, key) || hasBufferedResults;
 
         if (isUpdateMode && isEndTrigger) {
             return;
@@ -174,16 +181,17 @@ class TargetUtil {
 
         let nextTargetActivated = false;
         let canActivate = false;
-                  
+
         if (nextTarget) {
-                        
             const waitingForDom = TargetData.requiresDom(TargetUtil.getTargetName(nextTarget)) && !tmodel.hasDom();
 
             if (isEndTrigger) {
                 const lastTriggeredCount = TargetUtil.getTriggeredByCompleteCount(tmodel, nextTarget, key);
                 if (targetValue.completeCount > lastTriggeredCount) {
                     canActivate = true;
-                }    
+                }
+            } else if (fetchAction && isSingleFetchTarget) {
+                canActivate = getLoader().isNextLoadingItemSuccessful(tmodel, key);
             } else {
                 const nextTargetUpdateCount = targetValue.nextTargetUpdateCount ?? 0;
                 canActivate = targetValue.updateCount > nextTargetUpdateCount;
@@ -193,11 +201,11 @@ class TargetUtil {
                 (isEndTrigger && canActivate)) {
            
                 const prevOk = isEndTrigger ? TargetUtil.arePreviousTargetsComplete(tmodel, nextTarget) : false;
-                
+
                 if (isEndTrigger) {
                     (tmodel.targetValues[nextTarget] ??= TargetUtil.emptyValue()).previousTargetsStatus = prevOk;
                 }
-                
+
                 if (waitingForDom) {
                     TargetUtil.markPendingTargets(tmodel, key);
 
@@ -214,13 +222,10 @@ class TargetUtil {
                             TargetUtil.markPendingTargets(tmodel, key);
                         }
                     } else {
-                        while (getLoader().isNextLoadingItemSuccessful(tmodel, key)) {
-                            if (tmodel.activatedTargets.indexOf(nextTarget) >= 0) {
-                                tmodel.activatedTargets.push(nextTarget);
-                            } else {
-                                TargetUtil.activateTarget(tmodel, nextTarget);
-                            }
-
+                        if (!tmodel.targetValues[nextTarget]?.loadingSourceKey && tmodel.canTargetBeActivated(nextTarget) &&
+                               getLoader().isNextLoadingItemSuccessful(tmodel, key)) {
+                            TargetUtil.activateTarget(tmodel, nextTarget);
+                            tmodel.targetValues[nextTarget].loadingSourceKey = key;
                             getLoader().nextActiveItem(tmodel, key);
                             nextTargetActivated = true;
                         }
@@ -236,9 +241,7 @@ class TargetUtil {
                     }
 
                 } else {
-                    if (tmodel.activatedTargets.indexOf(nextTarget) >= 0 && !tmodel.isTargetUpdating(key)) {
-                        tmodel.activatedTargets.push(nextTarget);
-                    } else {
+                    if (tmodel.canTargetBeActivated(nextTarget)) {
                         TargetUtil.activateTarget(tmodel, nextTarget);
                         nextTargetActivated = true;
                     }
@@ -255,7 +258,7 @@ class TargetUtil {
                 TargetUtil.snapshotTriggeredByCompleteCounts(tmodel, nextTarget);
             }
         }
-        
+
         let caughtUp = false;
 
         if (isEndTrigger && nextTarget) {
@@ -283,6 +286,7 @@ class TargetUtil {
             TargetUtil.cleanupTarget(tmodel, key);
         }
     }
+
 
     static markPendingTargets(tmodel, key) {
         (tmodel.pendingTargets ||= new Set()).add(key);
@@ -348,6 +352,13 @@ class TargetUtil {
         }
 
         TargetUtil.bubbleInvokerCompletion(tmodel, key);
+
+        const sourceKey = tmodel.targetValues[key]?.loadingSourceKey;
+
+        if (sourceKey) {
+            delete tmodel.targetValues[key].loadingSourceKey;
+            TargetUtil.shouldActivateNextTarget(tmodel, sourceKey, 0, 0, false, "update");
+        }
 
         return true;
     }
@@ -492,7 +503,6 @@ class TargetUtil {
             return !waitingForDom
                 && !(state.updatingTargetList?.length)
                 && !(state.activeTargetList?.length)
-                && !(state.activatedTargets?.length)
                 && !tmodel.hasAnimatingTargets()
                 && TargetUtil.isFetchingComplete(tmodel)
                 && TargetUtil.getUpdatingChildren(tmodel, undefined, "visible").size === 0
@@ -508,7 +518,6 @@ class TargetUtil {
         return !waitingForDom
             && !(state.updatingTargetList?.length)
             && !(state.activeTargetList?.length)
-            && !(state.activatedTargets?.length)
             && !tmodel.hasAnimatingTargets()
             && TargetUtil.isFetchingComplete(tmodel)
             && !tmodel.hasAnimatingChildren()    
@@ -557,7 +566,6 @@ class TargetUtil {
         add("waitingForDom", !tmodel.isLightweightChild && getManager().shouldHaveDom(tmodel) && !tmodel.hasDom());
         add("updatingTargetList", list(state.updatingTargetList));
         add("activeTargetList", list(state.activeTargetList));
-        add("activatedTargets", list(state.activatedTargets));
         add("animatingTargets", tmodel.hasAnimatingTargets() ? list(tmodel.animatingMap) : []);
         add("fetching", !TargetUtil.isFetchingComplete(tmodel));
 
@@ -637,7 +645,7 @@ class TargetUtil {
                 continue;
             }
             
-            if (tmodel.activatedTargets.indexOf(targetName) >= 0) {
+            if (tmodel.activeTargetMap[targetName]) {
                 return "activated targets";
             }
                   
@@ -1126,7 +1134,6 @@ class TargetUtil {
         TargetUtil.resetTargetStateOnly(tmodel, key);
 
         tmodel.cancelAnimation();
-        tmodel.activatedTargets.length = 0;
     }
 
     static resetRemovedChildTarget(tmodel, key, child) {
@@ -1196,6 +1203,16 @@ class TargetUtil {
         
         return false;
     }   
+    
+    static disableEventBatching(tmodel, key) {
+        if (!tmodel || !key || !TargetData.allEventMap[TargetUtil.getTargetName(key)]) {
+            return;
+        }
+
+        if (tmodel.targets[key]) {
+            tmodel.targets[key].eventBatchable = false;
+        }
+    }
 }
 
 export { TargetUtil };

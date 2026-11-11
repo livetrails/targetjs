@@ -113,12 +113,32 @@ class RunScheduler {
 
         try {
             if (this.phase === 0) {
-                const capturedEvent = getEvents().captureEvents();
 
-                if (capturedEvent) {
+                const events = getEvents();
+                const locationManager = getLocationManager();
+
+                locationManager.priorityBatchStartEpoch = events.capturedEventEpoch;
+                const start = TUtil.now();
+
+                for (let i = 0; i < 5; i++) {
+                    if (i > 0 && (events.eventQueue.length === 0 || TUtil.now() - start >= 2)) {
+                        break;
+                    }
+
+                    const capturedEvent = events.captureEvents();
+
+                    if (!capturedEvent) {
+                        break;
+                    }
+
                     const type = capturedEvent.eventType;
+                    this.eventSettlePending ||= type === 'start' || type === 'end' || type === 'click';
 
-                    this.eventSettlePending = type === 'start' || type === 'end' || type === 'click';
+                    const canBatch = locationManager.processPriorityEvents();
+
+                    if (!canBatch) {
+                        break;
+                    }
                 }
 
                 tApp.targetManager.applyTargetValues(tRoot());
@@ -144,7 +164,6 @@ class RunScheduler {
             }
 
             if (this.phase === 2) {
-                getLocationManager().calculateActivated();
                 tApp.events.resetEventsOnTimeout();
 
                 const activatedStep = tApp.manager.analyze();
@@ -220,8 +239,7 @@ class RunScheduler {
             const newDelay = this.nextRuns.length > 0 ? this.nextRuns[0].delay - (TUtil.now() - this.nextRuns[0].insertTime) : undefined;
             const manager = getManager();
             const hasImmediateWork = manager.lists.restyle.length > 0 
-                    || manager.lists.reasyncStyle.length > 0 
-                    || getLocationManager().activatedList.length > 0;
+                    || manager.lists.reasyncStyle.length > 0;
             
             const hasNoDomVisibilityWork = manager.lists.noDomVisibilityTModels.length > 0;
 

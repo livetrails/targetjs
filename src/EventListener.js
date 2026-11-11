@@ -70,6 +70,8 @@ class EventListener {
         };
         
         this.eventQueue = [];
+        this.priorityEventTModels = new Set();
+        this.capturedEventEpoch = 0;
         
         this.attachedEventMap = {};
         this.eventTargetMap = {};
@@ -325,6 +327,7 @@ class EventListener {
         this.currentKey = this.currentTouch.key;
         
         if (this.eventQueue.length === 0) {
+            this.priorityEventTModels.clear();
             this.currentEventName = '';
             this.currentEventType = '';
             this.currentEventTModel = undefined;
@@ -334,7 +337,11 @@ class EventListener {
         }
                 
         const lastEvent = this.eventQueue.shift();
-              
+        
+        if (lastEvent.eventType === 'key' || lastEvent.eventType === 'keydown') {
+            this.currentKey = lastEvent.originalEvent?.which || lastEvent.originalEvent?.keyCode || '';
+        }
+
         if (this.canFindHandlers && !lastEvent.synthetic) {
             this.findEventHandlers(lastEvent);
         }
@@ -353,6 +360,8 @@ class EventListener {
        this.currentOriginalEvent = lastEvent.originalEvent;
        this.currentTouch.key = '';
 
+       this.priorityEventTModels.clear();
+       this.capturedEventEpoch++;
        this.markCapturedEventDirty(lastEvent);
 
        if (lastEvent.eventType === 'end' || lastEvent.eventType === 'click') {
@@ -370,6 +379,9 @@ class EventListener {
 
             tmodel.markEventDirty();
             tmodel.markLayoutDirty(reason);
+            if (lastEvent.eventType !== 'popstate' && tmodel.externalEventMap?.size) {
+                this.priorityEventTModels.add(tmodel);
+            }
         };
 
         mark(lastEvent.tmodel, `${lastEvent.eventType}-event`);
@@ -392,6 +404,11 @@ class EventListener {
                 mark(this.currentHandlers.scrollLeft, "scrollleft-event");
                 mark(this.currentHandlers.scrollTop, "scrolltop-event");
                 mark(this.currentHandlers.pinch, "pinch-event");
+                mark(this.currentHandlers.hover, "hover-event");
+                break;
+            case "key":
+            case "keydown":
+                mark(this.currentHandlers.focus, "key-event");
                 break;
             case "popstate":
                 for (const tmodel of Object.values(getManager().visibleOidMap)) {
@@ -399,8 +416,15 @@ class EventListener {
                         mark(tmodel, "popstate-event");
                     }
                 }
-            break;   
-                
+            break;
+        }
+
+        // Focus/enter/leave can change as a result of an input event.
+        if (lastEvent.eventType !== 'popstate') {
+            mark(this.currentHandlers.justFocused, 'focus-event');
+            mark(this.currentHandlers.blur, 'blur-event');
+            mark(this.currentHandlers.enter, 'enter-event');
+            mark(this.currentHandlers.leave, 'leave-event');
         }
     }
     
@@ -477,7 +501,17 @@ class EventListener {
         this.lastEvent = newEvent;
                                       
         if (queue) {
-            this.eventQueue.push(this.lastEvent); 
+            const lastQueued = this.eventQueue.at(-1);
+
+            if (eventType === 'move' &&
+                lastQueued?.eventType === 'move' &&
+                lastQueued.originalName === originalName &&
+                lastQueued.tmodel === tmodel) {
+
+                this.eventQueue[this.eventQueue.length - 1] = newEvent;
+            } else {
+                this.eventQueue.push(newEvent);
+            }
         }
 
         let touch; 
@@ -806,6 +840,7 @@ class EventListener {
         this.clearEnd();
         this.clearTouch();
         this.eventQueue.length = 0;
+        this.priorityEventTModels.clear();
         this.touchCount = 0; 
         this.canFindHandlers = true;
         this.lastEvent = undefined;

@@ -346,7 +346,7 @@ class TargetManager {
         const step = catchup.step ?? 0;
         const valuePointer = catchup.valuePointer ?? tmodel.getValueListPointer(key);
 
-        if (tmodel.canBeAnimated(state.cleanKey)) {
+        if (tmodel.canBeAnimated(key)) {
             this.animateActualValue(tmodel, key, targetValue, state, step, valuePointer);
         } else {
             this.updateActualValue(tmodel, key, targetValue, state, step);

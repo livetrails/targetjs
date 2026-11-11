@@ -23,9 +23,6 @@ class LocationManager {
 
         this.domIslandSet = new Set();
 
-        this.activatedList = [];
-        this.activatedMap = {};
-
         this.calcBusy = false;
         this.calcQueued = false;
 
@@ -35,38 +32,9 @@ class LocationManager {
     clear() {
         this.visibleChildrenLengthMap = {};
         this.updatedContainerMap = {};
-        this.activatedList = [];
-        this.activatedMap = {};
         this.domIslandSet.clear();
         this.calcBusy = false;
         this.calcQueued = false;
-    }
-
-    calculateActivated() {
-        let i = 0;
-
-        const activatedList = this.activatedList;
-
-        this.activatedList = [];
-        this.activatedMap = {};
-
-        while (i < activatedList.length) {
-            const child = activatedList[i++];
-
-            const activatedTargets = child.activatedTargets.slice(0);
-
-            child.activatedTargets.length = 0;
-
-            getTargetManager().applyTargetValues(child, activatedTargets);
-
-            if (child.updatingTargetList.length > 0) {
-                getTargetManager().setActualValues(child, child.updatingTargetList);
-            }
-
-            if (!this.hasLocationMap[child.oid]) {
-                this.addToLocationList(child);
-            }
-        }
     }
 
     async calculateAll(budgetMs = 8, continueCalculation = false) {
@@ -184,11 +152,17 @@ class LocationManager {
                     container.calcContentWidthHeight();
                 }
 
-                if (child.hasEventDirty() || getEvents().getEventType() || getEvents().hasDelta()) {
-                    this.checkExternalEvents(child);
-                    if (child.hasEventDirty()) {
-                        child.processedEventEpoch = child.eventDirtyEpoch;
+                if (child.externalEventMap?.size) {
+                    const events = getEvents();
+                    const wasPrioritized = (child.priorityProcessedEventEpoch ?? 0) > (this.priorityBatchStartEpoch ?? 0);
+                    
+                    if (!wasPrioritized && (child.hasEventDirty() || events.getEventType() || events.hasDelta())) {
+                        this.checkExternalEvents(child);
                     }
+                }
+
+                if (child.hasEventDirty()) {
+                    child.processedEventEpoch = child.eventDirtyEpoch;
                 }
 
             }
@@ -213,7 +187,7 @@ class LocationManager {
 
             if (child.isDomIsland()) {
                 if (child.originWindowEpoch !== getEvents().getWindowEpoch() && child.hasDom()) {
-                    child.calcAbsolutePositionFromDom();
+                    child.calcAbsolutePositionFromDom();            
                     child.originWindowEpoch = getEvents().getWindowEpoch();
                 }
             }
@@ -492,8 +466,8 @@ class LocationManager {
         }
 
         if (!child.excludeDefaultStyling()) {
-            this.addToTransformTargetList(child, 'x');
-            this.addToTransformTargetList(child, 'y');
+            child.addToStyleTargetList('x');
+            child.addToStyleTargetList('y');
         }
 
         if (child.styleTargetMap?.size > 0 || child.updatingTargetList.length > 0) {
@@ -617,16 +591,6 @@ class LocationManager {
         
         this.checkInternalEvents(tmodel);
 
-        let guard = 0;
-        while (tmodel.activatedTargets.length && guard++ < 50) {
-            const batch = tmodel.activatedTargets.slice(0);
-            tmodel.activatedTargets.length = 0;
-
-            for (const key of batch) {
-                getTargetManager().applyTargetValue(tmodel, key);
-            }
-        }
-
         ScheduleUtil.pauseResumeSchedule(tmodel);
 
         getTargetManager().applyTargetValues(tmodel);
@@ -698,19 +662,63 @@ class LocationManager {
         }
     }
     
+    processPriorityEvents() {
+        const events = getEvents();
+        const priority = events.priorityEventTModels;
+
+        if (!priority?.size) {
+            return false;
+        }
+
+        const epoch = events.capturedEventEpoch;
+        let processed = false;
+        let hasNonBatchableEvent = false;
+
+        for (const tmodel of priority) {
+            if (!tmodel.externalEventMap?.size) {
+                continue;
+            }
+
+            const result = this.checkExternalEvents(tmodel);
+
+            processed ||= result !== null;
+            hasNonBatchableEvent ||= result === true;
+
+            tmodel.priorityProcessedEventEpoch = epoch;
+
+            if (tmodel.hasEventDirty()) {
+                tmodel.processedEventEpoch = tmodel.eventDirtyEpoch;
+            }
+        }
+
+        priority.clear();
+
+        return processed && !hasNonBatchableEvent;
+    }
+
     checkExternalEvents(tmodel) {
         const externalEventMap = tmodel.externalEventMap;
+
         if (externalEventMap?.size > 0) {
             const eventTargets = [];
             const eventMap = TargetData.allEventMap;
+
             for (const [targetName] of externalEventMap) {
                 if (eventMap[targetName](tmodel)) {
                     eventTargets.push(tmodel.allTargetMap[targetName]);
                 }
             }
+            
+            if (!eventTargets.length) {
+                return null;
+            }
 
             this.runEventTargets(tmodel, eventTargets);
+
+            return eventTargets.some(key => tmodel.targets[key]?.eventBatchable === false);
         }
+
+        return false;
     }
 
     checkInternalEvents(tmodel) {
@@ -747,6 +755,10 @@ class LocationManager {
                 } else if (typeof result === 'string') {
                     TargetUtil.activateSingleTarget(tmodel, result);
                 }
+                
+                if ((Array.isArray(result) && result.length) || (typeof result === 'string' && result.length)) {
+                    tmodel.targets[targetName].eventBatchable = false;
+                }
 
                 TargetUtil.shouldActivateNextTarget(tmodel, targetName);
             }
@@ -777,13 +789,6 @@ class LocationManager {
         }
     }
 
-    addToActivatedList(tmodel) {
-        if (!this.activatedMap[tmodel.oid]) {
-            this.activatedList.push(tmodel);
-            this.activatedMap[tmodel.oid] = tmodel;
-        }
-    }
-
     fixLocation(tmodel, prevX, prevY) {
 
         if (tmodel.hasValidAnimation()) {
@@ -806,19 +811,10 @@ class LocationManager {
             }
         }
 
-        this.addToTransformTargetList(tmodel, 'x');
-        this.addToTransformTargetList(tmodel, 'y');
+        tmodel.addToStyleTargetList('x');
+        tmodel.addToStyleTargetList('y');
     }
 
-    addToTransformTargetList(tmodel, key) {
-        if (TModelUtil.getTransformValue(tmodel, key) !== Math.floor(tmodel.tfMap[key])) {
-            tmodel.addToStyleTargetList(key);
-        }
-    }
-
-    isActivated(tmodel) {
-        return this.activatedMap[tmodel.oid];
-    }
 }
 
 export { LocationManager };

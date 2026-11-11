@@ -33,13 +33,11 @@ class ParticleChild {
 
         this.updatingTargetList = [];
         this.activeTargetList = [];
-        this.activatedTargets = [];
         this.updatingTargetMap = {};
 
         this.runtimeState = {
             updatingTargetList: this.updatingTargetList,
             activeTargetList: this.activeTargetList,
-            activatedTargets: this.activatedTargets,
             fetchActionTargetList: [],
             lastChildrenUpdate: {
                 additions: [],

@@ -1444,7 +1444,6 @@ class ParticleTModel extends TModel {
                 targetValues: child.targetValues,
                 updatingTargetList: [...child.updatingTargetList],
                 activeTargetList: [...child.activeTargetList],
-                activatedTargets: [...child.activatedTargets],
                 noDomUpdatingTargets: child.noDomUpdatingTargets ? new Set(child.noDomUpdatingTargets) : undefined,
                 pendingTargets: child.pendingTargets
             }))
@@ -1485,7 +1484,6 @@ class ParticleTModel extends TModel {
                 }
 
                 child.activeTargetList.push(...(runtimeState.activeTargetList || []));
-                child.activatedTargets.push(...(runtimeState.activatedTargets || []));
 
                 child.noDomUpdatingTargets = runtimeState.noDomUpdatingTargets
                     ? new Set(runtimeState.noDomUpdatingTargets)

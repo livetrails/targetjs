@@ -93,48 +93,6 @@ class AnimationUtil {
         getAnimationManager().animate(tmodel, batch, AnimationUtil.getAnimationHooks());
     }
     
-    static fixStyleByAnimation(tmodel, frame) {
-        
-        if (!tmodel.hasDom()) {
-            return;
-        }
-        
-        const keys = Object.keys(frame);
-        
-        for (const key of keys) {
-            if (key === 'offset') {
-                continue;
-            }
-            
-            const value = frame[key];
-            
-            if (value === null) {
-                continue;
-            }
-
-            let num = value;
-            if (typeof value === 'string' && value.endsWith('px')) {
-                const parsed = Number(value.slice(0, -2));
-                if (!Number.isNaN(parsed)) {
-                    num = parsed;
-                }
-            }
-
-            if (key === 'width') {
-                tmodel.styleMap.width = num;
-                tmodel.$dom.width(value);
-            } else if (key === 'height') {
-                tmodel.styleMap.height = num;
-                tmodel.$dom.height(value);
-            } else if (key === 'transform') {
-                tmodel.$dom.transform(value, tmodel.val('transformOrder'));
-            } else if (!TargetData.transformMap[key]) {
-                tmodel.$dom.style(key, value);
-                tmodel.styleMap[key] = num;
-            }
-        }
-    }    
-    
     static addUnitsToFrame(out) {
         for (const k of Object.keys(out)) {
             if (k === 'offset' || k === 'transform') {

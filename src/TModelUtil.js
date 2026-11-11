@@ -416,50 +416,67 @@ class TModelUtil {
         return value;
     }
 
-    static fixStyle(tmodel) {
-        if (!tmodel.styleTargetMap || !tmodel.hasDom()) {
+    static fixStyle(tmodel, { keys, frame } = {}) {
+        const commit = keys !== undefined || frame !== undefined;
+        
+        if (!tmodel.hasDom()) {
             return;
         }
-        
+
+        let styleValues;
+
+        if (frame) {
+            styleValues = new Map([ ...Object.entries(frame.styleMap ?? {}), ...Object.entries(frame.tfMap ?? {}) ]);
+        } else {
+            const styleKeys = keys ? [...keys].map(key => TargetUtil.getTargetName(key)) : [...(tmodel.styleTargetMap?.keys() ?? [])];
+            styleValues = new Map(styleKeys.map(key => [key, tmodel.val(key)]));
+        }
+
+        if (!styleValues.size) {
+            return;
+        }
+
         let transformUpdate = false;
-           
-        for (const [key] of [...tmodel.styleTargetMap]) {
-            if (tmodel.isKeyAnimating(key)) {
+
+        for (const [key, value] of styleValues) {
+
+            if (!commit && tmodel.isKeyAnimating(key)) {
                 continue;
             }
-                      
+
+            if (!TUtil.isDefined(value)) {
+                continue;
+            }
+            
             if (TargetData.transformMap[key]) {
-                const value = TModelUtil.getTransformValue(tmodel, key);   
-                if (tmodel.tfMap[key] !== value) {
-                    tmodel.tfMap[key] = value;
+                const transformValue = frame ? value : TModelUtil.getTransformValue(tmodel, key);
+
+                if (TUtil.isDefined(transformValue) && (commit || tmodel.tfMap[key] !== transformValue)) {
+                    tmodel.tfMap[key] = transformValue;
                     transformUpdate = true;
                 }
             } else if (key === 'dim') {
-                const dim = tmodel.val('dim');
-                TModelUtil.applyDimensionStyle(tmodel, 'width', dim);
-                TModelUtil.applyDimensionStyle(tmodel, 'height', dim);
+                TModelUtil.applyDimensionStyle(tmodel, 'width', value);
+                TModelUtil.applyDimensionStyle(tmodel, 'height', value);
             } else if (key === 'width' || key === 'height') {
-                TModelUtil.applyDimensionStyle(tmodel, key, tmodel.val(key));
-            } else if (TargetData.styleWithUnitMap[key]) {
-                if (TUtil.isDefined(tmodel.val(key)) && tmodel.styleMap[key] !== tmodel.val(key)) {
-                    tmodel.$dom.style(key, TUtil.isNumber(tmodel.val(key)) ? `${tmodel.val(key)}px` : tmodel.val(key));
-                    tmodel.styleMap[key] = tmodel.val(key);
-                }
-            } else {
-                if (TUtil.isDefined(tmodel.val(key)) && tmodel.styleMap[key] !== tmodel.val(key)) {
-                    tmodel.$dom.style(key, `${tmodel.val(key)}`);
-                    tmodel.styleMap[key] = tmodel.val(key);
-                }
+                TModelUtil.applyDimensionStyle(tmodel, key, value);
+            } else if (commit || tmodel.styleMap[key] !== value) {
+                const cssValue = typeof value === 'number' && TargetData.styleWithUnitMap[key] ? `${value}px` : `${value}`;
+
+                tmodel.$dom.style(key, cssValue);
+                tmodel.styleMap[key] = value;               
             }
         }
-        
-        if (transformUpdate) { 
+
+        if (transformUpdate) {
             tmodel.$dom.transform(TModelUtil.getTransformString(tmodel, tmodel.tfMap));
         }
         
-        tmodel.styleTargetMap.clear();
+        if (!commit) {
+            tmodel.styleTargetMap.clear();
+        }
     }
-    
+
     static applyDimensionStyle(tmodel, key, value) {
         if (!TUtil.isDefined(value)) {
             return;
@@ -520,58 +537,11 @@ class TModelUtil {
     }
     
     static commitAnimatedStyles(tmodel, originalKeys) {
-        if (!tmodel.hasDom() || !originalKeys?.size) {
+        if (!originalKeys?.size) {
             return;
         }
 
-        let transformChanged = false;
-
-        for (const originalKey of originalKeys) {
-            const key = TargetUtil.getTargetName(originalKey);
-            const value = tmodel.val(key);
-
-            if (!TUtil.isDefined(value)) {
-                continue;
-            }
-
-            if (TargetData.transformMap[key]) {
-                const transformValue = TModelUtil.getTransformValue(tmodel, key);
-
-                if (TUtil.isDefined(transformValue)) {
-                    tmodel.tfMap[key] = transformValue;
-                    transformChanged = true;
-                }
-
-                continue;
-            }
-
-            if (key === 'dim') {
-                TModelUtil.applyDimensionStyle(tmodel, 'width', value);
-                TModelUtil.applyDimensionStyle(tmodel, 'height', value);
-                continue;
-            }
-
-            if (key === 'width' || key === 'height') {
-                TModelUtil.applyDimensionStyle(tmodel, key, value);
-                continue;
-            }
-
-            const styleValue = typeof value === "number" && TargetData.styleWithUnitMap[key] ? `${value}px` : `${value}`;
-
-            tmodel.styleMap[key] = value;
-            tmodel.$dom.style(key, styleValue);
-        }
-
-        if (transformChanged) {
-            const transformValues = {
-                ...TModelUtil.getTransformBaseFromActualValues(tmodel),
-                ...tmodel.tfMap
-            };
-
-            const transform = TModelUtil.getTransformString(tmodel, transformValues);
-
-            tmodel.$dom.transform(transform, tmodel.val("transformOrder"));
-        }
+        TModelUtil.fixStyle(tmodel, { keys: originalKeys });
     }
 
     static setWidthFromDom(child) {

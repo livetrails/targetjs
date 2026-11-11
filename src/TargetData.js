@@ -364,12 +364,9 @@ class TargetData {
         onend: 'onEnd',
         onkey: 'onKey',
         onkeydown: 'onKeyDown',
-        onanykey: 'onAnyKey',
         onclick: 'onClick',
-        onanyclick: 'onAnyClick',
         onhover: 'onHover',
         onswipe: 'onSwipe',
-        onanyswipe: 'onAnySwipe',
         onpinch: 'onPinch',
         onenter: 'onEnter',
         onleave: 'onLeave',
@@ -465,14 +462,11 @@ class TargetData {
         onEnd: [],
         onKey: [],
         onKeyDown: [],
-        onAnyKey: [],
         onBlur: [],
         onFocus: [],
         onClick: ['clickEvents', 'touchStart', 'mouseStart'],
-        onAnyClick: ['clickEvents', 'touchStart', 'mouseStart'],
         onHover: ['moveEvents'],
         onSwipe: ['touchStart', 'mouseStart'],
-        onAnySwipe: ['touchStart', 'mouseStart'],
         onPinch: ['touchStart'],
         onEnter: ['enterEvents'],
         onLeave: ['leaveEvents'],
@@ -502,6 +496,11 @@ class TargetData {
             if (!resizeLastUpdate) {
                 return false;
             }
+            
+            if (tmodel.lastResizeHandledTime === undefined) {
+               tmodel.lastResizeHandledTime = resizeLastUpdate;
+               return false;
+            }
 
             if ((tmodel.lastResizeHandledTime ?? 0) >= resizeLastUpdate) {
                 return false;
@@ -516,10 +515,8 @@ class TargetData {
     static allEventMap = {
         onStart: tmodel => getEvents().isStartEvent() && getEvents().isStartHandler(tmodel),
         onEnd: tmodel => getEvents().isEndEvent() && getEvents().isEndHandler(tmodel),
-        onAnySwipe: () => getEvents().isSwipeEvent() && TUtil.isDefined(getEvents().swipeStartX),
         onHover: tmodel => getEvents().isMoveEvent() && getEvents().isHoverHandler(tmodel),
         onClick: tmodel => getEvents().isClickEvent() && getEvents().isClickHandler(tmodel),
-        onAnyClick: () => getEvents().isClickEvent(),
         onEnter: tmodel => getEvents().isEnterHandler(tmodel),
         onLeave: tmodel => getEvents().isLeaveHandler(tmodel),
         onSwipe: tmodel => getEvents().isSwipeHandler(tmodel) && getEvents().isSwipeEvent() && TUtil.isDefined(getEvents().swipeStartX),
@@ -529,7 +526,6 @@ class TargetData {
         onPinch: tmodel => getEvents().isPinchHandler(tmodel),
         onKey: tmodel => getEvents().getEventType() === 'key' && getEvents().currentKey && getEvents().currentHandlers.focus === tmodel && getEvents().currentHandlers.justFocused !== tmodel,
         onKeyDown: tmodel => getEvents().getEventType() === 'keydown' && getEvents().currentKey && getEvents().currentHandlers.focus === tmodel && getEvents().currentHandlers.justFocused !== tmodel,
-        onAnyKey: () => getEvents().getEventType() === 'key' && getEvents().currentKey,
         onScroll: tmodel => (getEvents().isScrollLeftHandler(tmodel) && getEvents().deltaX()) || (getEvents().isScrollTopHandler(tmodel) && getEvents().deltaY()),
         onScrollTop: tmodel => getEvents().getOrientation() !== 'horizontal' && getEvents().isScrollTopHandler(tmodel) && getEvents().deltaY(),
         onScrollLeft: tmodel => getEvents().getOrientation() !== 'vertical' && getEvents().isScrollLeftHandler(tmodel) && getEvents().deltaX(),
@@ -617,7 +613,7 @@ class TargetData {
                 TargetData.lifecyclePatterns.end.test(name);
     }  
     
-    static isGpuPreferred(key) {
+    static isWaapiSupported(key) {
         return !!TargetData.gpuTargetMap[TargetUtil.getTargetName(key)];
     }
     
