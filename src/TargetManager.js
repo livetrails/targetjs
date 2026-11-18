@@ -33,8 +33,16 @@ class TargetManager {
             return;
         }
         
-        if (tmodel.isExecuted(key) && tmodel.hasUpdatingImperativeTargets(key)) {
-            return;
+        if (tmodel.isExecuted(key)) {
+            if (tmodel.hasUpdatingImperativeTargets(key)) {
+                return;
+            }
+
+            const childAction = tmodel.targetValues[key]?.childAction;
+
+            if (childAction?.length && TargetUtil.areTargetChildrenComplete(childAction) !== true) {
+                return;
+            }
         }
 
         if (tmodel.isExecuted(key) && tmodel.getTargetStep(key) === tmodel.getTargetSteps(key)) { 

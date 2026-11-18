@@ -360,7 +360,7 @@ class TargetUtil {
         TargetUtil.cleanupVisibleComplete(tmodel, key);
 
         const cannotBeCleaned = tmodel.isTargetComplete(key) || !TargetUtil.isTargetFullyCompleted(tmodel, key);
-
+        
         if (cannotBeCleaned) {
             return false;
         }

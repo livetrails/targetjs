@@ -521,7 +521,7 @@ class TModelManager {
         for (const tmodel of this.lists.restyle) {
             if (tmodel.hasDom()) {
                 TModelUtil.fixStyle(tmodel);
-                this.retryPendingTargetsAfterStyle(tmodel);
+                this.retryTargetsAfterStyle(tmodel);
             }
         }       
     }
@@ -530,21 +530,33 @@ class TModelManager {
         for (const tmodel of this.lists.reasyncStyle) {
             if (tmodel.hasDom()) {
                 TModelUtil.fixAsyncStyle(tmodel);
-                this.retryPendingTargetsAfterStyle(tmodel);
+                this.retryTargetsAfterStyle(tmodel);
             }
         }
     }
-    
-    retryPendingTargetsAfterStyle(tmodel) {
+
+    retryTargetsAfterStyle(tmodel) {
         if (TargetUtil.hasPendingStyles(tmodel)) {
             return;
         }
 
         for (const key of [...(tmodel.pendingTargets ?? [])]) {
             TargetUtil.shouldActivateNextTarget(tmodel, key);
-        } 
+        }
+
+        for (const [key, targetValue] of Object.entries(tmodel.targetValues)) {
+            if (targetValue.isImperative && targetValue.status === 'complete') {
+                const { originalTModel, originalTargetName } = targetValue;
+
+                if (originalTModel?.isTargetDone(originalTargetName)) {
+                    TargetUtil.cleanupTarget(originalTModel, originalTargetName);
+                }
+            } else if (targetValue.status === 'done' && !targetValue.onCompleteFired) {
+                TargetUtil.cleanupTarget(tmodel, key);
+            }
+        }
     }
-    
+
     activatePendingTargetsAfterDom(tmodels, { restoredDoneTargets = true } = {}) {
         for (const tmodel of tmodels) {
             if (!tmodel.hasDom()) {
