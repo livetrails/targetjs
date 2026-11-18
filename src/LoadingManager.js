@@ -1,6 +1,6 @@
 import { $Dom } from "./$Dom.js";
 import { TUtil } from "./TUtil.js";
-import { getRunScheduler } from "./App.js";
+import { getRunScheduler, getManager } from "./App.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { StateUtil } from "./StateUtil.js";
 
@@ -352,7 +352,8 @@ class LoadingManager {
             }
 
             tmodel.val(targetName, res.result);
-
+            TUtil.handleValueChange(tmodel, targetName);
+            
             const newStatus = this.calculateTargetStatus(tmodel, targetName);
             tmodel.setTargetStatus(targetName, newStatus);  
             tmodel.setLastUpdate(targetName);
@@ -403,7 +404,8 @@ class LoadingManager {
             }
 
             tmodel.val(targetName, res);
-
+            TUtil.handleValueChange(tmodel, targetName);
+            
             tmodelEntry.errorCount++;
 
             this.callOnErrorHandler(tmodel, targetName);
@@ -642,6 +644,24 @@ class LoadingManager {
         for (const pendingRequest of snapshot?.pendingRequests || []) {
             this.restorePendingRequest(pendingRequest, tmodelIdMap);
         }
+    }
+    
+    observeDomImage(tmodel, img) {
+        if (img?.tagName !== 'IMG') {
+            return;
+        }
+
+        const resume = () => {
+            if (tmodel.$dom?.element !== img) {
+                return;
+            }
+
+            getManager().activatePendingTargetsAfterDom([tmodel]);
+            getRunScheduler().schedule(0, `image-${tmodel.oid}`);
+        };
+
+        img.addEventListener('load', resume);
+        img.addEventListener('error', resume);
     }
 }
 

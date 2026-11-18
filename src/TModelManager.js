@@ -155,9 +155,19 @@ class TModelManager {
                               
             }
             
-            if (preserveDom && !visible) {
+            if (preserveDom && !visible && tmodel.hasDom()) {
+                if (this.getDomPolicy(tmodel) === 'required') {
+                    if (tmodel.needsReattach()) {
+                        this.lists.reattach.push(tmodel);
+                    }
+
+                    if (this.needsReasyncStyle(tmodel)) {
+                        this.lists.reasyncStyle.push(tmodel);
+                    }
+                }
+
                 if (this.needsRestyle(tmodel)) {
-                    this.lists.restyle.push(tmodel);               
+                    this.lists.restyle.push(tmodel);
                 }
             }
             
@@ -171,7 +181,7 @@ class TModelManager {
                 if (this.needsReasyncStyle(tmodel)) {
                     this.lists.reasyncStyle.push(tmodel);
                 }
-                if (this.needsReattach(tmodel)) {
+                if (tmodel.needsReattach()) {
                     this.lists.reattach.push(tmodel);            
                 }
                 if (this.needsRelocation(tmodel)) {
@@ -414,14 +424,6 @@ class TModelManager {
         return tmodel.hasDom() && tmodel.asyncStyleTargetMap?.size > 0;
     }
 
-    needsReattach(tmodel) {
-        if (!tmodel.hasDom() || tmodel.reuseDomDefinition()) {
-            return false;
-        }
-                
-        return tmodel.hasDomHolderChanged() || tmodel.hasBaseElementChanged();
-    }  
-
     renderTModels() {
         for (const tmodel of this.lists.rerender) {
             tmodel.isTextOnly() ? tmodel.$dom?.text(tmodel.getHtml()) : tmodel.$dom?.html(tmodel.getHtml());
@@ -509,6 +511,8 @@ class TModelManager {
 
         canvas?.remove();
         element?.remove();
+        
+        tmodel.hadDom = true;
         
         this.resetTModelDom(tmodel);
     }

@@ -175,7 +175,7 @@ class BaseModel {
         }
 
         let doesNextTargetUsePrevValue = false;
-        if (TUtil.isDefined(keyIndex)) {
+        if (TUtil.isDefined(keyIndex) && !TargetData.controlTargetMap[cleanKey]) {
             const prevKey = keyIndex > 0 ? this.originalTargetNames[keyIndex - 1] : undefined;
             const nextKey = keyIndex < this.originalTargetNames.length - 1 ? this.originalTargetNames[keyIndex + 1] : undefined;
             doesNextTargetUsePrevValue = nextKey && nextKey.endsWith('$') ? true : false;
@@ -269,11 +269,12 @@ class BaseModel {
         return this.targets['defaultStyling'] === false || this.excludeStyling() || (this.reuseDomDefinition() && !this.allStyleTargetMap);
     }    
     
-    canTargetBeActivated(key) {
+    canTargetBeActivated(key) {      
         const onDomReady = this.targets.onDomReady;
 
         if (onDomReady) {
-            const value = onDomReady.value ?? onDomReady;
+            const source = onDomReady.value ?? onDomReady;
+            const value = typeof source === 'function' ? source.call(this) : source;
             const included = Array.isArray(value) ? value.includes(key) : value === key;
 
             if (included && !this.hasDom()) {

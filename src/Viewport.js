@@ -61,7 +61,7 @@ class Viewport {
         }
         
     }
-
+    
     checkChildOverflow() {
         const child = this.currentChild;
         const childWidth = child.getMinWidth();
@@ -96,11 +96,11 @@ class Viewport {
 
     computeBoundary(child, space) {
         const scale = child.getMeasuringScale();
-        const width  = child.getBaseWidth() * scale;
+        const width = child.getBaseWidth() * scale;
         const height = child.getBaseHeight() * scale;
-        
+
         let x, y, left, right, top, bottom;
-        
+
         if (space === 'layout') {
             x = child.x;
             y = child.y;
@@ -114,6 +114,13 @@ class Viewport {
             left = x;
             right = x + width + child.getMarginRight();
             top = y;
+            bottom = y + height + child.getMarginBottom();
+        } else if (space === 'content') {
+            x = (TModelUtil.isXDefined(child) ? child.getX() : undefined) ?? child.x;
+            y = (TModelUtil.isYDefined(child) ? child.getY() : undefined) ?? child.y;
+            left = x - child.getMarginLeft();
+            right = x + width + child.getMarginRight();
+            top = y - child.getMarginTop();
             bottom = y + height + child.getMarginBottom();
         } else {
             x = child.getX();
@@ -131,45 +138,57 @@ class Viewport {
         const child = this.currentChild;
         const scale = child.getMeasuringScale();
         const topBaseHeight = child.getTopBaseHeight() * scale;
-               
-        let maxHeight = child.getLayoutHeight() * scale + this.currentChild.getMarginTop() + this.currentChild.getMarginBottom();
-        let maxWidth = child.getItemOverflowMode() === 'always' && TModelUtil.isWidthDefined(this.container) ? this.container.getWidth() : child.getBaseWidth() * scale +  this.currentChild.getMarginLeft() + this.currentChild.getMarginRight();
-        
-        if (child.type !== 'BI' && this.container.type === 'BI') {
-            const layout = this.computeBoundary(child, 'layout');
-            const animated = this.computeBoundary(child, 'animated');  
-            maxHeight = Math.max(maxHeight, layout.bottom - animated.top, animated.bottom - layout.top, layout.bottom - layout.top, animated.bottom - animated.top);
-            maxWidth = Math.max(maxWidth, layout.right - animated.left, animated.right - layout.left, layout.right - layout.left, animated.right - animated.left);
-        }
-                
+        const isBracket = this.container.type === 'BI';
+        const realViewport = isBracket ? this.container.getRealParent().viewport : child.getRealParent().viewport;
+
+        const maxHeight = child.getLayoutHeight() * scale + child.getMarginTop() + child.getMarginBottom();
+        const maxWidth = child.getItemOverflowMode() === 'always' && TModelUtil.isWidthDefined(this.container)
+            ? this.container.getWidth()
+            : child.getBaseWidth() * scale + child.getMarginLeft() + child.getMarginRight();
+
         let ySouth = this.yNext + maxHeight;
-        this.xNext += maxWidth; 
-                
-        if (child.isDomIsland() && child.hasDom()) {
+        this.xNext += maxWidth;
+
+        const isDomIsland = child.isDomIsland() && child.hasDom();
+        const content = !isDomIsland && child.type !== 'BI' ? this.computeBoundary(child, 'content') : null;
+
+        if (isDomIsland) {
             const absolute = this.computeBoundary(child, 'absolute');
             ySouth = absolute.bottom;
             this.xNext = absolute.right;
             this.xWest = absolute.left;
             this.yWest = absolute.top;
         }
-    
+
         this.yNext += topBaseHeight;
         this.xSouth = this.xNext;
         this.yEast = this.yNext;
-        
-        this.xEast = Math.max(this.xNext, this.xEast);
-        this.ySouth = Math.max(ySouth, this.ySouth) ;
-             
-        child.getRealParent().viewport.xEast = Math.max(child.getRealParent().viewport.xEast, this.xEast);
-        child.getRealParent().viewport.ySouth = Math.max(child.getRealParent().viewport.ySouth, this.ySouth);
-        
-        if (this.container.getContainerOverflowMode() === 'always' || this.currentChild.getItemOverflowMode() === 'always') {
-            this.yEast = child.getRealParent().viewport.ySouth;
-            this.yNext = child.getRealParent().viewport.ySouth;
 
-            this.xNext = child.getRealParent().viewport.xWest;
-            this.xSouth = child.getRealParent().viewport.xWest;
-        }           
+        if (content) {
+            const viewport = isBracket ? realViewport : this;
+
+            viewport.xWest = Math.min(viewport.xWest, content.left);
+            viewport.yNorth = Math.min(viewport.yNorth, content.top);
+            viewport.xEast = Math.max(viewport.xEast, content.right);
+            viewport.ySouth = Math.max(viewport.ySouth, content.bottom);
+        }
+
+        this.xEast = Math.max(this.xEast, isBracket ? this.xNext : content && TModelUtil.isXDefined(child) ? content.right : this.xNext);
+        this.ySouth = Math.max(this.ySouth, isBracket ? ySouth : content && TModelUtil.isYDefined(child) ? content.bottom : ySouth);
+
+        if (!isBracket) {
+            realViewport.xEast = Math.max(realViewport.xEast, this.xEast);
+        }
+
+        realViewport.ySouth = Math.max(realViewport.ySouth, this.ySouth);
+
+        if (this.container.getContainerOverflowMode() === 'always' || child.getItemOverflowMode() === 'always') {
+            this.yEast = realViewport.ySouth;
+            this.yNext = realViewport.ySouth;
+
+            this.xNext = realViewport.xWest;
+            this.xSouth = realViewport.xWest;
+        }
     }
 }
 

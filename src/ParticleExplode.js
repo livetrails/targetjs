@@ -102,7 +102,7 @@ class ParticleExplode {
                 ...raw,
                 width: autoDomGrid ? domWidth : raw.width ?? 20,
                 height: autoDomGrid ? domHeight : raw.height ?? 20,
-                isInFlow: raw.isInFlow ?? false
+                isInFlow: raw.isInFlow ?? true
             });
 
             const requestedWidth = resolveDimension("width", childDefinition.width, index);

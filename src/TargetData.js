@@ -25,7 +25,7 @@ class TargetData {
             preventDefault: undefined
         };
     }
-    
+
     static onDomTargets = new Set([
         "explodeChildren"
     ]);
@@ -120,7 +120,7 @@ class TargetData {
         borderColor: true,
         background: true        
     };
-    
+
     static styleTargetMap = {
         ...TargetData.transformMap,
         ...TargetData.styleWithUnitMap,
@@ -135,7 +135,7 @@ class TargetData {
         borderRight: true,
         borderBottom: true
     };
-    
+
     static gpuTargetMap = {
         ...TargetData.transformMap,
         color: true,
@@ -257,8 +257,11 @@ class TargetData {
     static bypassInitialProcessingTargetMap = {
         onChildrenChange: true,
         onVisibleChildrenChange: true,
-        onPageClose: true
+        onPageClose: true,
+        onDomReady: true
     };
+
+    static modelLifecycleObserverSet = new Set(['onUpdate', 'onComplete']);
 
     static controlTargetMap = {
         defaultStyling: true,
@@ -305,11 +308,11 @@ class TargetData {
             orientationchange: { eventName: 'resize', inputType: '', eventType: 'resize', order: 1, windowEvent: true, queue: true, rateLimit: 50 },
             scroll: {eventName: 'scroll', inputType: '', eventType: 'scroll', order: 1, windowEvent: true, queue: true, rateLimit: 50}            
         },
-        
+
         containerScroll: {
             scroll: {eventName: 'scroll', inputType: '', eventType: 'scroll', order: 1, windowEvent: false, queue: true, rateLimit: 50}
         },
-        
+
         inputEvents: {
             input: { eventName: 'input',  inputType: '', eventType: 'input',  order: 1, windowEvent: false, queue: true,  rateLimit: 50 }
         },
@@ -317,11 +320,11 @@ class TargetData {
         changeEvents: {
             change: { eventName: 'change', inputType: '', eventType: 'change', order: 1, windowEvent: false, queue: true,  rateLimit: 0 }
         },
-        
+
         submitEvents: {
             submit: { eventName:'submit', inputType:'form', eventType:'submit', order:1, windowEvent:false, queue:true, rateLimit:0 }
         },
-        
+
         popState: {
             popstate: { eventName: 'popstate', inputType: '', eventType: 'popstate', order: 1, windowEvent: true, queue: true, rateLimit: 0 }
         },
@@ -496,7 +499,7 @@ class TargetData {
             if (!resizeLastUpdate) {
                 return false;
             }
-            
+
             if (tmodel.lastResizeHandledTime === undefined) {
                tmodel.lastResizeHandledTime = resizeLastUpdate;
                return false;
@@ -520,7 +523,7 @@ class TargetData {
         onEnter: tmodel => getEvents().isEnterHandler(tmodel),
         onLeave: tmodel => getEvents().isLeaveHandler(tmodel),
         onSwipe: tmodel => getEvents().isSwipeHandler(tmodel) && getEvents().isSwipeEvent() && TUtil.isDefined(getEvents().swipeStartX),
-        
+
         onFocus: tmodel => getEvents().onFocus(tmodel),
         onBlur: tmodel => getEvents().onBlur(tmodel),
         onPinch: tmodel => getEvents().isPinchHandler(tmodel),
@@ -554,14 +557,14 @@ class TargetData {
     ]);
 
     static lifecycleCallbackSet = new Set([
-        'onComplete', 'onVisibleComplete', 'onValueChange', 'onImperativeEnd', 'onImperativeStep', 'onStepsEnd',
+        'onComplete', 'onVisibleComplete', 'onValueChange', 'onImperativeEnd', 'onImperativeStep', 'onStepsEnd', 'onUpdate',
         'onSuccess', 'onError'
     ]);
-    
+
     static lifecycleCoreSet = new Set([
-        'value', 'steps', 'cycles', 'enabledOn', 'pauseOn', 'loop', 'interval'
+        'value', 'steps', 'cycles', 'enabledOn', 'pauseOn', 'loop', 'interval', 'easing', 'instances'
     ]);    
-    
+
     static lifecycleMethodSet = new Set([
         ...TargetData.lifecycleCallbackSet,        
         ...TargetData.lifecycleCoreSet       
@@ -571,7 +574,7 @@ class TargetData {
         step: /^on[A-Za-z]+Step$/,
         end: /^on[A-Za-z]+End$/
     };
-    
+
     static eventSet = new Set([
         ...Object.keys(TargetData.allEventMap),
         ...Object.keys(TargetData.internalEventMap)
@@ -596,7 +599,7 @@ class TargetData {
         'containerOverflowMode', 'itemOverflowMode', 'baseElement', 'element', 'otype',
         'calculateChildren','domIsland', 'bracketThreshold', 'bracketSize', 'shouldBeBracketed', 'sourceDom'
     ]);
-    
+
     static activationKeywordSet = new Set([
         'originalTModel', 'originalTargetName', 'activateNextTarget'
     ]);
@@ -612,23 +615,24 @@ class TargetData {
                 TargetData.lifecyclePatterns.step.test(name) ||
                 TargetData.lifecyclePatterns.end.test(name);
     }  
-    
+
     static isWaapiSupported(key) {
         return !!TargetData.gpuTargetMap[TargetUtil.getTargetName(key)];
     }
-    
+
     static isTransformKey(key) {
         return !!TargetData.transformMap[key];
     }
-    
+
     static affectsVisibility(key) {
         key = TargetUtil.getTargetName(key);
         return ["x", "y", "width", "height", "dim"].includes(TargetUtil.getTargetName(key));
     }
-    
+
     static requiresDom(targetName) {
         return TargetData.onDomTargets.has(targetName);
     }
+
 }
 
 export { TargetData };

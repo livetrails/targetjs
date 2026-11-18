@@ -105,8 +105,14 @@ class Bracket extends TModel {
     }
 
     calcAbsolutePosition(x, y) {
-        this.absX = x + this.getRealParent().absX;
-        this.absY = y + this.getRealParent().absY;
+        const absX = x + this.getRealParent().absX;
+        const absY = y + this.getRealParent().absY;
+
+        if (this.absX !== absX || this.absY !== absY) {
+            this.absX = absX;
+            this.absY = absY;
+            this.visibilityDirty = true;
+        }
     }
     
     shouldCalculateChildren() {

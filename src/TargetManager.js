@@ -142,8 +142,9 @@ class TargetManager {
                     needsRefire = true;
                 }
             
-                if (originalTarget.activateNextTarget && !originalTarget.activateNextTarget.endsWith('$$') && originalTarget.activateNextTarget.endsWith('$')) {
-                    needsRefire = true;   
+                if (typeof originalTarget.onUpdate === 'function' ||
+                    (originalTarget.activateNextTarget?.endsWith('$') && !originalTarget.activateNextTarget.endsWith('$$'))) {
+                    needsRefire = true;
                     TargetUtil.shouldActivateNextTarget(tmodel, key);
                 }
             }
@@ -152,7 +153,8 @@ class TargetManager {
             needsRefire = tmodel.handleSpecialTargetStep(key, step, steps) || needsRefire;
             needsRefire = TUtil.handleValueChange(tmodel, key) || needsRefire;
 
-            if (target?.activateNextTarget && !target.activateNextTarget.endsWith('$$') && target.activateNextTarget.endsWith('$')) {
+            if (typeof target?.onUpdate === 'function' ||
+                (target?.activateNextTarget?.endsWith('$') && !target.activateNextTarget.endsWith('$$'))) {
                 needsRefire = true;
                 TargetUtil.shouldActivateNextTarget(tmodel, key);
             }
@@ -209,11 +211,15 @@ class TargetManager {
                 delete targetValue.valuePointer;
                 TargetExecutor.executeDeclarativeTarget(tmodel, key);
             }
+            
+            TUtil.handleValueChange(tmodel, key);
 
             if (typeof tmodel.targets[key]?.onStepsEnd === "function") {
                 tmodel.targets[key].onStepsEnd.call(tmodel, tmodel.getTargetCycle(key));
                 tmodel.setTargetMethodName(key, "onStepsEnd");
             }
+            
+            
         }
 
         TargetUtil.shouldActivateNextTarget(tmodel, key);

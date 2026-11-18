@@ -65,7 +65,10 @@ class TargetParser {
         }
         
         if (TargetParser.isTargetKey(key)) {
-            return 'target2';
+            const isTargetConfig = TargetParser.isTargetSpecObject(value) ||
+                Object.keys(value).some(k => TargetData.lifecycleMethodSet.has(k));
+
+            return !isTargetConfig && this.scoreChild(value) ? 'children' : 'target2';
         }
         
         if (key === 'originalTModel') {

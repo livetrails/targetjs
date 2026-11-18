@@ -2,7 +2,7 @@
 import { TUtil } from "./TUtil.js";
 import { TargetUtil } from "./TargetUtil.js";
 import { TargetData } from "./TargetData.js";
-import { getRunScheduler, getManager } from "./App.js";
+import { getRunScheduler, getManager, getLoader } from "./App.js";
 import { $Dom } from "./$Dom.js";
 import { ColorUtil } from "./ColorUtil.js";
 import { Easing } from "./Easing.js";
@@ -377,6 +377,8 @@ class TModelUtil {
     static createDom(tmodel) {
         tmodel.$dom = new $Dom();
         tmodel.$dom.create(tmodel.getBaseElement());
+            
+        getLoader().observeDomImage(tmodel, tmodel.$dom.element);
     }
 
     static patchDom(tmodel) {

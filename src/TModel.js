@@ -1101,6 +1101,14 @@ class TModel extends BaseModel {
     finalizeChildrenTarget() {
         return false;
     }
+    
+    needsReattach() {
+        if (!this.hasDom() || this.reuseDomDefinition()) {
+            return false;
+        }
+                
+        return this.hasDomHolderChanged() || this.hasBaseElementChanged();
+    }  
 
     onDomAvailable() {}
 }
