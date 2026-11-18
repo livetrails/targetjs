@@ -21,7 +21,7 @@ class TargetData {
             canHaveDom: true,
             isIncluded: true,
             bracketThreshold: 40,
-            bracketSize: 2,
+            bracketSize: 20,
             preventDefault: undefined
         };
     }

@@ -5,7 +5,7 @@ import { TModel } from "./TModel.js";
 import { TUtil } from "./TUtil.js";
 import { AnimationUtil } from "./AnimationUtil.js"; 
 import { Easing } from "./Easing.js";
-import { getLoader, getRunScheduler, getAnimationManager } from "./App.js";
+import { getLoader, getRunScheduler, getAnimationManager, getLocationManager } from "./App.js";
 import { TModelFactory } from "./TModelFactory.js";
 
 /**
@@ -188,6 +188,10 @@ class TargetExecutor {
         const newStatus = TargetExecutor.calculateTargetStatus(tmodel, targetValue, key);
 
         tmodel.setTargetStatus(key, newStatus);
+        
+        if (newStatus === 'updating' && tmodel.isTargetImperative(key)) {
+            getLocationManager().queueEarlyVisualTarget(tmodel, key);
+        }
 
         const shouldSchedule = tmodel.isTargetImperative(key) || tmodel.shouldScheduleRun(key);
 

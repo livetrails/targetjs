@@ -27,6 +27,9 @@ class LocationManager {
         this.calcQueued = false;
 
         this.calcEpoch = 0;
+        
+        this.visitedThisPass = new WeakSet();
+        this.earlyVisualTargets = new Map();        
     }
 
     clear() {
@@ -46,6 +49,9 @@ class LocationManager {
         }
 
         this.calcBusy = true;
+        
+        this.visitedThisPass = new WeakSet();
+        this.earlyVisualTargets.clear();
 
         if (!continueCalculation) {
             this.hasLocationList.length = 0;
@@ -89,6 +95,9 @@ class LocationManager {
         this.calcEpoch++;
         this.calcBusy = false;
         this.calcQueued = false;
+        
+        this.earlyVisualTargets.clear();
+        this.visitedThisPass = new WeakSet();        
     }
 
     async processStack(stack, ctx) {
@@ -207,7 +216,9 @@ class LocationManager {
                 const previousAbsY = child.absY;
 
                 this.calcNextLocation(child, container, viewport);
-                
+                       
+                this.visitedThisPass.add(child);
+
                 if (child.isIncluded() && child.activateChangedPassiveTargets()) {
                     this.calcQueued = true;
                 }
@@ -305,6 +316,8 @@ class LocationManager {
             }
 
             job.stage = 'resetDirtyLayout';
+            
+            this.visitedThisPass.add(child);
 
             if (child.hasChildren()) {
                 if (child.shouldCalculateChildren()) {
@@ -324,8 +337,12 @@ class LocationManager {
             if (ctx.calcEpoch !== this.calcEpoch) {
                 return;
             }
+            
+            this.flushEarlyVisualTargets();
 
             if ((TUtil.now() - ctx.sliceStart) > ctx.budgetMs) {
+                this.flushEarlyVisualTargets();
+
                 await new Promise(requestAnimationFrame);
 
                 if (ctx.calcEpoch !== this.calcEpoch) {
@@ -813,6 +830,57 @@ class LocationManager {
 
         tmodel.addToStyleTargetList('x');
         tmodel.addToStyleTargetList('y');
+    }
+    
+    queueEarlyVisualTarget(tmodel, key) {
+        if (!this.calcBusy || !this.visitedThisPass.has(tmodel) || !tmodel.hasDom() || !tmodel.isVisible()) {
+            return;
+        }
+
+        // Start with opacity only. Other properties may affect layout.
+        if (TargetUtil.getTargetName(key) !== 'opacity') {
+            return;
+        }
+
+        let keys = this.earlyVisualTargets.get(tmodel);
+
+        if (!keys) {
+            keys = new Set();
+            this.earlyVisualTargets.set(tmodel, keys);
+        }
+
+        keys.add(key);
+    }
+
+    flushEarlyVisualTargets() {
+        if (!this.earlyVisualTargets.size) {
+            return;
+        }
+
+        const pending = this.earlyVisualTargets;
+        this.earlyVisualTargets = new Map();
+
+        for (const [tmodel, keys] of pending) {
+            if (!tmodel.exists() || !tmodel.hasDom() || !tmodel.isVisible()) {
+                continue;
+            }
+
+            const updatingKeys = [...keys].filter(key => tmodel.targetValues[key]?.status === 'updating');
+
+            if (!updatingKeys.length) {
+                continue;
+            }
+
+            const manualKeys = updatingKeys.filter(key => !tmodel.canBeAnimated(key));
+
+            getTargetManager().setActualValues(tmodel, updatingKeys);
+
+            if (manualKeys.length) {
+                TModelUtil.fixStyle(tmodel, { keys: manualKeys });
+            }
+
+            this.addToLocationList(tmodel);
+        }
     }
 
 }
