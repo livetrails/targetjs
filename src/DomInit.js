@@ -105,11 +105,18 @@ class DomInit {
     }
 
     static initPageDoms($dom) {
+        const explodeSourceElements = new WeakSet();
+        
         const elementToModel = new Map();
 
         const elements = $dom.queryAll('*');
         
         for (let element of elements) {
+            if (explodeSourceElements.has(element.parentElement)) {
+                explodeSourceElements.add(element);
+                continue;
+            }
+            
             let newModel;
             const attrs = Array.from(element.attributes);
                         
@@ -154,11 +161,15 @@ class DomInit {
                  
                newModel = {
                     id,
-                    baseElement: element.tagName.toLowerCase(),
+                    element: element.tagName.toLowerCase(),
                     $dom: new $Dom(element),
                     ...attributeSet
                 }; 
-            }            
+            }  
+            
+            if (newModel && Object.keys(newModel).some(key => /^explodeChildren\$*$/i.test(key))) {
+                explodeSourceElements.add(element);
+            }
 
             if (parentModel) {
                 if (!newModel) {
@@ -175,11 +186,11 @@ class DomInit {
                 if (childrenKey) {
                     if (Array.isArray(parentModel[childrenKey].value)) {
                         parentModel[childrenKey].value.push(newModel);
-                    } else if (typeof parentModel[childrenKey] === 'string') {
+                    } else if (typeof parentModel[childrenKey] === 'string' || typeof parentModel[childrenKey] === 'number') {
                         parentModel[childrenKey] = {
                             cycles: TUtil.isNumber(+parentModel[childrenKey]) ? +parentModel[childrenKey] : 1,
                             value: [ newModel ]
-                        }
+                        };
                     } else if (typeof parentModel[childrenKey] === 'object') {
                         parentModel[childrenKey].value = [ newModel ];
                     }
@@ -206,19 +217,17 @@ class DomInit {
             if (parentModel) {
                 value.$dom.detach();
                 delete value.$dom; 
+                value.otype = value.id || (parentModel.id || parentModel.otype || App.getOid('blank').oid) + "_";
                 delete value.id;
                 value.sourceDom = true;
-                value.otype = value.id || (parentModel.id || App.getOid('blank').oid)  + "_";
-                value.isVisible = !TUtil.isDefined(value.isVisible) ? function() { return this.getParent().isVisible(); } : value.isVisible;
                 value.domParent = !TUtil.isDefined(value.domParent) ? function() { return this.getParent(); } : value.domParent;
             } else {
-                value.isVisible = !TUtil.isDefined(value.isVisible) ? true : value.isVisible;
                 value.domHolder = !TUtil.isDefined(value.domHolder) ? true : value.domHolder; 
                 value.sourceDom = true;
                 
                 tRoot().addChild(value);
                 
-                if (!value.isVisible) {
+                if (value.isVisible === false) {
                     invisibleList.push({ $dom: value.$dom, tmodel: tRoot().getLastChild() });
                 }
             }
@@ -233,13 +242,7 @@ class DomInit {
     }
     
     static getChildrenKey(obj) {
-        for (const key of Object.keys(obj)) {
-          if (key.toLowerCase().includes("children")) {
-            return key;
-          }
-        }
-        
-        return null;
+        return Object.keys(obj).find(key => /^(children|addChildren)\$*$/i.test(key)) ?? null;
     }
     
     static parseString(rawValue) {

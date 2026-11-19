@@ -962,9 +962,9 @@ class BaseModel {
                 this.updatingTargetList.splice(index, 1);
             }
         }
-        if (this.updatingTargetList.length === 0) {
+        if (this.updatingTargetList.length === 0 && !this.noDomUpdatingTargets?.size) {
             this.getParent()?.removeFromUpdatingChildren(this);
-        }        
+        }
     }
     
     hasUpdatingImperativeTargets(originalTargetName) {

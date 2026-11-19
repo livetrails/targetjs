@@ -25,7 +25,7 @@ class ParticleChild {
         this.allTargetMap = {};
 
         this.actualValues = {
-            isVisible: true
+            viewportIsVisible: true
         };
 
         this.visibilityStatus = undefined;
@@ -299,7 +299,15 @@ class ParticleChild {
     }
 
     isVisible() {
-        return this.actualValues.isVisible !== false;
+        const parentState = this.parent?.getVisibilityState() ?? 0;
+
+        if (parentState === -1 || this.val('isVisible') === false) {
+            return false;
+        }
+
+        return parentState === 1 ||
+               this.val('isVisible') === true ||
+               this.val('viewportIsVisible') !== false;
     }
 
     calcVisibility() {
@@ -324,7 +332,7 @@ class ParticleChild {
         });
 
 
-        this.actualValues.isVisible = status.isVisible;
+        this.actualValues.viewportIsVisible = status.isVisible;
 
         return status.isVisible;
     }

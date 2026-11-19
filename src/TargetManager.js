@@ -7,7 +7,6 @@ import { TModelUtil } from "./TModelUtil.js";
 import { SearchUtil } from "./SearchUtil.js";
 import { ScheduleUtil } from "./ScheduleUtil.js";
 import { AnimationUtil } from "./AnimationUtil.js";
-import { TargetParser } from "./TargetParser.js";
 
 /**
  * Manages target execution/cycles and updates actual values toward target values.
@@ -33,20 +32,23 @@ class TargetManager {
         if (ScheduleUtil.shouldPauseTarget(tmodel, key)) {
             return;
         }
-        
+
         if (tmodel.isExecuted(key)) {
             if (tmodel.hasUpdatingImperativeTargets(key)) {
                 return;
             }
 
-            const childAction = tmodel.targetValues[key]?.childAction;
-            const completionScope = target.completionScope ?? (TargetParser.isChildrenTarget(key, target) ? 'none' : 'all');
+            if (tmodel.isTargetInLoop(key)) {
+                const childAction = tmodel.targetValues[key]?.childAction;
+                const completionScope = target.completionScope;
 
-            if (completionScope !== 'none' && childAction?.length && TargetUtil.areTargetChildrenComplete(childAction, completionScope) !== true) {
-                return;
+                if (completionScope !== 'none' && childAction?.length &&
+                        TargetUtil.areTargetChildrenComplete(childAction, completionScope) !== true) {
+                    return;
+                }
             }
         }
-
+        
         if (tmodel.isExecuted(key) && tmodel.getTargetStep(key) === tmodel.getTargetSteps(key)) { 
             if (tmodel.isScheduledPending(key)) {
                 return;

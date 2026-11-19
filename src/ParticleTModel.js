@@ -347,8 +347,12 @@ class ParticleTModel extends TModel {
 
         child.actualValues[cleanKey] = value;
 
-        if (ParticleUtil.isGpuTarget(cleanKey)) {
+        if (ParticleUtil.isGpuTarget(cleanKey) || cleanKey === 'isVisible') {
             this.particleValuesDirty = true;
+        }
+
+        if (cleanKey === 'isVisible') {
+            this.requestParticleRender();
         }
 
         if (invalidateLayout && this.affectsChildLayout(cleanKey)) {

@@ -793,10 +793,13 @@ class TargetUtil {
                 continue;
             }
 
-            if (completionScope === "visible" && !child.isLightweightChild 
-                    && child.visibilityStatus?.isVisible === undefined && child.val('isVisible') !== false) {
+            if (completionScope === 'visible' &&
+                    !child.isLightweightChild &&
+                    !TUtil.isDefined(child.val('isVisible')) &&
+                    child.visibilityStatus?.isVisible === undefined) {
                 return "visibility not calculated";
             }
+
             if (TargetUtil.shouldIgnoreChildForCompletion(child, completionScope)) {
                 continue;
             }
@@ -922,15 +925,7 @@ class TargetUtil {
         }
 
         if (completionScope === "visible") {
-            if (child.visibilityStatus) {
-                return child.visibilityStatus.isVisible !== true;
-            }
-
-            if (typeof child.isVisible === "function") {
-                return child.isVisible() !== true;
-            }
-
-            return true;
+            return child.isVisible() !== true;
         }
 
         return false;

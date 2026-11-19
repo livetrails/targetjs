@@ -22,7 +22,8 @@ class TargetData {
             isIncluded: true,
             bracketThreshold: 40,
             bracketSize: 20,
-            preventDefault: undefined
+            preventDefault: undefined,
+            viewportIsVisible: true
         };
     }
 
@@ -457,7 +458,11 @@ class TargetData {
         tabindex: 'tabIndex',
         backfacevisibility: 'backfaceVisibility',
         whitespace: 'whiteSpace',
-        pointerevents: 'pointerEvents'
+        pointerevents: 'pointerEvents',
+        addchildren: 'addChildren',
+        explodechildren: 'explodeChildren',
+        fetchimage: 'fetchImage'
+        
     };
 
     static targetToEventsMapping = {
@@ -605,8 +610,10 @@ class TargetData {
 
     static toCanonicalKey(key) {
         const k = String(key);
-        const lb = k.toLowerCase();
-        return TargetData.attributesToTargets[lb] ?? k;
+        const suffix = k.match(/\$+$/)?.[0] ?? '';
+        const base = k.slice(0, k.length - suffix.length);
+
+        return (TargetData.attributesToTargets[base.toLowerCase()] ?? base) + suffix;
     }
 
     static isLifeCycleMethod(name) {

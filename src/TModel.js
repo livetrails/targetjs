@@ -612,6 +612,7 @@ class TModel extends BaseModel {
         return [
             { oid: this.oid },
             { visible: this.isVisible() },
+            { viewportIsVisible: this.val('viewportIsVisible') },
             { visibilityStatus: this.visibilityStatus },
             { complete: TargetUtil.isTModelComplete(this) },
             { hasDom: this.hasDom() },
@@ -649,20 +650,30 @@ class TModel extends BaseModel {
         TUtil.logTree(this);
     }
     
+    getVisibilityState() {
+        const parentState = this.getRealParent()?.getVisibilityState() ?? 0;
+
+        if (parentState === -1) {
+            return -1;
+        }
+
+        const explicit = this.val('isVisible');
+
+        if (explicit === false) {
+            return -1;
+        }
+
+        if (explicit === true || parentState === 1) {
+            return 1;
+        }
+
+        return this.val('viewportIsVisible') === false ? -1 : 0;
+    }
+
     isVisible() {
-        return this.val('isVisible');
+        return this.getVisibilityState() !== -1;
     }
-    
-    makeVisible() {
-        this.val('isVisible', true);
-        this.targets.isVisible = true;
-    }
-    
-    makeInvisible() {
-        this.val('isVisible', false);
-        this.targets.isVisible = false;        
-    }
-    
+
     managesOwnScroll() {
         if (TUtil.isDefined(this.val('managesOwnScroll'))) {
             return !!this.val('managesOwnScroll');
@@ -1103,7 +1114,7 @@ class TModel extends BaseModel {
     }
     
     needsReattach() {
-        if (!this.hasDom() || this.reuseDomDefinition()) {
+        if (!this.hasDom()) {
             return false;
         }
                 

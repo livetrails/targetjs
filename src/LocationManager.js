@@ -531,9 +531,9 @@ class LocationManager {
 
         child.calcAbsolutePosition(child.getX(), child.getY());
 
-        const visible = child.calcVisibility();
+        child.calcVisibility();
 
-        child.actualValues.isVisible = visible;
+        const visible = child.isVisible();
 
         if (visible && child.isInFlow()) {
             container.visibleChildren.push(child);
@@ -551,49 +551,30 @@ class LocationManager {
     }
 
     calculateVisibility(tmodel) {
+        const previousVisible = tmodel.visibilityStatus?.isVisible;
+        const wasVisible = previousVisible ?? tmodel.isVisible();
 
-        let wasVisible = tmodel.isVisible();
-        let nowVisible;
+        tmodel.calcVisibility();
 
-        const lastVisibleTest = tmodel.visibilityStatus?.isVisible ?? undefined;
+        const nowVisible = tmodel.isVisible();
 
-        if (!tmodel.visibilityStatus) {
-            tmodel.visibilityStatus = {};
-        }
-        tmodel.visibilityStatus.lastIsVisible = tmodel.visibilityStatus.isVisible;
+        tmodel.visibilityStatus ||= {};
+        tmodel.visibilityStatus.lastIsVisible = previousVisible;
+        tmodel.visibilityStatus.isVisible = nowVisible;
 
-
-        if (TUtil.isDefined(tmodel.targets.isVisible)) {
-
-            if (typeof tmodel.targets.isVisible.value === 'function') {
-                nowVisible = !!tmodel.targets.isVisible.value.call(tmodel);
-            } else {
-                nowVisible = !!(tmodel.targets.isVisible.value ?? tmodel.targets.isVisible);
-            }
-
-            tmodel.actualValues.isVisible = nowVisible;
-            tmodel.isNowVisible = !wasVisible && nowVisible;
-            tmodel.isNowInvisible = ((wasVisible || wasVisible === undefined) && !nowVisible);
-
-        } else {
-            const nowVisibleTest = tmodel.calcVisibility();
-            nowVisible = nowVisibleTest;
-            tmodel.isNowVisible = (!wasVisible && nowVisible) || (!lastVisibleTest && nowVisibleTest);
-            tmodel.isNowInvisible = ((wasVisible || wasVisible === undefined) && !nowVisible) || (lastVisibleTest && !nowVisibleTest);
-
-            tmodel.actualValues.isVisible = nowVisible;
-        }
+        tmodel.isNowVisible = !wasVisible && nowVisible;
+        tmodel.isNowInvisible = (wasVisible || wasVisible === undefined) && !nowVisible;
 
         if (tmodel.isNowVisible || tmodel.isNowInvisible) {
             tmodel.markLayoutDirty('isNowVisible');
             this.addToLocationList(tmodel);
             tmodel.onVisibilityChange?.(nowVisible);
         }
-        
+
         if (tmodel.isNowVisible && tmodel.hasChildren()) {
             tmodel.visibilityDirty = true;
         }
-      
+
         ScheduleUtil.pauseResumeSchedule(tmodel);
 
         if (tmodel.type !== 'BI' && tmodel.isVisible() && tmodel.isInFlow() && tmodel.getParent()) {
@@ -668,14 +649,26 @@ class LocationManager {
             return;
         }
 
-        for (const key of tmodel.noDomUpdatingTargets) {    
-            if (!TargetData.affectsVisibility(key)) {
+        const manager = getTargetManager();
+
+        for (const key of [...tmodel.noDomUpdatingTargets]) {
+            if (ScheduleUtil.shouldPauseTarget(tmodel, key)) {
                 continue;
             }
 
-            getTargetManager().catchupTargetByElapsed(tmodel, key, {
-                fireEnd: false
-            });
+            const result = manager.catchupTargetByElapsed(tmodel, key);
+
+            if (!result.done) {
+                continue;
+            }
+
+            tmodel.noDomUpdatingTargets.delete(key);
+
+            if (!tmodel.noDomUpdatingTargets.size) {
+                tmodel.noDomUpdatingTargets = undefined;
+            }
+
+            manager.fireOnEnd(tmodel, key);
         }
     }
     

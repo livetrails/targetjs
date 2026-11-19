@@ -45,7 +45,6 @@ const AppFn = () => {
             const tmodel = new TModel('tRoot', {
                 styling: false,
                 domHolder: true,
-                isVisible: true,
                 screenWidth() {
                     const width = $Dom.getScreenWidth();
                     if (width !== tmodel.val('screenWidth')) {

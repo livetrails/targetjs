@@ -626,8 +626,8 @@ class ParticleRenderer {
         values ||= {};
 
         const backgroundColor = this.getBackgroundColor(values.backgroundColor);
-        const opacity = Math.max(0, Math.min(1, this.toNumber(values.opacity, 1)));
-
+        const opacity = values.isVisible === false ? 0 : Math.max(0, Math.min(1, this.toNumber(values.opacity, 1)));
+        
         particleData[offset] = this.toNumber(x, 0);
         particleData[offset + 1] = this.toNumber(y, 0);
         particleData[offset + 2] = this.toNumber(values.width, 0);

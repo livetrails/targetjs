@@ -39,7 +39,7 @@ class VisibilityUtil {
         
         child.visibilityStatus = status;
 
-        child.actualValues.isVisible = status.isVisible;
+        child.actualValues.viewportIsVisible = status.isVisible;
         return status.isVisible;
     }
 

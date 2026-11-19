@@ -64,10 +64,18 @@ class Bracket extends TModel {
         return this.topBaseHeight;
     }
     
-    isVisible() {
-        return this.visibilityStatus ? this.visibilityStatus.isVisible : false;
+    getVisibilityState() {
+        if (this.visibilityStatus?.isVisible !== true) {
+            return -1;
+        }
+
+        return this.getRealParent()?.getVisibilityState() ?? 0;
     }
-    
+
+    isVisible() {
+        return this.getVisibilityState() !== -1;
+    }
+
     getBracketThreshold() {
         return this.getRealParent().getBracketSize();
     }
