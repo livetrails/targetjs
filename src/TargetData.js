@@ -551,7 +551,6 @@ class TargetData {
             'invokerTarget',
             'invokerTModel',
             'active',
-            'addChildAction',
             'childAction',
             'fetchAction'
     ]);

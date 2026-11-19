@@ -126,7 +126,7 @@ class TModel extends BaseModel {
             for (const key of this.functionTargetNames) {
                 const targetValue = this.targetValues[key];
 
-                if (targetValue?.childAction?.includes(child) || targetValue?.addChildAction?.includes(child)) {
+                if (targetValue?.childAction?.includes(child)) {
                     TargetUtil.resetRemovedChildTarget(this, key, child);
                 }
             }

@@ -7,6 +7,7 @@ import { TModelUtil } from "./TModelUtil.js";
 import { SearchUtil } from "./SearchUtil.js";
 import { ScheduleUtil } from "./ScheduleUtil.js";
 import { AnimationUtil } from "./AnimationUtil.js";
+import { TargetParser } from "./TargetParser.js";
 
 /**
  * Manages target execution/cycles and updates actual values toward target values.
@@ -39,8 +40,9 @@ class TargetManager {
             }
 
             const childAction = tmodel.targetValues[key]?.childAction;
+            const completionScope = target.completionScope ?? (TargetParser.isChildrenTarget(key, target) ? 'none' : 'all');
 
-            if (childAction?.length && TargetUtil.areTargetChildrenComplete(childAction) !== true) {
+            if (completionScope !== 'none' && childAction?.length && TargetUtil.areTargetChildrenComplete(childAction, completionScope) !== true) {
                 return;
             }
         }

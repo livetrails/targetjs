@@ -793,10 +793,10 @@ class TargetUtil {
                 continue;
             }
 
-            if (completionScope === "visible" && !child.isLightweightChild && child.visibilityStatus?.isVisible === undefined) {
+            if (completionScope === "visible" && !child.isLightweightChild 
+                    && child.visibilityStatus?.isVisible === undefined && child.val('isVisible') !== false) {
                 return "visibility not calculated";
             }
-
             if (TargetUtil.shouldIgnoreChildForCompletion(child, completionScope)) {
                 continue;
             }
@@ -965,12 +965,6 @@ class TargetUtil {
         TargetUtil.markTargetChildAction(tmodel, key, child, "childAction");
     }
 
-    static markAddChild(tmodel, key, child) {
-        TargetUtil.markTargetChildAction(
-                tmodel, key, child, "addChildAction"
-                );
-    }
-
     static markFetchAction(tmodel) {
         const key = TargetUtil.currentTargetName;
 
@@ -1121,31 +1115,17 @@ class TargetUtil {
             return;
         }
 
-        const childActions = [...(targetValue.childAction ?? [])];
-        const addChildActions = [...(targetValue.addChildAction ?? [])];
-
-        childActions.forEach(child => {
+        for (const child of [...(targetValue.childAction ?? [])]) {
             if (child) {
                 TargetUtil.resetTargetChildState(child, options, visited);
-            }
-        });
-
-        addChildActions.forEach(child => {
-            if (child) {
-                TargetUtil.resetTargetChildState(child, options, visited);
-            }
-        });
-
-        if (options.clearChildActions) {
-            if (Array.isArray(targetValue.childAction)) {
-                targetValue.childAction = [];
-            }
-            if (Array.isArray(targetValue.addChildAction)) {
-                targetValue.addChildAction = [];
             }
         }
-    }
 
+        if (options.clearChildActions && Array.isArray(targetValue.childAction)) {
+            targetValue.childAction = [];
+        }
+    }
+    
     static clearTriggeredByCompleteCount(tmodel, nextTarget, key) {
         const nextTargetValue = tmodel.targetValues[nextTarget];
         const map = nextTargetValue?.triggeredByCompleteCountMap;
@@ -1201,13 +1181,11 @@ class TargetUtil {
 
         TargetUtil.resetTargetStateOnly(tmodel, key);
 
-        for (const name of ["childAction", "addChildAction"]) {
-            const children = targetValue[name];
-            const index = children?.indexOf(child) ?? -1;
+        const children = targetValue.childAction;
+        const index = children?.indexOf(child) ?? -1;
 
-            if (index >= 0) {
-                children.splice(index, 1);
-            }
+        if (index >= 0) {
+            children.splice(index, 1);
         }
     }
 

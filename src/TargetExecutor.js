@@ -462,18 +462,7 @@ class TargetExecutor {
                         
             const values = Array.isArray(newValue) ? newValue : newValue ? [newValue] : [];
 
-            values.forEach(child => {
-                const addedChildrenCount = tmodel.addedChildren.length;
-
-                tmodel.addChild(child);
-
-                if (tmodel.addedChildren.length > addedChildrenCount) {
-                    const addedChild = tmodel.addedChildren[tmodel.addedChildren.length - 1].child;
-
-                    TargetUtil.markAddChild(tmodel, TargetUtil.currentTargetName, addedChild);
-                }
-            });
-            
+            values.forEach(child => tmodel.addChild(child));
             const result = tmodel.finalizeChildrenTarget(key, {
                 steps: newSteps,
                 cycles: newCycles,

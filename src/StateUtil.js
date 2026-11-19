@@ -630,7 +630,7 @@ class StateUtil {
                    continue;
                }
 
-               if ((field === "childAction" || field === "addChildAction") && Array.isArray(target[field])) {
+               if ((field === "childAction") && Array.isArray(target[field])) {
                    runtime[field] = target[field].filter(child => child?.exists?.());
                } else {
                    runtime[field] = target[field];

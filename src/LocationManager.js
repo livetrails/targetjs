@@ -566,9 +566,9 @@ class LocationManager {
         if (TUtil.isDefined(tmodel.targets.isVisible)) {
 
             if (typeof tmodel.targets.isVisible.value === 'function') {
-                nowVisible = tmodel.targets.isVisible.value.call(tmodel);
+                nowVisible = !!tmodel.targets.isVisible.value.call(tmodel);
             } else {
-                nowVisible = !!tmodel.targets.isVisible;
+                nowVisible = !!(tmodel.targets.isVisible.value ?? tmodel.targets.isVisible);
             }
 
             tmodel.actualValues.isVisible = nowVisible;
