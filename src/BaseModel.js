@@ -682,7 +682,7 @@ class BaseModel {
 
         return loop === 'passive';
     }
-
+    
     shouldScheduleRun(key) {
         const t = this.targets[key];
         if (!t) {
@@ -698,14 +698,14 @@ class BaseModel {
         if (loop === 'passive') {
             const values = TargetParser.getValueStepsCycles(this, key);
             const nextValue = values[0];
-            const currentTargetValue = this.getTargetValue(key);
+            const currentTargetValue = this.targetValues[key]?.passiveDesiredValue ?? this.getTargetValue(key);
 
             return !TUtil.areEqual(nextValue, currentTargetValue, t.deepEquality ?? false);
         }
 
         return true;
     }
-    
+
     activateChangedPassiveTargets() {
         if (!this.passiveTargetList?.length) {
             return false;
@@ -717,17 +717,23 @@ class BaseModel {
             if (!this.isTargetPassiveLoop(key)) {
                 continue;
             }
-
-            if (this.isTargetUpdating(key) || this.animatingMap?.has(key)) {
-                continue;
-            }
-
+            
             if (!this.shouldScheduleRun(key) || !this.canTargetBeActivated(key)) {
                 continue;
             }
+
+            const remainingSteps = this.isTargetUpdating(key) ? Math.max(1, this.getTargetSteps(key) - this.getTargetStep(key)) : undefined;
+
+            if (this.animatingMap?.has(key)) {
+                getAnimationManager().cancelKey(this, key);
+            }
             
-            this.resetTargetStep(key);
-            this.addToActiveTargets(key);
+            this.activateTarget(key);
+
+            if (remainingSteps !== undefined) {
+                this.targetValues[key].passiveRetargetSteps = remainingSteps;
+            }
+            
             activated = true;
         }
 

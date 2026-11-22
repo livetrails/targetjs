@@ -484,7 +484,6 @@ class TModelManager {
     resetTModelDom(tmodel) { 
         tmodel.styleMap = {};
         tmodel.tfMap = {};
-        tmodel.actualValues.isVisible = false;
         tmodel.hasDomNow = false;
         tmodel.$dom = null;       
     };

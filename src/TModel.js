@@ -70,7 +70,7 @@ class TModel extends BaseModel {
         const scrollLeft = scroll.x;
         
         const x = -scrollLeft, y = -scrollTop;
-        
+
         this.viewport.xNext = x;
         this.viewport.xNorth = x;
         this.viewport.xEast = x;
@@ -91,7 +91,9 @@ class TModel extends BaseModel {
         this.viewport.yWest = y;
         this.viewport.yEast = y;
         this.viewport.ySouth = y;
-                
+        
+        this.viewport.flowSouth = y;
+        
         this.calcContentWidthHeight();
         
         this.viewport.setContainer(this);

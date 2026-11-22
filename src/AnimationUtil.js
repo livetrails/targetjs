@@ -567,12 +567,33 @@ class AnimationUtil {
         let replacedExistingKey = false;
         
         if (replaceExistingKey) {
+            const replacedKeys = [...(batch.keyMap[cleanKey] ?? [])].filter(oldKey => oldKey !== key);
+
             replacedExistingKey = AnimationUtil.removeCleanKeyFromBatch(batch, cleanKey);
+
+            for (const oldKey of replacedKeys) {
+                const oldTarget = tmodel.targetValues[oldKey];
+
+                tmodel.removeFromAnimatingMap(oldKey);
+
+                if (!oldTarget || !tmodel.isTargetUpdating(oldKey)) {
+                    continue;
+                }
+
+                oldTarget.step = tmodel.getTargetSteps(oldKey);
+
+                if (oldTarget.valueList?.length) {
+                    oldTarget.valuePointer = oldTarget.valueList.length;
+                }
+
+                getTargetManager().fireOnEnd(tmodel, oldKey);
+            }
 
             if (replacedExistingKey) {
                 timeShift = 0;
             }
         }
+        
         const isTransform = TargetData.isTransformKey(cleanKey);
 
         const getFrameAtTime = (t) => {

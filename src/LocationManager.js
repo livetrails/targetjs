@@ -801,7 +801,7 @@ class LocationManager {
 
     fixLocation(tmodel, prevX, prevY) {
 
-        if (tmodel.hasValidAnimation()) {
+        if (tmodel.hasValidAnimation() && tmodel.lastBatch?.transformAnimation) {
             const xChanged = Math.floor(tmodel.actualValues.x) !== prevX;
             const yChanged = Math.floor(tmodel.actualValues.y) !== prevY;
 

@@ -377,13 +377,16 @@ class TargetExecutor {
         }
         
         const newValue    = valueArray[0];
-        const newSteps    = valueArray[1] || 0;
+        let newSteps    = valueArray[1] || 0;
         const newInterval = valueArray[2] || 0;     
         const newEasing   = valueArray[3];
         const newCycles   = valueArray[4] || 1;
-        
+
         const targetValue = tmodel.targetValues[key] || TargetUtil.emptyValue();
 
+        if (tmodel.isTargetPassiveLoop(key)) {
+            targetValue.passiveDesiredValue = newValue;
+        }
         tmodel.targetValues[key] = targetValue;
         const easing = TUtil.isDefined(newEasing) ? newEasing : (TUtil.isDefined(tmodel.targets[key].easing) ? tmodel.targets[key].easing : undefined);
         let specialTarget;

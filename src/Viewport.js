@@ -24,7 +24,9 @@ class Viewport {
         this.yWest = 0;
         this.yEast = 0;
         this.ySouth = 0;
-                        
+        
+        this.flowSouth = 0;
+                  
         this.container = undefined;
         
         this.time = 0;
@@ -37,13 +39,13 @@ class Viewport {
     setCurrentChild(child) {
         this.currentChild = child;
     }
-    
+
     setLocation() {
         const child = this.currentChild;
 
         if (!child.targets['excludeXYCalc']) {
             child.setLayoutX(this.xNext + child.getMarginLeft() + this.container.getPaddingLeft());
-            child.setLayoutY(this.yNext + child.getMarginTop() + this.container.getPaddingTop());
+            child.setLayoutY(this.yNext + child.getMarginTop() + (this.yNext === this.scrollTop ? this.container.getPaddingTop() : 0));
         }
     }
     
@@ -70,9 +72,15 @@ class Viewport {
     
     overflow() {
         this.xNext = this.scrollLeft - this.xOverflowReset;
-        this.yNext = Math.max(this.currentChild.getRealParent().viewport.ySouth, this.ySouth);
+
+        const child = this.currentChild;
+        const realViewport = child.getRealParent().viewport;
+
+        const always = this.container.getContainerOverflowMode() === 'always' || child.getItemOverflowMode() === 'always';
+
+        this.yNext = always ? Math.max(realViewport.ySouth, this.ySouth) : Math.max(realViewport.flowSouth, this.flowSouth);
     }
-    
+
     appendNewLine() {
         const child = this.currentChild;
         const scale = child.getMeasuringScale();
@@ -87,11 +95,20 @@ class Viewport {
         
 
         this.ySouth = Math.max(this.ySouth, ySouth);
-        this.yEast = this.ySouth;
-        this.yNext = this.ySouth;
+        
+        const layoutBottom = child.y + child.getHeight() * scale + child.getMarginBottom() + child.val('appendNewLine');
 
-        child.getRealParent().viewport.xEast = Math.max(child.getRealParent().viewport.xEast, this.xEast);
-        child.getRealParent().viewport.ySouth = Math.max(child.getRealParent().viewport.ySouth, this.ySouth);
+        this.flowSouth = Math.max(this.flowSouth, layoutBottom);
+     
+        this.yEast = this.ySouth;
+        
+        this.yNext = this.flowSouth;
+        
+        const realViewport = child.getRealParent().viewport;
+        
+        realViewport.flowSouth = Math.max(realViewport.flowSouth, this.flowSouth);   
+        realViewport.xEast = Math.max(realViewport.xEast, this.xEast);
+        realViewport.ySouth = Math.max(realViewport.ySouth, this.ySouth);
     }
 
     computeBoundary(child, space) {
@@ -159,6 +176,11 @@ class Viewport {
             this.xWest = absolute.left;
             this.yWest = absolute.top;
         }
+        
+        const layoutBottom = isDomIsland ? ySouth : child.type === 'BI' ? this.yNext + maxHeight : child.y + child.getLayoutHeight() * scale + child.getMarginBottom();
+
+        this.flowSouth = Math.max(this.flowSouth, layoutBottom);
+        realViewport.flowSouth = Math.max(realViewport.flowSouth, this.flowSouth);
 
         this.yNext += topBaseHeight;
         this.xSouth = this.xNext;
@@ -185,7 +207,7 @@ class Viewport {
         if (this.container.getContainerOverflowMode() === 'always' || child.getItemOverflowMode() === 'always') {
             this.yEast = realViewport.ySouth;
             this.yNext = realViewport.ySouth;
-
+            
             this.xNext = realViewport.xWest;
             this.xSouth = realViewport.xWest;
         }
