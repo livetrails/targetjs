@@ -553,7 +553,7 @@ class TargetData {
             'originalTargetName',
             'originalTModel',
             'activateNextTarget',
-            'invokerTarget',
+            'invokerTargetName',
             'invokerTModel',
             'active',
             'childAction',

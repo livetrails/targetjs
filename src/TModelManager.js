@@ -423,16 +423,16 @@ class TModelManager {
     needsReasyncStyle(tmodel) {
         return tmodel.hasDom() && tmodel.asyncStyleTargetMap?.size > 0;
     }
-
+    
     renderTModels() {
         for (const tmodel of this.lists.rerender) {
             tmodel.isTextOnly() ? tmodel.$dom?.text(tmodel.getHtml()) : tmodel.$dom?.html(tmodel.getHtml());
             tmodel.setLastUpdate('html');
             tmodel.domHeightTimestamp = 0;
-            tmodel.domWidthTimestamp = 0;
-        }
+            tmodel.domWidthTimestamp = 0; 
+        } 
     }
-
+    
     reattachTModels() {
         const reattached = [];
         for (const tmodel of this.lists.reattach) { 

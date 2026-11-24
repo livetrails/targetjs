@@ -1172,18 +1172,18 @@ class BaseModel {
             }
                                             
             const invokerTModel = TargetUtil.currentTModel;
-            const invokerTarget = TargetUtil.currentTargetName;
+            const invokerTargetName = TargetUtil.currentTargetName;
             
             const targetValue = this.targetValues[key] || TargetUtil.emptyValue();
 
             if (this.getParent() === invokerTModel) {
-                TargetUtil.markChildAction(invokerTModel, invokerTarget, this);
+                TargetUtil.markChildAction(invokerTModel, invokerTargetName, this);
             }
 
             targetValue.invokerTModel = invokerTModel;
-            targetValue.invokerTarget = invokerTarget;
+            targetValue.invokerTargetName = invokerTargetName;
             
-            TargetUtil.disableEventBatching(invokerTModel, invokerTarget);
+            TargetUtil.disableEventBatching(invokerTModel, invokerTargetName);
 
             if (this.targetValues[key]) {
                 targetValue.activationTime = TUtil.now();
@@ -1200,7 +1200,6 @@ class BaseModel {
                 targetValue.cycles = this.targets[key]?.cycles ?? targetValue.cycles;                
             }
                   
-            targetValue.onCompleteFired = false;
             this.setTargetStatus(key, 'active');          
         }
 

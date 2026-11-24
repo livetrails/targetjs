@@ -298,7 +298,7 @@ class RunScheduler {
                 this.domFixStyles();
                 return;
             }
-
+            
             this.domProcessing = 0;
             this.needsRerun();
         }).catch(() => {

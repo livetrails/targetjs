@@ -108,7 +108,7 @@ class AnimationManager {
         tmodel.finalRawFrame =  batch.frames[ batch.frames.length - 1];
         
         let anim = el.animate(compactKeyframes, timing);
-        
+           
         for (const originalKey of originalKeys) {
             const cleanKey = TargetUtil.getTargetName(originalKey);
             const recId = this.getRecordId(tmodel, originalKey);
@@ -135,6 +135,23 @@ class AnimationManager {
             }
             this.recordMap.set(recId, rec);
         }
+        
+        anim.addEventListener('finish', () => {
+            let hasRecords = false;
+
+            for (const record of this.recordMap.values()) {
+                if (record.anim !== anim || record.status === 'detached') {
+                    continue;
+                }
+
+                record.status = 'done';
+                hasRecords = true;
+            }
+
+            if (hasRecords) {
+                this.finalizeAnimation(anim);
+            }
+        }, { once: true });
         
         this.startProgressPoller();
     }
@@ -165,7 +182,7 @@ class AnimationManager {
                 continue;
             }            
 
-            if (rec.status === 'playing' || rec.status === 'canceled') {            
+            if (rec.status === 'playing' || rec.status === 'detached') {            
                 continue;
             }
 
@@ -193,9 +210,10 @@ class AnimationManager {
             try {
                 anim.cancel();
             } catch {}
+            
+            getRunScheduler().schedule(50, 'finalizeAnimation');
         }
 
-                getRunScheduler().schedule(50, 'finalizeAnimation');
     }
 
     startProgressPoller() {
@@ -208,10 +226,11 @@ class AnimationManager {
         const tick = () => {
             const animsToFinalize = new Set();
             const pauseMap = new Map();
-            let hasPlaying = false;
+            const detachedRecords = [];
 
             for (const [, record] of this.recordMap) {
-                if (record.status === 'canceled' || record.status === 'detached') {
+                if (record.status === 'detached') {
+                    detachedRecords.push(record);
                     continue;
                 }
 
@@ -227,10 +246,6 @@ class AnimationManager {
 
                     keys.add(originalKey);
                     continue;
-                }
-
-                if (record.status === 'playing') {
-                    hasPlaying = true;
                 }
 
                 const ps = record.anim.playState;
@@ -251,6 +266,10 @@ class AnimationManager {
                     }
                 }
             }
+            
+            for (const record of detachedRecords) {
+                this.recordMap.delete(record.recId);
+            }
 
             for (const [tmodel, keys] of pauseMap) {
                 this.pauseAnimations(tmodel, keys);
@@ -259,10 +278,10 @@ class AnimationManager {
             for (const anim of animsToFinalize) {
                 this.finalizeAnimation(anim);
             }
-            
-            if (this.recordMap.size > 0 || hasPlaying) {
+                            
+            if (this.recordMap.size > 0) {
                 this.waapiPoller.rafId = requestAnimationFrame(tick);
-            } else {        
+            } else {
                 this.waapiPoller.alive = false;
                 this.waapiPoller.rafId = 0;
             }
@@ -500,7 +519,7 @@ class AnimationManager {
         const rec = this.recordMap.get(recId);
 
         if (rec) {
-            rec.status = 'canceled';
+            rec.status = 'detached';
         }
     }
     
@@ -540,7 +559,7 @@ class AnimationManager {
         const keysByTModel = new Map();
 
         for (const record of this.recordMap.values()) {
-            if (record.status === "canceled" || record.status === "detached") {
+            if (record.status === "detached") {
                 continue;
             }
 
@@ -602,7 +621,7 @@ class AnimationManager {
         const animations = new Set();
 
         for (const record of records) {
-            if (record.status !== "canceled" && record.status !== "detached") {
+            if (record.status !== "detached") {
                 AnimationUtil.updateTModelFromRecord(record);
             }
 
@@ -678,7 +697,7 @@ class AnimationManager {
                 continue;
             }
 
-            if (record.status === 'canceled' || record.status === 'detached') {
+            if (record.status === 'detached') {
                 continue;
             }
 

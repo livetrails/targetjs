@@ -360,7 +360,7 @@ class TargetUtil {
         TargetUtil.cleanupVisibleComplete(tmodel, key);
 
         const cannotBeCleaned = tmodel.isTargetComplete(key) || !TargetUtil.isTargetFullyCompleted(tmodel, key);
-        
+   
         if (cannotBeCleaned) {
             return false;
         }
@@ -471,10 +471,17 @@ class TargetUtil {
 
         tryCleanupAndBubble(targetValue.originalTModel, targetValue.originalTargetName);
 
-        if (!tmodel.isTargetImperative(key)) {
-            tryCleanupAndBubble(targetValue.invokerTModel, targetValue.invokerTargetName);
+        const { originalTModel, originalTargetName } = TargetUtil.getOriginalNames(tmodel, key);
 
-            tryCleanupAndBubble(tmodel.targets[key]?.originalTModel, tmodel.targets[key]?.originalTargetName);
+        const invokerTModel = targetValue.invokerTModel;
+        const invokerTargetName = targetValue.invokerTargetName;
+
+        if (invokerTModel && invokerTargetName) {
+            TargetUtil.cleanupTarget(invokerTModel, invokerTargetName);
+        }
+
+        if (originalTModel && originalTargetName && (originalTModel !== invokerTModel || originalTargetName !== invokerTargetName)) {
+            TargetUtil.cleanupTarget(originalTModel, originalTargetName);
         }
     }
 

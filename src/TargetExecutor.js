@@ -25,7 +25,12 @@ class TargetExecutor {
                 tmodel.resetTargetCycle(key);
             }
             tmodel.resetTargetStep(key);
-            tmodel.resetTargetInitialValue(key);       
+            tmodel.resetTargetInitialValue(key);
+
+            if (tmodel.targetValues[key]) {
+                tmodel.targetValues[key].onCompleteFired = false;
+            }
+
         }
     }
     
