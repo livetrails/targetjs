@@ -475,7 +475,7 @@ class TargetData {
         onClick: ['clickEvents', 'touchStart', 'mouseStart'],
         onHover: ['moveEvents'],
         onSwipe: ['touchStart', 'mouseStart'],
-        onPinch: ['touchStart'],
+        onPinch: ['touchStart', 'mouseStart', 'wheelEvents'],
         onEnter: ['enterEvents'],
         onLeave: ['leaveEvents'],
         onScroll: ['touchStart', 'mouseStart', 'wheelEvents'],

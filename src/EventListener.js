@@ -443,12 +443,16 @@ class EventListener {
 
         const { type: originalName } = event;             
         const eventItem = this.allEvents[originalName];
-                                
+                                       
         if (!eventItem) {
             return;
         }
               
         let { eventName, inputType, eventType, order: eventOrder, queue, rateLimit } = eventItem;
+        
+        if (eventName === 'mousedown' && event.button !== 0) {
+            return;
+        }           
            
         const now = TUtil.now();
                 
@@ -553,8 +557,19 @@ class EventListener {
    
                 break;
                 
-            case 'mousemove':
+            case 'mousemove':   
             case 'touchmove': {
+                if (eventName === 'mousemove' && event.pointerType !== 'touch' && this.touchCount > 0 && event.buttons === 0) {
+                    this.detachDocumentEvents('documentDragEvents');
+                    this.clearStart();
+                    this.clearEnd();
+                    this.clearTouch();
+
+                    this.touchCount = 0;
+                    this.currentHandlers.gestureTarget = undefined;
+                 
+                    this.canFindHandlers = true;
+                }    
                 touch = this.getTouch(event);
 
                 this.cursor.x = touch.x;
@@ -1131,9 +1146,10 @@ class EventListener {
             const length1 = TUtil.distance(this.start0.x, this.start0.y, this.start1.x, this.start1.y);
             const length2 = TUtil.distance(this.end0.x, this.end0.y, this.end1.x, this.end1.y);
 
-            const diff = length2 - length1;
+            this.currentTouch.pinchDelta = length1 > 0 ? length2 / length1 - 1 : 0;
 
-            this.currentTouch.pinchDelta = diff > 0 ? 0.3 : diff < 0 ? -0.3 : 0;
+            this.start0 = this.end0;
+            this.start1 = this.end1;
         }
     }
 
@@ -1219,7 +1235,7 @@ class EventListener {
         this.start0 = this.getTouch(event);
 
         if (event.ctrlKey && 'deltaY' in event) {
-            this.currentTouch.pinchDelta = -event.deltaY / 10;
+            this.currentTouch.pinchDelta = Math.exp(-event.deltaY * 0.002) - 1;
         } else if ('deltaX' in event) {
             deltaX = event.deltaX;
             deltaY = event.deltaY;

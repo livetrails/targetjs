@@ -5,7 +5,7 @@ import { TModel } from "./TModel.js";
 import { TUtil } from "./TUtil.js";
 import { AnimationUtil } from "./AnimationUtil.js"; 
 import { Easing } from "./Easing.js";
-import { getLoader, getRunScheduler, getAnimationManager, getLocationManager } from "./App.js";
+import { getLoader, getRunScheduler, getLocationManager } from "./App.js";
 import { TModelFactory } from "./TModelFactory.js";
 
 /**
@@ -42,22 +42,17 @@ class TargetExecutor {
     }
     
     static assignImperativeTargetValue(tmodel, key, originalTargetName, originalTModel) {
-        tmodel.targetValues[key] = tmodel.targetValues[key] || TargetUtil.emptyValue();
+        tmodel.targetValues[key] ||= TargetUtil.emptyValue();
+
         const targetValue = tmodel.targetValues[key];
-        
+
         targetValue.isImperative = true;
         targetValue.originalTargetName = originalTargetName;
         targetValue.originalTModel = originalTModel;
-          
-        const isAnimating = tmodel.animatingMap?.has(key);
 
-        if (isAnimating && tmodel.getTargetSteps(key) > 0) {
-            getAnimationManager().cancelKey(tmodel, key);
-        }        
-        
         return targetValue;
     }
-    
+
     static resetImperativeProgress(targetValue) {
         targetValue.step = 0;
         targetValue.cycle = 0;

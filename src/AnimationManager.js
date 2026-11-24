@@ -767,9 +767,9 @@ class AnimationManager {
     }
     
     callFireOnEndOnConflict(tmodel, lastBatch, newBatch) {
-        const oldMap = lastBatch.keyMap; // cleanKey -> Set
+        const oldMap = lastBatch.keyMap;
         const newMap = newBatch.keyMap;
-        
+
         for (const cleanKey of Object.keys(newMap)) {
             const oldSet = oldMap[cleanKey];
             const newSet = newMap[cleanKey];
@@ -777,28 +777,44 @@ class AnimationManager {
                 continue;
             }
 
-            // Any old originalKey that’s not present anymore should be completed/canceled.
             for (const oldOriginal of oldSet) {
                 if (newSet.has(oldOriginal)) {
                     continue;
                 }
-                
+
                 const recId = this.getRecordId(tmodel, oldOriginal);
                 const oldRec = this.recordMap.get(recId);
 
-                if (oldRec) {
-                    this.completeRecord(tmodel, oldRec, cleanKey, oldOriginal);
-
-                    oldRec.status = 'complete';
-                    oldRec.tmodel.removeFromAnimatingMap(oldOriginal);
-                    this.recordMap.delete(recId);
-
-                    oldRec.hooks.fireOnEnd(oldRec.tmodel, oldOriginal);
+                if (!oldRec) {
+                    continue;
                 }
+
+                const result = AnimationUtil.getValueFromAnim(oldRec);
+
+                if (result && TUtil.isDefined(result.value)) {
+                    this.setAt(tmodel, cleanKey, result.value);
+                    tmodel.val(oldOriginal, result.value);
+                    tmodel.setActual(oldOriginal, result.value);
+                }
+
+                const targetValue = tmodel.targetValues[oldOriginal];
+
+                if (targetValue) {
+                    targetValue.step = tmodel.getTargetSteps(oldOriginal);
+                    targetValue.cycle = Math.max(0, tmodel.getTargetCycles(oldOriginal) - 1);
+
+                    if (targetValue.valueList?.length) {
+                        targetValue.valuePointer = targetValue.valueList.length;
+                    }
+                }
+
+                tmodel.removeFromAnimatingMap(oldOriginal);
+                oldRec.status = 'done';
+
+                oldRec.hooks.fireOnEnd(tmodel, oldOriginal);
             }
         }
     }
-   
     mergeBatches(lastBatch, newBatch) {
         const newCleanKeys = new Set(Object.keys(newBatch.keyMap));
         const oldKeyMap = {};
