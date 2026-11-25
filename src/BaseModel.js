@@ -1199,6 +1199,8 @@ class BaseModel {
                 this.targetValues[key] = targetValue;
                 targetValue.cycles = this.targets[key]?.cycles ?? targetValue.cycles;                
             }
+            
+            targetValue.onCompleteFired = false;
                   
             this.setTargetStatus(key, 'active');          
         }
