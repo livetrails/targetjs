@@ -55,7 +55,7 @@ class TargetUtil {
         
         const getPrevValue = () => {
             if (prevKey) {
-                if (getLoader().isLoading(tmodel, prevKey)) {
+                if (getLoader().getLoadingEntry(tmodel, prevKey)) {
                     return getLoader().getLoadingItemValue(tmodel, prevKey, key);
                 } else {
                     return tmodel.targetValues[prevKey] ? tmodel.targetValues[prevKey].actual : tmodel.val(prevKey);
@@ -191,7 +191,7 @@ class TargetUtil {
         }
 
         const isSingleFetchTarget = nextTarget?.endsWith('$') && !isEndTrigger;
-        const loadingEntry = isSingleFetchTarget ? getLoader().isLoading(tmodel, key) : undefined;
+        const loadingEntry = isSingleFetchTarget ? getLoader().getLoadingEntry(tmodel, key) : undefined;
         const hasBufferedResults = !!loadingEntry && loadingEntry.activeIndex < loadingEntry.entryCount;
         const fetchAction = TargetUtil.hasFetchAction(tmodel, key) || hasBufferedResults;
 
@@ -244,8 +244,6 @@ class TargetUtil {
                         if (!tmodel.targetValues[nextTarget]?.loadingSourceKey && tmodel.canTargetBeActivated(nextTarget) &&
                                 getLoader().isNextLoadingItemSuccessful(tmodel, key)) {
                             TargetUtil.activateTarget(tmodel, nextTarget);
-                            tmodel.targetValues[nextTarget].loadingSourceKey = key;
-                            getLoader().nextActiveItem(tmodel, key);
                             nextTargetActivated = true;
                         }
                     }
@@ -271,6 +269,8 @@ class TargetUtil {
         }
 
         if (nextTargetActivated) {
+            TargetUtil.selectLoadingResult(tmodel, key, nextTarget);
+
             if (!isEndTrigger) {
                 targetValue.lastHandledUpdateCount = targetValue.updateCount;
 
@@ -307,6 +307,31 @@ class TargetUtil {
 
         if (isCompleteMode) {
             TargetUtil.cleanupTarget(tmodel, key);
+        }
+    }
+
+    static selectLoadingResult(tmodel, sourceKey, nextTarget) {
+        const loader = getLoader();
+        const entry = loader.getLoadingEntry(tmodel, sourceKey);
+        const results = tmodel.val(TUtil.getLoadTargetName(sourceKey));
+
+        if (!entry || !Array.isArray(results)) {
+            return;
+        }
+
+        const nextValue = tmodel.targetValues[nextTarget];
+        nextValue.loadingSourceKey = sourceKey;
+
+        if (nextTarget.endsWith('$$')) {
+            nextValue.loadingResult = loader.isBatchRequest(tmodel, sourceKey) ? tmodel.val(sourceKey) : results.slice();
+            entry.accessIndex = entry.entryCount;
+        } else {
+            const index = loader.nextActiveItem(tmodel, sourceKey);
+            nextValue.loadingResult = results[index];
+            entry.accessIndex = Math.max(entry.accessIndex, index + 1);
+
+            tmodel.val(sourceKey, nextValue.loadingResult);
+            TUtil.handleValueChange(tmodel, sourceKey);
         }
     }
 
@@ -399,6 +424,7 @@ class TargetUtil {
 
         if (sourceKey) {
             delete tmodel.targetValues[key].loadingSourceKey;
+            delete tmodel.targetValues[key].loadingResult;
             TargetUtil.shouldActivateNextTarget(tmodel, sourceKey, 0, 0, false, "update");
         }
 
@@ -517,7 +543,8 @@ class TargetUtil {
     static activateTargetOnce(tmodel, nextTarget) {
         const nextTargetValue = (tmodel.targetValues[nextTarget] ||= TargetUtil.emptyValue());
         const last = nextTargetValue.activationTime ?? 0;
-        if (last > 0 && last >= tmodel.getLastUpdate(nextTarget)) {
+        if (last > 0 && last >= tmodel.getLastUpdate(nextTarget) &&
+                !tmodel.isTargetComplete(nextTarget)) {
             return false;
         }
 
@@ -698,6 +725,16 @@ class TargetUtil {
 
             if (tmodel.isTargetImperative(targetName)) {
                 continue;
+            }
+
+            const nextTarget = tmodel.targets[targetName]?.activateNextTarget;
+
+            if (nextTarget?.endsWith('$') && !nextTarget.endsWith('$$')) {
+                const loading = getLoader().getLoadingEntry(tmodel, targetName);
+
+                if (loading && loading.activeIndex < loading.entryCount) {
+                    return "pending loading results";
+                }
             }
 
             if (tmodel.isTargetComplete(targetName)) {
@@ -1152,6 +1189,8 @@ class TargetUtil {
         }
 
         if (targetValue) {
+            delete targetValue.loadingSourceKey;
+            delete targetValue.loadingResult;
             targetValue.completeCount = 0;
             targetValue.triggeredByCompleteCountMap = undefined;
             targetValue.resetFlag = true;

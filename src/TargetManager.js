@@ -72,9 +72,7 @@ class TargetManager {
         TargetExecutor.prepareTarget(tmodel, key);
         TargetExecutor.executeDeclarativeTarget(tmodel, key);
           
-        if (!TargetUtil.hasFetchAction(tmodel, key)) {
-            TargetUtil.shouldActivateNextTarget(tmodel, key);
-        }
+        TargetUtil.shouldActivateNextTarget(tmodel, key);
     }
 
     setActualValues(tmodel, updatingList) {

@@ -89,16 +89,24 @@ class LoadingManager {
     }
 
     fetch(tmodel, urlOrConfig, query, cacheId) {
+        const targetName = tmodel.key;
+        const cycle = tmodel.getTargetCycle(targetName);
+
         if (urlOrConfig && typeof urlOrConfig === 'object' && !Array.isArray(urlOrConfig)) {
             const {url, cacheId: cfgCacheId, ...cfgQuery} = urlOrConfig;
             this.fetchOne(tmodel, url, cfgQuery, cfgCacheId ?? cacheId);
-            return;
+        } else {
+            const urls = Array.isArray(urlOrConfig) ? urlOrConfig : [urlOrConfig];
+            urls.forEach(singleUrl => {
+                this.fetchOne(tmodel, singleUrl, query, cacheId);
+            });
         }
 
-        const urls = Array.isArray(urlOrConfig) ? urlOrConfig : [urlOrConfig];
-        urls.forEach(singleUrl => {
-            this.fetchOne(tmodel, singleUrl, query, cacheId);
-        });
+        // Only mark this cycle after all requests, including cache hits, register.
+        const entry = this.getLoadingEntry(tmodel, targetName);
+        if (entry) {
+            entry.cycle = cycle;
+        }
     }
 
     fetchOne(tmodel, url, query, cacheId) {
@@ -121,6 +129,8 @@ class LoadingManager {
     }
     
     fetchImage(tmodel, url, cacheId) {
+        const targetName = tmodel.key;
+        const cycle = tmodel.getTargetCycle(targetName);
         const urls = Array.isArray(url) ? url : [url];
 
         urls.forEach(src => {
@@ -140,6 +150,11 @@ class LoadingManager {
                 fetchStatus => this.loadImage(src, fetchStatus)
             );
         });
+
+        const entry = this.getLoadingEntry(tmodel, targetName);
+        if (entry) {
+            entry.cycle = cycle;
+        }
     }
     
     getFetchKey(tmodel, url, query) {
@@ -165,14 +180,15 @@ class LoadingManager {
             resultCount: 0,
             errorCount: 0,
             activeIndex: 0,
-            accessIndex: 0
+            accessIndex: 0,
+            cycle: -1
         };
     }
 
     addToTModelKeyMap(tmodel, targetName, fetchId, cacheId, fetchMap) {
         const key = this.getTModelKey(tmodel, targetName);
         const loadTargetName = TUtil.getLoadTargetName(targetName);
-        const loadingComplete = this.isLoadingComplete(tmodel, targetName);
+        const loadingComplete = this.isAllLoadingComplete(tmodel, targetName);
 
         let modelEntry = this.tmodelKeyMap[key];
 
@@ -220,7 +236,7 @@ class LoadingManager {
         delete this.tmodelKeyMap[key];
     }
 
-    isLoading(tmodel, targetName) {
+    getLoadingEntry(tmodel, targetName) {
         const key = this.getTModelKey(tmodel, targetName);
         return this.tmodelKeyMap[key];
     }
@@ -230,11 +246,19 @@ class LoadingManager {
         return this.tmodelKeyMap[key] && this.tmodelKeyMap[key].resultCount === this.tmodelKeyMap[key].entryCount;
     }
 
-    isLoadingComplete(tmodel, targetName) {
+    isAllLoadingComplete(tmodel, targetName) {
         const key = this.getTModelKey(tmodel, targetName);
-        return this.tmodelKeyMap[key] ? this.tmodelKeyMap[key].resultCount === this.tmodelKeyMap[key].entryCount 
-                    && this.tmodelKeyMap[key].activeIndex === this.tmodelKeyMap[key].entryCount 
-                    && this.tmodelKeyMap[key].resultCount === tmodel.getTargetCycles(targetName) : false;
+        const entry = this.tmodelKeyMap[key];
+
+        if (!entry) {
+            return false;
+        }
+
+        const target = tmodel.targets[targetName];
+
+        const cycles = target?.isInterval ? 1 : tmodel.getTargetCycles(targetName);
+
+        return entry.entryCount === entry.resultCount && entry.cycle >= cycles - 1;
     }
 
     resetLoadingError(tmodel, targetName) {
@@ -255,7 +279,7 @@ class LoadingManager {
     }
 
     isNextLoadingItemSuccessful(tmodel, targetName) {
-        const entry = this.isLoading(tmodel, targetName);
+        const entry = this.getLoadingEntry(tmodel, targetName);
         if (!entry || entry.activeIndex >= entry.entryCount) {
             return false;
         }
@@ -266,6 +290,12 @@ class LoadingManager {
     }
 
     getLoadingItemValue(tmodel, prevTargetName, currentTargetName) {
+        const currentValue = tmodel.targetValues[currentTargetName];
+
+        if (currentValue?.loadingSourceKey === prevTargetName && Object.hasOwn(currentValue, 'loadingResult')) {
+            return currentValue.loadingResult;
+        }
+
         const key = this.getTModelKey(tmodel, prevTargetName);
         const tmodelEntry = this.tmodelKeyMap[key];
         
@@ -301,6 +331,28 @@ class LoadingManager {
     fetchCache(cacheId) {
         return this.cacheMap[cacheId];
     }
+
+    isBatchRequest(tmodel, targetName) {
+        const target = tmodel.targets[targetName];
+        const request = tmodel.targetValues[targetName]?.value;
+
+        return Array.isArray(request) || (!target?.isInterval && tmodel.getTargetCycles(targetName) > 1);
+    }
+
+    publishLoadingValue(tmodel, targetName, result) {
+        const nextTarget = tmodel.targets[targetName]?.activateNextTarget;
+
+        // A $ consumer publishes its selected item when it activates.
+        if (nextTarget?.endsWith('$') && !nextTarget.endsWith('$$')) {
+            return;
+        }
+
+        const results = tmodel.val(TUtil.getLoadTargetName(targetName));
+        const value = this.isBatchRequest(tmodel, targetName) ? results.slice() : result;
+
+        tmodel.val(targetName, value);
+        TUtil.handleValueChange(tmodel, targetName);
+    }
     
     calculateTargetStatus(tmodel, key) {
 
@@ -309,7 +361,7 @@ class LoadingManager {
               
         if (tmodel.isTargetInLoop(key) || cycle < cycles - 1) {
             return 'active'; 
-        } else if (!this.isLoadingSuccessful(tmodel, key)) {
+        } else if (!this.isAllLoadingComplete(tmodel, key)) {
             return 'fetching';
         } else {
             return 'done';
@@ -351,8 +403,7 @@ class LoadingManager {
                 targetResults[fetchEntry.order] = res.result;
             }
 
-            tmodel.val(targetName, res.result);
-            TUtil.handleValueChange(tmodel, targetName);
+            this.publishLoadingValue(tmodel, targetName, res.result);
             
             const newStatus = this.calculateTargetStatus(tmodel, targetName);
             tmodel.setTargetStatus(targetName, newStatus);  
@@ -403,12 +454,11 @@ class LoadingManager {
                 targetResults[fetchEntry.order] = res;
             }
 
-            tmodel.val(targetName, res);
-            TUtil.handleValueChange(tmodel, targetName);
+            this.publishLoadingValue(tmodel, targetName, res);
             
             tmodelEntry.errorCount++;
 
-            this.callOnErrorHandler(tmodel, targetName);
+            this.callOnErrorHandler(tmodel, targetName, res);
 
             const newStatus = this.calculateTargetStatus(tmodel, targetName);
             tmodel.setTargetStatus(targetName, newStatus);  
@@ -439,12 +489,12 @@ class LoadingManager {
         }
     }
 
-    callOnErrorHandler(tmodel, targetName) {
+    callOnErrorHandler(tmodel, targetName, result) {
         const onError = tmodel.targets[targetName]?.onError;
         if (onError) {
             if (typeof onError === 'function') {
                 tmodel.setTargetMethodName(targetName, 'onError');
-                onError.call(tmodel, tmodel.val(targetName));
+                onError.call(tmodel, result);
             } else if (Array.isArray(onError)) {
                 onError.forEach(t => TargetUtil.activateSingleTarget(tmodel, t));
             } else {
@@ -529,6 +579,7 @@ class LoadingManager {
                 targetName: entry.targetName,
                 entryCount: entry.entryCount,
                 resultCount: entry.resultCount,
+                cycle: entry.cycle,
                 errorCount: entry.errorCount,
                 activeIndex: entry.activeIndex,
                 accessIndex: entry.accessIndex
@@ -635,6 +686,7 @@ class LoadingManager {
                 fetchMap: {},
                 entryCount: savedEntry.entryCount,
                 resultCount: savedEntry.resultCount,
+                cycle: savedEntry.cycle,
                 errorCount: savedEntry.errorCount,
                 activeIndex: savedEntry.activeIndex,
                 accessIndex: savedEntry.accessIndex

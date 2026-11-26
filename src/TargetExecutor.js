@@ -172,7 +172,12 @@ class TargetExecutor {
     static updateTarget(tmodel, targetValue, key, enforce, snapUpdates) {
         tmodel.setLastUpdate(key);
 
-        if (tmodel.getTargetSteps(key) === 0) {
+        const isFetchRequest = !targetValue.isImperative &&
+            (TargetParser.isFetchTarget(key, targetValue.value) ||
+             TargetParser.isFetchImageTarget(key, targetValue.value));
+
+        // Fetch request values describe the input; the loader owns the result.
+        if (tmodel.getTargetSteps(key) === 0 && !isFetchRequest) {
             TargetExecutor.snapActualToTarget(tmodel, key, snapUpdates);
         }
 
