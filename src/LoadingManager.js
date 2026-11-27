@@ -269,15 +269,6 @@ class LoadingManager {
         }
     }
 
-    nextActiveItem(tmodel, targetName) {
-        const key = this.getTModelKey(tmodel, targetName);
-        const modelEntry = this.tmodelKeyMap[key];
-        if (!modelEntry) {
-            return false;
-        }
-        return modelEntry.activeIndex++;
-    }
-
     isNextLoadingItemSuccessful(tmodel, targetName) {
         const entry = this.getLoadingEntry(tmodel, targetName);
         if (!entry || entry.activeIndex >= entry.entryCount) {
@@ -392,8 +383,6 @@ class LoadingManager {
 
             const fetchEntry = tmodelEntry.fetchMap[fetchId];
 
-            this.callOnSuccessHandler(tmodel, targetName, { ...res, order: fetchEntry.order} );
-
             let targetResults = tmodel.val(loadTargetName);
 
             if (targetResults) {
@@ -404,6 +393,8 @@ class LoadingManager {
             }
 
             this.publishLoadingValue(tmodel, targetName, res.result);
+            
+            this.callOnSuccessHandler(tmodel, targetName, { ...res, order: fetchEntry.order} );            
             
             const newStatus = this.calculateTargetStatus(tmodel, targetName);
             tmodel.setTargetStatus(targetName, newStatus);  

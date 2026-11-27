@@ -314,21 +314,21 @@ class TargetUtil {
         const loader = getLoader();
         const entry = loader.getLoadingEntry(tmodel, sourceKey);
         const results = tmodel.val(TUtil.getLoadTargetName(sourceKey));
-
+        
         if (!entry || !Array.isArray(results)) {
             return;
         }
-
+        
         const nextValue = tmodel.targetValues[nextTarget];
         nextValue.loadingSourceKey = sourceKey;
-
+        
         if (nextTarget.endsWith('$$')) {
             nextValue.loadingResult = loader.isBatchRequest(tmodel, sourceKey) ? tmodel.val(sourceKey) : results.slice();
             entry.accessIndex = entry.entryCount;
         } else {
-            const index = loader.nextActiveItem(tmodel, sourceKey);
-            nextValue.loadingResult = results[index];
-            entry.accessIndex = Math.max(entry.accessIndex, index + 1);
+            
+            nextValue.loadingResult = results[entry.activeIndex++];
+            entry.accessIndex = Math.max(entry.accessIndex, entry.activeIndex);
 
             tmodel.val(sourceKey, nextValue.loadingResult);
             TUtil.handleValueChange(tmodel, sourceKey);
